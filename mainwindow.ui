@@ -1,0 +1,1422 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="windowModality">
+   <enum>Qt::WindowModal</enum>
+  </property>
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>882</width>
+    <height>551</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>882</width>
+    <height>531</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>16777215</width>
+    <height>16777215</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>Contact Manager</string>
+  </property>
+  <property name="windowIcon">
+   <iconset resource="Icon.qrc">
+    <normaloff>:/icon-image.png</normaloff>:/icon-image.png</iconset>
+  </property>
+  <property name="accessibleName">
+   <string>Contact Manager</string>
+  </property>
+  <property name="accessibleDescription">
+   <string>Contact Manager</string>
+  </property>
+  <widget class="QWidget" name="centralWidget">
+   <property name="accessibleName">
+    <string>Contact Manager</string>
+   </property>
+   <property name="accessibleDescription">
+    <string>Contact Manager</string>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item>
+     <widget class="QTabWidget" name="tabBar">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+      <property name="accessibleName">
+       <string>Page Select</string>
+      </property>
+      <property name="accessibleDescription">
+       <string>Page Select</string>
+      </property>
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="OverviewTab">
+       <property name="whatsThis">
+        <string/>
+       </property>
+       <property name="accessibleName">
+        <string>Contact Overview</string>
+       </property>
+       <property name="accessibleDescription">
+        <string/>
+       </property>
+       <attribute name="title">
+        <string>&amp;Overview</string>
+       </attribute>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <widget class="QTextEdit" name="editOverview">
+          <property name="focusPolicy">
+           <enum>Qt::StrongFocus</enum>
+          </property>
+          <property name="accessibleName">
+           <string>Contact Overview</string>
+          </property>
+          <property name="html">
+           <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Noto Sans'; font-size:10pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Sans Serif'; font-size:16pt; color:#5500ff;&quot;&gt;Contact Overview&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="textInteractionFlags">
+           <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="CalendarTab">
+       <property name="accessibleName">
+        <string>Appointments</string>
+       </property>
+       <property name="accessibleDescription">
+        <string/>
+       </property>
+       <attribute name="title">
+        <string>&amp;Calendar</string>
+       </attribute>
+       <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_4">
+          <item>
+           <widget class="SafeListView" name="listCalendar">
+            <property name="focusPolicy">
+             <enum>Qt::StrongFocus</enum>
+            </property>
+            <property name="accessibleName">
+             <string>Calendar</string>
+            </property>
+            <property name="editTriggers">
+             <set>QAbstractItemView::NoEditTriggers</set>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QPushButton" name="newAppointmentButton">
+            <property name="accessibleName">
+             <string>Make New Appointment</string>
+            </property>
+            <property name="accessibleDescription">
+             <string/>
+            </property>
+            <property name="text">
+             <string>&amp;New</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="insertAppointmentButton">
+            <property name="accessibleName">
+             <string>Make New Appointment</string>
+            </property>
+            <property name="accessibleDescription">
+             <string/>
+            </property>
+            <property name="text">
+             <string>&amp;Insert After</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="moveAppointmentButton">
+            <property name="accessibleName">
+             <string>Update Appointment</string>
+            </property>
+            <property name="accessibleDescription">
+             <string/>
+            </property>
+            <property name="text">
+             <string>&amp;Update</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="removeAppointmentButton">
+            <property name="accessibleName">
+             <string>Remove Appointment</string>
+            </property>
+            <property name="accessibleDescription">
+             <string/>
+            </property>
+            <property name="text">
+             <string>&amp;Remove</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="verticalSpacer">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="ToDoTab">
+       <attribute name="title">
+        <string>To Do &amp;List</string>
+       </attribute>
+       <layout class="QHBoxLayout" name="horizontalLayout_5">
+        <item>
+         <widget class="SafeTextEdit" name="editToDo"/>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="EditContactDetailsTab">
+       <property name="accessibleName">
+        <string>Edit Contact Details</string>
+       </property>
+       <property name="accessibleDescription">
+        <string/>
+       </property>
+       <attribute name="title">
+        <string>Contact &amp;Details</string>
+       </attribute>
+       <layout class="QHBoxLayout" name="horizontalLayout_22">
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_8">
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QFrame" name="NamesFrame">
+            <property name="maximumSize">
+             <size>
+              <width>500</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Raised</enum>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_5">
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_11">
+               <item>
+                <widget class="QLabel" name="labelNames">
+                 <property name="minimumSize">
+                  <size>
+                   <width>100</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>&lt;u&gt;N&lt;/u&gt;ame(s)</string>
+                 </property>
+                 <property name="textFormat">
+                  <enum>Qt::RichText</enum>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="SafeLineEdit" name="editFirstName">
+                 <property name="accessibleName">
+                  <string>First Names</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="labelSurname">
+                 <property name="text">
+                  <string>Surname</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="SafeLineEdit" name="editSurname">
+                 <property name="accessibleName">
+                  <string>Surname</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_12">
+               <item>
+                <widget class="QLabel" name="labelOrganisation">
+                 <property name="minimumSize">
+                  <size>
+                   <width>100</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>Organisation</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="SafeLineEdit" name="editBusiness">
+                 <property name="accessibleName">
+                  <string>Organisation</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_13">
+               <item>
+                <widget class="QLabel" name="labelContactType">
+                 <property name="minimumSize">
+                  <size>
+                   <width>100</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>Contact Type</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QComboBox" name="comboBoxContactType">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="accessibleName">
+                  <string>Contact Type</string>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>Unknown</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Business</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Client</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Family</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Friend</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Other</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkHidden">
+                 <property name="accessibleName">
+                  <string>Hidden</string>
+                 </property>
+                 <property name="accessibleDescription">
+                  <string/>
+                 </property>
+                 <property name="autoFillBackground">
+                  <bool>false</bool>
+                 </property>
+                 <property name="text">
+                  <string>Hidden</string>
+                 </property>
+                 <property name="tristate">
+                  <bool>false</bool>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QFrame" name="frame_3">
+            <property name="maximumSize">
+             <size>
+              <width>500</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Raised</enum>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_4">
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_8">
+               <item>
+                <widget class="QLabel" name="label">
+                 <property name="minimumSize">
+                  <size>
+                   <width>100</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <underline>false</underline>
+                  </font>
+                 </property>
+                 <property name="frameShape">
+                  <enum>QFrame::NoFrame</enum>
+                 </property>
+                 <property name="lineWidth">
+                  <number>1</number>
+                 </property>
+                 <property name="text">
+                  <string>e&lt;u&gt;M&lt;/u&gt;ail</string>
+                 </property>
+                 <property name="textFormat">
+                  <enum>Qt::RichText</enum>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="SafeLineEdit" name="editEmail">
+                 <property name="accessibleName">
+                  <string>Email</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_9">
+               <item>
+                <widget class="QLabel" name="LabelAltEmail">
+                 <property name="minimumSize">
+                  <size>
+                   <width>100</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>Alt eMail</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="SafeLineEdit" name="editEmail2">
+                 <property name="accessibleName">
+                  <string>Email 2</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_10">
+               <item>
+                <widget class="QLabel" name="labelWebSite">
+                 <property name="minimumSize">
+                  <size>
+                   <width>100</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>Web Site</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="SafeLineEdit" name="editWebAddress">
+                 <property name="accessibleName">
+                  <string>Web Site</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QFrame" name="frame">
+            <property name="maximumSize">
+             <size>
+              <width>500</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Raised</enum>
+            </property>
+            <layout class="QHBoxLayout" name="horizontalLayout_7">
+             <item>
+              <layout class="QVBoxLayout" name="verticalLayout_2">
+               <item>
+                <widget class="QLabel" name="labelAddress">
+                 <property name="text">
+                  <string>&lt;u&gt;A&lt;/u&gt;ddress</string>
+                 </property>
+                 <property name="textFormat">
+                  <enum>Qt::RichText</enum>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="SafeTextEdit" name="editAddress">
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="accessibleName">
+                  <string>Postal Address</string>
+                 </property>
+                 <property name="tabChangesFocus">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QVBoxLayout" name="verticalLayout_3">
+               <item>
+                <widget class="QLabel" name="labelSecondaryAddress">
+                 <property name="text">
+                  <string>Secondary Address</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="SafeTextEdit" name="editAddress2">
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="accessibleName">
+                  <string>Second Postal Address</string>
+                 </property>
+                 <property name="tabChangesFocus">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_9">
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QFrame" name="frame_2">
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Raised</enum>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_7">
+             <property name="leftMargin">
+              <number>9</number>
+             </property>
+             <property name="topMargin">
+              <number>9</number>
+             </property>
+             <property name="rightMargin">
+              <number>9</number>
+             </property>
+             <property name="bottomMargin">
+              <number>9</number>
+             </property>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_17">
+               <item>
+                <widget class="QLabel" name="labelHomePhone">
+                 <property name="minimumSize">
+                  <size>
+                   <width>100</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>100</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="sizeIncrement">
+                  <size>
+                   <width>0</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>&lt;u&gt;P&lt;/u&gt;hone - Home</string>
+                 </property>
+                 <property name="textFormat">
+                  <enum>Qt::RichText</enum>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="SafeLineEdit" name="editHome">
+                 <property name="accessibleName">
+                  <string>Home Phone</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_18">
+               <item>
+                <widget class="QLabel" name="labelWorkPhone">
+                 <property name="minimumSize">
+                  <size>
+                   <width>100</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>100</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="sizeIncrement">
+                  <size>
+                   <width>0</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>Phone - Work</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="SafeLineEdit" name="editWork">
+                 <property name="accessibleName">
+                  <string>Work Phone</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_19">
+               <item>
+                <widget class="QLabel" name="labelMobilePhone">
+                 <property name="minimumSize">
+                  <size>
+                   <width>100</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>100</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="sizeIncrement">
+                  <size>
+                   <width>0</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>Phone - Mobile</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="SafeLineEdit" name="editMobile">
+                 <property name="accessibleName">
+                  <string>Mobile Phone</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_20">
+               <item>
+                <widget class="QLabel" name="LabelVoip">
+                 <property name="minimumSize">
+                  <size>
+                   <width>100</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>100</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>Voip / Skype</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="SafeLineEdit" name="editVoip">
+                 <property name="accessibleName">
+                  <string>VOIP Phone</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_21">
+               <item>
+                <widget class="SafeLineEdit" name="editHome2Title">
+                 <property name="minimumSize">
+                  <size>
+                   <width>100</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>100</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="accessibleName">
+                  <string>Other Phone Title</string>
+                 </property>
+                 <property name="text">
+                  <string>other</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="SafeLineEdit" name="editHome2">
+                 <property name="accessibleName">
+                  <string>Other Phone</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QFrame" name="frame_5">
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Raised</enum>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_6">
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_14">
+               <item>
+                <widget class="QLabel" name="labelBirthday">
+                 <property name="minimumSize">
+                  <size>
+                   <width>100</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>&lt;u&gt;B&lt;/u&gt;irthday</string>
+                 </property>
+                 <property name="textFormat">
+                  <enum>Qt::RichText</enum>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="AccessibleDateTimeEdit" name="editDateOfBirth">
+                 <property name="accessibleName">
+                  <string>Birthday</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_15">
+               <item>
+                <widget class="QLabel" name="labelComment">
+                 <property name="text">
+                  <string>Comment</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="SafeTextEdit" name="editComment">
+                 <property name="accessibleName">
+                  <string>Comments</string>
+                 </property>
+                 <property name="tabChangesFocus">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_16">
+               <item>
+                <widget class="QLabel" name="labelConfirmApptBy">
+                 <property name="minimumSize">
+                  <size>
+                   <width>100</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>Confirm Appt.</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkTextMe">
+                 <property name="accessibleName">
+                  <string>Confirm via SMS</string>
+                 </property>
+                 <property name="accessibleDescription">
+                  <string/>
+                 </property>
+                 <property name="text">
+                  <string>By SMS</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkEmailMe">
+                 <property name="accessibleName">
+                  <string>Confirm via Email</string>
+                 </property>
+                 <property name="accessibleDescription">
+                  <string/>
+                 </property>
+                 <property name="text">
+                  <string>By Email</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="horizontalSpacer">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="HistoryTab">
+       <attribute name="title">
+        <string>Histor&amp;y</string>
+       </attribute>
+       <layout class="QHBoxLayout" name="horizontalLayout_6">
+        <item>
+         <widget class="QPlainTextEdit" name="editNotes"/>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>882</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menu_Goto">
+    <property name="title">
+     <string>&amp;Goto</string>
+    </property>
+    <widget class="QMenu" name="menuGoto_Contact_Details">
+     <property name="title">
+      <string>Goto Contact Details</string>
+     </property>
+     <addaction name="action_Name"/>
+     <addaction name="actionE_Mail"/>
+     <addaction name="action_Address"/>
+     <addaction name="action_Phone"/>
+     <addaction name="action_Birthday"/>
+    </widget>
+    <addaction name="actionGotoMe"/>
+    <addaction name="separator"/>
+    <addaction name="actionGotoJournal"/>
+    <addaction name="actionGotoToDoList"/>
+    <addaction name="actionGotoMyToDoList"/>
+    <addaction name="actionGotoToday"/>
+    <addaction name="menuGoto_Contact_Details"/>
+   </widget>
+   <widget class="QMenu" name="menu_Find">
+    <property name="title">
+     <string>&amp;File</string>
+    </property>
+    <widget class="QMenu" name="menu_Export">
+     <property name="title">
+      <string>&amp;Export</string>
+     </property>
+     <addaction name="actionExportContacts"/>
+     <addaction name="actionExportAppointments"/>
+    </widget>
+    <addaction name="actionOpen"/>
+    <addaction name="actionSave"/>
+    <addaction name="separator"/>
+    <addaction name="menu_Export"/>
+    <addaction name="action_Google_Sync"/>
+    <addaction name="separator"/>
+    <addaction name="actionExit"/>
+    <addaction name="separator"/>
+    <addaction name="actionSetup"/>
+    <addaction name="actionShow_Log"/>
+    <addaction name="actionTest_Function"/>
+   </widget>
+   <widget class="QMenu" name="menu_Help">
+    <property name="title">
+     <string>&amp;Help</string>
+    </property>
+    <addaction name="actionManual"/>
+    <addaction name="actionAbout"/>
+   </widget>
+   <widget class="QMenu" name="menu_Edit">
+    <property name="title">
+     <string>&amp;Edit</string>
+    </property>
+    <widget class="QMenu" name="menuInsert_Appointment">
+     <property name="title">
+      <string>Insert Appointment</string>
+     </property>
+     <addaction name="action_Insert_Appointment_After"/>
+     <addaction name="actionInsert_My_Appointment_After"/>
+    </widget>
+    <addaction name="menuInsert_Appointment"/>
+    <addaction name="actionNewMyAppointment"/>
+    <addaction name="actionNewAppointment"/>
+    <addaction name="actionMoveAppointment"/>
+    <addaction name="actionRemoveAppointment"/>
+    <addaction name="separator"/>
+    <addaction name="actionEnableEditHistoryEdit"/>
+    <addaction name="separator"/>
+    <addaction name="actionNewContact"/>
+    <addaction name="actionEnableContactDetailsEdit"/>
+    <addaction name="actionDeleteContact"/>
+   </widget>
+   <widget class="QMenu" name="menu_Search">
+    <property name="title">
+     <string>&amp;Search</string>
+    </property>
+    <addaction name="actionFind"/>
+    <addaction name="actionFindNext"/>
+    <addaction name="actionGlobalFind"/>
+    <addaction name="separator"/>
+    <addaction name="actionSearch_EmailSMSToContacts"/>
+    <addaction name="actionSearch_EmailSMSToNonClients"/>
+    <addaction name="actionSearch_UncategorisedContacts"/>
+    <addaction name="actionSearch_DuplicateContacts"/>
+    <addaction name="actionSearch_HiddenEmailDuplicates"/>
+   </widget>
+   <widget class="QMenu" name="menu_Transactions">
+    <property name="title">
+     <string>&amp;Tasks</string>
+    </property>
+    <addaction name="action_Email_Contact"/>
+    <addaction name="action_SMS_Contact"/>
+    <addaction name="separator"/>
+    <addaction name="actionIncome"/>
+    <addaction name="actionPayment"/>
+    <addaction name="actionTransactionReport"/>
+   </widget>
+   <addaction name="menu_Find"/>
+   <addaction name="menu_Search"/>
+   <addaction name="menu_Goto"/>
+   <addaction name="menu_Edit"/>
+   <addaction name="menu_Transactions"/>
+   <addaction name="menu_Help"/>
+  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
+  <action name="actionSave">
+   <property name="text">
+    <string>&amp;Save</string>
+   </property>
+   <property name="toolTip">
+    <string>Save This Contact</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
+  </action>
+  <action name="actionExit">
+   <property name="text">
+    <string>E&amp;xit</string>
+   </property>
+   <property name="toolTip">
+    <string>Exit Contact Program</string>
+   </property>
+  </action>
+  <action name="actionSetup">
+   <property name="text">
+    <string>Setup</string>
+   </property>
+   <property name="toolTip">
+    <string>Setup Contact Program</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>&amp;About</string>
+   </property>
+   <property name="toolTip">
+    <string>About Contact Program</string>
+   </property>
+  </action>
+  <action name="actionGotoToday">
+   <property name="text">
+    <string>Goto &amp;Today</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+T</string>
+   </property>
+  </action>
+  <action name="actionEnableContactDetailsEdit">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Contact &amp;Details</string>
+   </property>
+  </action>
+  <action name="actionEnableEditHistoryEdit">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Edit &amp;History</string>
+   </property>
+  </action>
+  <action name="actionManual">
+   <property name="text">
+    <string>&amp;Manual (F1)</string>
+   </property>
+   <property name="shortcut">
+    <string>F1</string>
+   </property>
+  </action>
+  <action name="actionDeleteContact">
+   <property name="text">
+    <string>Delete Contact</string>
+   </property>
+  </action>
+  <action name="actionGotoMe">
+   <property name="text">
+    <string>Goto &amp;Me</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+O</string>
+   </property>
+  </action>
+  <action name="actionMoveAppointment">
+   <property name="text">
+    <string>&amp;Update Appointment</string>
+   </property>
+  </action>
+  <action name="actionRemoveAppointment">
+   <property name="text">
+    <string>&amp;Remove Appointment</string>
+   </property>
+  </action>
+  <action name="actionGlobalFind">
+   <property name="text">
+    <string>&amp;Global Find</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+G</string>
+   </property>
+  </action>
+  <action name="actionGotoJournal">
+   <property name="text">
+    <string>Goto &amp;Journal</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+J</string>
+   </property>
+  </action>
+  <action name="actionFind">
+   <property name="text">
+    <string>&amp;Find Here</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+F</string>
+   </property>
+  </action>
+  <action name="actionFindNext">
+   <property name="text">
+    <string>Find &amp;Next</string>
+   </property>
+   <property name="shortcut">
+    <string>F3</string>
+   </property>
+  </action>
+  <action name="action_Google_Sync">
+   <property name="text">
+    <string>&amp;Google Sync</string>
+   </property>
+   <property name="shortcut">
+    <string>F9</string>
+   </property>
+  </action>
+  <action name="actionIncome">
+   <property name="text">
+    <string>Transaction &amp;Income</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl++</string>
+   </property>
+  </action>
+  <action name="actionPayment">
+   <property name="text">
+    <string>Transaction &amp;Expense</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+-</string>
+   </property>
+  </action>
+  <action name="actionTransactionReport">
+   <property name="text">
+    <string>Transaction &amp;Report</string>
+   </property>
+  </action>
+  <action name="actionExportContacts">
+   <property name="text">
+    <string>&amp;Contacts</string>
+   </property>
+  </action>
+  <action name="actionExportAppointments">
+   <property name="text">
+    <string>&amp;Appointments</string>
+   </property>
+  </action>
+  <action name="actionShow_Log">
+   <property name="text">
+    <string>Show &amp;Log</string>
+   </property>
+  </action>
+  <action name="actionGotoToDoList">
+   <property name="text">
+    <string>Goto To Do &amp;List</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+L</string>
+   </property>
+  </action>
+  <action name="actionGotoMyToDoList">
+   <property name="text">
+    <string>Goto M&amp;y To Do List</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+L</string>
+   </property>
+  </action>
+  <action name="actionNewMyAppointment">
+   <property name="text">
+    <string>New &amp;My Appointment</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+N</string>
+   </property>
+  </action>
+  <action name="actionTest_Function">
+   <property name="text">
+    <string>Test Function</string>
+   </property>
+  </action>
+  <action name="actionOpen">
+   <property name="text">
+    <string>&amp;Open</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
+   </property>
+  </action>
+  <action name="action_Address">
+   <property name="text">
+    <string>&amp;Address</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+A</string>
+   </property>
+  </action>
+  <action name="action_Name">
+   <property name="text">
+    <string>&amp;Name(s)</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+N</string>
+   </property>
+  </action>
+  <action name="actionE_Mail">
+   <property name="text">
+    <string>e&amp;Mail</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+M</string>
+   </property>
+  </action>
+  <action name="action_Phone">
+   <property name="text">
+    <string>&amp;Phone</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+P</string>
+   </property>
+  </action>
+  <action name="action_Birthday">
+   <property name="text">
+    <string>&amp;Birthday</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+B</string>
+   </property>
+  </action>
+  <action name="action_Email_Contact">
+   <property name="text">
+    <string>Send E&amp;Mail Contact</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+M</string>
+   </property>
+  </action>
+  <action name="action_SMS_Contact">
+   <property name="text">
+    <string>&amp;SMS Contact</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+M</string>
+   </property>
+  </action>
+  <action name="action_Insert_Appointment_After">
+   <property name="text">
+    <string>&amp;Insert Appointment After</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+I</string>
+   </property>
+  </action>
+  <action name="actionInsert_My_Appointment_After">
+   <property name="text">
+    <string>Insert &amp;My Appointment After</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+I</string>
+   </property>
+  </action>
+  <action name="actionNewAppointment">
+   <property name="text">
+    <string>New &amp;Appointment</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+N</string>
+   </property>
+  </action>
+  <action name="actionGoto_Contact_s_Next_Appointment">
+   <property name="text">
+    <string>Goto Contact's Next &amp;Appointment</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+A</string>
+   </property>
+  </action>
+  <action name="actionNewContact">
+   <property name="text">
+    <string>New &amp;Contact</string>
+   </property>
+  </action>
+  <action name="actionSearch_EmailSMSToContacts">
+   <property name="text">
+    <string>Email / SMS To Contacts</string>
+   </property>
+   <property name="toolTip">
+    <string>Find entries that have Email-to or SMS-to selected</string>
+   </property>
+  </action>
+  <action name="actionSearch_UncategorisedContacts">
+   <property name="text">
+    <string>&amp;Uncategorised Contacts</string>
+   </property>
+   <property name="toolTip">
+    <string>Find contacts that are not categorised (business / family / client etc.)</string>
+   </property>
+  </action>
+  <action name="actionSearch_DuplicateContacts">
+   <property name="text">
+    <string>&amp;Duplicate Contacts</string>
+   </property>
+   <property name="toolTip">
+    <string>Find contacts with identical names / business names.</string>
+   </property>
+  </action>
+  <action name="actionSearch_EmailSMSToNonClients">
+   <property name="text">
+    <string>&amp;Email / SMS To Non-Clients</string>
+   </property>
+   <property name="toolTip">
+    <string>Find Non-Client entries that have Email-to or SMS-to selected</string>
+   </property>
+  </action>
+  <action name="actionSearch_HiddenEmailDuplicates">
+   <property name="text">
+    <string>Duplicate Hidden Auto-Email Entries</string>
+   </property>
+   <property name="toolTip">
+    <string>Find auto-added email addresses that are duplicated within the details of an existing contact.</string>
+   </property>
+  </action>
+ </widget>
+ <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>SafeLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>../Lib/safelineedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>SafeTextEdit</class>
+   <extends>QPlainTextEdit</extends>
+   <header>../Lib/safetextedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>AccessibleDateTimeEdit</class>
+   <extends>QLineEdit</extends>
+   <header>accessibledatetimeedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>SafeListView</class>
+   <extends>QListView</extends>
+   <header>../Lib/safelistview.h</header>
+  </customwidget>
+ </customwidgets>
+ <tabstops>
+  <tabstop>editOverview</tabstop>
+  <tabstop>editFirstName</tabstop>
+  <tabstop>editSurname</tabstop>
+  <tabstop>editBusiness</tabstop>
+  <tabstop>comboBoxContactType</tabstop>
+  <tabstop>checkHidden</tabstop>
+  <tabstop>editEmail</tabstop>
+  <tabstop>editEmail2</tabstop>
+  <tabstop>editWebAddress</tabstop>
+  <tabstop>editAddress</tabstop>
+  <tabstop>editAddress2</tabstop>
+  <tabstop>editHome</tabstop>
+  <tabstop>editWork</tabstop>
+  <tabstop>editMobile</tabstop>
+  <tabstop>editVoip</tabstop>
+  <tabstop>editHome2Title</tabstop>
+  <tabstop>editHome2</tabstop>
+  <tabstop>editDateOfBirth</tabstop>
+  <tabstop>editComment</tabstop>
+  <tabstop>checkTextMe</tabstop>
+  <tabstop>checkEmailMe</tabstop>
+  <tabstop>editToDo</tabstop>
+  <tabstop>editNotes</tabstop>
+ </tabstops>
+ <resources>
+  <include location="Icon.qrc"/>
+ </resources>
+ <connections/>
+</ui>
