@@ -1,7 +1,4 @@
 
-// TODO: remove this form andreplace with messagebox
-//#include "oauth2authorisationform.h"
-
 #include "googleaccess.h"
 #include "../Lib/supportfunctions.h"
 #include "configuration.h"
@@ -13,7 +10,7 @@
 #include <QNetworkRequest>
 #include <QUrlQuery>
 
-#include "googleacess-account.h"
+#include "googleaccess-account.h"
 
 //
 // Useful Links
