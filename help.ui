@@ -260,7 +260,7 @@ username=
 
 [email-reminder]
 server=smtp.gmail.com
-username=martinebrooks.gbchallenge@gmail.com
+username=username@gmail.com
 port=465
 
 [email]

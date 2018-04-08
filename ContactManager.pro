@@ -110,7 +110,7 @@ HEADERS  += mainwindow.h \
     ../Lib/iniconfig.h \
     sendsmsform.h \
     bugs.h \
-    googleacess-account.h \
+    googleaccess-account.h \
     buildinfo.h
 
 FORMS    += mainwindow.ui \
