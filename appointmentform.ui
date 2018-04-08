@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>AppointmentForm</class>
+ <widget class="QDialog" name="AppointmentForm">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>426</width>
+    <height>185</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>16777215</width>
+    <height>185</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>Contact Manager - Appointment</string>
+  </property>
+  <property name="accessibleName">
+   <string>Contact Manager Appointment</string>
+  </property>
+  <property name="accessibleDescription">
+   <string>Contact Manager Appointment</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QLabel" name="label_6">
+       <property name="minimumSize">
+        <size>
+         <width>100</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>For</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="LineEditNavigator" name="contactName">
+       <property name="minimumSize">
+        <size>
+         <width>300</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="accessibleName">
+        <string>Appointment For</string>
+       </property>
+       <property name="accessibleDescription">
+        <string/>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="minimumSize">
+        <size>
+         <width>100</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Description</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="SafeLineEdit" name="editDescription">
+       <property name="accessibleName">
+        <string>Appointment Title</string>
+       </property>
+       <property name="accessibleDescription">
+        <string/>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_3">
+     <item>
+      <widget class="QLabel" name="label_2">
+       <property name="minimumSize">
+        <size>
+         <width>100</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>From</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="AccessibleDateRangeEdit" name="editWhenFrom">
+       <property name="accessibleName">
+        <string>Appointment Time</string>
+       </property>
+       <property name="accessibleDescription">
+        <string/>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_4">
+     <item>
+      <widget class="QLabel" name="label_3">
+       <property name="minimumSize">
+        <size>
+         <width>100</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>To</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="AccessibleDateRangeEdit" name="editWhenTo">
+       <property name="accessibleName">
+        <string>Appointment End</string>
+       </property>
+       <property name="accessibleDescription">
+        <string/>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>SafeLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>../Lib/safelineedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>LineEditNavigator</class>
+   <extends>QLineEdit</extends>
+   <header>../Lib/lineeditnavigator.h</header>
+  </customwidget>
+  <customwidget>
+   <class>AccessibleDateRangeEdit</class>
+   <extends>QLineEdit</extends>
+   <header>accessibledaterangeedit.h</header>
+   <slots>
+    <signal>valueChanged(QDateTime,int)</signal>
+   </slots>
+  </customwidget>
+ </customwidgets>
+ <tabstops>
+  <tabstop>contactName</tabstop>
+  <tabstop>editDescription</tabstop>
+  <tabstop>editWhenFrom</tabstop>
+  <tabstop>editWhenTo</tabstop>
+ </tabstops>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>AppointmentForm</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>248</x>
+     <y>254</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>157</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>AppointmentForm</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>316</x>
+     <y>260</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>286</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

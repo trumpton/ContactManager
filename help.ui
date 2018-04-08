@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Help</class>
+ <widget class="QDialog" name="Help">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>907</width>
+    <height>474</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Contact Manager Help</string>
+  </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>icon-image.png</normaloff>icon-image.png</iconset>
+  </property>
+  <property name="accessibleName">
+   <string>Contact Manager Help</string>
+  </property>
+  <property name="accessibleDescription">
+   <string>Contact Manager Help</string>
+  </property>
+  <layout class="QHBoxLayout" name="horizontalLayout">
+   <item>
+    <widget class="SafeTextEdit" name="helpText">
+     <property name="accessibleName">
+      <string>Easy Notepad Help</string>
+     </property>
+     <property name="plainText">
+      <string>&gt;&gt; 1. COMMON SHORTCUTS
+  Control-F - Find in Current Page (F3 - Find Next)
+  Control-G - Find Global (all Contacts)
+  Control-J - Open Journal for Contact in Easy Notepad
+  Control-L - Open To-Do List for Contact
+  Control-Shift-L - Open My To-Do List
+  Control-M - Send Email to Contact
+  Control-N - Create New Appointment for Contact
+  Control-Shift-N - Create New Appointment for Me
+  Control-O - Open / Create Contact
+  Control-Shift-O - Open My Contact
+  Control-S - Save Current Contact
+  Control-T - Goto Today (in Calendar)
+  F9 - Google Sync
+  Alt-O - Goto Overview Tab
+  Alt-C - Goto Calendar Tab
+  Alt-L - Goto ToDo List Tab
+  Alt-D - Goto Contact Details Edit Tab (if Enabled with Alt-E, D)
+  Alt-Y - Goto History Tab
+
+&gt;&gt; 2.  LAYOUT
+  Contact Manager is an application with a menu across the top, and below it, 
+  a set of tabs, each containing different information.
+  You can access the menus, the tabs, and some shortcuts within the tabs with
+  the ALT key.  You will also find that the shortcuts mentioned in the previous 
+  section can also be found on the menus.  Note that not all menu options and 
+  tabs are available in all scenarios (for example, if no contact is open, the 
+  Contact Details tab is disabled).
+
+&gt;&gt; 2.1. MENUS AND TABS
+  Menus: File (Alt-F); Search (Alt-S); Goto (Alt-G); Edit (Alt-E); ...
+         Tools (Alt-T)
+  Tabs:  Overview (Alt-O); Calendar (Alt-C); To-Do List (Alt-L); ...
+         Contact Details (Alt-D); History (Alt-Y)
+
+&gt;&gt; 3. OPENING A CONTACT
+  There are three different ways to open a contact: File/Open, Searching, and 
+  Selecting an Appointment:
+
+&gt;&gt; 3.1. FILE/OPEN
+  Opening an existing Contact can be done with the open menu: Select Alt-F,O 
+  or Control-O.  Navigate the Open Menu with the up/down arrow keys.  You can 
+  also press the first letter of a surname to quick-skip.
+
+&gt;&gt; 3.2. GLOBAL SEARCH
+  You can also use the Global Find to search for and open contacts: Select 
+  Alt-S,G, or Control-G.  Enter part of the name (this is not case sensitive, 
+  and accented characters are not necessary), and press Enter. You will then 
+  be presented with a list of matching records - use the up/down arrows to 
+  navigate the list, and press Enter to open the contact.
+
+&gt;&gt; 3.3. APPOINTMENTS
+  Finally you can also open a contact by selecting a calendar entry for that
+  contact, and pressing Enter.
+
+&gt;&gt; 4. CREATING AND EDITING CONTACTS
+
+&gt;&gt; 4.1. OPENING / EDITING
+  To Create a New Contact, Select File/Open (Control-O), and navigate to the 
+  top of the list, or press minus to jump straight to the '-- create contact --' 
+  entry.  Press Enter, and you will be taken to a blank Contact Details Tab.
+  If you open an existing contact, the Contact Details Tab is disabled for 
+  safety - you can enable editing with Alt-E,D (Edit Details), which will enable 
+  the tab, and move the cursor to the first field.
+
+&gt;&gt; 4.2. NAVIGATING THE EDIT FORM
+  The Edit form is a set of information entry boxes.  The form is laid out this
+  way to force details to be entered in a prescribed format - this helps when
+  synchronising with email applications, mobile phones, and with automated 
+  functions such as email and text message reminders.
+  The tab key can be used to switch between the entry boxes, in addtion, the 
+  form is organised into sections - the cursor can be moved from section to 
+  section with Alt-navigation keys: Alt-N, Alt-M, Alt-A, Alt-P
+
+&gt;&gt; 4.2.1. NAMES (Alt-N)
+  Name:         This is the first name (or names of the contact)
+  Surname:       This is the contact's surname
+  Organisation: This is the contact's business name
+  Contact Type: This is the type of the contact - use the up/down arrows, 
+                or press the first letter.
+  Hidden:       For contacts that are not currently needed, they can be hidden, 
+                rather than deleted.  These contacts won't sync with mobile
+                phones, or appear in the open menu, but they will appear 
+                (in brackets) at the bottom of any Global Search (Control-G).
+
+&gt;&gt; 4.2.2. EMAIL (Alt-M)
+  Email:        The contact's email address
+  Alt-Email:    The contact's second email addess
+  Web Site:     The contact's web site
+
+&gt;&gt; 4.2.3. ADDRESS (Alt-A)
+  It is recommended that the address is formatted neatly, as it would appear on 
+  an envelope, without commas or full-stops at the end of each line.
+  Address:      The contact's first address
+  2nd Address:  The contact's second address
+    
+&gt;&gt; 4.2.4. PHONE (Alt-P)
+  Phone numbers are stored in the +nn international format, but are automatically
+  formatted when the form is saved.  You can press Control-S to save as you edit
+  to see / check the format of the phone numbers.
+  Home:         Home telephone number
+  Work:         Work telephone number
+  Mobile:       Mobile telephone number
+  VOIP / Skype: VOIP or Skype address
+  Other:        The name of another phone number, plus the number  
+
+&gt;&gt; 4.2.5. BIRTHDAY, COMMENTS AND OPTIONS
+  Birthday:     This is the contact's birthday.  You can edit it with the
+                up/down arrow keys, or type the date in numbers.  Note that 
+                you don't need to enter the year, but if you do, it is the year
+                expressed as 4 digits.  If you want to remove the year, press
+                minus.  e.g. Entering 15091949 will result in the field being 
+                set to 15/Sep/1949.  Pressing minus when editing the year will 
+                result in 15/Sep/----.
+  Comment:      This is a free-text comment field, that is saved in the contact 
+                record, and is accessible through any synchronised mobile phone.
+                This is for any additional information, such as RIBs.  Note: Do
+                not enter any passwords in this field.
+  Confirm SMS:  Enables SMS being sent for appointment reminders.
+  Confirm Email:Enables Emails being sent for appointment reminders.
+
+&gt;&gt; 5. MANAGING APPOINTMENTS
+  By default, Contact Manager shows the Calendar Tab (Alt-C).  Appointments are 
+  stored in a list, and the previous 3 months, and next year are available.
+  You can navigate through the appointments with the up and down arrow keys, or
+  jump straight to today with Control-T.
+  If you have a contact opened, you can create a new appointment with Control-N,
+  or you can create a new appointment for yourself with Control-Shift-N.
+  You can also create an appointment following the currently selected one with
+  Control-I, or one for yourself with Control-Shift-I.
+  You can update update an appointment with Alt-U, or remove it with Alt-R.
+
+&gt;&gt; 5.1. THE APPOINTMENT FORM 
+  The form is laid out with four fields:
+  For:          The contact the appointment is for
+  Description:  A description of the appointment
+  From:         The start date /time of the appointment, and the duration
+  To:           The end date / time of the appointment
+  The From and To edits work in much the same way as the Birthday field in the
+  Contact Details - you can navigate with the arrow keys, or type in dates
+  (and times) numerically.  The duration (in brackets) can be changed with
+  the up/down arrow keys - if you want a duration other than those offered,
+  you wll have to modify the To field.  The From and To fields are linked, and
+  adjusting one affects the other - normally, you will only need to edit the
+  From field.
+  When you are happy with the appointment, you can press enter to save, or
+  escape to cancel. Contact manager will check for clashes before saving, 
+  and offer you the opportunity to change / update.
+
+&gt;&gt; 6. TOOLS
+
+&gt;&gt; 6.1. TRANSACTIONS
+  When a contact is opened, transaction entries can be made in the log.  Press
+  Control+ to add income from the contact, and Control- to add an expense to 
+  the contact.
+  You can get a transaction report for the year with Alt-T,R.
+
+&gt;&gt; 6.2. EMAILING
+  You can launch your favorite mail program with an email readied for the current
+  contact with Control-M
+
+&gt;&gt; 7. SYNCHRONISING
+
+&gt;&gt; 7.1. SYNCHRONISING AND CONFLICT MANAGEMENT
+   Pressing F9 causes the contact details and appointments to be synchronised 
+   with Google.  Any phones or email packages that also synchronise with
+   he same account will be updated.
+   ontact Manager can be set to be the master, in cases of conflict - this is the
+   recommended setting, and means that any erroneous modifications made using
+   other devices will be repaired through a contact manager synchronisaiton.
+   This does mean that edits made on other devices will be lost, however, new
+   contacts and appointments made on remote devices will automatically be added.
+   Other options are to allow Google to be the master, and to ask each time there
+   is a potential conflict. Any modifications made are recorded in the History
+   for the appropriate contact, and can be found on the History tab (Alt-Y).
+
+&gt;&gt; 8. CONFIGURATION
+
+   Configuration is stored ContactManager.ini file, which is located in either:
+    $HOME/ContactManager
+    $HOME/TrumptonApps
+    Same Directory as ContactManager.exe
+
+   Additional Configuration is stored in the registry, and this is managed with File/Settings
+
+   The ini file is split into a number of sections:
+    general - General configuration
+    database - Location of the database files
+    journal - Path to the journal files, and EasyNotepad command
+    google - Google synchronisation options
+    phone - Local and country dialling codes
+    sms - Access code for Clockwork SMS
+    email - Email configuration for sending reminder messages, plus launching email application
+    message - Email and SMS message files
+
+   The ini file supports a number of variables
+    $HOME - The user's home directory
+    $DIRAPPLICATION - Path to the application directory
+    $INI - Path to the folder where the INI file was loaded from
+    $CONFIG - $HOME/TrumptonApps
+    $TO - To email address (when sending an email - Control-M)
+    $NAME - Recipient email name (when sending an email - Control-M)
+
+
+&gt;&gt; 8.1. EXAMPLE
+ 
+[general]
+codec=UTF-8
+
+[database]
+path=&quot;$CONFIG/ContactManager&quot;
+
+[journal]
+path=&quot;$CONFIG/EasyNotepad/Massage Clients&quot;
+easynotepadexe=&quot;$DIRAPPLICATION/EasyNotepad.exe&quot;
+
+[google]
+priority=ask
+debug=yes
+
+[phone]
+localcode=01480
+countrycode=0044
+
+[sms-reminder]
+agent=clockwork
+username=
+
+[email-reminder]
+server=smtp.gmail.com
+username=martinebrooks.gbchallenge@gmail.com
+port=465
+
+[email]
+command=&quot;\&quot;C:\\Program Files (x86)\\Mozilla Thunderbird\\thunderbird.exe\&quot; -compose \&quot;subject='Message to $NAME',to='$TO'\&quot; &quot;
+
+[message]
+emailconfirmation=&quot;$INI/emailconfirmation.msg&quot;
+emailupdate=&quot;$INI/emailupdate.msg&quot;
+emaildelete=&quot;$INI/emaildelete.msg&quot;
+emailreminder=&quot;$INI/emailreminder.msg&quot;
+smsconfirmation=&quot;$INI/emailconfirmation.msg&quot;
+smsupdate=&quot;$INI/smsupdate.msg&quot;
+smsdelete=&quot;$INI/smsdelete.msg&quot;
+smsreminder=&quot;$INI/smsreminder.msg&quot;
+
+</string>
+     </property>
+     <property name="textInteractionFlags">
+      <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>SafeTextEdit</class>
+   <extends>QPlainTextEdit</extends>
+   <header>../Lib/safetextedit.h</header>
+  </customwidget>
+ </customwidgets>
+ <tabstops>
+  <tabstop>helpText</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+</ui>
