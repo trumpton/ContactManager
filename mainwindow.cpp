@@ -18,7 +18,7 @@
 //       It never syncs properly.  Even if you delete the google appointments, each sync re-uploads
 //       the same ones agains and again.
 //
-// TODO:  Martine's google upload gets error 400 - probably due to invalid format DOB
+// TODO:  Some google uploads gets error 400 - probably due to invalid format DOB
 //
 
 
