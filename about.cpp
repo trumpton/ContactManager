@@ -2,7 +2,7 @@
 #include "ui_about.h"
 #include "buildinfo.h"
 
-#define TEXT "This version of Contact Manager was built on :\n  " BUILDDATE
+#define TEXT "This is version " BUILDVERSION " of Contact Manager, and was built on :\n  " BUILDDATE
 
 About::About(QWidget *parent) :
     QDialog(parent),

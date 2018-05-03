@@ -111,7 +111,8 @@ HEADERS  += mainwindow.h \
     sendsmsform.h \
     bugs.h \
     googleaccess-account.h \
-    buildinfo.h
+    buildinfo.h \
+    version.h
 
 FORMS    += mainwindow.ui \
     search.ui \
