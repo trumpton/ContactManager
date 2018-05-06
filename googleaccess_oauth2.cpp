@@ -103,8 +103,8 @@ QString GoogleAccess::Authorise()
     }
 
     if (user_code.isEmpty()) {
-        addLog("Unable to authorise with Google.  Network error or missing ssleay32.dll and libeay32.dll") ;
-        errorOkDialog(NULL, "Contact Manager Error", "Unable to connect.  Network error or missing ssleay32.dll and libeay32.dll") ;
+        addLog("Unable to authorise with Google.  This is caused by either a network error (check your connection); incorrectly configured googleaccess-account.h (during compilation); or missing OpenSSL files - ssleay32.dll / libeay32.dll (Windows Clients)") ;
+        errorOkDialog(NULL, "Contact Manager Error", "Unable to connect.  Network error or invalid configuration.  See Log for details.") ;
         return refreshtokenandusername ;
     }
 
