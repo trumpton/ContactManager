@@ -129,7 +129,8 @@ FORMS    += mainwindow.ui \
     sendsmsform.ui
 
 RESOURCES += \
-    Icon.qrc
+    Icon.qrc \
+    ../Lib/sounds.qrc
 
 OTHER_FILES += \
     icon.rc
