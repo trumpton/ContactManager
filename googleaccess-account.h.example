@@ -1,6 +1,9 @@
 #ifndef GOOGLEACESSACCOUNT_H
 #define GOOGLEACESSACCOUNT_H
 
+// To set up a Client ID and Secret, Visit:
+//     https://console.developers.google.com/apis/dashboard
+
 #define CLIENTID "enter-your-client-id"
 #define SECRET "enter-your-client-secret"
 
