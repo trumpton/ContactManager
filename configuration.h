@@ -71,7 +71,7 @@ public:
     // INI File Access Functions
     QString &getDatabasePath() ;
     QString &getBackupPath() ;
-    QString &getJournalPath() ;
+    QString &getJournalPath(QString userName) ;
     QString &getEasyNotepadPath() ;
     QString getEmailCommand(QString name, QString to) ;
     QString &getLocalDiallingCode() ;

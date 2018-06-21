@@ -315,11 +315,11 @@ QString& Configuration::getBackupPath()
 }
 
 
-QString& Configuration::getJournalPath()
+QString& Configuration::getJournalPath(QString userName)
 {
-    settingJournalDir = ini.get("journal", "path") ;
-    settingJournalDir = expandVars(settingJournalDir) ;
-    settingJournalDir = tidyPath(settingJournalDir) ;
+    settingJournalDir = ini.get("journal", "filename") ;
+    settingJournalDir = expandVars(settingJournalDir, userName.replace("/","").replace("\\","")) ;
+    settingJournalDir = tidyPath(settingJournalDir, false) ;
     return settingJournalDir ;
 }
 
