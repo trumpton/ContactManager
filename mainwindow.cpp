@@ -503,18 +503,19 @@ void MainWindow::on_actionOpen_triggered()
 void MainWindow::on_actionGotoJournal_triggered()
 {
     Contact &c = db.getSelected() ;
-    QString file = gConf->getJournalPath() ;
-    QString app = gConf->getEasyNotepadPath() ;
     if (c.isNull()) {
         play(NotFound) ;
-     } else if (app.isEmpty() || file.isEmpty()) {
-        errorOkDialog(this, "Error, Not Configured", "EasyNotepad path or Journal folder not configured") ;
-    } else {
-        QString name = c.getFormattedName(false, false) ;
-        QStringList args ;
-        args.append(file + name + ".txt") ;
-        QProcess *myProcess = new QProcess(NULL) ;
-        myProcess->start(app, args) ;
+     } else {
+        QString file = gConf->getJournalPath(c.getFormattedName(false, false)) ;
+        QString app = gConf->getEasyNotepadPath() ;
+        if (app.isEmpty() || file.isEmpty()) {
+            errorOkDialog(this, "Error, Not Configured", "EasyNotepad path or Journal folder not configured") ;
+        } else {
+            QStringList args ;
+            args.append(file) ;
+            QProcess *myProcess = new QProcess(NULL) ;
+            myProcess->start(app, args) ;
+        }
     }
 }
 
