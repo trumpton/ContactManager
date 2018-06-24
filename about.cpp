@@ -1,6 +1,6 @@
 #include "about.h"
 #include "ui_about.h"
-#include "buildinfo.h"
+#include "version.h"
 
 #define TEXT "This is version " BUILDVERSION " of Contact Manager, and was built on :\n  " BUILDDATE
 

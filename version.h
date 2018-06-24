@@ -1,1 +1,2 @@
 #define BUILDVERSION "1.0.1"
+#define BUILDDATE "2018-06-24"
