@@ -5,6 +5,7 @@
 #include <QStringList>
 #include <QTextStream>
 #include <QTextDecoder>
+#include <QDebug>
 #include "history.h"
 #include "../Lib/supportfunctions.h"
 
@@ -215,38 +216,49 @@ int Contact::find(QString text)
 {
     text = text.toLower() ;
     deAccent(text) ;
-    QRegExp re(".*(" +text +").*") ;
     text.replace(" ", "") ;
     QRegExp re2(".*(" + text + ").*") ;
 
     // Search in the overview
     QString overview = getOverview(contactAsText).toLower() ;
     deAccent(overview) ;
-    overview.replace(" ", "") ;
-    if (re.exactMatch(overview)) return 1;
-
-    // Search in organisation
-    QString org = organisation ;
-    org.replace(" ", "") ;
-    org.replace(",", "") ;
-    if (re2.exactMatch(org)) return 1 ;
+    overview.replace(" ", "") ;    
+    overview.replace(",", "") ;
+    overview.replace(".", "") ;
+    if (re2.exactMatch(overview)) {
+        qDebug() << "Contact::find(" << text << ") Match Overview {" << getField(Contact::ID) << "}\n" ;
+        return 1;
+    }
 
     // Search in a firstname middlename surname
     QString name = firstname + surname ;
     name.replace(" ", "") ;
-    if (re2.exactMatch(name)) return 1 ;
+    if (re2.exactMatch(name)) {
+        qDebug() << "Contact::find(" << text << ") Match Firstname Midddlename Surname {" << getField(Contact::ID) << "}\n" ;
+        return 1;
+    }
 
     // Search in a firstname surname
     QStringList names = firstname.split(" ") ;
     if (names.size()>0) {
         name = names.at(0) + surname ;
-        if (re2.exactMatch(name)) return 1 ;
+        if (re2.exactMatch(name)) {
+            if (re2.exactMatch(name)) {
+                qDebug() << "Contact::find(" << text << ") Match Firstname Surname {" << getField(Contact::ID) << "}\n" ;
+                return 1;
+            }
+        }
     }
 
     // Search in a surname firstname
     name = surname + firstname ;
     name.replace(" ", "") ;
-    if (re2.exactMatch(name)) return 1 ;
+    if (re2.exactMatch(name)) {
+        if (re2.exactMatch(name)) {
+            qDebug() << "Contact::find(" << text << ") Match Surname Firstname {" << getField(Contact::ID) << "}\n" ;
+            return 1;
+        }
+    }
 
     // No Match Found
     return -1 ;
