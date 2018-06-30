@@ -3,6 +3,7 @@
 
 
 #include <QString>
+#include "../Lib/encryption.h"
 
 enum TodoOverviewType {
     todoAsText = 0,
@@ -25,8 +26,8 @@ public:
     Todo();
     ~Todo() ;
 
-    bool save(QString path) ;
-    bool load(QString path, QString idname) ;
+    bool save(QString path, Encryption *enc) ;
+    bool load(QString path, QString idname, Encryption *enc) ;
     bool createNew(QString idname) ;
     bool isdirty() ;
     bool isEmpty() ;

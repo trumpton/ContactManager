@@ -10,6 +10,7 @@
 
 ContactDatabase::ContactDatabase()
 {
+    enc=NULL ;
     nullitem.setNull() ;
     clear() ;
 }
@@ -24,17 +25,29 @@ void ContactDatabase::clear()
     selectedcontact=-1 ;
 }
 
+void ContactDatabase::setEncryption(Encryption *enc)
+{
+    this->enc = enc ;
+}
+
 bool ContactDatabase::load()
 {
     QStringList nameFilter;
     //QFileInfoList list ;
     QStringList files ;
 
+    // Login if not already done so
+    if (!enc->loggedIn()) {
+        enc->login() ;
+    }
+    if (!enc->loggedIn()) {
+        return false ;
+    }
+
     // Load Contacts and Journal Entries
     QDir dir(gContactSavePath) ;
-    nameFilter << "*.contact" ;
+    nameFilter << "*.*contact" ;
     dir.setNameFilters(nameFilter) ;
-    //list = dir.entryInfoList( nameFilter, QDir::Files );
     files = dir.entryList() ;
 
     for (int i=files.size()-1; i>=0; i--) {
@@ -43,8 +56,8 @@ bool ContactDatabase::load()
         Contact di ;
 
         filename = files.at(i) ;
-        filename.replace(".contact","") ;
-        di.load(gContactSavePath, filename) ;
+        filename = filename.replace(".contact","").replace(".zcontact","") ;
+        di.load(gContactSavePath, filename, enc) ;
 
         // Need to mark as deleted if contact completely empty - OK
         // Need to archive if deleted and also deleted on google - OK
@@ -93,7 +106,7 @@ bool ContactDatabase::load()
 // Reload the journal
 bool ContactDatabase::reloadJournal(Contact& contact)
 {
-    return contact.getHistory().load(gContactSavePath, contact.getField(Contact::ID)) ;
+    return contact.getHistory().load(gContactSavePath, contact.getField(Contact::ID), enc) ;
 }
 
 // Create a HTML Index File of the contacts
@@ -142,7 +155,17 @@ bool ContactDatabase::save()
     bool success=true ;
     int sz = size() ;
 
+
     if (sz>0) {
+
+        // Login if not already done so
+        if (!enc->loggedIn()) {
+            enc->login() ;
+        }
+        if (!enc->loggedIn()) {
+            return false ;
+        }
+
         QDir cdir(gSavePath) ;
         cdir.mkpath("contact") ;
         for (int i=0; i<sz; i++) {
@@ -152,7 +175,7 @@ bool ContactDatabase::save()
             else if (i>=(sz-1)) j=1 ;
             else j=0 ;
 
-            success |= getContact(i).save(gContactSavePath) ;
+            success |= getContact(i).save(gContactSavePath, enc) ;
 
             if (gConf->debugGoogleEnabled()) {
                 saveIndex(j, gContactSavePath, getContact(i).getField(Contact::ID),

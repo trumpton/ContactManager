@@ -8,6 +8,8 @@
 
 History::History()
 {
+    enc = NULL ;
+    cachedPath = "" ;
     idName = "" ;
     dirty=false ;
     HistoryText = "" ;
@@ -44,53 +46,52 @@ bool History::createNew(QString idname)
     dirty=false ;
     HistoryText="" ;
     idName = idname ;
+    cachedPath = "" ;
     return dirty ;
 }
 
 // TODO: Make this save a "safe save", i.e. save, check, rename
 bool History::save(QString path)
 {
+    if (!enc) return false ;
     if (dirty && idName.compare("")!=0) {
 
-        if (path.isEmpty()) path=cachedPath ;
-
-        if (!path.isEmpty()) {
-
-            QFile file(path + idName + ".history");
-
-            if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-                return false;
-
-            QTextStream out(&file);
-            out.setCodec("UTF-8") ;
-
-            out << HistoryText ;
-            file.close() ;
-
-            dirty = false ;
-
+        if (path.isEmpty()) {
+            path = cachedPath ;
         }
+        QByteArray data ;
+        QTextStream out(&data, QIODevice::WriteOnly);
+        out.setCodec("UTF-8") ;
+        out << HistoryText ;
+        out.flush();
+        dirty = !enc->save(path + idName + ".zhistory", data) ;
     }
     return !dirty ;
 }
 
 // TODO: Make this load a "safe load", i.e. check for failed save
-bool History::load(QString path, QString idname)
+bool History::load(QString path, QString idname, Encryption *enc)
 {
+    if (!enc) return false ;
+    createNew(idname) ;
+    this->enc = enc ;
     cachedPath = path ;
 
-    createNew(idname) ;
-    QString filename = path + idName + ".history" ;
-    QFile file(filename);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-        return false;
-    QTextStream in(&file);
+    // Attempt to load encrypted history .zhistory and fall back to legacy .history
+    QByteArray data ;
+    if (!enc->load(path + idname + ".zhistory", data)) {
+        QFile file(path + idname + ".history");
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+            return false;
+        data = file.readAll() ;
+        file.close() ;
+    }
+    QTextStream in(&data);
     in.setCodec("UTF-8") ;
 
     while (!in.atEnd()) {
        HistoryText = HistoryText + in.readLine() + "\n" ;
     }
-    file.close() ;
 
     dirty = false ;
     return true ;
@@ -149,7 +150,6 @@ bool History::updateHistory(QString NewHistory)
 {
     dirty = (HistoryText.compare(NewHistory)!=0) ;
     HistoryText = NewHistory ;
-    save() ;
     return dirty ;
 }
 

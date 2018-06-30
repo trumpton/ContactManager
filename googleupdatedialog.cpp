@@ -51,11 +51,12 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
     QString calendarsyncdatestr = gConf->getLastGoogleCalendarSyncDate() ;
     QDateTime calendarsyncdate = isoStringToDateTime(calendarsyncdatestr) ;
 
-
+    bool calsuccess = true ;
+/*
     ui->updateStatusReport->append(QString("\nSYNCHRONISING CALENDAR")) ;
     ui->updateStatusReport->append(QString("Last Calendar Synchronisation Date: ") + calendarsyncdatestr ) ;
 
-    bool calsuccess = processCalendarUpdate(calendarsyncdate, google, cal) ;
+    calsuccess = processCalendarUpdate(calendarsyncdate, google, cal) ;
     if (!calsuccess) {
         ui->updateStatusReport->append(QString("CALENDAR SYNCHRONISATION FAILED: ") + google.getNetworkError()) ;
     } else {
@@ -71,7 +72,7 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
 
         ui->updateStatusReport->append(QString("CALENDAR SYCHRONISATION SUCCESS.")) ;
     }
-
+*/
     ui->progressBar->setValue(500) ;
 
     ui->updateStatusReport->append(QString("\nSYNCHRONISING CONTACTS")) ;

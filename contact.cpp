@@ -161,9 +161,9 @@ bool Contact::isForAccount(QString googleaccount)
 }
 
 // TODO: Make this load a "safe load", i.e. check for failed saves
-bool Contact::load(QString path, QString idname)
+bool Contact::load(QString path, QString idname, Encryption *enc)
 {
-    if (isnull) {
+    if (isnull || !enc) {
         // ERROR
         return false ;
     }
@@ -176,11 +176,18 @@ bool Contact::load(QString path, QString idname)
 
     isdirty = false ;
 
-    QString fullPath = path + idname + ".contact" ;
-    QFile file(fullPath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-        return false;
-    QTextStream in(&file);
+    // Attempt to load encrypted contact .zcontact and fall back to legacy .contact
+    QByteArray data ;
+    if (!enc->load(path + idname + ".zcontact", data)) {
+        QFile file(path + idname + ".contact");
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+            return false;
+        data = file.readAll() ;
+        file.close() ;
+    }
+    if (data.isEmpty()) return false ;
+
+    QTextStream in(&data);
     in.setCodec("UTF-8") ;
 
     // Isempty is updated by setfield
@@ -203,10 +210,9 @@ bool Contact::load(QString path, QString idname)
             }
         }
     }
-    file.close() ;
 
-    todo.load(path, idname) ;
-    history.load(path, idname) ;
+    todo.load(path, idname, enc) ;
+    history.load(path, idname, enc) ;
 
     isdirty = false ;
     return true ;
@@ -265,7 +271,7 @@ int Contact::find(QString text)
 }
 
 // TODO: Make this save a "safe save", i.e. save, check, rename
-bool Contact::save(QString path)
+bool Contact::save(QString path, Encryption *enc)
 {
 
   if (isnull) {
@@ -273,23 +279,25 @@ bool Contact::save(QString path)
       return false ;
   }
 
-  if (!isempty && todo.isdirty()) todo.save(path) ;
-  if (!isempty && history.isdirty()) history.save(path) ;
+  if (!isempty && todo.isdirty()) todo.save(path + filedata[ID], enc) ;
+  if (!isempty && history.isdirty()) history.save(path + filedata[ID]) ;
 
   if (isdirty) {
 
-      QString fullPath = path + filedata[ID] + ".contact" ;
-      QFile file(fullPath);
-      if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-          return false;
-      QTextStream out(&file);
+      QByteArray data ;
+      QTextStream out(&data, QIODevice::WriteOnly);
       out.setCodec("UTF-8") ;
       out << "[contact]\n" ;
       for (int entry=FIRSTRECORD; entry<=LASTRECORD; entry++) {
           QString entrytext = filedata[entry].trimmed().replace("\n","\\n");
           out << getContactRecordName((enum ContactRecord)entry) << "=" << entrytext << "\n" ;
       }
-      file.close() ;
+
+      out.flush();
+      if (!enc->save(path + filedata[ID] + ".zcontact", data)) {
+          return false ;
+      }
+
       isdirty = false ;
   }
   return true ;

@@ -5,6 +5,7 @@
 #include <QDateTime>
 #include "history.h"
 #include "todo.h"
+#include "../Lib/encryption.h"
 
 // Status
 #define stHIDDEN "hidden"
@@ -163,8 +164,8 @@ public:
     bool changedSinceSync(QDateTime &syncdate) ;
 
     bool createNew() ;
-    bool save(QString path) ;
-    bool load(QString path, QString filename) ;
+    bool save(QString path, Encryption *enc) ;
+    bool load(QString path, QString filename, Encryption *enc) ;
     bool reloadJournal(QString path) ;
     bool reloadTodo(QString path) ;
 

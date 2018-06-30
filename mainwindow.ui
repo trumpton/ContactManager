@@ -64,7 +64,7 @@
        <string>Page Select</string>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>4</number>
       </property>
       <widget class="QWidget" name="OverviewTab">
        <property name="whatsThis">
@@ -955,6 +955,14 @@ p, li { white-space: pre-wrap; }
      <addaction name="actionExportContacts"/>
      <addaction name="actionExportAppointments"/>
     </widget>
+    <widget class="QMenu" name="menuKeyandPassword">
+     <property name="title">
+      <string>Key and Password</string>
+     </property>
+     <addaction name="actionSetEncryptionKey"/>
+     <addaction name="actionChangePassword"/>
+     <addaction name="actionLogout"/>
+    </widget>
     <addaction name="actionOpen"/>
     <addaction name="actionSave"/>
     <addaction name="separator"/>
@@ -963,6 +971,7 @@ p, li { white-space: pre-wrap; }
     <addaction name="separator"/>
     <addaction name="actionExit"/>
     <addaction name="separator"/>
+    <addaction name="menuKeyandPassword"/>
     <addaction name="actionSetup"/>
     <addaction name="actionShow_Log"/>
     <addaction name="actionTest_Function"/>
@@ -1366,18 +1375,33 @@ p, li { white-space: pre-wrap; }
     <string>Find auto-added email addresses that are duplicated within the details of an existing contact.</string>
    </property>
   </action>
+  <action name="actionSetEncryptionKey">
+   <property name="text">
+    <string>&amp;Set Encryption Key</string>
+   </property>
+  </action>
+  <action name="actionChangePassword">
+   <property name="text">
+    <string>Change &amp;Password</string>
+   </property>
+  </action>
+  <action name="actionLogout">
+   <property name="text">
+    <string>&amp;Logout</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
-   <class>SafeLineEdit</class>
-   <extends>QLineEdit</extends>
-   <header>../Lib/safelineedit.h</header>
-  </customwidget>
-  <customwidget>
    <class>SafeTextEdit</class>
    <extends>QPlainTextEdit</extends>
    <header>../Lib/safetextedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>SafeLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>../Lib/safelineedit.h</header>
   </customwidget>
   <customwidget>
    <class>AccessibleDateTimeEdit</class>

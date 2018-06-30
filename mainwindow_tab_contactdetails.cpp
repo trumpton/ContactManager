@@ -229,7 +229,7 @@ bool MainWindow::SaveContactTab()
 
     // Record all of the changes made
     if (!wasempty) {
-        for (int i=Contact::FIRSTRECORD; i<=Contact::LASTRECORD; i++) {
+        for (int i=Contact::FIRSTRECORD; i<=Contact::LASTSYNCEDRECORD; i++) {
             enum Contact::ContactRecord t = (Contact::ContactRecord)i ;
             if (newdr.getField(t).compare(dr.getField(t))!=0) {
                 // If the record is modified, record the changes in the History
@@ -250,6 +250,7 @@ bool MainWindow::SaveContactTab()
     if (!log.isEmpty()) {
         log = QString("Contact Detail Changes: ") + log ;
         dr.getHistory().addEntry(log) ;
+        ui->editNotes->document()->setPlainText(dr.getHistory().getHistory());
     }
 
     return true ;

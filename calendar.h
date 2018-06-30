@@ -5,6 +5,7 @@
 #include <QList>
 
 #include "appointment.h"
+#include "../Lib/encryption.h"
 
 using namespace std;
 
@@ -30,6 +31,7 @@ private:
       QString idName ;
       bool isdirty ;
       QString getOverviewResponse ;
+      Encryption *enc ;
 
 
       bool loadAppointment(QString ident) ;
@@ -38,6 +40,7 @@ public:
     Calendar();
     ~Calendar() ;
 
+    void setEncryption(Encryption *enc) ;
     void clear() ;
     void sort() ;
     int size() ;

@@ -75,7 +75,9 @@ SOURCES += main.cpp\
     sendsmsform.cpp \
     googleupdatedialog_appointments.cpp \
     googleupdatedialog_contacts.cpp \
-    googleaccess_groups.cpp
+    googleaccess_groups.cpp \
+    ../Lib/encryption.cpp \
+    ../Lib/aes.cpp
 
 HEADERS  += mainwindow.h \
     history.h \
@@ -111,7 +113,9 @@ HEADERS  += mainwindow.h \
     sendsmsform.h \
     bugs.h \
     googleaccess-account.h \
-    version.h
+    version.h \
+    ../Lib/encryption.h \
+    ../Lib/aes.h
 
 FORMS    += mainwindow.ui \
     search.ui \
@@ -125,7 +129,8 @@ FORMS    += mainwindow.ui \
     logform.ui \
     ../Lib/itemselect.ui \
     help.ui \
-    sendsmsform.ui
+    sendsmsform.ui \
+    ../Lib/encryption.ui
 
 RESOURCES += \
     Icon.qrc \

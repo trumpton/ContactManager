@@ -49,41 +49,45 @@ bool Todo::createNew(QString idname)
 }
 
 // TODO: Make this save a "safe save", i.e. save, check, rename
-bool Todo::save(QString path)
+bool Todo::save(QString path, Encryption *enc)
 {
+    if (!enc) return false ;
     if (dirty && idName.compare("")!=0) {
-        QFile file(path + idName + ".todolist");
 
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-            return false;
-
-        QTextStream out(&file);
+        QByteArray data ;
+        QTextStream out(&data, QIODevice::WriteOnly);
         out.setCodec("UTF-8") ;
-
         out << todoText ;
-        file.close() ;
+        out.flush();
+        if (!enc->save(path + ".ztodolist", data)) {
+            return false ;
+        }
         dirty = false ;
     }
     return true ;
 }
 
 // TODO: Make this load a "safe load", i.e. check for failed save
-bool Todo::load(QString path, QString idname)
+bool Todo::load(QString path, QString idname, Encryption *enc)
 {
-    QString Line ;
-
+    if (!enc) return false ;
     createNew(idname) ;
-    QString filename = path + idName + ".todolist" ;
-    QFile file(filename);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-        return false;
-    QTextStream in(&file);
+
+    // Attempt to load encrypted todolist .ztodolist and fall back to legacy .todolist
+    QByteArray data ;
+    if (!enc->load(path + idname + ".ztodolist", data)) {
+        QFile file(path + idname + ".todolist");
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+            return false;
+        data = file.readAll() ;
+        file.close() ;
+    }
+    QTextStream in(&data);
     in.setCodec("UTF-8") ;
 
     while (!in.atEnd()) {
        todoText = todoText + in.readLine() + "\n" ;
     }
-    file.close() ;
 
     dirty = false ;
     return true ;

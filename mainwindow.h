@@ -21,6 +21,8 @@
 #include "listviewstrings.h"
 #include "transactionform.h"
 #include "../Lib/supportfunctions.h"
+#include "../Lib/encryption.h"
+
 #include "logform.h"
 
 #include "smtp.h"
@@ -58,6 +60,7 @@ public:
     
 private slots:
 
+    void abort() ;
     void on_actionSave_triggered();
     void on_actionSetup_triggered();
     void on_actionExit_triggered();
@@ -132,6 +135,15 @@ private slots:
 
     void on_actionSearch_HiddenEmailDuplicates_triggered();
 
+    void on_actionSetEncryptionKey_triggered();
+
+    void on_actionChangePassword_triggered();
+
+    void on_actionLogout_triggered();
+
+    void refreshPasswordMenu() ;
+
+
 private:
     Ui::MainWindow *ui;
     class Calendar calendar ;                       // Calendar
@@ -140,6 +152,7 @@ private:
     GoogleAccess google ;                           // Google calendar / contacts
     ListViewStrings calendarlist;                   // Contents of Calendar display
     QTimer *timer ;
+    Encryption *enc ;
 
     // Manage dialog controls / enables etc.
     void UpdateContactsList() ;          // Update drop-down list
