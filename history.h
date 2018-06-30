@@ -3,6 +3,7 @@
 
 
 #include <QString>
+#include "../Lib/encryption.h"
 
 enum HistoryOverviewType {
     historyAsText = 0,
@@ -20,15 +21,18 @@ public:
 private:
     QString getOverviewResult ;
     QString cachedPath ;
+    Encryption *enc ;
+
+private:
+    bool createNew(QString idname) ;
 
 public:
 
     History();
     ~History() ;
 
-    bool save(QString path = QString("") ) ;
-    bool load(QString path, QString idname) ;
-    bool createNew(QString idname) ;
+    bool save(QString path = QString("")) ;
+    bool load(QString path, QString idname, Encryption *enc) ;
     bool isdirty() ;
     bool isEmpty() ;
 

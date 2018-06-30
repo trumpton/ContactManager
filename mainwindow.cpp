@@ -23,6 +23,7 @@
 
 
 #include <QProcess>
+#include <QMessageBox>
 #include "mainwindow.h"
 #include "sendsmsform.h"
 #include "../Lib/itemselect.h"
@@ -31,8 +32,12 @@
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow)
 {
     calendarlist.clearStrings() ;
+    searchtext="" ;
 
     ui->setupUi(this);
+
+    // Connect signals for password menu
+    connect(ui->menuKeyandPassword, SIGNAL(aboutToShow()), this, SLOT(refreshPasswordMenu())) ;
 
     // Set the application icon
     QIcon icon(":icon-image.png");
@@ -56,19 +61,31 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     // Set the Default Codecs for Strings
     QTextCodec::setCodecForLocale(QTextCodec::codecForName(gConf->getCodec().toLatin1().constData()));
 
+    // Initialise encryption i/o
+    enc = new Encryption(QString("trumpton.uk"), QString("TextFileEncryption")) ;
+    db.setEncryption(enc) ;
+    calendar.setEncryption(enc) ;
+
+    // Login if not already done so
+    int count=0 ;
+    do {
+        enc->login() ;
+    } while (!enc->loggedIn() && ++count<3) ;
+
+    // Login failed, so set key
+    while (!enc->loggedIn()) {
+        if (QMessageBox::question(this, "Contact Manager", "You have failed to login.  To set or reset the key, select Yes, and otherwise select Close to exit the program", QMessageBox::Yes|QMessageBox::Close)==QMessageBox::Yes) {
+            enc->setKey();
+        } else {
+            // Calling abort from Constructor doesn't work - it has to be from a function initiated with a signal
+            QTimer::singleShot(1, this, SLOT(abort())) ;
+            return ;
+        }
+    }
+
     // Load the local data
     db.load() ;
     calendar.load() ;
-
-
-    searchtext="" ;
-
-    /*
-    ui->OverviewTab->setFocusProxy(ui->editOverview) ;
-    ui->CalendarTab->setFocusProxy(ui->listCalendar) ;
-    ui->ToDoTab->setFocusProxy(ui->editToDo) ;
-    ui->HistoryTab->setFocusProxy(ui->editNotes) ;
-    */
 
     ui->editDateOfBirth->setFormat("", "dd/MMM/yyyy", true) ;
     populateDialog(SELECT_OVERVIEW) ;
@@ -94,8 +111,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
             warningOkDialog(this, "Contact Manager Warning", "You have made changes to contacts / calendar, and it is some time since you synchronised with google.") ;
         }
     }
-
 }
+
+void MainWindow::abort()
+{
+    QApplication::exit() ;
+}
+
 
 MainWindow::~MainWindow()
 {
@@ -106,8 +128,16 @@ MainWindow::~MainWindow()
 
     if (gConf!=NULL) delete gConf ;
     if (ui!=NULL) delete ui;
+    if (enc!=NULL) delete enc ;
 }
 
+void MainWindow::refreshPasswordMenu()
+{
+    bool loggedin = enc->loggedIn() ;
+    ui->actionSetEncryptionKey->setEnabled(!loggedin) ;
+    ui->actionChangePassword->setEnabled(!loggedin) ;
+    ui->actionLogout->setEnabled(loggedin) ;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Contact Navigation
@@ -647,4 +677,23 @@ void MainWindow::createContact()
 void MainWindow::on_actionNewContact_triggered()
 {
     createContact() ;
+}
+
+//
+// Password Functions
+//
+
+void MainWindow::on_actionSetEncryptionKey_triggered()
+{
+    if (enc) enc->setKey();
+}
+
+void MainWindow::on_actionChangePassword_triggered()
+{
+    if (enc) enc->changePassword();
+}
+
+void MainWindow::on_actionLogout_triggered()
+{
+    if (enc) enc->logout();
 }

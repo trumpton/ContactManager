@@ -5,6 +5,7 @@
 #include <QList>
 
 #include "contact.h"
+#include "../Lib/encryption.h"
 
 using namespace std;
 
@@ -13,14 +14,15 @@ class ContactDatabase
 private:
     QList<Contact> contacts ;
     int selectedcontact ;
+    Encryption *enc ;
 
 public:
-
     Contact nullitem ;
 
     ContactDatabase();
     ~ContactDatabase();
 
+    void setEncryption(Encryption *enc) ;
     bool load() ;
     bool save() ;
     bool reloadJournal(Contact& contact) ;

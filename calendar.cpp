@@ -16,6 +16,7 @@
 Calendar::Calendar()
 {
     clear() ;
+    enc=NULL ;
 }
 
 Calendar::~Calendar()
@@ -31,6 +32,11 @@ void Calendar::clear()
     getOverviewResponse="" ;
 }
 
+void Calendar::setEncryption(Encryption *enc)
+{
+    this->enc = enc ;
+}
+
 bool Calendar::load()
 {
     QStringList nameFilter;
@@ -38,6 +44,14 @@ bool Calendar::load()
     QStringList files ;
 
     clear() ;
+
+    // Login if not already done so
+    if (!enc->loggedIn()) {
+        enc->login() ;
+    }
+    if (!enc->loggedIn()) {
+        return false ;
+    }
 
     // Load Calendar
     QDir dir(gCalendarSavePath) ;
@@ -76,6 +90,14 @@ bool Calendar::save()
     bool success=true ;
 
     if (size()>0) {
+
+        // Login if not already done so
+        if (!enc->loggedIn()) {
+            enc->login() ;
+        }
+        if (!enc->loggedIn()) {
+            return false ;
+        }
 
         QDir cdir(gSavePath) ;
         cdir.mkpath("calendar") ;
