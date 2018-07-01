@@ -126,13 +126,16 @@ char *Contact::getContactRecordName(enum ContactRecord field) {
         case Address: return  (char *)"address" ; break ;
         case Address2: return  (char *)"address2" ; break ;
         case Phone: return  (char *)"phone" ; break ;
-        case Phone2: return  (char *)"otherphone" ; break ;
+        case Phone2: return  (char *)"otherphone2" ; break ;
+        case Phone3: return  (char *)"otherphone3" ; break ;
+        case Phone4: return  (char *)"otherphone4" ; break ;
         case Work: return  (char *)"work" ; break ;
         case Mobile: return  (char *)"mobile" ; break ;
-        case Voip: return  (char *)"voip" ; break ;
         case Email: return  (char *)"email" ; break ;
         case Email2: return  (char *)"email2"; break ;
-        case Phone2Title: return  (char *)"otherphonetitle" ; break ;
+        case Phone2Title: return  (char *)"otherphone2title" ; break ;
+        case Phone3Title: return  (char *)"otherphone3title" ; break ;
+        case Phone4Title: return  (char *)"otherphone4title" ; break ;
         case Webaddress: return (char *)"webaddress"; break ;
         case Birthday: return  (char *)"birthday" ; break ;
         case Comments: return  (char *)"comments" ; break ;
@@ -335,6 +338,12 @@ QString& Contact::getField(enum Contact::ContactRecord field)
     if (!isnull && field==Phone2Title && filedata[Phone2Title].isEmpty())
         setField(Phone2Title, otherstring) ;
 
+    if (!isnull && field==Phone3Title && filedata[Phone3Title].isEmpty())
+        setField(Phone3Title, otherstring) ;
+
+    if (!isnull && field==Phone4Title && filedata[Phone4Title].isEmpty())
+        setField(Phone4Title, otherstring) ;
+
     if ((field<FIRSTRECORD || field>LASTRECORD)) return nullstring ;
     else return filedata[field] ;
 }
@@ -364,7 +373,7 @@ void Contact::setField(enum Contact::ContactRecord field, QString data)
     if (field==Birthday)
         dat = parseDate(dat) ;
 
-    if (field==Phone2Title)
+    if (field==Phone2Title || field==Phone3Title || field==Phone4Title)
         dat = dat.left(1).toUpper() + dat.mid(1).toLower() ;
 
     if (field==GoogleUploaded)
@@ -445,7 +454,12 @@ QString& Contact::parsePhoneNumber(QString src)
     if (result.left(1).compare("+")!=0) {
 
         // Add a Local Dialling Code if Missing
-        if (result.left(1).compare("0")!=0 && !gConf->getLocalDiallingCode().isEmpty()) {
+        if (result.left(1).compare("0")!=0 &&
+                result.left(1).compare("*")!=0 &&
+                result.length()>4 &&
+                result.length()<10 &&
+                !gConf->getLocalDiallingCode().isEmpty()) {
+
             result = gConf->getLocalDiallingCode() + result ;
             result = result.replace(QRegExp("^00(.*)"), "+\\1") ;
         }
@@ -561,8 +575,11 @@ QString& Contact::getOverview(enum ContactOverviewType overviewtype)
     if (!getField(Mobile).isEmpty()) response += titlestart + "Mobile:  " + titleend + getField(Mobile) + lineend ;
     if (!getField(Work).isEmpty()) response += titlestart + "Work Phone:  " + titleend + getField(Work) + lineend ;
     QString phone2Title = getField(Phone2Title) + " Phone" ;
+    QString phone3Title = getField(Phone3Title) + " Phone" ;
+    QString phone4Title = getField(Phone4Title) + " Phone" ;
     if (!getField(Phone2).isEmpty()) response += titlestart + phone2Title + ": " + titleend + getField(Phone2) + lineend ;
-    if (!getField(Voip).isEmpty()) response += titlestart + "Voip / Skype:  " + titleend + getField(Voip) + lineend ;
+    if (!getField(Phone3).isEmpty()) response += titlestart + phone3Title + ": " + titleend + getField(Phone3) + lineend ;
+    if (!getField(Phone4).isEmpty()) response += titlestart + phone4Title + ": " + titleend + getField(Phone4) + lineend ;
     if (!getField(Email).isEmpty()) response += titlestart + location + " Email:  " + titleend + getField(Email) + lineend ;
     if (!getField(Email2).isEmpty()) response += titlestart + "Second Email:  " + titleend + getField(Email2) + lineend ;
     if (!getField(Webaddress).isEmpty()) response += titlestart + "Web Site:  " + titleend + getField(Webaddress) + lineend ;
@@ -653,46 +670,6 @@ Contact& Contact::getThis()
     return *this ;
 }
 
-/*
-//
-// Compare two contacts within a given scope
-//
-bool Contact::compare(Contact &other, enum CompareScope scope)
-{
-    bool match=false ;
-    switch (scope) {
-    case cName:
-        match = (getField(Surname).compare(other.getField(Surname))==0 &&
-                 getField(Names).compare(other.getField(Names))==0) ;
-        break ;
-    case cFull:
-        match=true ;
-        for (int i=FIRSTRECORD; i<LASTRECORD && match; i++) {
-            if (getField((enum ContactRecord)i).compare(other.getField((enum ContactRecord)i))!=0) {
-                match=false ;
-            }
-        }
-        break ;
-    case cDetails:
-        match=true ;
-        for (int i=(ContactRecord)FIRSTSYNCEDRECORD; i<LASTRECORD; i++) {
-                if (getField((enum ContactRecord)i).compare(other.getField((enum ContactRecord)i))!=0) {
-                    match=false ;
-                }
-        }
-        break ;
-    case cID:
-        match = (getField(ID).compare(other.getField(ID))==0) ;
-        break ;
-    case cGoogleID:
-        // TODO: Should really check the Google Account too
-        match = (getField(GoogleAccount).compare(other.getField(GoogleAccount))==0) ;
-        match &= (getField(GoogleRecordId).compare(other.getField(GoogleRecordId))==0) ;
-        break ;
-    }
-    return match ;
-}
-*/
 
 bool Contact::matches(Contact &with)
 {
@@ -707,13 +684,27 @@ bool Contact::matches(Contact &with)
 
     if (match && !(thisdeleted && thatdeleted)) {
 
+        // Check all but the configurable phone entries
         for (int i=FIRSTSYNCEDRECORD; i<=LASTSYNCEDRECORD; i++) {
+            if ((Contact::ContactRecord)i!=Phone2 && (Contact::ContactRecord)i!=Phone3 && (Contact::ContactRecord)i!=Phone4) {
+                QString thisfield = getField((Contact::ContactRecord)i) ;
+                QString thatfield = with.getField((Contact::ContactRecord)i) ;
+                if (thisfield.compare(thatfield)!=0) match=false ;
+            }
+        }
 
-          QString thisfield = getField((Contact::ContactRecord)i) ;
-          QString thatfield = with.getField((Contact::ContactRecord)i) ;
-          if (thisfield.compare(thatfield)!=0) match=false ;
-
-      }
+        // Now check the configurable phone entries (checking concatanated number & title)
+        for (int i=Phone2; i<=Phone4; i++) {
+            Contact::ContactRecord phonerec = (Contact::ContactRecord)i ;
+            Contact::ContactRecord titlerec = (Contact::ContactRecord) (i + (int)Phone2Title - (int)Phone2) ;
+            QString thisphone = getField(phonerec) + getField(titlerec) ;
+            bool foundmatch=false ;
+            for (int j=Phone2; j<=Phone4; j++) {
+                QString thatphone = with.getField(phonerec) + with.getField(titlerec) ;
+                if (thisphone.compare(thatphone)==0) foundmatch=true ;
+            }
+            if (!foundmatch) match=false ;
+        }
 
     }
 

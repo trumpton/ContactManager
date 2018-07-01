@@ -48,60 +48,63 @@ public:
 
         STARTPHONE = 5,
         Phone = 5,
-        Phone2 = 6,
-        Work = 7,
-        Mobile = 8,
-        ENDPHONE = 8,
+        Work = 6,
+        Mobile = 7,
+        Phone2 = 8,
+        Phone3 = 9,
+        Phone4 = 10, Voip = 10,
+        ENDPHONE = 10,
 
-        Voip = 9,
 
-        STARTEMAIL = 10,
-        Email = 10,
-        Email2 = 11,
-        ENDEMAIL = 11,
+        STARTEMAIL = 11,
+        Email = 11,
+        Email2 = 12,
+        ENDEMAIL = 12,
 
-        Webaddress = 12,
-        Birthday = 13,
-        Comments = 14,
+        Webaddress = 13,
+        Birthday = 14,
+        Comments = 15,
 
-        LASTSYNCEDDATA = 14,
+        LASTSYNCEDDATA = 15,
 
         // These entries are synchronised, but not used to work out if the
         // entry is empty.
 
-        Phone2Title = 15,
-        Group = 16,
-        Hidden = 17,            // Hidden entries are not in MyContacts on Google
-        EmailMe =  18,
-        TextMe = 19,
+        Phone2Title = 16,
+        Phone3Title = 17,
+        Phone4Title = 18,
+        Group = 19,
+        Hidden = 20,            // Hidden entries are not in MyContacts on Google
+        EmailMe =  21,
+        TextMe = 22,
 
-        LASTDIALOGEDITEDDATA = 19,
+        LASTDIALOGEDITEDDATA = 22,
 
-        Deleted = 20,
-        ID = 21,                // Unique ID
+        Deleted = 23,
+        ID = 24,                // Unique ID
 
-        LASTSYNCEDRECORD = 21,
+        LASTSYNCEDRECORD = 24,
 
         // These are local entries and are not uploaded to Google
 
-        Updated = 22,           // Local updated timestamp
-        Created = 23,           // Local created timestamp
+        Updated = 25,           // Local updated timestamp
+        Created = 26,           // Local created timestamp
 
-        GOOGLEFIRSTRECORD = 24,
+        GOOGLEFIRSTRECORD = 27,
 
         // These are Google specific data entries
 
-        GoogleAccount = 24,
-        GoogleEtag = 25,
-        GoogleRecordId = 26,
-        GoogleSequence = 27,
-        GoogleCreated = 28,
-        GoogleDeleted = 29,     // Set when deleted on google
-        GoogleUploaded = 30,    // Set by successful upload process
+        GoogleAccount = 27,
+        GoogleEtag = 28,
+        GoogleRecordId = 29,
+        GoogleSequence = 30,
+        GoogleCreated = 31,
+        GoogleDeleted = 32,     // Set when deleted on google
+        GoogleUploaded = 33,    // Set by successful upload process
 
-        GOOGLELASTRECORD = 30,
+        GOOGLELASTRECORD = 33,
 
-        LASTRECORD = 30
+        LASTRECORD = 33
 
     };
 

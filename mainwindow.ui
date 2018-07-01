@@ -714,39 +714,9 @@ p, li { white-space: pre-wrap; }
               </layout>
              </item>
              <item>
-              <layout class="QHBoxLayout" name="horizontalLayout_20">
-               <item>
-                <widget class="QLabel" name="LabelVoip">
-                 <property name="minimumSize">
-                  <size>
-                   <width>100</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                 <property name="maximumSize">
-                  <size>
-                   <width>100</width>
-                   <height>16777215</height>
-                  </size>
-                 </property>
-                 <property name="text">
-                  <string>Voip / Skype</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="SafeLineEdit" name="editVoip">
-                 <property name="accessibleName">
-                  <string>VOIP Phone</string>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </item>
-             <item>
               <layout class="QHBoxLayout" name="horizontalLayout_21">
                <item>
-                <widget class="SafeLineEdit" name="editHome2Title">
+                <widget class="SafeLineEdit" name="edit2Title">
                  <property name="minimumSize">
                   <size>
                    <width>100</width>
@@ -763,14 +733,76 @@ p, li { white-space: pre-wrap; }
                   <string>Other Phone Title</string>
                  </property>
                  <property name="text">
-                  <string>other</string>
+                  <string/>
+                 </property>
+                 <property name="placeholderText">
+                  <string>title</string>
                  </property>
                 </widget>
                </item>
                <item>
-                <widget class="SafeLineEdit" name="editHome2">
+                <widget class="SafeLineEdit" name="edit2">
                  <property name="accessibleName">
                   <string>Other Phone</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_23">
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="SafeLineEdit" name="edit3Title">
+                 <property name="minimumSize">
+                  <size>
+                   <width>100</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>100</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="placeholderText">
+                  <string>title</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="SafeLineEdit" name="edit3"/>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_20">
+               <item>
+                <widget class="SafeLineEdit" name="edit4Title">
+                 <property name="minimumSize">
+                  <size>
+                   <width>100</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>100</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="placeholderText">
+                  <string>title</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="SafeLineEdit" name="edit4">
+                 <property name="accessibleName">
+                  <string>VOIP Phone</string>
                  </property>
                 </widget>
                </item>
@@ -794,8 +826,14 @@ p, li { white-space: pre-wrap; }
                 <widget class="QLabel" name="labelBirthday">
                  <property name="minimumSize">
                   <size>
-                   <width>100</width>
+                   <width>80</width>
                    <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>80</width>
+                   <height>16777215</height>
                   </size>
                  </property>
                  <property name="text">
@@ -819,6 +857,18 @@ p, li { white-space: pre-wrap; }
               <layout class="QHBoxLayout" name="horizontalLayout_15">
                <item>
                 <widget class="QLabel" name="labelComment">
+                 <property name="minimumSize">
+                  <size>
+                   <width>80</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>80</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
                  <property name="text">
                   <string>Comment</string>
                  </property>
@@ -847,9 +897,22 @@ p, li { white-space: pre-wrap; }
                   </size>
                  </property>
                  <property name="text">
-                  <string>Confirm Appt.</string>
+                  <string>Confirm Appt:</string>
                  </property>
                 </widget>
+               </item>
+               <item>
+                <spacer name="horizontalSpacer_2">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
                </item>
                <item>
                 <widget class="QCheckBox" name="checkTextMe">
@@ -1415,7 +1478,7 @@ p, li { white-space: pre-wrap; }
   </customwidget>
  </customwidgets>
  <tabstops>
-  <tabstop>editOverview</tabstop>
+  <tabstop>tabBar</tabstop>
   <tabstop>editFirstName</tabstop>
   <tabstop>editSurname</tabstop>
   <tabstop>editBusiness</tabstop>
@@ -1429,15 +1492,24 @@ p, li { white-space: pre-wrap; }
   <tabstop>editHome</tabstop>
   <tabstop>editWork</tabstop>
   <tabstop>editMobile</tabstop>
-  <tabstop>editVoip</tabstop>
-  <tabstop>editHome2Title</tabstop>
-  <tabstop>editHome2</tabstop>
+  <tabstop>edit2Title</tabstop>
+  <tabstop>edit2</tabstop>
+  <tabstop>edit3Title</tabstop>
+  <tabstop>edit3</tabstop>
+  <tabstop>edit4Title</tabstop>
+  <tabstop>edit4</tabstop>
   <tabstop>editDateOfBirth</tabstop>
   <tabstop>editComment</tabstop>
   <tabstop>checkTextMe</tabstop>
   <tabstop>checkEmailMe</tabstop>
-  <tabstop>editToDo</tabstop>
+  <tabstop>listCalendar</tabstop>
+  <tabstop>newAppointmentButton</tabstop>
+  <tabstop>insertAppointmentButton</tabstop>
+  <tabstop>moveAppointmentButton</tabstop>
+  <tabstop>removeAppointmentButton</tabstop>
+  <tabstop>editOverview</tabstop>
   <tabstop>editNotes</tabstop>
+  <tabstop>editToDo</tabstop>
  </tabstops>
  <resources>
   <include location="Icon.qrc"/>

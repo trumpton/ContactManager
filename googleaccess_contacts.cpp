@@ -61,6 +61,7 @@ bool GoogleAccess::getContacts(ContactDatabase &googlecontacts, int pass)
 
     // If this returns 403, check that the API is enabled on google
     json = googleGet(url, QString("/contactlist-") + QString::number(pass) + QString(".txt")) ;
+
     if (!errorstatus.isEmpty()) return false ;
 
     doc = QJsonDocument::fromJson(json.toUtf8(), &err) ;
@@ -109,7 +110,6 @@ bool GoogleAccess::getContact(Contact& contact)
             record + "?v=3.0&alt=json" ;
 
     json = googleGet(url, "contactdetails.txt") ;
-
     doc = QJsonDocument::fromJson(json.toUtf8(), &err) ;
 
     if (err.error != QJsonParseError::NoError) return false ;
@@ -156,7 +156,7 @@ bool GoogleAccess::parseContact(QJsonObject &item, Contact &contact)
         }
     }
 
-    if (contactmanagerid.compare("efcc4de6-1a5a-4ebb-82bb-55b015624057")==-0) {
+    if (contactmanagerid.compare("f9acd413-4f83-47e7-a62e-f653d59c6044")==-0) {
         QString id = contactmanagerid ; // Debug Trap
     }
 
@@ -277,22 +277,61 @@ bool GoogleAccess::parseContact(QJsonObject &item, Contact &contact)
     // Work
     // Mobile
     // Phone2 (&Phone2Title)
-    // Voip
+    // Phone3 (&Phone3Title)
+    // Phone4 (&Phone4Title)
     QJsonArray phonenumbers = item["gd$phoneNumber"].toArray() ;
+
+
     foreach (const QJsonValue& item, phonenumbers) {
+
         if (item.isObject()) {
+
+            // Calculate next free slot
+
+            int nextfree = 0 ;
+            if (!contact.getField(Contact::Phone2).isEmpty()) {
+                nextfree++ ;
+                if (!contact.getField(Contact::Phone3).isEmpty()) {
+                    nextfree++ ;
+                    if (!contact.getField(Contact::Phone4).isEmpty()) {
+                        // No more free number slots ignore everything else
+                        nextfree=-1 ;
+                    }
+                }
+            }
+
             QJsonObject phonenumber = item.toObject() ;
-            if (phonenumber["rel"].toString().compare(sHOME)==0) contact.setField(Contact::Phone,phonenumber["$t"].toString()) ;
-            else if (phonenumber["rel"].toString().compare(sWORK)==0) contact.setField(Contact::Work,phonenumber["$t"].toString()) ;
-            else if (phonenumber["rel"].toString().compare(sMOBILE)==0) contact.setField(Contact::Mobile,phonenumber["$t"].toString()) ;
-            else if (phonenumber["rel"].toString().compare(sOTHER)==0) {
-                contact.setField(Contact::Phone2,phonenumber["$t"].toString()) ;
-                contact.setField(Contact::Phone2Title, "Other") ;
-            } else if (phonenumber["label"].toString().toLower().compare("voip")==0) {
-                    contact.setField(Contact::Voip,phonenumber["$t"].toString()) ;
-            } else if (!phonenumber["label"].toString().isEmpty()) {
-                contact.setField(Contact::Phone2Title,phonenumber["label"].toString()) ;
-                contact.setField(Contact::Phone2,phonenumber["$t"].toString()) ;
+
+            if (phonenumber["rel"].toString().compare(sHOME)==0) {
+
+                contact.setField(Contact::Phone,phonenumber["$t"].toString()) ;
+
+            } else if (phonenumber["rel"].toString().compare(sWORK)==0) {
+
+                contact.setField(Contact::Work,phonenumber["$t"].toString()) ;
+
+            } else if (phonenumber["rel"].toString().compare(sMOBILE)==0) {
+
+                contact.setField(Contact::Mobile,phonenumber["$t"].toString()) ;
+
+            } else if (phonenumber["rel"].toString().compare(sOTHER)==0 && nextfree>=0) {
+
+                Contact::ContactRecord sTitle = (Contact::ContactRecord) ((int)Contact::Phone2Title + nextfree) ;
+                Contact::ContactRecord sNumber = (Contact::ContactRecord) ((int)Contact::Phone2 + nextfree) ;
+                QString number = phonenumber["$t"].toString() ;
+                contact.setField(sTitle, "Other") ;
+                contact.setField(sNumber, number) ;
+
+            } else if (nextfree>=0) {
+
+                Contact::ContactRecord sTitle = (Contact::ContactRecord) ((int)Contact::Phone2Title + nextfree) ;
+                Contact::ContactRecord sNumber = (Contact::ContactRecord) ((int)Contact::Phone2 + nextfree) ;
+                QString number = phonenumber["$t"].toString() ;
+                QString label = phonenumber["label"].toString() ;
+                if (label.isEmpty()) label = "Other" ;
+                contact.setField(sTitle, label) ;
+                contact.setField(sNumber, number) ;
+
             }
         }
     }
@@ -423,7 +462,6 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action)
 */
 
         googlePutPostDelete(url, action, QString(""), QString("contactupdate.txt")) ;
-
 
         if (getNetworkError().isEmpty()) {
             // Deletion success
@@ -575,10 +613,11 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action)
                     item.insert("$t", phone) ;
                     switch (i) {
                     case Contact::Phone: item.insert("rel", sHOME) ; break ;
-                    case Contact::Phone2: item.insert("label", contact.getField(Contact::Phone2Title)) ; break ;
                     case Contact::Work: item.insert("rel", sWORK) ; break ;
                     case Contact::Mobile: item.insert("rel", sMOBILE) ; break ;
-                    case Contact::Voip: item.insert("label", "Voip") ; break ;
+                    case Contact::Phone2: item.insert("label", contact.getField(Contact::Phone2Title)) ; break ;
+                    case Contact::Phone3: item.insert("label", contact.getField(Contact::Phone3Title)) ; break ;
+                    case Contact::Phone4: item.insert("label", contact.getField(Contact::Phone4Title)) ; break ;
                     }
                     numbers.append(item) ;
                 }
