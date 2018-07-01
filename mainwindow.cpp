@@ -68,7 +68,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
     // Login if not already done so
     int count=0 ;
-    do {
+   if (!enc->loggedIn()) do {
         enc->login() ;
     } while (!enc->loggedIn() && ++count<3) ;
 
