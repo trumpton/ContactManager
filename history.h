@@ -7,7 +7,8 @@
 
 enum HistoryOverviewType {
     historyAsText = 0,
-    historyAsHTML = 1
+    historyAsHTML = 1,
+    historyTopLinesAsHTML
 };
 
 class History
