@@ -150,7 +150,7 @@ void MainWindow::LoadContactTab()
         "Family",
         "Friends",
         "Other",
-        gUNKNOWN
+        gUNKNOWN,
         ""
     } ;
 
