@@ -101,11 +101,13 @@ QString History::getOverview(enum HistoryOverviewType overviewtype)
 {
     getOverviewResult = "" ;
 
-    if (overviewtype==historyAsHTML) {
+    if (overviewtype==historyAsHTML || overviewtype==historyTopLinesAsHTML) {
         QString hist = getHistory() ;
         QStringList journallines = hist.replace("[\n]+", "\n").split("\n") ;
         QRegExp re("(\\d{1,2}[-\\s]+\\w{3,10}[-\\s]+\\d{2,4})[\\s-:]+(.*)$") ;
-        Q_FOREACH(QString line, journallines) {
+        for (int i=0; i<journallines.size() && (overviewtype==historyAsHTML ||
+             (overviewtype==historyTopLinesAsHTML && i<5)); i++) {
+            QString line = journallines.at(i) ;
             line = line.trimmed() ;
             if (!line.isEmpty()) {
                 if (re.exactMatch(line)) {

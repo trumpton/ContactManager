@@ -64,7 +64,7 @@
        <string>Page Select</string>
       </property>
       <property name="currentIndex">
-       <number>4</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="OverviewTab">
        <property name="whatsThis">
@@ -968,7 +968,14 @@ p, li { white-space: pre-wrap; }
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_6">
         <item>
-         <widget class="QPlainTextEdit" name="editNotes"/>
+         <widget class="QPlainTextEdit" name="editNotes">
+          <property name="undoRedoEnabled">
+           <bool>false</bool>
+          </property>
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>

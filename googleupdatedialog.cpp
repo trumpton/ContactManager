@@ -52,7 +52,7 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
     QDateTime calendarsyncdate = isoStringToDateTime(calendarsyncdatestr) ;
 
     bool calsuccess = true ;
-/*
+
     ui->updateStatusReport->append(QString("\nSYNCHRONISING CALENDAR")) ;
     ui->updateStatusReport->append(QString("Last Calendar Synchronisation Date: ") + calendarsyncdatestr ) ;
 
@@ -72,7 +72,7 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
 
         ui->updateStatusReport->append(QString("CALENDAR SYCHRONISATION SUCCESS.")) ;
     }
-*/
+
     ui->progressBar->setValue(500) ;
 
     ui->updateStatusReport->append(QString("\nSYNCHRONISING CONTACTS")) ;

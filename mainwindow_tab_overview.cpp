@@ -19,8 +19,8 @@ void MainWindow::LoadOverviewTab()
     overview += "<br/><span style=\" font-size:18pt; font-weight:600; color:#000080;\">To Do List</span><br/>"  ;
     overview += todo.getOverview(todoAsHTML) ;
 
-    overview += "<br/><span style=\" font-size:18pt; font-weight:600; color:#000080;\">History</span><br/>"  ;
-    overview += h.getOverview(historyAsHTML) ;
+    overview += "<br/><span style=\" font-size:18pt; font-weight:600; color:#000080;\">Recent Change History</span><br/>"  ;
+    overview += h.getOverview(historyTopLinesAsHTML) ;
 
     overview += "</body></html>\n" ;
 
