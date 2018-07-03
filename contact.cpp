@@ -12,6 +12,7 @@
 Contact::Contact()
 {
     isnull = false ;
+    isnew = false ;
     createNew() ;
 }
 
@@ -61,6 +62,7 @@ bool Contact::changedSinceSync(QDateTime &syncdate)
 void Contact::markAsSaved()
 {
     isdirty=false ;
+    isnew=false ;
 }
 
 void Contact::markAsDirty()
@@ -112,6 +114,7 @@ bool Contact::createNew()
 
     isempty = true ;
     isdirty = false ;
+    isnew = true ;
     return true ;
 }
 
@@ -217,6 +220,7 @@ bool Contact::load(QString path, QString idname, Encryption *enc)
     todo.load(path, idname, enc) ;
     history.load(path, idname, enc) ;
 
+    isnew = false ;
     isdirty = false ;
     return true ;
 }
@@ -301,11 +305,17 @@ bool Contact::save(QString path, Encryption *enc)
           return false ;
       }
 
+      isnew = false ;
       isdirty = false ;
   }
   return true ;
 }
 
+
+bool Contact::isNew()
+{
+    return isnew ;
+}
 
 bool Contact::isSet(enum Contact::ContactRecord field)
 {
