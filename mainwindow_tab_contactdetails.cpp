@@ -132,17 +132,6 @@ void MainWindow::LoadContactTab()
     ui->checkHidden->setChecked(dr.isSet(Contact::Hidden)) ;
     QString groupName = dr.getField(Contact::Group) ;
 
-
-//#define gUNKNOWN "Unknown"
-//#define gCLIENT "Client"
-//#define gBUSINESS "Business"
-//#define gFAMILY "Family"
-//#define gOTHER "Other"
-//#define gFRIEND "Friend"
-//#define gREGULAR "Regular Client"
-//#define gCOWORKER "Coworker"
-//#define hUNKNOWN "unknown"
-
     static char contactType[][64] = {
         gBUSINESS,
         gCLIENT,
@@ -233,8 +222,14 @@ bool MainWindow::SaveContactTab()
         }
     }
 
-    // Record all of the changes made
-    if (!wasempty) {
+    if (wasempty) {
+
+        // Add entry for new contact
+        log = log + "Created Contact\n" ;
+
+    } else {
+
+        // Record all of the changes made
         for (int i=Contact::FIRSTRECORD; i<=Contact::LASTSYNCEDRECORD; i++) {
             enum Contact::ContactRecord t = (Contact::ContactRecord)i ;
             if (newdr.getField(t).compare(dr.getField(t))!=0) {
@@ -246,15 +241,18 @@ bool MainWindow::SaveContactTab()
                     log = log + "Changed " + newdr.getContactRecordName(t)
                             + " from '" + dr.getField(t).replace("\n",", ")
                             + "' to '" + newdr.getField(t).replace("\n",", ") + "'\n" ;
-                }
-           }
-       }
+               }
+            }
+        }
+
+        if (!log.isEmpty()) {
+            log = QString("Contact Detail Changes: ") + log ;
+        }
     }
 
     dr = newdr ;
 
     if (!log.isEmpty()) {
-        log = QString("Contact Detail Changes: ") + log ;
         dr.getHistory().addEntry(log) ;
         ui->editNotes->document()->setPlainText(dr.getHistory().getHistory());
     }

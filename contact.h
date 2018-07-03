@@ -135,6 +135,7 @@ public:
     QString getOverviewResponse ;
     QString getOverviewResponseHtml ;
 
+    bool isnew ;
     bool isnull ;
     bool isdirty ;
     bool isempty ;
@@ -162,6 +163,9 @@ public:
 
     bool isEmpty() ;
     bool isDirty() ;
+
+    // Set following new, until load or first save
+    bool isNew() ;
 
     bool isForAccount(QString googleaccount) ;
     bool changedSinceSync(QDateTime &syncdate) ;
