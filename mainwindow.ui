@@ -64,7 +64,7 @@
        <string>Page Select</string>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="OverviewTab">
        <property name="whatsThis">
@@ -635,7 +635,7 @@ p, li { white-space: pre-wrap; }
                <item>
                 <widget class="SafeLineEdit" name="editHome">
                  <property name="accessibleName">
-                  <string>Home Phone</string>
+                  <string>Home Phone Number</string>
                  </property>
                 </widget>
                </item>
@@ -671,7 +671,7 @@ p, li { white-space: pre-wrap; }
                <item>
                 <widget class="SafeLineEdit" name="editWork">
                  <property name="accessibleName">
-                  <string>Work Phone</string>
+                  <string>Work Phone Number</string>
                  </property>
                 </widget>
                </item>
@@ -707,7 +707,7 @@ p, li { white-space: pre-wrap; }
                <item>
                 <widget class="SafeLineEdit" name="editMobile">
                  <property name="accessibleName">
-                  <string>Mobile Phone</string>
+                  <string>Mobile Phone Number</string>
                  </property>
                 </widget>
                </item>
@@ -730,7 +730,7 @@ p, li { white-space: pre-wrap; }
                   </size>
                  </property>
                  <property name="accessibleName">
-                  <string>Other Phone Title</string>
+                  <string>First Custom Phone Title</string>
                  </property>
                  <property name="text">
                   <string/>
@@ -743,7 +743,7 @@ p, li { white-space: pre-wrap; }
                <item>
                 <widget class="SafeLineEdit" name="edit2">
                  <property name="accessibleName">
-                  <string>Other Phone</string>
+                  <string>First Custom Phone Number</string>
                  </property>
                 </widget>
                </item>
@@ -768,13 +768,20 @@ p, li { white-space: pre-wrap; }
                    <height>16777215</height>
                   </size>
                  </property>
+                 <property name="accessibleName">
+                  <string>Second Custom Phone Title</string>
+                 </property>
                  <property name="placeholderText">
                   <string>title</string>
                  </property>
                 </widget>
                </item>
                <item>
-                <widget class="SafeLineEdit" name="edit3"/>
+                <widget class="SafeLineEdit" name="edit3">
+                 <property name="accessibleName">
+                  <string>Second Custom Phone Number</string>
+                 </property>
+                </widget>
                </item>
               </layout>
              </item>
@@ -794,6 +801,9 @@ p, li { white-space: pre-wrap; }
                    <height>16777215</height>
                   </size>
                  </property>
+                 <property name="accessibleName">
+                  <string>Third Custom Phone Title</string>
+                 </property>
                  <property name="placeholderText">
                   <string>title</string>
                  </property>
@@ -802,7 +812,7 @@ p, li { white-space: pre-wrap; }
                <item>
                 <widget class="SafeLineEdit" name="edit4">
                  <property name="accessibleName">
-                  <string>VOIP Phone</string>
+                  <string>Third Custom Phone Number</string>
                  </property>
                 </widget>
                </item>
