@@ -1,3 +1,3 @@
-#define BUILDVERSION "2.0.0"
-#define BUILDDATE "2018-07-01"
+#define BUILDVERSION "3.0.0"
+#define BUILDDATE "2019-04-16"
 #define COMPILEDATE __DATE__ " - " __TIME__
