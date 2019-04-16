@@ -27,8 +27,15 @@ private:
     Ui::GoogleUpdateDialog *ui;
     int state ;
 
+    // Sync the Contact Group (upload to google, "download" from google)
+    bool updateSingleGoogleContactGroup(GoogleAccess &google, Contact::ContactRecord rec, ContactDatabase &db, ContactDatabase &googledb) ;
+    bool updateSingleLocalContactGroup(GoogleAccess &google, Contact::ContactRecord rec, ContactDatabase &db, ContactDatabase &googledb) ;
+
     // Update the contacts
     bool processContactUpdate(QDateTime& lastsyncdate, GoogleAccess& google, ContactDatabase &db) ;
+
+    // Upload contact to Google
+    bool uploadContact(Contact& contact, GoogleAccess& google, QString etag = QString("")) ;
 
     // Update the calendar
     bool processCalendarUpdate(QDateTime &lastsyncdate, GoogleAccess& google, class Calendar& cal) ;

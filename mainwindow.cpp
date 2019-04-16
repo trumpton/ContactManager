@@ -22,6 +22,21 @@
 //
 
 
+// ==========================================================================
+//
+// There are lots of things to do
+//
+//  The big change in moving contacts to the people api:
+//
+//    You can now be a member of several groups
+//    You can read the groups when reading a contact
+//    You have to write to the groups api to change groupies though
+//    Ive changed syncing so that a cache of what was on google is not maintained
+//    So syncing will now have to overwrite a whole contact (at one end or the other) not just individual fields
+//    Need to draw all this out on a bit of paper
+//
+// ==========================================================================
+
 #include <QProcess>
 #include <QMessageBox>
 #include "mainwindow.h"
@@ -111,6 +126,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
             warningOkDialog(this, "Contact Manager Warning", "You have made changes to contacts / calendar, and it is some time since you synchronised with google.") ;
         }
     }
+
+    // Tidy up old log files
+    google.resetLogFiles();
+
+    // Setup Advanced Find
+    find = new AdvancedFind(this) ;
+
 }
 
 void MainWindow::abort()
@@ -129,6 +151,7 @@ MainWindow::~MainWindow()
     if (gConf!=NULL) delete gConf ;
     if (ui!=NULL) delete ui;
     if (enc!=NULL) delete enc ;
+    if (find!=NULL) delete find ;
 }
 
 void MainWindow::refreshPasswordMenu()
@@ -697,3 +720,4 @@ void MainWindow::on_actionLogout_triggered()
 {
     if (enc) enc->logout();
 }
+

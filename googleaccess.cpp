@@ -15,6 +15,9 @@
 #include "../Lib/supportfunctions.h"
 #include "configuration.h"
 #include "calendar.h"
+#include <QDir>
+#include <QFile>
+
 
 //
 // Public: GoogleAccess - Constructor
@@ -32,8 +35,8 @@ GoogleAccess::GoogleAccess()
     refreshtokenandusername = "" ;
     contactsynctoken="" ;
     calendarsynctoken="" ;
+    logsequencenumber = 1 ;
 }
-
 
 //=====================================================================================================
 //
@@ -79,10 +82,29 @@ QString GoogleAccess::getUsername()
 
 //=====================================================================================================
 //
-// Public: debugGetDataResponse & debugPutDataResponse
+// Public: resetLogFiles & debugGetDataResponse & debugPutDataResponse
 //
 //  Debug functions
 //
+
+void GoogleAccess::resetLogFiles()
+{
+    QStringList nameFilter, files ;
+
+    QDir logdir(gConf->getDatabasePath()) ;
+    nameFilter << "????-*.cmlog" ;
+    logdir.setNameFilters(nameFilter) ;
+    files = logdir.entryList() ;
+    for (int i=files.size()-1; i>=0; i--) {
+
+        QString filename = gConf->getDatabasePath() + "/" + files.at(i) ;
+        QFile::remove(filename) ;
+    }
+
+    logsequencenumber=1 ;
+}
+
+
 QString GoogleAccess::debugGetDataResponse()
 {
     return googleGetResponse ;

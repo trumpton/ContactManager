@@ -14,8 +14,7 @@ class Configuration;
 
 enum DatabaseMaster {
     ContactManagerMaster = 0,
-    GoogleMaster = 1,
-    LatestMaster = 2
+    GoogleMaster = 1
 };
 
 #define MSG_EMAIL_CONFIRMATION 1
@@ -56,6 +55,7 @@ private:
     QString settingSMTPPort ;
     QString settingSMTPPassword ;
     QString settingDebugEnabled ;
+    QString settingEncryptedEnabled ;
     QString settingEmailCommand ;
     DatabaseMaster settingDatabaseMaster ;
 
@@ -85,8 +85,8 @@ public:
     QString getMessageFile(int index) ;
     bool contactManagerMaster() ;
     bool googleMaster() ;
-    bool latestMaster() ;
     bool debugGoogleEnabled() ;
+    bool encryptedEnabled() ;
 
     // QSettings Access Functions
     QString &getMe() ;

@@ -75,9 +75,14 @@ SOURCES += main.cpp\
     sendsmsform.cpp \
     googleupdatedialog_appointments.cpp \
     googleupdatedialog_contacts.cpp \
-    googleaccess_groups.cpp \
     ../Lib/encryption.cpp \
-    ../Lib/aes.cpp
+    ../Lib/aes.cpp \
+    googleaccess_parsecontact.cpp \
+    googleaccess_updatecontact.cpp \
+    googleaccess_getcontacts.cpp \
+    googleaccess_updatecontactgroups.cpp \
+    googleaccess_getcontact.cpp \
+    advancedfind.cpp
 
 HEADERS  += mainwindow.h \
     history.h \
@@ -111,11 +116,11 @@ HEADERS  += mainwindow.h \
     help.h \
     ../Lib/iniconfig.h \
     sendsmsform.h \
-    bugs.h \
     googleaccess-account.h \
     version.h \
     ../Lib/encryption.h \
-    ../Lib/aes.h
+    ../Lib/aes.h \
+    advancedfind.h
 
 FORMS    += mainwindow.ui \
     search.ui \
@@ -130,7 +135,8 @@ FORMS    += mainwindow.ui \
     ../Lib/itemselect.ui \
     help.ui \
     sendsmsform.ui \
-    ../Lib/encryption.ui
+    ../Lib/encryption.ui \
+    advancedfind.ui
 
 RESOURCES += \
     Icon.qrc \
@@ -138,3 +144,6 @@ RESOURCES += \
 
 OTHER_FILES += \
     icon.rc
+
+DISTFILES += \
+    ___TODO___.txt

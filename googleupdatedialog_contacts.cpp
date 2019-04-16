@@ -9,201 +9,436 @@
 #include "configuration.h"
 #include "../Lib/supportfunctions.h"
 
+//
+// Process Contact Update
+//
+// 1. Fetch IDs
+// 2. Download Google Contact List (all)
+// 3. Add Fake entry in Google list for missing local contacts
+// 4. Fix broken ID links
+// 5. Store new non-deleted contacts and re-upload
+// 6. Handle merges
+// 7. Upload new local entries
+// 8. Update profile
+// 9. Synchronise changes
+//
 
+
+bool GoogleUpdateDialog::uploadContact(Contact& contact, GoogleAccess &google, QString etag)
+{
+    bool success=false ;
+
+    QString& googleid = contact.getField(Contact::GoogleRecordId) ;
+
+    if (googleid.isEmpty() || etag.isEmpty()) {
+        success = google.updateContact(contact, GoogleAccess::Post) ;
+    } else {
+        success = google.updateContact(contact, GoogleAccess::Patch, etag) ;
+    }
+
+    // Update Groups
+    // Get and Validate Contact
+    // Loop until OK
+    // Store etag on success
+
+    return success ;
+}
 
 bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess& google, class ContactDatabase& db)
 {
     bool networkok = true ;
 
     ContactDatabase googledb ;
-    QString gacct = gConf->getGoogleUsername().replace("@","%40") ;
 
-    ui->updateStatusReport->append(QString("  Downloading New and Changed Contacts from Google")) ;
-
-    // DOWNLOAD GOOGLE CHANGES SINCE LASTSYNC INC DELETED & EMPTY
-    networkok &= google.getContacts(googledb, 1) ;
-    int numchangedongoogle = googledb.size() ;
-    for (int i=0; i<numchangedongoogle; i++) {
-        Contact &googlecontact = googledb.getContact(i) ;
-        QString txt = googlecontact.asText() ;
-        ui->updateStatusReport->append(QString("    Downloading: ") + txt) ;
-    }
-    ui->updateStatusReport->append(QString("    Downloaded: ") + QString::number(numchangedongoogle) + QString(" entries")) ;
-
-
-    // DOWNLOAD GOOGLE ENTRIES FOR CHANGED LOCAL ENTRIES NOT ALREADY DOWNLOADED
-    if (networkok && state>0) {
-       ui->progressBar->setValue(ui->progressBar->value()+100) ;
-       ui->updateStatusReport->append(QString("  Downloading Google Contacts for Changed Local Entries")) ;
-       for (int i=0, dsz=db.size(); networkok && state>0 && i<dsz; i++) {
-            Contact &localcontact = db.getContact(i) ;
-             bool isupdated = localcontact.getDate(Contact::Updated)>=lastsync ;
-             bool ongoogle = localcontact.isForAccount(gacct) ;
-             QString googlerecordid = localcontact.getField(Contact::GoogleRecordId) ;
-             bool ingoogledb = !googledb.getContactBy(Contact::GoogleRecordId, googlerecordid).isNull() ;
-             if (isupdated && ongoogle && !ingoogledb) {
-                 Contact googlecontact = localcontact ;
-                 if (google.getContact(googlecontact)) {
-                     // Downloaded contact
-                     googledb.addContact(googlecontact) ;
-                     ui->updateStatusReport->append(QString("    Downloading: ") + googlecontact.asText()) ;
-                 } else if (google.getNetworkErrorCode()==404) {
-                     // 404 is returned if the remote contact has been purged, so create a fake entry
-                     Contact purgedcontact ;
-                     purgedcontact.setField(Contact::ID, localcontact.getField(Contact::ID)) ;
-                     purgedcontact.setField(Contact::GoogleRecordId, localcontact.getField(Contact::GoogleRecordId)) ;
-                     purgedcontact.setFlag(Contact::Deleted, true) ;
-                     purgedcontact.setFlag(Contact::GoogleDeleted, true) ;
-                     googledb.addContact(purgedcontact) ;
-                     ui->updateStatusReport->append(QString("    Purged: ") + googlecontact.asText()) ;
-                 } else {
-                     // Any other responses are fatal
-                     networkok = false ;
-                }
-             }
-         }
-       ui->updateStatusReport->append(QString("    Downloaded: ") + QString::number(googledb.size() - numchangedongoogle) + QString(" entries")) ;
+    // ------------------------------------------------------------------------------------
+    //
+    // 1. Fetch IDs
+    //
+    ui->progressBar->setValue(500) ;
+    ui->updateStatusReport->append(QString("  Fetching Group IDs.")) ;
+    if (!google.getGroupIds()) {
+        ui->updateStatusReport->append(QString("    Creating Missing Groups.")) ;
+        google.createGroupIds() ;
+        google.getGroupIds() ;
     }
 
-    // LOCALLY STORE NEW NON-DELETED ENTRIES THAT AREN'T ALREADY KNOWN
-    if (networkok && state>0) {
-        ui->progressBar->setValue(ui->progressBar->value()+100) ;
-        ui->updateStatusReport->append(QString("  Storing and Refreshing New Google Contacts")) ;
-        for (int i=0, gsz=googledb.size(); networkok && state>0 && i<gsz; i++) {
-            Contact &googlecontact = googledb.getContact(i) ;
-            QString googlecontactid = googlecontact.getGoogleRecordId() ;
-            bool isdeleted = googlecontact.isSet(Contact::GoogleDeleted);
-            bool indb = !db.getContactBy(Contact::GoogleRecordId, googlecontactid).isNull() ;
-            if (!isdeleted && !indb) {
-                // TODO: Check how Appointments achieves this (i.e. saves files)
-                googlecontact.markAsDirty() ;
-                if (!googlecontact.isSet(Contact::GoogleUploaded)) {
-                    googlecontact.history.addEntry("Downloaded from Google, and re-uploaded") ;
-                    ui->updateStatusReport->append(QString("    Storing: ") + googlecontact.asText() + QString(" + re-uploading")) ;
-                    networkok &= google.updateContact(googlecontact, GoogleAccess::Update) ;
-                } else {
-                    googlecontact.history.addEntry("Downloaded from Google") ;
-                    ui->updateStatusReport->append(QString("    Storing: ") + googlecontact.asText()) ;
-                }
-                db.addContact(googlecontact) ;
-            }
-        }
-    }
+    // ------------------------------------------------------------------------------------
+    //
+    // 2. Download Google Contact List (all)
+    //
+    ui->progressBar->setValue(550) ;
+    networkok &= google.getContacts(googledb, true) ;
+    ui->updateStatusReport->append(QString("  Downloaded ") + QString::number(googledb.size()) + QString(" Contacts from Google.")) ;
 
 
-    // UPLOAD LOCAL ENTRIES FOR NEW NON-DELETED LOCAL ENTRIES NOT ALREADY ON GOOGLE
-    if (networkok && state>0) {
-        ui->progressBar->setValue(ui->progressBar->value()+100) ;
-        ui->updateStatusReport->append(QString("  Uploading New Local Entries")) ;
-        for (int i=0, dsz=db.size(); networkok && state>0 && i<dsz; i++) {
-            Contact &localcontact = db.getContact(i) ;
-            bool isdeleted = localcontact.isSet(Contact::Deleted) ;
-            bool ongoogle = localcontact.isForAccount(gacct) ;
-            bool isnew = !localcontact.isSet(Contact::GoogleUploaded) ;
-            if (!isdeleted && (!ongoogle || isnew)) {
-                networkok &= google.updateContact(localcontact, GoogleAccess::Create) ;
-                googledb.addContact(localcontact) ;
-                ui->updateStatusReport->append(QString("    Uploading ") + localcontact.asText()) ;
-                localcontact.history.addEntry("Uploaded to Google") ;
-            }
-        }
-    }
+    // ------------------------------------------------------------------------------------
+    //
+    // 3. Set the default upload / download
+    //
+    ui->progressBar->setValue(600) ;
+    bool googlemaster = gConf->googleMaster() ;
 
-    // WALK THROUGH THE GOOGLE LIST
-    if (networkok && state>0) {
-        ui->progressBar->setValue(ui->progressBar->value()+100) ;
-        ui->updateStatusReport->append(QString("  Synchronising Changes")) ;
-        for (int i=0, gsz=googledb.size(); networkok && state>0 && i<gsz; i++) {
+    for (int i=0; i<db.size(); i++) {
 
-            Contact& googlecontact = googledb.getContact(i) ;
-            QString id = googlecontact.getGoogleRecordId() ;
-            Contact& localcontact = db.getContactBy(Contact::GoogleRecordId, id) ;
+        Contact& localcontact = db.getContact(i) ;
 
-            // WORK OUT WHAT HAS CHANGED
-            bool localchanged = (localcontact.getDate(Contact::Updated) > lastsync) ;
-            bool same = localcontact.matches(googlecontact) ;
-            bool deletingnonexistantentry = googlecontact.isSet(Contact::Deleted) && localcontact.isNull() ;
+        bool upload ;
 
-            // SYNC CHANGES PROVIDED ENTRY HASN'T BEEN REMOVED
-            if (!localcontact.isNull() && !same && !deletingnonexistantentry) {
-
-                // UPLOAD = (LOCALMASTER || LATESTMASTER_LOCALPREF && LOCALCHANGED)
-                bool upload = (gConf->contactManagerMaster() || (gConf->latestMaster() && localchanged)) ;
-
-                // CALCULATE AND LOG CHANGED DETAILS
-                QString changelog ;
-                for (int j=Contact::FIRSTSYNCEDRECORD; j<=Contact::LASTSYNCEDRECORD;j++) {
-                    QString l = localcontact.getField((Contact::ContactRecord)j).replace("\n"," ") ;
-                    QString g = googlecontact.getField((Contact::ContactRecord)j).replace("\n", " ") ;
-                    QString f = localcontact.getContactRecordName((Contact::ContactRecord)j) ;
-                    if (l.compare(g)!=0) {
-                        if (!changelog.isEmpty()) changelog = changelog + "; " ;
-                        if (upload) {
-                            changelog = changelog + "'" + f + "' from '" + g + "' to '" + l + "'";
-                        } else {
-                            changelog = changelog + "'" + f + "' from '" + l + "' to '" + g + "'";
-                        }
-                    }
-                }
-
-                // IF UPLOAD THEN UPLOAD ENTRY
-                if (upload) {
-                    if (localcontact.isSet(Contact::Deleted) && (googlecontact.isSet(Contact::Deleted))) {
-                        // Do nothing - everything has already been removed
-                    } else if (!localcontact.isSet(Contact::Deleted) && googlecontact.isSet(Contact::Deleted)) {
-                        // Google was deleted so upload a new copy
-                        googlecontact.copyGoogleAccountFieldsTo(localcontact) ;
-                        networkok &= google.updateContact(localcontact, GoogleAccess::Create) ;
-                        ui->updateStatusReport->append(QString("    Uploading: ") + localcontact.asText()) ;
-                    } else if (localcontact.isSet(Contact::Deleted)) {
-                        // Remove google version
-                        networkok &= google.updateContact(localcontact, GoogleAccess::Delete) ;
-                        ui->updateStatusReport->append(QString("    Deleting Google: ") + localcontact.asText()) ;
-                    } else {
-                        // Update google version
-                        googlecontact.copyGoogleAccountFieldsTo(localcontact) ;
-                        networkok &= google.updateContact(localcontact, GoogleAccess::Update) ;
-                        ui->updateStatusReport->append(QString("    Uploading: ") + localcontact.asText()) ;
-                    }
-                    localcontact.history.addEntry("Changed Uploaded to Google: " + changelog) ;
-                }
-
-                // ELSE STORE DOWNLOADED ENTRY
-                else {
-                        if (googlecontact.isSet(Contact::Deleted)) {
-                            ui->updateStatusReport->append(QString("    Deleting Local: ") + localcontact.asText()) ;
-                        } else {
-                            ui->updateStatusReport->append(QString("    Storing: ") + googlecontact.asText()) ;
-                        }
-                        googlecontact.copySyncedFieldsTo(localcontact) ;
-                        googlecontact.copyGoogleAccountFieldsTo(localcontact) ;
-                        localcontact.history.addEntry("Changes Downloaded from Google: " + changelog) ;
-                }
-
-            }
-
-        }
-    }
-
-
-    // SYNCHRONISE TOKENS
-    if (networkok && state>0) {
-        ui->progressBar->setValue(ui->progressBar->value()+100) ;
-        bool unchanged = true ;
-        googledb.clear() ;
-        networkok &= google.getContacts(googledb, 2) ;
-        for (int i=0, gsz=googledb.size(); i<gsz; i++) {
-            Contact &googlecontact = googledb.getContact(i) ;
-            Contact &localcontact = db.getContactBy(Contact::GoogleRecordId, googlecontact.getField(Contact::GoogleRecordId)) ;
-            if (!googlecontact.matches(localcontact)) unchanged=false ;
-        }
-        if (unchanged) {
-            ui->updateStatusReport->append(QString("  Verifying synchronisation: OK")) ;
+        if (googlemaster) {
+            // Google Master, So Upload by default
+            upload=false ;
         } else {
-            ui->updateStatusReport->append(QString("  Verifying synchronisation: FAILED - Please resync")) ;
-            networkok = false ;
+            // Local Master, So Download by default
+            upload=true ;
         }
+
+        localcontact.setFlag(Contact::ToBeDownloaded, !upload) ;
+        localcontact.setFlag(Contact::ToBeUploaded, upload) ;
+    }
+
+    // ------------------------------------------------------------------------------------
+    //
+    // 4. Fix broken ID links
+    //
+    ui->progressBar->setValue(610) ;
+    ui->updateStatusReport->append(QString("  Repairing Broken Local Google Record IDs:")) ;
+    int size5=googledb.size() ;
+    for (int i=0; i<size5; i++) {
+        ui->progressBar->setValue(610 + ( i * 10)/size5 ) ;
+        Contact& googlecontact = googledb.getContact(i) ;
+        Contact& localcontact = db.getContactById(googlecontact.getField(Contact::ID)) ;
+        if (!localcontact.isNull() && !googlecontact.isSet(Contact::Deleted) &&
+                localcontact.getField(Contact::GoogleRecordId).compare(googlecontact.getField(Contact::GoogleRecordId))!=0) {
+            localcontact.setField(Contact::GoogleRecordId, googlecontact.getField(Contact::GoogleRecordId)) ;
+            ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false,false)) ;
+        }
+    }
+
+
+    // ------------------------------------------------------------------------------------
+    //
+    // 5. Handle merges
+    //
+    ui->progressBar->setValue(620) ;
+    ui->updateStatusReport->append(QString("  Processing Merged Contacts:")) ;
+    int size7 = googledb.size() ;
+    for (int i=0; i<size7; i++) {
+
+        ui->progressBar->setValue(620 + ( i * 10)/size7 ) ;
+
+        Contact& googlecontact = googledb.getContact(i) ;
+        Contact& localcontact = db.getContactById(googlecontact.getField(Contact::ID)) ;
+
+        if (!localcontact.isNull() && googlecontact.mergedIdCount()>1) {
+
+            QStringList ids = googlecontact.mergedIdList() ;
+            QString localid = localcontact.getField(Contact::ID) ;
+
+            for (int i=0; i<ids.length(); i++) {
+
+                QString id = ids.at(i) ;
+                if (id.compare(localid)!=0) {
+
+                    Contact& contact = db.getContactById(id) ;
+
+                    if (contact.isSet(Contact::ToBeDownloaded)) {
+                        // Merge all contacts together, then tag as deleted
+                        contact.mergeInto(localcontact) ;
+                        contact.setFlag(Contact::Deleted, true) ;
+                        contact.setField(Contact::GoogleRecordId, QString("")) ;
+                    } else {
+                        // Remove record ID of merged contacts so that they will be re-uploaded as-if new later
+                        contact.setField(Contact::GoogleRecordId, QString("")) ;
+                    }
+                }
+            }
+
+            // Update Google entry to remove additional IDs
+            if (!localcontact.isEmpty()) {
+                // Ensure contact has correct google ID
+                localcontact.setField(Contact::GoogleRecordId, googlecontact.getField(Contact::GoogleRecordId)) ;
+                if (uploadContact(localcontact, google, googlecontact.getField(Contact::GoogleEtag))) {
+                    ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false,false)) ;
+                } else {
+                    ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false,false) + QString(" FAILED")) ;
+                    networkok = false ;
+                }
+            }
+
+        }
+    }
+
+
+    // ------------------------------------------------------------------------------------
+    //
+    // 6. Add Fake entry in Google list for missing  contacts, and identify new local records
+    //
+    ui->progressBar->setValue(630) ;
+    ui->updateStatusReport->append(QString("  Identifying local contacts missing on Google")) ;
+    int size3 = db.size() ;
+    for (int i=0; i<size3; i++) {
+        ui->progressBar->setValue(630 + ( i * 10)/size3 ) ;
+        Contact& localcontact = db.getContact(i) ;
+        Contact& googlecontact = googledb.getContactById(localcontact.getField(Contact::ID)) ;
+
+        if (googlecontact.isNull()) {
+
+            // Add fake 'deleted' entry to Google List
+            Contact deletedcontact ;
+            deletedcontact.setField(Contact::ID, localcontact.getField(Contact::ID)) ;
+            deletedcontact.setFlag(Contact::Deleted, true) ;
+            googledb.addContact(deletedcontact) ;
+
+            if (localcontact.isSet(Contact::Hidden)) {
+
+                // Contact is hidden, so don't override any options
+                // But, forget any previous Google Record ID
+                localcontact.setField(Contact::GoogleRecordId, "") ;
+
+            } else {
+
+                if (localcontact.getField(Contact::GoogleRecordId).isEmpty()) {
+
+                    // Contact has never been uploaded
+                    // Override upload/download -> upload
+                    localcontact.setFlag(Contact::ToBeUploaded, true) ;
+                    localcontact.setFlag(Contact::ToBeDownloaded, false) ;
+                    ui->updateStatusReport->append(QString("    %1 (new local)").arg(localcontact.getFormattedName(false,false))) ;
+
+                } else {
+
+                    // Contact has previously been uploaded
+                    // So don't override options (stick with default)
+                    // But, forget any previous Google Record ID
+                    localcontact.setField(Contact::GoogleRecordId, "") ;
+                    ui->updateStatusReport->append(QString("    %1 (removed google)").arg(localcontact.getFormattedName(false,false))) ;
+
+                }
+            }
+
+        }
+    }
+
+
+    // ------------------------------------------------------------------------------------
+    //
+    // 7. Add Fake entry in Local list for missing contacts, and identify new google records
+    //
+    ui->progressBar->setValue(640) ;
+    ui->updateStatusReport->append(QString("  Identifying Google contacts missing locally")) ;
+    int size4 = googledb.size() ;
+    for (int i=0; i<size4; i++) {
+        ui->progressBar->setValue(640 + ( i * 10)/size4 ) ;
+        Contact& googlecontact = googledb.getContact(i) ;
+        Contact& localcontact = db.getContactById(googlecontact.getField(Contact::ID)) ;
+        if (localcontact.isNull()) {
+            ui->updateStatusReport->append(QString("    ") + googlecontact.getFormattedName(false,false)) ;
+            Contact newlocal ;
+            newlocal.setField(Contact::ID, googlecontact.getField(Contact::ID)) ;
+            newlocal.setFlag(Contact::ToBeDownloaded, true) ;
+            newlocal.setFlag(Contact::ToBeUploaded, true) ;
+            db.addContact(newlocal) ;
+        }
+    }
+
+
+
+    // ------------------------------------------------------------------------------------
+    //
+    // 8. Update profile
+    //
+    ui->progressBar->setValue(650) ;
+    ui->updateStatusReport->append(QString("  Storing Google Profile Changes:")) ;
+    int size8 = db.size() ;
+    for (int i=0; i<size8; i++) {
+        ui->progressBar->setValue(650 + ( i * 10)/size8 ) ;
+        Contact& localcontact = db.getContact(i) ;
+        Contact& googlecontact = googledb.getContactBy(Contact::ID, localcontact.getField(Contact::ID)) ;
+        if ( !googlecontact.isEmpty() && !googlecontact.matches(localcontact, Contact::mcProfile)) {
+            ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false, false)) ;
+            googlecontact.copyTo(localcontact, Contact::mcProfile) ;
+        }
+    }
+
+    // ------------------------------------------------------------------------------------
+    //
+    // 9. Synchronise changes (download first)
+    //
+    ui->progressBar->setValue(660) ;
+    ui->updateStatusReport->append(QString("  Synchronising Changes:")) ;
+    int size9 = db.size() ;
+    for (int i=0; i<size9; i++) {
+
+        ui->progressBar->setValue(660 + ( i * 240)/size9 ) ;
+
+        Contact& localcontact = db.getContact(i) ;
+        Contact& googlecontact = googledb.getContactBy(Contact::ID, localcontact.getField(Contact::ID)) ;
+
+        bool deletedlocaldeletedgoogle =
+                (googlecontact.isNull() || googlecontact.isSet(Contact::Deleted)) &&
+                (localcontact.isSet(Contact::Hidden) || localcontact.isSet(Contact::Deleted)) ;
+        bool googlematcheslocal = googlecontact.matches(localcontact, Contact::mcDetails|Contact::mcId) ;
+
+        if ( deletedlocaldeletedgoogle ) {
+
+            // Deleted everywhere, so nothing is required
+            localcontact.setFlag(Contact::ToBeUploaded, false) ;
+            localcontact.setFlag(Contact::ToBeDownloaded, false) ;
+
+        } else if (!googlematcheslocal) {
+
+            QString changes ;
+            QString summary ;
+
+            // Download Details from Google
+            if (localcontact.isSet(Contact::ToBeDownloaded)) {
+                if (googlecontact.isSet(Contact::Deleted)) {
+                    changes = QString("Deleted.") ;
+                    summary = QString("deleted") ;
+                    localcontact.setFlag(Contact::Deleted, true) ;
+                } else if (googlecontact.isSet(Contact::Hidden)) {
+                    changes = QString("Hidden.") ;
+                    summary = QString("hidden") ;
+                    localcontact.setFlag(Contact::Hidden, true) ;
+                } else {
+                    changes = QString("Downloaded: ") + googlecontact.mismatch(localcontact, Contact::mcDetailsGroup|Contact::mcId) + QString(". ");
+                    summary = QString("downloaded") ;
+                    googlecontact.copyTo(localcontact, Contact::mcDetailsGroup|Contact::mcGoogleId) ;
+                }
+                ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false, false)  + QString(" - Updating Local Contact Details (%1)").arg(summary)) ;
+            }
+
+            // Update Details on Google
+            if (localcontact.isSet(Contact::ToBeUploaded)) {
+                if (localcontact.isSet(Contact::Deleted)) {
+                    changes = QString("Deleted.") ;
+                    summary = QString("deleted") ;
+                } else if (localcontact.isSet(Contact::Hidden)) {
+                    changes = QString("Hidden.") ;
+                    summary = QString("hidden") ;
+                } else {
+                    changes = QString("Uploaded: ") + localcontact.mismatch(googlecontact, Contact::mcDetails|Contact::mcId) + QString(". ");
+                    summary = QString("uploaded") ;
+                }
+                if (uploadContact(localcontact, google, googlecontact.getField(Contact::GoogleEtag))) {
+                    ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false, false)  + QString(" - Updating Google Contact Details (%1)").arg(summary)) ;
+                    localcontact.copyTo(googlecontact, Contact::mcDetails|Contact::mcId|Contact::mcGoogleId) ;
+                } else {
+                    ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false, false)  + QString(" - FAILED Updating Google Contact Details")) ;
+                    networkok = false ;
+                }
+
+                // If the record has been successfully removed from Google, forget the local details
+                if (networkok && (localcontact.isSet(Contact::Deleted) || localcontact.isSet(Contact::Hidden))) {
+                    localcontact.setField(Contact::GoogleRecordId, QString("")) ;
+                    localcontact.setField(Contact::GoogleEtag, QString("")) ;
+                    localcontact.setFlag(Contact::ToBeUploaded, false) ;
+                }
+            }
+
+            if (!changes.isEmpty()) {
+                localcontact.getHistory().addEntry(changes) ;
+            }
+
+        }
+
+    }
+
+    // 10. Synchronise Groups
+    ui->progressBar->setValue(900) ;
+
+    if (networkok) {
+        // Upload record groups
+        if (networkok) { networkok = updateSingleGoogleContactGroup(google, Contact::GroupBusiness, db, googledb) ; }
+        ui->progressBar->setValue(918) ;
+        if (networkok) { networkok = updateSingleGoogleContactGroup(google, Contact::GroupClient, db, googledb) ; }
+        ui->progressBar->setValue(936) ;
+        if (networkok) { networkok = updateSingleGoogleContactGroup(google, Contact::GroupFamily, db, googledb) ; }
+        ui->progressBar->setValue(954) ;
+        if (networkok) { networkok = updateSingleGoogleContactGroup(google, Contact::GroupFriend, db, googledb) ; }
+        ui->progressBar->setValue(972) ;
+        if (networkok) { networkok = updateSingleGoogleContactGroup(google, Contact::GroupOther, db, googledb) ; }
+        ui->progressBar->setValue(990) ;
+    }
+
+
+    if (networkok) {
+        // Download record groups
+        updateSingleLocalContactGroup(google, Contact::GroupBusiness, db, googledb) ;
+        ui->progressBar->setValue(992) ;
+        updateSingleLocalContactGroup(google, Contact::GroupClient, db, googledb) ;
+        ui->progressBar->setValue(994) ;
+        updateSingleLocalContactGroup(google, Contact::GroupFamily, db, googledb) ;
+        ui->progressBar->setValue(996) ;
+        updateSingleLocalContactGroup(google, Contact::GroupFriend, db, googledb) ;
+        ui->progressBar->setValue(998) ;
+        updateSingleLocalContactGroup(google, Contact::GroupOther, db, googledb) ;
+        ui->progressBar->setValue(1000) ;
+    }
+
+
+    ui->progressBar->setValue(1000) ;
+    if (networkok) {
+        ui->updateStatusReport->append(QString("  Contact Synchronisation: OK")) ;
+    } else {
+        ui->updateStatusReport->append(QString("  Contact Synchronisation: FAILED - Please resync")) ;
     }
 
     return networkok ;
+}
+
+
+// Upload group to Google
+bool GoogleUpdateDialog::updateSingleGoogleContactGroup(GoogleAccess &google, Contact::ContactRecord rec, ContactDatabase &db, ContactDatabase &googledb)
+{
+    ui->updateStatusReport->append(QString("  Updating Google %1 Group").arg(google.getGroupId(rec, true))) ;
+    bool networkok=google.updateSingleGoogleContactGroup(rec, db, googledb) ;
+    QString addedstr = google.contactsAddedToGroup() ;
+    QString deletedstr = google.contactsDeletedFromGroup() ;
+    if (!addedstr.isEmpty()) ui->updateStatusReport->append(addedstr) ;
+    if (!deletedstr.isEmpty()) ui->updateStatusReport->append(deletedstr) ;
+    return networkok ;
+}
+
+// 'Download' group from Google
+bool GoogleUpdateDialog::updateSingleLocalContactGroup(GoogleAccess &google, Contact::ContactRecord rec, ContactDatabase &db, ContactDatabase &googledb)
+{
+    QString addedstr, deletedstr ;
+
+    ui->updateStatusReport->append(QString("  Updating Local %1 Group").arg(google.getGroupId(rec, true))) ;
+
+    for (int i=0; i<googledb.size(); i++) {
+
+        Contact& googlecontact = googledb.getContact(i) ;
+        Contact& localcontact = db.getContactById(googlecontact.getField(Contact::ID)) ;
+
+        // Do transfer if valid entry and entry exists on google, and transfer requested
+        bool dotransfer = true ;
+        if (localcontact.isNull()) dotransfer=false ;
+        if (googlecontact.getField(Contact::GoogleRecordId).isEmpty()) dotransfer=false ;
+        if (!localcontact.isSet(Contact::ToBeDownloaded)) dotransfer=false ;
+
+        if (dotransfer) {
+
+            bool googlegrp = googlecontact.isSet(rec) ;
+            bool localgrp = localcontact.isSet(rec) ;
+
+            if (googlegrp!=localgrp) {
+                if (googlegrp) {
+                    localcontact.setFlag(rec, true) ;
+                    if (!addedstr.isEmpty()) addedstr = addedstr + "\n" ;
+                    addedstr = addedstr + "   + " + googlecontact.getFormattedName(false, false) ;
+                } else {
+                    localcontact.setFlag(rec, false) ;
+                    if (!deletedstr.isEmpty()) deletedstr = deletedstr + "\n";
+                    deletedstr = deletedstr + "   - " + googlecontact.getFormattedName(false, false) ;
+                }
+            }
+        }
+    }
+
+    if (!addedstr.isEmpty()) ui->updateStatusReport->append(addedstr) ;
+    if (!deletedstr.isEmpty()) ui->updateStatusReport->append(deletedstr) ;
+
+    return true ;
 }

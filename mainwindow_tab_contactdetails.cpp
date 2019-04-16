@@ -106,6 +106,7 @@ void MainWindow::on_actionDeleteContact_triggered()
 void MainWindow::LoadContactTab()
 {
     Contact& dr = db.getSelected() ;
+    dr.sortPhoneNumbers() ;
     ui->editSurname->setText(dr.getField(Contact::Surname)) ;
     ui->editFirstName->setText(dr.getField(Contact::Names)) ;
     ui->editEmail->setText(dr.getField(Contact::Email)) ;
@@ -113,51 +114,50 @@ void MainWindow::LoadContactTab()
     ui->editWebAddress->setText(dr.getField(Contact::Webaddress)) ;
     ui->editBusiness->setText(dr.getField(Contact::Organisation)) ;
     ui->editHome->setText(dr.getField(Contact::Phone)) ;
+
     ui->edit2->setText(dr.getField(Contact::Phone2)) ;
-    ui->edit2Title->setText(dr.getField(Contact::Phone2Title)) ;
+
+    if (dr.getField(Contact::Phone2Title).isEmpty()) {
+        ui->edit2Title->setText("Other") ;
+    } else {
+        ui->edit2Title->setText(dr.getField(Contact::Phone2Title)) ;
+    }
+
     ui->edit3->setText(dr.getField(Contact::Phone3)) ;
-    ui->edit3Title->setText(dr.getField(Contact::Phone3Title)) ;
+
+    if (dr.getField(Contact::Phone3Title).isEmpty()) {
+        ui->edit3Title->setText("Other") ;
+    } else {
+        ui->edit3Title->setText(dr.getField(Contact::Phone3Title)) ;
+    }
+
     ui->edit4->setText(dr.getField(Contact::Phone4)) ;
-    ui->edit4Title->setText(dr.getField(Contact::Phone4Title)) ;
+
+    if (dr.getField(Contact::Phone4Title).isEmpty()) {
+        ui->edit4Title->setText("Other") ;
+    } else {
+        ui->edit4Title->setText(dr.getField(Contact::Phone4Title)) ;
+    }
+
     ui->editMobile->setText(dr.getField(Contact::Mobile)) ;
     ui->editWork->setText(dr.getField(Contact::Work)) ;
+
+    ui->editVoip->setText(dr.getField(Contact::Voip)) ;
+
     ui->editDateOfBirth->setDateTime(xsDateToDateTime(dr.getField(Contact::Birthday))) ;
-    ui->editAddress->setPlainText(dr.getField(Contact::Address)) ;
-    ui->editAddress2->setPlainText(dr.getField(Contact::Address2)) ;
+    ui->editAddress->setPlainText(dr.getField(Contact::Address).replace(", ","\n").replace(",","\n")) ;
+    ui->editAddress2->setPlainText(dr.getField(Contact::Address2).replace(", ","\n").replace(",","\n")) ;
     ui->editComment->setPlainText(dr.getField(Contact::Comments)) ;
     bool textme = dr.isSet(Contact::TextMe);
     ui->checkTextMe->setChecked(textme) ;
     bool emailme = dr.isSet(Contact::EmailMe) ;
     ui->checkEmailMe->setChecked(emailme) ;
     ui->checkHidden->setChecked(dr.isSet(Contact::Hidden)) ;
-    QString groupName = dr.getField(Contact::Group) ;
-
-    static char contactType[][64] = {
-        gBUSINESS,
-        gCLIENT,
-        "Coworkers",
-        "Family",
-        "Friends",
-        "Other",
-        gUNKNOWN,
-        ""
-    } ;
-
-    // Populate the list
-    if (groupName.isEmpty()) groupName = "Unknown" ;
-
-    ui->comboBoxContactType->clear() ;
-    bool found=false ;
-    for (int i=0; contactType[i][0]!='\0'; i++) {
-        ui->comboBoxContactType->addItem(contactType[i]);
-        if (groupName.compare(contactType[i])==0) found=true ;
-    }
-    if (!found) ui->comboBoxContactType->addItem(groupName) ;
-
-    // Select the current item
-    int index=ui->comboBoxContactType->findText(groupName) ;
-    if (index>=0) ui->comboBoxContactType->setCurrentIndex(index) ;
-
+    ui->checkBusiness->setChecked(dr.isSet(Contact::GroupBusiness)) ;
+    ui->checkClient->setChecked(dr.isSet(Contact::GroupClient)) ;
+    ui->checkFamily->setChecked(dr.isSet(Contact::GroupFamily)) ;
+    ui->checkFriend->setChecked(dr.isSet(Contact::GroupFriend)) ;
+    ui->checkOther->setChecked(dr.isSet(Contact::GroupOther)) ;
 }
 
 
@@ -167,23 +167,39 @@ bool MainWindow::SaveContactTab()
 
     if (dr.isNull()) return true ;
 
-    Contact newdr = dr ;
+    Contact newdr ;
     QString log="" ;
     bool wasempty = dr.isEmpty() ;
 
-    newdr.setField(Contact::Group,ui->comboBoxContactType->currentText()) ;
     newdr.setField(Contact::Surname, ui->editSurname->text()) ;
     newdr.setField(Contact::Names,ui->editFirstName->text());
     newdr.setField(Contact::Organisation,ui->editBusiness->text()) ;
-    newdr.setField(Contact::Address, ui->editAddress->toPlainText()) ;
-    newdr.setField(Contact::Address2, ui->editAddress2->toPlainText()) ;
+    newdr.setField(Contact::Address, ui->editAddress->toPlainText().replace("\n", ", ")) ;
+    newdr.setField(Contact::Address2, ui->editAddress2->toPlainText().replace("\n", ", ")) ;
     newdr.setField(Contact::Phone, ui->editHome->text()) ;
     newdr.setField(Contact::Phone2,ui->edit2->text());
-    newdr.setField(Contact::Phone2Title, ui->edit2Title->text());
+    if (ui->edit2->text().isEmpty()) {
+        newdr.setField(Contact::Phone2Title, "");
+    } else {
+        newdr.setField(Contact::Phone2Title, ui->edit2Title->text());
+    }
+
     newdr.setField(Contact::Phone3,ui->edit3->text());
-    newdr.setField(Contact::Phone3Title, ui->edit3Title->text());
+    if (ui->edit3->text().isEmpty()) {
+        newdr.setField(Contact::Phone3Title, "");
+    } else {
+        newdr.setField(Contact::Phone3Title, ui->edit3Title->text());
+    }
+
     newdr.setField(Contact::Phone4,ui->edit4->text());
-    newdr.setField(Contact::Phone4Title, ui->edit4Title->text());
+    if (ui->edit4->text().isEmpty()) {
+        newdr.setField(Contact::Phone4Title, "");
+    } else {
+        newdr.setField(Contact::Phone4Title, ui->edit4Title->text());
+    }
+
+    newdr.setField(Contact::Voip, ui->editVoip->text()) ;
+
     newdr.setField(Contact::Work, ui->editWork->text());
     newdr.setField(Contact::Mobile, ui->editMobile->text()) ;
     newdr.setField(Contact::Email, ui->editEmail->text()) ;
@@ -191,15 +207,22 @@ bool MainWindow::SaveContactTab()
     newdr.setField(Contact::Webaddress, ui->editWebAddress->text()) ;
     newdr.setField(Contact::Birthday, dateTimeToXsDate(ui->editDateOfBirth->getDateTime()));
     newdr.setField(Contact::Comments, ui->editComment->toPlainText() );
-    newdr.setFlag(Contact::Hidden, ui->checkHidden->checkState()!=Qt::Unchecked) ;
+    newdr.setFlag(Contact::GroupBusiness, ui->checkBusiness->isChecked()) ;
+    newdr.setFlag(Contact::GroupClient, ui->checkClient->isChecked()) ;
+    newdr.setFlag(Contact::GroupFamily, ui->checkFamily->isChecked()) ;
+    newdr.setFlag(Contact::GroupFriend, ui->checkFriend->isChecked()) ;
+    newdr.setFlag(Contact::GroupOther, ui->checkOther->isChecked()) ;
+    newdr.setFlag(Contact::Hidden, ui->checkHidden->isChecked()) ;
     newdr.setFlag(Contact::EmailMe, ui->checkEmailMe->checkState()!=Qt::Unchecked) ;
     newdr.setFlag(Contact::TextMe, ui->checkTextMe->checkState()!=Qt::Unchecked) ;
+    newdr.sortPhoneNumbers() ;
 
+    // If nothing set / changed / updated, return
     if (!newdr.isDirty()) return true ;
+    if (dr.matches(newdr, Contact::mcDetailsGroup)) return true ;
 
     // Check the textme and emailme fields are right for a client
-    if ( newdr.getField(Contact::Group).compare(gCLIENT)==0 &&
-        !( newdr.isSet(Contact::TextMe) || newdr.isSet(Contact::EmailMe))) {
+    if ( !dr.isSet(Contact::GroupClient) && newdr.isSet(Contact::GroupClient) && !( newdr.isSet(Contact::TextMe) || newdr.isSet(Contact::EmailMe))) {
             if (!warningYesNoDialog(this,
                  "Contact Details Query",
                  "You've identified the contact as a client, but not selected Text or Email reminders.\nIs this right?")) {
@@ -230,18 +253,25 @@ bool MainWindow::SaveContactTab()
     } else {
 
         // Record all of the changes made
-        for (int i=Contact::FIRSTRECORD; i<=Contact::LASTSYNCEDRECORD; i++) {
+        for (int i=0; i<Contact::NumberOfRecords; i++) {
             enum Contact::ContactRecord t = (Contact::ContactRecord)i ;
-            if (newdr.getField(t).compare(dr.getField(t))!=0) {
-                // If the record is modified, record the changes in the History
-               if (newdr.getField(t).isEmpty()) {
-                    log = log + "Deleted " + newdr.getContactRecordName(t) +
-                            " (was '" + dr.getField(t).replace("\n",", ") + "')\n" ;
-                } else {
-                    log = log + "Changed " + newdr.getContactRecordName(t)
-                            + " from '" + dr.getField(t).replace("\n",", ")
-                            + "' to '" + newdr.getField(t).replace("\n",", ") + "'\n" ;
-               }
+            if (newdr.isContactOfType((Contact::ContactRecord)i, Contact::mcDetailsGroup)) {
+
+                if (newdr.getField(t).compare(dr.getField(t))!=0) {
+                    // If the record is modified, record the changes in the History
+                   if (newdr.getField(t).isEmpty()) {
+                        log = log + "  Deleted " + newdr.contactRecordName(t) +
+                                " (was '" + dr.getField(t).replace("\n",", ") + "')\n" ;
+                    } else if (dr.getField(t).isEmpty()) {
+                       log = log + "  Set " + newdr.contactRecordName(t) +
+                               + "' to '" + newdr.getField(t).replace("\n",", ") + "'\n" ;
+                    } else {
+                        log = log + "  Changed " + newdr.contactRecordName(t)
+                                + " from '" + dr.getField(t).replace("\n",", ")
+                                + "' to '" + newdr.getField(t).replace("\n",", ") + "'\n" ;
+                   }
+                }
+
             }
         }
 
@@ -250,7 +280,7 @@ bool MainWindow::SaveContactTab()
         }
     }
 
-    dr = newdr ;
+    newdr.copyTo(dr, Contact::mcDetailsGroup) ;
 
     if (!log.isEmpty()) {
         dr.getHistory().addEntry(log) ;

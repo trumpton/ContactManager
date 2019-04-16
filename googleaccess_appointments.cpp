@@ -46,7 +46,7 @@ bool GoogleAccess::getCalendar(Calendar &googlecalendar)
 
     }
 
-    json = googleGet(url, "appointmentlist-1.txt") ;
+    json = googleGet(url, "getCalendar") ;
     if (!errorstatus.isEmpty()) return false ;
 
     doc = QJsonDocument::fromJson(json.toUtf8(), &err) ;
@@ -92,7 +92,7 @@ bool GoogleAccess::getAppointment(Appointment& appt)
             account + "/events/" +
             record + "?v=3.0" ;
 
-    json = googleGet(url, "appointment.txt") ;
+    json = googleGet(url, "getAppointment") ;
 
     if (!errorstatus.isEmpty()) return false ;
 
@@ -228,7 +228,7 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
 
     // TODO: need a private flag or flip sense of googleorganiseself to googleothercalendar
     // Prevent read-only Google entries being changed (should never happen as entry is readonly)
-    if (action!=GoogleAccess::Create && appt.isSet(Appointment::InternetOwned))
+    if (action!=GoogleAccess::Post && appt.isSet(Appointment::InternetOwned))
         return true ;
 
     // Get account
@@ -254,7 +254,7 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
     if (action==GoogleAccess::Delete) {
 
         // Delete
-        googlePutPostDelete(url, GoogleAccess::Delete, "", "appointmentupdate.txt") ;
+        googlePutPostDelete(url, GoogleAccess::Delete, "", "updateAppointment-Delete") ;
 
         // If successful, update local status to indicate Google Record has been deleted
         if (!isConnectionError()) {
@@ -267,7 +267,7 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
         // Put / Post
 
         // TODO: iCalUID may have @ / %40 translation requirements here and in parse
-        if (action==GoogleAccess::Update) {
+        if (action==GoogleAccess::Put) {
             root.insert("id", appt.getField(Appointment::GoogleRecordId)) ;
             root.insert("iCalUID", appt.getField(Appointment::GoogleIcalUid)) ;
             qint64 sequence = appt.getField(Appointment::GoogleSequence).toLong() ;
@@ -317,7 +317,7 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
         QString jsontext = doc.toJson() ;
 
         // createnew = POST, Update = PUT
-        jsonresponse = googlePutPostDelete(url, action, jsontext, "appointmentupdate.txt") ;
+        jsonresponse = googlePutPostDelete(url, action, jsontext, "updateAppointment-PutPost") ;
 
     }
 

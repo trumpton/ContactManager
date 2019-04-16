@@ -42,6 +42,7 @@ Configuration::Configuration(QWidget *parent) :
     settingSMTPPort = "" ;
     settingSMTPPassword = "" ;
     settingDebugEnabled = "" ;
+    settingEncryptedEnabled = "" ;
     settingDatabaseMaster = ContactManagerMaster ;
 
     ui->setupUi(this);
@@ -134,9 +135,6 @@ bool Configuration::SetupForm(ContactDatabase *currentdatabase, GoogleAccess *ga
     case GoogleMaster:
         ui->conflictGoogle->setChecked(true) ;
         break ;
-    case LatestMaster:
-        ui->conflictLatest->setChecked(true) ;
-        break ;
     }
 
     // Show ini file path
@@ -164,8 +162,6 @@ bool Configuration::SaveForm()
         settings->setValue("databasemaster", ContactManagerMaster) ;
     else if (ui->conflictGoogle->isChecked())
         settings->setValue("databasemaster", GoogleMaster) ;
-    else
-        settings->setValue("databasemaster", LatestMaster) ;
     if (ui->enableReminders->isChecked()) {
         settings->setValue("enablereminders", "yes") ;
     } else {
@@ -184,14 +180,15 @@ bool Configuration::googleMaster()
     return getDatabaseMaster() == GoogleMaster ;
 }
 
-bool Configuration::latestMaster()
-{
-    return getDatabaseMaster() == LatestMaster ;
-}
-
 bool Configuration::debugGoogleEnabled()
 {
     QString m = ini.get("google", "debug") ;
+    return (m.compare("true", Qt::CaseInsensitive)==0 || m.compare("yes", Qt::CaseInsensitive)==0) ;
+}
+
+bool Configuration::encryptedEnabled()
+{
+    QString m = ini.get("database", "encrypted") ;
     return (m.compare("true", Qt::CaseInsensitive)==0 || m.compare("yes", Qt::CaseInsensitive)==0) ;
 }
 
