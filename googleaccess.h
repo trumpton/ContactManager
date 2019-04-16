@@ -11,16 +11,26 @@
 #include "calendar.h"
 #include "contactdatabase.h"
 
+// Contact Details
+// Requested parameters for person, from: addresses,ageRanges,biographies,birthdays,
+// braggingRights,coverPhotos,emailAddresses,events,genders,imClients,interests,locales,
+// memberships,metadata,names,nicknames,occupations,organizations,phoneNumbers,photos,
+// relations,relationshipInterests,relationshipStatuses,residences,sipAddresses,skills,
+// taglines,urls,userDefined
+//#define ALLPERSONFIELDS "addresses,ageRanges,biographies,birthdays,,braggingRights,coverPhotos,emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,residences,sipAddresses,skills,taglines,urls,userDefined"
+#define PERSONFIELDS "addresses,biographies,birthdays,emailAddresses,events,memberships,metadata,names,organizations,phoneNumbers,sipAddresses,urls,userDefined"
+#define GROUPPERSONFIELDS "memberships,userDefined"
+
 class GoogleAccess
 {
 
 public:
     enum googleAction {
-        Post = 0,       // Create New Contact
-        Create = 0,
-        Put = 1,        // Update / Change Contact
-        Update = 1,
-        Delete = 2      // Delete Contact
+        Post = 0,      // Create New Contact / Calendar Entry
+        Put = 1,       // Not Used / Update Calendar Entry
+        Delete = 2,    // Delete Contact / Calendar Entry
+        Patch = 3      // Update Contact
+
     };
 
 private:
@@ -35,9 +45,16 @@ private:
     QString errorstatus ;
     bool connectionerror ;
     int errorcode ;
+    int logsequencenumber ;
+
+    // Groups update record
+    QString addedstr, deletedstr ;
 
     // Contact and Calendar Sync Tokens
     QString contactsynctoken, calendarsynctoken ;
+
+    // Group IDs
+    QString gidbusiness, gidclient, gidfamily, gidfriend, gidother ;
 
     // Gets an access token, using the refresh token
     void googleGetAccessToken() ;
@@ -51,6 +68,12 @@ private:
     // Parse JSon
     bool parseContact(QString &json, QString &tag, Contact &contact) ;
     bool parseContact(QJsonObject &item, Contact &contact) ;
+
+    // Check metadata source of entry
+    QString getMetadataField(QJsonValue object, bool primary=false) ;
+    bool isMetadataFromContacts(QJsonValue object) ;
+    bool isMetadataFromProfile(QJsonValue object) ;
+    bool isMetadataPrimary(QJsonValue object) ;
 
     // Get all appointments from server, and save in QString and list of Appointments
 //    QList<Appointment> &convertJsonToAppointments(QString &json) ;
@@ -125,14 +148,33 @@ private:
     // Update Appointment to Google Server
     bool updateAppointment(Appointment &appt, googleAction action) ;
 
+    // Update group IDs from Google server
+    bool getGroupIds() ;
+    bool createGroupIds() ;
+
+    // Get Group ID Info
+    QString getGroupId(Contact::ContactRecord rec, bool asverbosename=false) ;
+
+
     // Get all contacts from Google server
-    bool getContacts(ContactDatabase &googlecontacts, int pass=0) ;
+    bool getContacts(ContactDatabase &googlecontacts, bool downloadall=true) ;
 
     // Download the contact based on Google Details
-    bool getContact(Contact& contact) ;
+//    bool getContact(Contact& contact) ;
 
     // Update contact on Google Server
-    bool updateContact(Contact &contact, googleAction action) ;
+    bool updateContact(Contact &contact, googleAction action, QString etag = QString("")) ;
+
+    // Update contact's groups on Google Server (called from updateContact)
+    bool updateGoogleContactGroup(Contact& contact, Contact &googlecontact) ;
+
+    // Update a group on Google with all contact changes
+    bool updateSingleGoogleContactGroup(Contact::ContactRecord rec, ContactDatabase &db, ContactDatabase &googledb) ;
+    QString& contactsDeletedFromGroup() ;
+    QString& contactsAddedToGroup() ;
+
+    // Get Contact, and validate against reference if provided
+    bool getContact(Contact& googlecontact, bool getgrouponly=false) ;
 
     // Sets and retrieves the sync tokens
     void setContactSyncToken(QString& token) ;
@@ -141,6 +183,7 @@ private:
     QString& getCalendarSyncToken() ;
 
     // Useful debug functions
+    void resetLogFiles() ;
     QString debugGetDataResponse() ;
     QString debugPutPostDataResponse() ;
 

@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>882</width>
-    <height>551</height>
+    <width>1138</width>
+    <height>531</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -21,7 +21,7 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>882</width>
+    <width>1000</width>
     <height>531</height>
    </size>
   </property>
@@ -234,7 +234,7 @@ p, li { white-space: pre-wrap; }
            <widget class="QFrame" name="NamesFrame">
             <property name="maximumSize">
              <size>
-              <width>500</width>
+              <width>16777215</width>
               <height>16777215</height>
              </size>
             </property>
@@ -251,8 +251,14 @@ p, li { white-space: pre-wrap; }
                 <widget class="QLabel" name="labelNames">
                  <property name="minimumSize">
                   <size>
-                   <width>100</width>
+                   <width>80</width>
                    <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>80</width>
+                   <height>16777215</height>
                   </size>
                  </property>
                  <property name="text">
@@ -292,8 +298,14 @@ p, li { white-space: pre-wrap; }
                 <widget class="QLabel" name="labelOrganisation">
                  <property name="minimumSize">
                   <size>
-                   <width>100</width>
+                   <width>80</width>
                    <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>80</width>
+                   <height>16777215</height>
                   </size>
                  </property>
                  <property name="text">
@@ -316,56 +328,66 @@ p, li { white-space: pre-wrap; }
                 <widget class="QLabel" name="labelContactType">
                  <property name="minimumSize">
                   <size>
-                   <width>100</width>
+                   <width>80</width>
                    <height>0</height>
                   </size>
                  </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>80</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
                  <property name="text">
-                  <string>Contact Type</string>
+                  <string> Type</string>
                  </property>
                 </widget>
                </item>
                <item>
-                <widget class="QComboBox" name="comboBoxContactType">
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
+                <widget class="QCheckBox" name="checkBusiness">
                  <property name="accessibleName">
-                  <string>Contact Type</string>
+                  <string>Business</string>
                  </property>
-                 <item>
-                  <property name="text">
-                   <string>Unknown</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>Business</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>Client</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>Family</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>Friend</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>Other</string>
-                  </property>
-                 </item>
+                 <property name="text">
+                  <string>Business</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkClient">
+                 <property name="accessibleName">
+                  <string>Client</string>
+                 </property>
+                 <property name="text">
+                  <string>Client</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkFamily">
+                 <property name="accessibleName">
+                  <string>Family</string>
+                 </property>
+                 <property name="text">
+                  <string>Family</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkFriend">
+                 <property name="accessibleName">
+                  <string>Friend</string>
+                 </property>
+                 <property name="text">
+                  <string>Friend</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkOther">
+                 <property name="text">
+                  <string>Other</string>
+                 </property>
                 </widget>
                </item>
                <item>
@@ -396,7 +418,7 @@ p, li { white-space: pre-wrap; }
            <widget class="QFrame" name="frame_3">
             <property name="maximumSize">
              <size>
-              <width>500</width>
+              <width>16777215</width>
               <height>16777215</height>
              </size>
             </property>
@@ -413,8 +435,14 @@ p, li { white-space: pre-wrap; }
                 <widget class="QLabel" name="label">
                  <property name="minimumSize">
                   <size>
-                   <width>100</width>
+                   <width>80</width>
                    <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>80</width>
+                   <height>16777215</height>
                   </size>
                  </property>
                  <property name="font">
@@ -451,8 +479,14 @@ p, li { white-space: pre-wrap; }
                 <widget class="QLabel" name="LabelAltEmail">
                  <property name="minimumSize">
                   <size>
-                   <width>100</width>
+                   <width>80</width>
                    <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>80</width>
+                   <height>16777215</height>
                   </size>
                  </property>
                  <property name="text">
@@ -475,8 +509,14 @@ p, li { white-space: pre-wrap; }
                 <widget class="QLabel" name="labelWebSite">
                  <property name="minimumSize">
                   <size>
-                   <width>100</width>
+                   <width>80</width>
                    <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>80</width>
+                   <height>16777215</height>
                   </size>
                  </property>
                  <property name="text">
@@ -500,7 +540,7 @@ p, li { white-space: pre-wrap; }
            <widget class="QFrame" name="frame">
             <property name="maximumSize">
              <size>
-              <width>500</width>
+              <width>16777215</width>
               <height>16777215</height>
              </size>
             </property>
@@ -818,6 +858,33 @@ p, li { white-space: pre-wrap; }
                </item>
               </layout>
              </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_24">
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="label_2">
+                 <property name="minimumSize">
+                  <size>
+                   <width>100</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>Phone - VOIP</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="SafeLineEdit" name="editVoip">
+                 <property name="accessibleName">
+                  <string>VOIP Address</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
             </layout>
            </widget>
           </item>
@@ -998,7 +1065,7 @@ p, li { white-space: pre-wrap; }
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>882</width>
+     <width>1138</width>
      <height>23</height>
     </rect>
    </property>
@@ -1093,6 +1160,7 @@ p, li { white-space: pre-wrap; }
     <addaction name="actionFind"/>
     <addaction name="actionFindNext"/>
     <addaction name="actionGlobalFind"/>
+    <addaction name="action_Advanced_Find"/>
     <addaction name="separator"/>
     <addaction name="actionSearch_EmailSMSToContacts"/>
     <addaction name="actionSearch_EmailSMSToNonClients"/>
@@ -1470,6 +1538,14 @@ p, li { white-space: pre-wrap; }
     <string>&amp;Logout</string>
    </property>
   </action>
+  <action name="action_Advanced_Find">
+   <property name="text">
+    <string>&amp;Advanced Global Find</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+G</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -1495,11 +1571,21 @@ p, li { white-space: pre-wrap; }
   </customwidget>
  </customwidgets>
  <tabstops>
-  <tabstop>tabBar</tabstop>
+  <tabstop>editOverview</tabstop>
+  <tabstop>listCalendar</tabstop>
+  <tabstop>newAppointmentButton</tabstop>
+  <tabstop>insertAppointmentButton</tabstop>
+  <tabstop>moveAppointmentButton</tabstop>
+  <tabstop>removeAppointmentButton</tabstop>
+  <tabstop>editToDo</tabstop>
   <tabstop>editFirstName</tabstop>
   <tabstop>editSurname</tabstop>
   <tabstop>editBusiness</tabstop>
-  <tabstop>comboBoxContactType</tabstop>
+  <tabstop>checkBusiness</tabstop>
+  <tabstop>checkClient</tabstop>
+  <tabstop>checkFamily</tabstop>
+  <tabstop>checkFriend</tabstop>
+  <tabstop>checkOther</tabstop>
   <tabstop>checkHidden</tabstop>
   <tabstop>editEmail</tabstop>
   <tabstop>editEmail2</tabstop>
@@ -1515,18 +1601,13 @@ p, li { white-space: pre-wrap; }
   <tabstop>edit3</tabstop>
   <tabstop>edit4Title</tabstop>
   <tabstop>edit4</tabstop>
+  <tabstop>editVoip</tabstop>
   <tabstop>editDateOfBirth</tabstop>
   <tabstop>editComment</tabstop>
   <tabstop>checkTextMe</tabstop>
   <tabstop>checkEmailMe</tabstop>
-  <tabstop>listCalendar</tabstop>
-  <tabstop>newAppointmentButton</tabstop>
-  <tabstop>insertAppointmentButton</tabstop>
-  <tabstop>moveAppointmentButton</tabstop>
-  <tabstop>removeAppointmentButton</tabstop>
-  <tabstop>editOverview</tabstop>
   <tabstop>editNotes</tabstop>
-  <tabstop>editToDo</tabstop>
+  <tabstop>tabBar</tabstop>
  </tabstops>
  <resources>
   <include location="Icon.qrc"/>

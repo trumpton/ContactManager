@@ -74,7 +74,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
             bool isdeleted = localappt.isSet(Appointment::Deleted) ;
             bool ongoogle = localappt.isForAccount(gacct) ;
             if (!isdeleted && !ongoogle) {
-                networkok &= google.updateAppointment(localappt, GoogleAccess::Create) ;
+                networkok &= google.updateAppointment(localappt, GoogleAccess::Post) ;
                 googlecal.addAppointment(localappt) ;
                 ui->updateStatusReport->append(QString("    Uploading ") + localappt.asText()) ;
             }
@@ -101,12 +101,12 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
             if (!same && !deletingnonexistantentry) {
 
                 // UPLOAD = (LOCALMASTER || LATESTMASTER_LOCALPREF && LOCALCHANGED)
-                bool upload = (gConf->contactManagerMaster() || (gConf->latestMaster() && localchanged)) ;
+                bool upload = (gConf->contactManagerMaster()) ;
 
                 // IF UPLOAD THEN UPLOAD ENTRY
                 if (upload) {
                         googleappt.copyGoogleAccountFieldsTo(localappt) ;
-                        networkok &= google.updateAppointment(localappt, GoogleAccess::Update) ;
+                        networkok &= google.updateAppointment(localappt, GoogleAccess::Put) ;
                         ui->updateStatusReport->append(QString("    Uploading: ") + localappt.asText()) ;
                 }
 

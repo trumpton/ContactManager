@@ -1,112 +1,19 @@
 #ifndef CUSTOMERRECORD_H
 #define CUSTOMERRECORD_H
 
+// TODO: Check to see if we really need cached copies of strings
+
 #include <QString>
 #include <QDateTime>
 #include "history.h"
 #include "todo.h"
 #include "../Lib/encryption.h"
 
-// Status
-#define stHIDDEN "hidden"
-#define stDELETED "deleted"
-#define stACTIVE "active"
-#define stPURGED "purged"
-
-// Groups
-#define gUNKNOWN "Unknown"
-#define gBUSINESS "Business"
-#define gCLIENT "Client"
 
 class Contact
 {
+
 public:
-    enum ContactRecord {
-
-        //--------------------------
-        // Contact Data
-
-        FIRSTRECORD = 0,
-
-        FIRSTSYNCEDRECORD = 0,      // All data items that are synced - changes to these causes Updated to change
-
-        FIRSTSYNCEDDATA = 0,        // Setting any of these will make isempty=false
-
-        FIRSTDIALOGEDITEDDATA = 0,  // Records edited in the contact dialog
-
-        // These entries are synchronised, and are used to work out
-        // if an entry is empty
-
-        Surname = 0,
-        Names = 1,
-        Organisation = 2,
-
-        STARTADDRESS = 3,
-        Address = 3,
-        Address2 = 4,
-        ENDADDRESS = 4,
-
-        STARTPHONE = 5,
-        Phone = 5,
-        Work = 6,
-        Mobile = 7,
-        Phone2 = 8,
-        Phone3 = 9,
-        Phone4 = 10, Voip = 10,
-        ENDPHONE = 10,
-
-
-        STARTEMAIL = 11,
-        Email = 11,
-        Email2 = 12,
-        ENDEMAIL = 12,
-
-        Webaddress = 13,
-        Birthday = 14,
-        Comments = 15,
-
-        LASTSYNCEDDATA = 15,
-
-        // These entries are synchronised, but not used to work out if the
-        // entry is empty.
-
-        Phone2Title = 16,
-        Phone3Title = 17,
-        Phone4Title = 18,
-        Group = 19,
-        Hidden = 20,            // Hidden entries are not in MyContacts on Google
-        EmailMe =  21,
-        TextMe = 22,
-
-        LASTDIALOGEDITEDDATA = 22,
-
-        Deleted = 23,
-        ID = 24,                // Unique ID
-
-        LASTSYNCEDRECORD = 24,
-
-        // These are local entries and are not uploaded to Google
-
-        Updated = 25,           // Local updated timestamp
-        Created = 26,           // Local created timestamp
-
-        GOOGLEFIRSTRECORD = 27,
-
-        // These are Google specific data entries
-
-        GoogleAccount = 27,
-        GoogleEtag = 28,
-        GoogleRecordId = 29,
-        GoogleSequence = 30,
-        GoogleCreated = 31,
-        GoogleDeleted = 32,     // Set when deleted on google
-        GoogleUploaded = 33,    // Set by successful upload process
-
-        GOOGLELASTRECORD = 33,
-
-        LASTRECORD = 33
-
-    };
 
     enum ContactOverviewType {
         contactAsText = 0,
@@ -114,22 +21,90 @@ public:
         contactAsVCARD = 2
     };
 
-    /*
-    enum CompareScope {
-        cName = 0,      // Compare Full Name Only
-        cFull = 1,      // Compare entire record (ID, Google details, the lot)
-        cDetails = 2,   // Compare just the local details
-        cID = 3,        // Compare the ID Only
-        cGoogleID = 4   // Compare the Google ID Only
+    enum ContactRecord {
+        Surname=0, Names, Organisation, Address, Address2,
+        Phone, Work, Mobile, Phone2, Phone3, Phone4, Voip,
+        Phone2Title, Phone3Title, Phone4Title,
+        Email, Email2, Webaddress, Birthday, Comments,
+        GroupBusiness, GroupClient, GroupFamily, GroupFriend, GroupOther,
+        Hidden, EmailMe, TextMe, Deleted,
+        ID, Updated, Created,
+        ProfileSurname, ProfileNames, ProfileAddress, ProfilePhone, ProfileEMail, ProfileOrg,
+        GoogleRecordId,
+        GoogleEtag,
+        ToBeUploaded, ToBeDownloaded,
+        NumberOfRecords
     };
-*/
 
-public:
+private:
+    struct ContactRecordInfo {
+        enum ContactRecord recordtype;
+        bool isflag ;            // True if entry is a boolean
+        bool issynced ;          // True if entry is synced (i.e. changes require uploading)
+        bool updatesdirty ;      // True if entry affects dirty flag (and Updated)
+        bool isprofile ;         // True if info is from google profile
+        bool isdetails ;         // True if entry contains field details
+        bool isgroupdetails ;    // True if entry contains group field details
+        bool issaved ;           // True if entry is saved / loaded
+        bool NOTUSED2 ;          //
+        char name[16] ;
+    } ;
+
+//    ContactRecordInfo const contactrecordinfo[NumberOfRecords][sizeof(ContactRecordInfo)] = {
+    ContactRecordInfo const contactrecordinfo[NumberOfRecords] = {
+        //                  flag   sync  dirty  profl  detls  group  saved  unused
+        { Surname,         false,  true,  true, false,  true, false,  true, false, "surname" },       // Surname
+        { Names,           false,  true,  true, false,  true, false,  true, false, "names" },         // Firstname MiddleName
+        { Organisation,    false,  true,  true, false,  true, false,  true, false, "organisation"},   // Organisation
+        { Address,         false,  true,  true, false,  true, false,  true, false, "address"},        // First Address
+        { Address2,        false,  true,  true, false,  true, false,  true, false, "address2"},       // Second Address
+        { Phone,           false,  true,  true, false,  true, false,  true, false, "phone"},          // Home Phone Number
+        { Work,            false,  true,  true, false,  true, false,  true, false, "work"},           // Work / Business Phone Number
+        { Mobile,          false,  true,  true, false,  true, false,  true, false, "mobile"},         // Mobile Phone Number
+        { Phone2,          false,  true,  true, false,  true, false,  true, false, "phone2"},         // Extra Phone Number
+        { Phone3,          false,  true,  true, false,  true, false,  true, false, "phone3"},         // Extra Phone Number
+        { Phone4,          false,  true,  true, false,  true, false,  true, false, "phone4"},         // Extra Phone Number
+        { Voip,            false, false,  true, false,  true, false,  true, false, "voip"},           // VOIP Number (Not Currently Used)
+        { Phone2Title,     false,  true,  true, false,  true, false,  true, false, "phone2title"},    // Title of phone2
+        { Phone3Title,     false,  true,  true, false,  true, false,  true, false, "phone3title"},    // Title of phone3
+        { Phone4Title,     false,  true,  true, false,  true, false,  true, false, "phone4title"},    // Title of phone4
+        { Email,           false,  true,  true, false,  true, false,  true, false, "email" },         // Primary email address
+        { Email2,          false,  true,  true, false,  true, false,  true, false, "email2"},         // Alt email address
+        { Webaddress,      false,  true,  true, false,  true, false,  true, false, "webaddress"},     // Website
+        { Birthday,        false,  true,  true, false,  true, false,  true, false, "birthday"},       // Date of Birth
+        { Comments,        false,  true,  true, false,  true, false,  true, false, "comments"},       // Comments
+        { GroupBusiness,    true,  true,  true, false, false,  true,  true, false, "groupbusiness"},  // True if user in business group
+        { GroupClient,      true,  true,  true, false, false,  true,  true, false, "groupclient"},    // True if user in client group
+        { GroupFamily,      true,  true,  true, false, false,  true,  true, false, "groupfamily"},    // True if user in family group
+        { GroupFriend,      true,  true,  true, false, false,  true,  true, false, "groupfriend"},    // True if user in friend group
+        { GroupOther,       true,  true,  true, false, false,  true,  true, false, "groupother"},     // True if user in other group
+        { Hidden,           true,  true,  true, false,  true, false,  true, false, "hidden"},         // True if Hidden flag is set
+        { EmailMe,          true,  true,  true, false,  true, false,  true, false, "emailme"},        // True if EmailMe flag set
+        { TextMe,           true,  true,  true, false,  true, false,  true, false, "textme"},         // True if TextMe flag set
+        { Deleted,          true,  true,  true, false,  true, false,  true, false, "deleted"},        // True if entry has been deleted
+        { ID,              false,  true,  true, false, false, false,  true, false, "id"},             // Contact Manager ID
+        { Updated,         false, false, false, false, false, false,  true, false, "updated"},        // Time Date entry was updated
+        { Created,         false, false, false, false, false, false,  true, false, "created"},        // Time Date entry was created
+        { ProfileSurname,  false, false,  true,  true, false, false,  true, false, "profilesurname"}, // Surname from profile
+        { ProfileNames,    false, false,  true,  true, false, false,  true, false, "profilenames"},   // Names from profile
+        { ProfileAddress,  false, false,  true,  true, false, false,  true, false, "profileaddress"}, // Address from profile
+        { ProfilePhone,    false, false,  true,  true, false, false,  true, false, "profilephone"},   // Phone number from profile
+        { ProfileEMail,    false, false,  true,  true, false, false,  true, false, "profileemail"},   // Email from profile
+        { ProfileOrg,      false, false,  true,  true, false, false,  true, false, "profileorg"},     // Organisation from profile
+        { GoogleRecordId,  false, false,  true, false, false, false,  true, false, "googlerecordid"}, // Google record ID
+        { GoogleEtag,      false, false,  true, false, false, false, false, false, "googleetag"},     // Google Etag from last update
+        { ToBeUploaded,     true, false, false, false, false, false, false, false, "tobeuploaded"},   // Flag to track if google upload required
+        { ToBeDownloaded,   true, false, false, false, false, false, false, false, "tobedownloaded"}, // Flag to track if google download required
+    };
+
+private:
+    bool contactrecordinfook ;
     QString *_cid ;
     QString emptystring ;
 
     QString googleXml ;
-    QString filedata[LASTRECORD+1] ;
+    QString filedata[NumberOfRecords] ;
+    QStringList mergedidlist ;
     QString sortstring ;
 
     QString getOverviewResponse ;
@@ -152,10 +127,13 @@ public:
 
 public:
 
-    Contact();
+    Contact(bool isNull=false);
     ~Contact() ;
 
-    char *getContactRecordName(enum ContactRecord field) ;
+    // Test contact record field types
+//    bool isRecordFlag(enum ContactRecord field) ;
+    char *contactRecordName(enum ContactRecord field) ;
+//    bool isRecordSynced(enum ContactRecord field) ;
 
     // Used to set nullentries
     bool setNull() ;
@@ -167,7 +145,6 @@ public:
     // Set following new, until load or first save
     bool isNew() ;
 
-    bool isForAccount(QString googleaccount) ;
     bool changedSinceSync(QDateTime &syncdate) ;
 
     bool createNew() ;
@@ -189,6 +166,10 @@ public:
     History& getHistory() ;
     Todo& getTodo() ;
 
+    // Merge
+    void mergeInto(Contact& other) ;
+
+    // Field and Flag Access
     void setField(enum ContactRecord type, QString data) ;
     void setFlag(enum ContactRecord field, bool flag) ;
     void setDate(enum ContactRecord field, QDateTime data) ;
@@ -198,6 +179,8 @@ public:
     bool isTristate(enum ContactRecord field);
     QDateTime& getDate(enum ContactRecord field) ;
 
+    bool sortPhoneNumbers() ;
+
     QString& getGoogleRecordId() ;
     QString &getFormattedName(bool includeorganisation=true, bool surnamefirst=true) ;
     QString &getOverview(enum ContactOverviewType overviewtype) ;
@@ -206,17 +189,42 @@ public:
     QString &parsePhoneNumber(QString src) ;
     QString &parseDate(QString src) ;
 
-    // Copy selected fields to destination
-    Contact& copyGoogleAccountFieldsTo(Contact& dest) ;
-    Contact& copySyncedFieldsTo(Contact& dest) ;
+    // Merged ID
+    int mergedIdCount() ;
+    void appendMergedId(QString id) ;
+    QStringList& mergedIdList() ;
 
-    bool matches(Contact &with) ;
+    // Match and Copy Masks (mctype)
+    static const int mcId=0x01 ;
+    static const int mcGoogleId=0x02 ;
+    static const int mcDetails=0x04 ;
+    static const int mcGroup=0x08 ;
+    static const int mcProfile=0x10 ;
+    static const int mcFlag=0x20 ;
+    static const int mcEtag=0x80 ;
+    static const int mcControlFlags=0x100 ;
 
+    // Match and Copy Masks (Etag is specifically excluded)
+    static const int mcDetailsGroupProfile = 0x1C ;
+    static const int mcDetailsGroup = 0x0C ;
+
+    // Returns true if the contactrecord 'i' is of type mctype
+    bool isContactOfType(ContactRecord i, int mctype) ;
+
+    // Test current contact against reference
+    bool matches(Contact &with, int mctype) ;
+    QString mismatch(Contact &with, int mctype, bool showboth=false) ;
+
+
+    // Copy selected fields to new contact
+    bool copyTo(Contact &other, int mctype) ;
+
+    // Copy all data, fields, records (except for IDs and ETag)
     Contact& operator=(const Contact &rhs);
 
+    // Operators used for sorting
     int operator==(const Contact &rhs) const;
     int operator<(const Contact &rhs) const;
-
 
 };
 

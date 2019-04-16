@@ -22,6 +22,7 @@
 #include "transactionform.h"
 #include "../Lib/supportfunctions.h"
 #include "../Lib/encryption.h"
+#include "advancedfind.h"
 
 #include "logform.h"
 
@@ -144,6 +145,8 @@ private slots:
     void refreshPasswordMenu() ;
 
 
+    void on_action_Advanced_Find_triggered();
+
 private:
     Ui::MainWindow *ui;
     class Calendar calendar ;                       // Calendar
@@ -153,6 +156,7 @@ private:
     ListViewStrings calendarlist;                   // Contents of Calendar display
     QTimer *timer ;
     Encryption *enc ;
+    AdvancedFind *find ;
 
     // Manage dialog controls / enables etc.
     void UpdateContactsList() ;          // Update drop-down list
@@ -187,6 +191,9 @@ private:
 
     void beep() ;
     void msg(QString msg) ;
+
+    // Advanced Search
+    bool searchContactRecordSet(QString searchtext, Contact &contact, Contact::ContactRecord record) ;
 
     // EMail & SMS
     bool SendMail(QString from, QString emailaddress, QString subject, QString message) ;

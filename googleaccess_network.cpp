@@ -50,13 +50,13 @@ QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action
     googlePutPostResponse="" ;
     errorcode=0 ;
     errorstatus="" ;
-
+    QString logfilename = QString("%1").arg(logsequencenumber++,4,10,QChar('0')) + QString("-") + logfile + QString(".cmlog") ;
     int retries=1 ;
     int complete=false ;
     int readsuccess=false ;
 
     if (gConf->debugGoogleEnabled())
-        writeToFile(gConf->getDatabasePath() + "/" + logfile, "") ;
+        writeToFile(gConf->getDatabasePath() + "/" + logfilename, "") ;
 
     do {
         if (accesstoken.isEmpty()) {
@@ -78,15 +78,11 @@ QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action
             QByteArray submitdata = data.toStdString().c_str() ;
 
             QString header ;
-//            if (xml) {
-//                request.setHeader(QNetworkRequest::ContentTypeHeader, "application/atom+xml");
-//                header = "Content-Type: application/atom+xml\n" ;
-//            } else {
-                request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-                header = "Content-Type: application/json\n" ;
-//            }
+            request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+            header = "Content-Type: application/json\n" ;
+
             request.setHeader(QNetworkRequest::ContentLengthHeader, submitdata.length());
-            header = header + "Content-Length: " + submitdata.length() + "\n" ;
+            header = header + "Content-Length: " + QString::number(submitdata.length()) + "\n" ;
 
             request.setRawHeader("charset", "UTF-8") ;
             header = header + "charset: UTF-8\n" ;
@@ -105,6 +101,10 @@ QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action
                 reply = manager.post(request, submitdata) ;
                 actionname="POST" ;
                 break ;
+            case GoogleAccess::Patch:
+                reply = manager.sendCustomRequest(request, "PATCH", submitdata);
+                actionname="PATCH" ;
+                break ;
             case GoogleAccess::Put:
                 reply = manager.put(request, submitdata) ;
                 actionname="PUT" ;
@@ -118,7 +118,7 @@ QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action
             }
 
             if (gConf->debugGoogleEnabled())
-                writeToFile(gConf->getDatabasePath() + "/" + logfile,
+                writeToFile(gConf->getDatabasePath() + "/" + logfilename,
                             QString("URL: ") + link + QueryChar + "access_token=" + accesstoken +
                             QString("\n\nHEADER >>\n") + header +
                             QString("\n\n") + actionname + QString(">>\n") + data +
@@ -158,7 +158,7 @@ QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action
                   readsuccess=true ; ;
                 } else {
                   errorstatus = "Network Error " + replycode.toString() ;
-                  googlePutPostResponse = errorstatus + " - " + reply->readAll() ;  // TODO: temp
+                  googlePutPostResponse = reply->readAll() ;
                   readsuccess=false ;
                 }
             }
@@ -173,9 +173,9 @@ QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action
        }
 
         if (gConf->debugGoogleEnabled())
-            writeToFile(gConf->getDatabasePath() + "/" + logfile,
+            writeToFile(gConf->getDatabasePath() + "/" + logfilename,
                         QString("RESPONSE>>\n") + googlePutPostResponse +
-                        QString("STATUS: ") + errorstatus +
+                        QString("\n\nSTATUS>>\n") + QString::number(errorcode) + QString(" ") + errorstatus +
                         QString("\n\n--------------------------\n\n"), true) ;
 
     } while (!complete) ;
@@ -195,13 +195,15 @@ QString GoogleAccess::googleGet(QString link, QString logfile)
     int retries=1 ;
     int complete=false ;
     int readsuccess=false ;
+    QString logseq = QString("%1").arg(logsequencenumber++,4,10,QChar('0')) ;
+    QString logfilename = logseq + QString("-") + logfile + QString(".cmlog") ;
 
     errorcode=0 ;
     errorstatus="" ;
     googleGetResponse="" ;
 
     if (gConf->debugGoogleEnabled())
-        writeToFile(gConf->getDatabasePath() + "/" + logfile, "") ;
+        writeToFile(gConf->getDatabasePath() + "/" + logfilename, "") ;
 
     do {
         if (accesstoken.isEmpty()) {
@@ -220,7 +222,7 @@ QString GoogleAccess::googleGet(QString link, QString logfile)
             QEventLoop eventLoop ;
 
             if (gConf->debugGoogleEnabled())
-                writeToFile(gConf->getDatabasePath() + "/" + logfile,
+                writeToFile(gConf->getDatabasePath() + "/" + logfilename,
                             QString("URL: ") + link + QueryChar + "access_token=" + accesstoken +
                             QString("\n\nGET>>") +
                             QString("\n\n"), true) ;
@@ -259,11 +261,16 @@ QString GoogleAccess::googleGet(QString link, QString logfile)
                 } else {
                   googleGetResponse = "" ;
                   errorstatus = "Network Error " + replycode.toString() ;
+                  googleGetResponse = reply->readAll() ;
                   readsuccess=false ;
                 }
                 break ;
-
             }
+        }
+
+        // Add log file name to error status
+        if (!errorstatus.isEmpty() && gConf->debugGoogleEnabled()) {
+            errorstatus = logseq + QString(": ") + errorstatus ;
         }
 
         // if there is an error refresh the access token and retry once
@@ -275,9 +282,9 @@ QString GoogleAccess::googleGet(QString link, QString logfile)
        }
 
         if (gConf->debugGoogleEnabled())
-            writeToFile(gConf->getDatabasePath() + "/" + logfile,
+            writeToFile(gConf->getDatabasePath() + "/" + logfilename,
                         QString("RESPONSE>>\n") + googleGetResponse +
-                        QString("STATUS: ") + errorstatus +
+                        QString("\n\nSTATUS>>\n") + QString::number(errorcode) + QString(" ") + errorstatus +
                         QString("\n\n--------------------------\n\n"), true) ;
 
 
@@ -286,4 +293,3 @@ QString GoogleAccess::googleGet(QString link, QString logfile)
 
     return googleGetResponse ;
 }
-

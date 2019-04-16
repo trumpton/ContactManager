@@ -59,15 +59,11 @@ bool ContactDatabase::load()
         filename = filename.replace(".contact","").replace(".zcontact","") ;
         di.load(gContactSavePath, filename, enc) ;
 
-        // Need to mark as deleted if contact completely empty - OK
-        // Need to archive if deleted and also deleted on google - OK
-        // Need to archive if deleted and never uploaded to google OK
-        // Need to handle case where a file already exists in deleted (e.g. delete, sync, google restore, delete, sync)
-
-        if (di.isSet(Contact::Deleted) && (di.isSet(Contact::GoogleDeleted) || !di.isSet(Contact::GoogleUploaded))) {
+        // TODO: Need to remove googlerecordid if entry no longer on google
+        if (di.isSet(Contact::Deleted) && di.getField(Contact::GoogleRecordId).isEmpty()) {
 
             // Archive Deleted
-            di.history.addEntry("Moving entry to deleted folder") ;
+            di.getHistory().addEntry("Moving entry to deleted folder") ;
             addLog("Moving record " + di.getFormattedName() + " (" + di.getField(Contact::ID) + ") to deleted folder") ;
             QString deletedPath = gContactSavePath + "deleted" + QDir::toNativeSeparators("/") ;
             QDir path(deletedPath) ;
@@ -78,13 +74,19 @@ bool ContactDatabase::load()
             QFile::rename(gContactSavePath + filename + ".contact", deletedPath + filename + ".contact") ;
             QFile::rename(gContactSavePath + filename + ".todolist", deletedPath + filename + ".todolist") ;
             QFile::rename(gContactSavePath + filename + ".history", deletedPath + filename + ".history") ;
+            QFile::remove(deletedPath + filename + ".zcontact") ;
+            QFile::remove(deletedPath + filename + ".ztodolist") ;
+            QFile::remove(deletedPath + filename + ".zhistory") ;
+            QFile::rename(gContactSavePath + filename + ".zcontact", deletedPath + filename + ".zcontact") ;
+            QFile::rename(gContactSavePath + filename + ".ztodolist", deletedPath + filename + ".ztodolist") ;
+            QFile::rename(gContactSavePath + filename + ".zhistory", deletedPath + filename + ".zhistory") ;
 
         } else {
 
             // Mark empty entries as deleted
             if (di.isEmpty()) {
 
-                di.history.addEntry("Marking empty record as 'deleted'") ;
+                di.getHistory().addEntry("Marking empty record as 'deleted'") ;
                 addLog("Marking empty record (" + di.getField(Contact::ID) + ") as deleted") ;
                 di.setFlag(Contact::Deleted, true) ;
                 contacts.push_back(di) ;
@@ -258,11 +260,10 @@ bool ContactDatabase::addContact(Contact &contact, bool dosort)
     if (record.isNull()) {
         // Create a new entry and copy the contents to it
         Contact& newcontact = addContact() ;
-        newcontact = contact ;
-
+        contact.copyTo(newcontact, Contact::mcDetailsGroupProfile|Contact::mcId|Contact::mcGoogleId|Contact::mcEtag|Contact::mcControlFlags) ;
     } else {
         // Update the found record with the contact details
-        record = contact ;
+        contact.copyTo(record, Contact::mcDetailsGroupProfile) ;
     }
     // Sort the contacts list
    if (dosort) sort() ;

@@ -9,11 +9,23 @@
 #include "history.h"
 #include "../Lib/supportfunctions.h"
 
-Contact::Contact()
+// Debug Trap
+//#define TRAPID "d8d7df66-36b2-44d2-91c2-6f6835bd5e78"
+
+Contact::Contact(bool isNull)
 {
+    // Check Params
+    contactrecordinfook=true ;
+    for (int i=0; i<NumberOfRecords; i++) {
+        if (contactrecordinfo[i].recordtype!=(Contact::ContactRecord)i) {
+            contactrecordinfook=false ;
+        }
+    }
+
     isnull = false ;
     isnew = false ;
     createNew() ;
+    if (isNull) setNull() ;
 }
 
 Contact::~Contact()
@@ -74,19 +86,13 @@ bool Contact::createNew()
 {
     QUuid qid ;
 
-    for (int i=FIRSTRECORD; i<=LASTRECORD; i++) {
-        filedata[i].clear() ;
-//        setField((enum ContactRecord)i, QString("")) ;
+    // Clear all fields
+    for (int i=0; i<Contact::NumberOfRecords; i++) {
+        if (isContactOfType((Contact::ContactRecord)i, Contact::mcFlag)) { setFlag((Contact::ContactRecord)i, false) ; }
+        else { setField((Contact::ContactRecord)i, QString("")) ; }
     }
 
-    setFlag(Contact::TextMe, false) ;
-    setFlag(Contact::EmailMe, false) ;
-    setFlag(Contact::Deleted, false) ;
-    setFlag(Contact::Hidden, false) ;
-    setFlag(Contact::GoogleDeleted, false) ;
-    setFlag(Contact::GoogleUploaded, false) ;
-    setField(Contact::Group, gUNKNOWN) ;
-
+    // Set Contact ID
     qid = QUuid::createUuid() ;
     if (qid.isNull()) {
         // Error
@@ -118,55 +124,26 @@ bool Contact::createNew()
     return true ;
 }
 
-
-char *Contact::getContactRecordName(enum ContactRecord field) {
-
-    switch (field) {
-        case Group: return (char *)"group" ; break ;
-        case Surname: return  (char *)"surname" ; break ;
-        case Names: return  (char *)"names" ; break ;
-        case Organisation: return  (char *)"organisation" ; break ;
-        case Address: return  (char *)"address" ; break ;
-        case Address2: return  (char *)"address2" ; break ;
-        case Phone: return  (char *)"phone" ; break ;
-        case Phone2: return  (char *)"otherphone2" ; break ;
-        case Phone3: return  (char *)"otherphone3" ; break ;
-        case Phone4: return  (char *)"otherphone4" ; break ;
-        case Work: return  (char *)"work" ; break ;
-        case Mobile: return  (char *)"mobile" ; break ;
-        case Email: return  (char *)"email" ; break ;
-        case Email2: return  (char *)"email2"; break ;
-        case Phone2Title: return  (char *)"otherphone2title" ; break ;
-        case Phone3Title: return  (char *)"otherphone3title" ; break ;
-        case Phone4Title: return  (char *)"otherphone4title" ; break ;
-        case Webaddress: return (char *)"webaddress"; break ;
-        case Birthday: return  (char *)"birthday" ; break ;
-        case Comments: return  (char *)"comments" ; break ;
-        case EmailMe: return  (char *)"emailme" ; break ;
-        case TextMe: return  (char *)"textme" ; break ;
-        case ID: return (char *)"id" ; break ;
-        case Updated: return (char *)"updated" ; break ;
-        case Created: return (char *)"created" ; break ;
-        case Deleted: return  (char *)"deleted" ; break ;
-        case Hidden: return  (char *)"hidden" ; break ;
-        case GoogleDeleted: return  (char *)"googledeleted" ; break ;
-        case GoogleUploaded: return (char *)"googleuploaded" ; break ;
-        case GoogleAccount: return (char *)"googleaccount" ; break ;
-        case GoogleRecordId: return (char *)"googlerecordid" ; break ;
-        case GoogleEtag: return (char *)"googleetag" ; break ;
-        case GoogleSequence: return (char *)"googlesequence"; break ;
-        case GoogleCreated: return (char *)"googlecreated" ; break ;
-//        case GoogleStatus: return (char *)"googlestatus" ; break ;
-        default: return  (char *)"END" ; break ;
-    }
-}
-
-bool Contact::isForAccount(QString googleaccount)
+// Merge History and ToDo
+void Contact::mergeInto(Contact& other)
 {
-    return (getField(Contact::GoogleAccount).compare(googleaccount)==0) ;
+    QString otherhistory = other.getHistory().getHistory() ;
+    QString newhistory = getHistory().getHistory() + otherhistory;
+    other.getHistory().updateHistory(newhistory) ;
+
+    QString othertodo = other.getTodo().getText() ;
+    QString newtodo = getTodo().getText() + othertodo ;
+    other.getTodo().setText(newtodo) ;
 }
+
+
+//bool Contact::isRecordFlag(enum ContactRecord field) { return contactrecordinfo[(int)field].isflag ; }
+char *Contact::contactRecordName(enum ContactRecord field) { return (char *)contactrecordinfo[(int)field].name ; }
+//bool Contact::isRecordSynced(enum ContactRecord field) { return contactrecordinfo[(int)field].issynced ; }
+
 
 // TODO: Make this load a "safe load", i.e. check for failed saves
+// TODO: Handle cases where there is an "=" in the middle of the string
 bool Contact::load(QString path, QString idname, Encryption *enc)
 {
     if (isnull || !enc) {
@@ -177,6 +154,7 @@ bool Contact::load(QString path, QString idname, Encryption *enc)
     QString Line ;
     QStringList ParsedLine;
     QRegExp sep("(\\=)");
+    bool oldformat = false ;
 
     createNew() ;
 
@@ -203,25 +181,55 @@ bool Contact::load(QString path, QString idname, Encryption *enc)
         Line = in.readLine();
         ParsedLine =  Line.split(sep);
 
-        // TODO: Handle cases where there is an "=" in the middle of the string
-
         if (ParsedLine.count()==2) {
-            for (int i=FIRSTRECORD; i<=LASTRECORD; i++) {
-                QString label = ParsedLine.at(0) ;
-                QString entrytext = ParsedLine.at(1) ;
-                // TODO: de-escape entrytext
-                if (label.compare(getContactRecordName((enum ContactRecord)i))==0) {
+
+            QString label = ParsedLine.at(0) ;
+            QString entrytext = ParsedLine.at(1) ;
+
+            // Override old ini file labels
+            if (label.compare("googleetag")==0) { label = "" ; }
+            if (label.compare("otherphone")==0) { label = "phone2" ; oldformat=true ; }
+            if (label.compare("otherphonetitle")==0) { label = "phone2title" ; oldformat=true ; }
+            if (label.compare("group")==0) {
+                if (entrytext.compare("Business")==0) { label = "groupbusiness" ; }
+                if (entrytext.compare("Client")==0) { label = "groupclient" ; }
+                if (entrytext.compare("Family")==0) { label = "groupfamily" ; }
+                if (entrytext.compare("Friends")==0) { label = "groupfriend" ; }
+                if (entrytext.compare("Unknown")==0) { label = "groupother" ; }
+                entrytext = "true" ;
+                oldformat = true ;
+            }
+
+            // Fix date: --mm-dd to -mm-dd
+            if (label.compare("birthday")==0) {
+                QStringList dmy = entrytext.split('-') ;
+                if (dmy.size()==4) {
+                    entrytext = dmy.at(1) + QString("-") + dmy.at(2) + QString("-") + dmy.at(3) ;
+                }
+            }
+
+            for (int i=0; i<Contact::NumberOfRecords; i++) {
+
+                if (label.compare(contactRecordName((enum ContactRecord)i))==0) {
                     setField((enum ContactRecord)i, entrytext.replace("\\n","\n").replace("\r","")) ;
                 }
+
             }
         }
     }
 
+    // Remove any rogue phone titles, should there be no phone number
+    if (getField(Contact::Phone2).isEmpty()) { setField(Contact::Phone2Title, "") ; }
+    if (getField(Contact::Phone3).isEmpty()) { setField(Contact::Phone3Title, "") ; }
+    if (getField(Contact::Phone4).isEmpty()) { setField(Contact::Phone4Title, "") ; }
+
+    sortPhoneNumbers() ;
     todo.load(path, idname, enc) ;
     history.load(path, idname, enc) ;
 
     isnew = false ;
     isdirty = false ;
+    if (oldformat) isdirty = true ;
     return true ;
 }
 
@@ -295,14 +303,26 @@ bool Contact::save(QString path, Encryption *enc)
       QTextStream out(&data, QIODevice::WriteOnly);
       out.setCodec("UTF-8") ;
       out << "[contact]\n" ;
-      for (int entry=FIRSTRECORD; entry<=LASTRECORD; entry++) {
-          QString entrytext = filedata[entry].trimmed().replace("\n","\\n");
-          out << getContactRecordName((enum ContactRecord)entry) << "=" << entrytext << "\n" ;
+      for (int entry=0; entry<Contact::NumberOfRecords; entry++) {
+          if (contactrecordinfo[entry].issaved) {
+              QString entrytext = filedata[entry].trimmed().replace("\n","\\n");
+              out << contactRecordName((enum ContactRecord)entry) << "=" << entrytext << "\n" ;
+          }
       }
 
       out.flush();
-      if (!enc->save(path + filedata[ID] + ".zcontact", data)) {
-          return false ;
+
+      if (gConf->encryptedEnabled()) {
+          if (!enc->save(path + filedata[ID] + ".zcontact", data)) {
+              return false ;
+          }
+      } else {
+          QFile file(path + filedata[ID] + ".contact");
+          if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+              return false;
+          bool success = (file.write(data) == data.length()) ;
+          file.close() ;
+          return success ;
       }
 
       isnew = false ;
@@ -336,28 +356,48 @@ void Contact::setFlag(enum Contact::ContactRecord field, bool flag)
      }
 }
 
+// TODO: CHECK CALLS TO GETFIELD WITH GROUP - THESE ARE NOW BOOLEAN
 QString& Contact::getField(enum Contact::ContactRecord field)
 {
     static QString nullstring="" ;
-    static QString otherstring="Other" ;
-    static QString groupstring="Unknown" ;
 
-    if (!isnull && field==Group && filedata[Group].isEmpty())
-        setField(Group, groupstring) ;
+    if (!contactrecordinfook) {
+        nullstring = "Internal Error - ContactRecord Structure Invalid (contact.h)" ;
+        return nullstring ;
+    }
 
-    if (!isnull && field==Phone2Title && filedata[Phone2Title].isEmpty())
-        setField(Phone2Title, otherstring) ;
-
-    if (!isnull && field==Phone3Title && filedata[Phone3Title].isEmpty())
-        setField(Phone3Title, otherstring) ;
-
-    if (!isnull && field==Phone4Title && filedata[Phone4Title].isEmpty())
-        setField(Phone4Title, otherstring) ;
-
-    if ((field<FIRSTRECORD || field>LASTRECORD)) return nullstring ;
+    if ((field<0 || field>=NumberOfRecords)) return nullstring ;
     else return filedata[field] ;
 }
 
+bool Contact::sortPhoneNumbers()
+{
+    bool updated=false;
+    if (!filedata[Phone2].isEmpty() || !filedata[Phone3].isEmpty() || !filedata[Phone4].isEmpty()) {
+        int len = Phone4Title - Phone2Title + 1 ;
+        for (int i=0;i<len; i++) {
+            for (int j=0; j<(len-i-1);j++) {
+                int j1t = j + Phone2Title ;
+                int j1 = j + Phone2 ;
+                int j2t = j + Phone2Title + 1 ;
+                int j2 = j + Phone2 + 1 ;
+
+                QString s1 = filedata[j1t]+filedata[j1] ;
+                QString s2 = filedata[j2t]+filedata[j2] ;
+                if (!s2.isEmpty() && s1.compare(s2)>0) {
+                    QString t1t = filedata[j1t] ;
+                    QString t1 = filedata[j1] ;
+                    filedata[j1t] = filedata[j2t] ;
+                    filedata[j1] = filedata[j2] ;
+                    filedata[j2t] = t1t ;
+                    filedata[j2] = t1 ;
+                    updated=true ;
+                }
+            }
+        }
+    }
+    return updated ;
+}
 
 void Contact::setField(enum Contact::ContactRecord field, QString data)
 {
@@ -366,46 +406,46 @@ void Contact::setField(enum Contact::ContactRecord field, QString data)
         return ;
     }
 
-    // Override flags
-    if (field == Contact::EmailMe || field == Contact::TextMe || field == Contact::Hidden ||
-            field == Contact::Deleted || field == Contact::GoogleDeleted || field == Contact::GoogleUploaded) {
-        if (data=="yes") data = "true" ;
-        if (data=="no") data = "false" ;
+#ifdef TRAPID
+    if (field==Contact::ID && data.compare(TRAPID)==0) {
+        bool SettingTrapID = true ;
     }
+    if (field==Contact::Surname && filedata[Contact::ID].compare(TRAPID)==0) {
+        bool SettingSurnameForTrapID = true;
+    }
+#endif
 
     QString dat ;
     dat = data.replace("\r"," ") ;
     dat = dat.trimmed() ;
 
-    if (field>=STARTPHONE && field<=ENDPHONE)
+    if (field>=Contact::Phone && field<=Contact::Phone4)
         dat = parsePhoneNumber(dat) ;
 
-    if (field==Birthday)
+    if (field==Contact::Birthday)
         dat = parseDate(dat) ;
 
-    if (field==Phone2Title || field==Phone3Title || field==Phone4Title)
+    if (field>=Contact::Phone2Title  && field<=Contact::Phone4Title) {
         dat = dat.left(1).toUpper() + dat.mid(1).toLower() ;
+    }
 
-    if (field==GoogleUploaded)
-        dat = dat ;
+    if (field>=0 && field<Contact::NumberOfRecords && dat.compare(filedata[field])!=0) {
 
-    if (field>=FIRSTRECORD && field<=LASTRECORD && dat.compare(filedata[field])!=0) {
         // Store data
         filedata[field]=dat ;
+        isempty=false ;
         isdirty = true ;
         getOverviewDirty = true ;
         getOverviewHtmlDirty = true ;
-        if (field>=FIRSTSYNCEDDATA && field<=LASTSYNCEDDATA && !filedata[field].isEmpty()) {
-            // Update empty status
-            isempty=false ;
-        }
-        if (field>=FIRSTSYNCEDRECORD && field<=LASTSYNCEDRECORD) {
-            // Update timestamp
-            QString now = nowToIsoString() ;
-            filedata[Contact::Updated] = now ;
-        }
+
+        // Update timestamp
+        QDateTime now = QDateTime::currentDateTimeUtc() ;
+        filedata[Contact::Updated] = now.toString() ;
+
     }
 
+
+    // Build sortstring
     if (field==Surname || field==Names || field==Organisation) {
         surname = filedata[Surname].toLower() ;
         deAccent(surname) ;
@@ -419,20 +459,23 @@ void Contact::setField(enum Contact::ContactRecord field, QString data)
         sortstring.replace(".", "") ;
     }
 
+    if ( !filedata[Names].isEmpty() && (field==Names || field==ID) &&
+        filedata[Names].compare(filedata[ID])!=0) {
+        int trap=1 ;
+    }
     isnull = false ;
 }
 
 void Contact::setDate(enum ContactRecord field, QDateTime data)
 {
-    QString datestr = dateTimeToIsoString(data) ;
-    setField(field, datestr) ;
+    setField(field, data.toString()) ;
 }
 
 QDateTime& Contact::getDate(enum ContactRecord field)
 {
     static QDateTime dt ;
-    QString data = getField(field) ;
-    dt = isoStringToDateTime(data) ;
+    dt.setUtcOffset(0);
+    dt = dt.fromString(getField(field)) ;
     return dt ;
 }
 
@@ -559,13 +602,6 @@ QString& Contact::getOverview(enum ContactOverviewType overviewtype)
     QString titlestart, titleend ;
     QString lineend ;
 
-    QString location ;
-    if (getField(Group).compare(gBUSINESS)==0) {
-        location = "Work" ;
-    } else {
-        location = "Home" ;
-    }
-
     // TODO: Use Stylesheets
     if (overviewtype == contactAsHTML) {
         titlestart = "<b>" ;
@@ -590,16 +626,17 @@ QString& Contact::getOverview(enum ContactOverviewType overviewtype)
     if (!getField(Phone2).isEmpty()) response += titlestart + phone2Title + ": " + titleend + getField(Phone2) + lineend ;
     if (!getField(Phone3).isEmpty()) response += titlestart + phone3Title + ": " + titleend + getField(Phone3) + lineend ;
     if (!getField(Phone4).isEmpty()) response += titlestart + phone4Title + ": " + titleend + getField(Phone4) + lineend ;
-    if (!getField(Email).isEmpty()) response += titlestart + location + " Email:  " + titleend + getField(Email) + lineend ;
+    if (!getField(ProfilePhone).isEmpty()) response += titlestart + "Phone: " + titleend + getField(ProfilePhone) + lineend ;
+    if (!getField(Email).isEmpty()) response += titlestart + " Primary Email:  " + titleend + getField(Email) + lineend ;
     if (!getField(Email2).isEmpty()) response += titlestart + "Second Email:  " + titleend + getField(Email2) + lineend ;
+    if (!getField(ProfileEMail).isEmpty()) response += titlestart + " Profile Email:  " + titleend + getField(ProfileEMail) + lineend ;
     if (!getField(Webaddress).isEmpty()) response += titlestart + "Web Site:  " + titleend + getField(Webaddress) + lineend ;
     if (!getField(Organisation).isEmpty()) response += titlestart + "Organisation: " + titleend + getField(Organisation) + lineend ;
-
     if (!getField(Address).isEmpty()) {
         QString a = getField(Address) ;
         a.replace(",", "") ;
         a.replace("\n", ", ") ;
-        response += titlestart + location + " Address:  " + titleend + a + lineend ;
+        response += titlestart + " Primary Address:  " + titleend + a + lineend ;
     }
     if (!getField(Address2).isEmpty()) {
         QString a = getField(Address2) ;
@@ -607,11 +644,27 @@ QString& Contact::getOverview(enum ContactOverviewType overviewtype)
         a.replace("\n", ", ") ;
         response += titlestart + "Second Address:  " + titleend + a + lineend ;
     }
+    if (!getField(ProfileAddress).isEmpty()) {
+        QString a = getField(ProfileAddress) ;
+        a.replace(",", "") ;
+        a.replace("\n", ", ") ;
+        response += titlestart + " Profile Address:  " + titleend + a + lineend ;
+    }
     if (!getField(Birthday).isEmpty()) {
         QString a = getField(Birthday) ;
         response += titlestart + "Birthday: " + titleend + a.replace("\n",lineend) + lineend ;
     }
-    if (!getField(Group).isEmpty()) response += titlestart + "Type: " + titleend + getField(Group).toCaseFolded() + lineend ;
+    QString groups ;
+    if (isSet(Contact::GroupBusiness)) { groups = groups + "Business " ; }
+    if (isSet(Contact::GroupClient)) { groups = groups + "Client " ; }
+    if (isSet(Contact::GroupFamily)) { groups = groups + "Family " ; }
+    if (isSet(Contact::GroupFriend)) { groups = groups + "Friend " ; }
+    if (isSet(Contact::GroupOther)) { groups = groups + "Other " ; }
+    if ( groups.isEmpty()) { groups = "None" ; }
+
+    if (!getField(ProfileSurname).isEmpty() || !getField(ProfileNames).isEmpty()) response += titlestart + " Profile Name: " + titleend + getField(ProfileNames) + " " + getField(ProfileSurname) + lineend ;
+
+    response += titlestart + "Type: " + titleend + groups + lineend ;
     if (isSet(EmailMe)) response += titlestart + "Alerts by Email: " + titleend + "OK" + lineend ;
     if (isSet(TextMe)) response += titlestart + "Alerts by Text: " + titleend + "OK" + lineend ;
 
@@ -631,9 +684,14 @@ QString& Contact::getOverview(enum ContactOverviewType overviewtype)
 
 }
 
+// Merged ID
+int Contact::mergedIdCount() { return mergedidlist.length() ; }
+void Contact::appendMergedId(QString id) { mergedidlist.append(id) ; }
+QStringList& Contact::mergedIdList() { return mergedidlist ; }
 
 // Operators
 
+// COPY: Copies all fields
 Contact& Contact::operator=(const Contact &rhs)
 {
     if (isnull) {
@@ -652,24 +710,8 @@ Contact& Contact::operator=(const Contact &rhs)
     this->getOverviewDirty = true ;
     this->getOverviewHtmlDirty = true ;
 
-    for (int x=FIRSTRECORD; x<=(int)LASTRECORD; x++) {
+    for (int x=0; x<Contact::NumberOfRecords; x++) {
         this->filedata[x]=rhs.filedata[x] ;
-    }
-    return *this ;
-}
-
-Contact& Contact::copyGoogleAccountFieldsTo(Contact& dest)
-{
-    for (int i=Contact::GOOGLEFIRSTRECORD; i<=Contact::GOOGLELASTRECORD; i++) {
-        dest.setField((Contact::ContactRecord)i, getField((Contact::ContactRecord)i)) ;
-    }
-    return *this ;
-}
-
-Contact& Contact::copySyncedFieldsTo(Contact& dest)
-{
-    for (int i=Contact::FIRSTSYNCEDRECORD; i<=Contact::LASTSYNCEDRECORD; i++) {
-        dest.setField((Contact::ContactRecord)i, getField((Contact::ContactRecord)i)) ;
     }
     return *this ;
 }
@@ -681,47 +723,65 @@ Contact& Contact::getThis()
 }
 
 
-bool Contact::matches(Contact &with)
+// Return true if i is of type mctype
+bool Contact::isContactOfType(Contact::ContactRecord i, int mctype)
 {
-    bool match = true ;
+    bool testdetails = ( (mctype&Contact::mcDetails)!=0) ;
+    bool testgroup =  ( (mctype&Contact::mcGroup)!=0) ;
+    bool testid = ( (mctype&Contact::mcId)!=0) ;
+    bool testgoogleid = ( (mctype&Contact::mcGoogleId)!=0) ;
+    bool testflag = ( (mctype&Contact::mcFlag)!=0) ;
+    bool testprofile = ( (mctype&Contact::mcProfile)!=0) ;
+    bool testetag = ( ( mctype&Contact::mcEtag)!=0) ;
+    bool testcontrol = ( ( mctype&Contact::mcControlFlags) !=0) ;
 
-    QString thisfield = getField(Contact::GoogleAccount) ;
-    QString thatfield = with.getField(Contact::GoogleAccount) ;
-    if (thisfield.compare(thatfield)!=0) match=false ;
-
-    bool thisdeleted = isSet(Contact::Deleted) ;
-    bool thatdeleted = with.isSet(Contact::Deleted) ;
-
-    if (match && !(thisdeleted && thatdeleted)) {
-
-        // Check all but the configurable phone entries
-        for (int i=FIRSTSYNCEDRECORD; i<=LASTSYNCEDRECORD; i++) {
-            if ((Contact::ContactRecord)i!=Phone2 && (Contact::ContactRecord)i!=Phone3 && (Contact::ContactRecord)i!=Phone4) {
-                QString thisfield = getField((Contact::ContactRecord)i) ;
-                QString thatfield = with.getField((Contact::ContactRecord)i) ;
-                if (thisfield.compare(thatfield)!=0) match=false ;
-            }
-        }
-
-        // Now check the configurable phone entries (checking concatanated number & title)
-        for (int i=Phone2; i<=Phone4; i++) {
-            Contact::ContactRecord phonerec = (Contact::ContactRecord)i ;
-            Contact::ContactRecord titlerec = (Contact::ContactRecord) (i + (int)Phone2Title - (int)Phone2) ;
-            QString thisphone = getField(phonerec) + getField(titlerec) ;
-            bool foundmatch=false ;
-            for (int j=Phone2; j<=Phone4; j++) {
-                QString thatphone = with.getField(phonerec) + with.getField(titlerec) ;
-                if (thisphone.compare(thatphone)==0) foundmatch=true ;
-            }
-            if (!foundmatch) match=false ;
-        }
-
-    }
-
-
-    return match ;
+    return ( (testdetails && this->contactrecordinfo[(Contact::ContactRecord)i].isdetails) ||
+         (testgroup && this->contactrecordinfo[(Contact::ContactRecord)i].isgroupdetails) ||
+         (testid && i==(int)Contact::ID) ||
+         (testgoogleid && i==(int)Contact::GoogleRecordId) ||
+         (testflag && this->contactrecordinfo[(Contact::ContactRecord)i].isflag) ||
+         (testprofile && this->contactrecordinfo[(Contact::ContactRecord)i].isprofile) ||
+         (testetag && i==(int)Contact::GoogleEtag) ||
+         (testcontrol && (i==(int)Contact::ToBeUploaded || i==(int)Contact::ToBeDownloaded))) ;
 }
 
+// Copy Fields to other
+bool Contact::copyTo(Contact &other, int mctype)
+{
+    bool copied=false ;
+    for (int i=0; i<Contact::NumberOfRecords; i++) {
+        if ( isContactOfType((Contact::ContactRecord)i, mctype)) {
+            other.setField((Contact::ContactRecord)i, getField((Contact::ContactRecord)i)) ;
+            copied=true ;
+        }
+    }
+    return copied ;
+}
+
+// Compare this with 'with' and return true/false
+bool Contact::matches(Contact &with, int mctype)
+{
+    return mismatch(with, mctype).isEmpty() ;
+}
+
+// Compare this with 'with' and return description of differences
+QString Contact::mismatch(Contact &with, int mctype, bool showboth)
+{
+    QString result = "" ;
+    for (int i=0; i<Contact::NumberOfRecords; i++) {
+        if ( isContactOfType((Contact::ContactRecord)i, mctype)) {
+            QString thisfield = getField((Contact::ContactRecord)i) ;
+            QString thatfield = with.getField((Contact::ContactRecord)i) ;
+            if (thisfield.compare(thatfield)!=0) {
+                if (!result.isEmpty()) result = result + QString(", ") ;
+                result = result + with.contactRecordName((Contact::ContactRecord)i) + QString(": ") ;
+                result = result + thisfield ;
+                if (showboth) result = result + QString(" / ") + thatfield ;
+            }
+        }
+    }
+    return result ;
+}
 
 //
 // Operators used for the sort functions
