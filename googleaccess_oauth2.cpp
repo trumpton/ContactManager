@@ -116,11 +116,13 @@ QString GoogleAccess::Authorise()
     QMessageBox mb ;
     mb.setTextFormat(Qt::RichText) ;
     mb.setTextInteractionFlags(Qt::TextBrowserInteraction) ;
-    QString str = QString("<p>1. Connect to <a href=\"") + verification_url + QString("\"><font size=\"+1\">") + verification_url + QString("</font></p>") +
-                  QString("<p>2. Sign-in, and Enter the following code when prompted</p>") +
+    QString str =
+                  QString("<p>1. Copy the following code to the clipboard:</p>") +
                   QString("<p align=\"center\"><font size=\"+2\" color=\"blue\"><b>") + user_code + QString("</b></font></p>") +
-                  QString("<p>3. Select <i>Allow</i> to enable Contact Manager to access your contacts / calendars</p>") +
-                  QString("<p>4. And then press OK <i>below</i> to continue when complete</p>") ;
+                  QString("<p>2. Connect to <a href=\"") + verification_url + QString("\"><font size=\"+1\">") + verification_url + QString("</font></p>") +
+                  QString("<p>3. Sign-in, and Paste the code when prompted</p>") +
+                  QString("<p>4. Select <i>Allow</i> to enable Contact Manager to access your contacts / calendars</p>") +
+                  QString("<p>5. And then press OK <i>below</i> to continue when complete</p>") ;
     mb.setText(str) ;
     if (!mb.exec()) {
         return refreshtokenandusername ;
