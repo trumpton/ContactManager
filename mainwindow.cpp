@@ -51,6 +51,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
     ui->setupUi(this);
 
+    // Enable debug
+    setupdebug();
+
     // Connect signals for password menu
     connect(ui->menuKeyandPassword, SIGNAL(aboutToShow()), this, SLOT(refreshPasswordMenu())) ;
 
@@ -83,22 +86,27 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
     // Login if not already done so
     int count=0 ;
-   if (!enc->loggedIn()) do {
+    if (!enc->loggedIn()) do {
+        dbg("Logging In") ;
         enc->login() ;
-    } while (!enc->loggedIn() && ++count<3) ;
+     } while (!enc->loggedIn() && ++count<3) ;
 
-    // Login failed, so set key
-    while (!enc->loggedIn()) {
-        if (QMessageBox::question(this, "Contact Manager", "You have failed to login.  To set or reset the key, select Yes, and otherwise select Close to exit the program", QMessageBox::Yes|QMessageBox::Close)==QMessageBox::Yes) {
-            enc->setKey();
-        } else {
-            // Calling abort from Constructor doesn't work - it has to be from a function initiated with a signal
-            QTimer::singleShot(1, this, SLOT(abort())) ;
-            return ;
-        }
-    }
+     // Login failed, so set key
+     while (!enc->loggedIn()) {
+         if (QMessageBox::question(this, "Contact Manager", "You have failed to login.  To set or reset the key, select Yes, and otherwise select Close to exit the program", QMessageBox::Yes|QMessageBox::Close)==QMessageBox::Yes) {
+             dbg("Login Complete") ;
+             enc->setKey();
+         } else {
+             // Calling abort from Constructor doesn't work - it has to be from a function initiated with a signal
+             dbg("Sending abort signal, login failed") ;
+             QTimer::singleShot(1, this, SLOT(abort())) ;
+             return ;
+         }
+     }
+
 
     // Load the local data
+    dbg("Loading database and calendar") ;
     db.load() ;
     calendar.load() ;
 
@@ -128,10 +136,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     }
 
     // Tidy up old log files
+    dbg("Tidying old log files") ;
     google.resetLogFiles();
 
     // Setup Advanced Find
     find = new AdvancedFind(this) ;
+
+    dbg("Initialisation complete") ;
 
 }
 

@@ -9,9 +9,11 @@ void MainWindow::on_action_Name_triggered()
 {
     if (ui->tabBar->currentIndex()!=CONTACTDETAILSTABPOS) {
         // Safety check
+        dbg("Wrong Tab Index") ;
         errorOkDialog(this, "Debug", "on_action_Name_triggered") ;
         return ;
     } else {
+        dbg("Setting FirstName Focus") ;
         ui->editFirstName->setFocus() ;
     }
 }
@@ -20,9 +22,11 @@ void MainWindow::on_actionE_Mail_triggered()
 {
     if (ui->tabBar->currentIndex()!=CONTACTDETAILSTABPOS) {
         // Safety check
+        dbg("Wrong Tab Index") ;
         errorOkDialog(this, "Debug", "on_action_E_Mail_triggered") ;
         return ;
     } else {
+        dbg("Setting Email Focus") ;
         ui->editEmail->setFocus() ;
     }
 }
@@ -31,9 +35,11 @@ void MainWindow::on_action_Address_triggered()
 {
     if (ui->tabBar->currentIndex()!=CONTACTDETAILSTABPOS) {
         // Safety check
+        dbg("Wrong Tab Index") ;
         errorOkDialog(this, "Debug", "on_action_Address_triggered") ;
         return ;
     } else {
+        dbg("Setting Address Focus") ;
         ui->editAddress->setFocus() ;
     }
 }
@@ -42,9 +48,11 @@ void MainWindow::on_action_Phone_triggered()
 {
     if (ui->tabBar->currentIndex()!=CONTACTDETAILSTABPOS) {
         // Safety check
+        dbg("Wrong Tab Index") ;
         errorOkDialog(this, "Debug", "on_action_Phone_triggered") ;
         return ;
     } else {
+        dbg("Setting Home Focus") ;
         ui->editHome->setFocus() ;
     }
 }
@@ -53,9 +61,11 @@ void MainWindow::on_action_Birthday_triggered()
 {
     if (ui->tabBar->currentIndex()!=CONTACTDETAILSTABPOS) {
         // Safety check
+        dbg("Wrong Tab Index") ;
         errorOkDialog(this, "Debug", "on_action_Birthday_triggered") ;
         return ;
     } else {
+        dbg("Setting DOB Focus") ;
         ui->editDateOfBirth->setFocus() ;
     }
 }
@@ -69,9 +79,11 @@ void MainWindow::on_action_Birthday_triggered()
 void MainWindow::on_actionEnableContactDetailsEdit_triggered()
 {
     if (db.getSelected().isNull()) {
+        dbg("No Contact Selected") ;
         play(Disabled) ;
         return ;
     } else {
+        dbg("Moving to Contact Details Tab") ;
         ui->tabBar->setTabEnabled(CONTACTDETAILSTABPOS, true);
         ui->tabBar->setCurrentIndex(CONTACTDETAILSTABPOS);
         ui->editFirstName->setFocus() ;
@@ -83,8 +95,10 @@ void MainWindow::on_actionDeleteContact_triggered()
 {
     Contact &dr = db.getSelected() ;
     if (dr.isNull()) {
+        dbg("No Contact Selected") ;
         play(Disabled) ;
     } else if (dr.getField(Contact::ID).compare(gConf->getMe())==0) {
+        dbg("Attempt to Delete me denied") ;
         warningOkDialog(this, "Error", "You are trying to delete yourself, this is forbidden.\nPlease select a different contact (F5).") ;
     } else {
         if (warningYesNoDialog(this, "Delete Contact?", "Are you sure you want to delete " +
@@ -95,7 +109,8 @@ void MainWindow::on_actionDeleteContact_triggered()
 
             // Select a blank entry, and refresh the screen / menus
             db.selectContact(SELECT_OVERVIEW);
-            populateDialog(SELECT_OVERVIEW) ;            
+            populateDialog(SELECT_OVERVIEW) ;
+            dbg("Contact deleted") ;
         }
         play(FileSave) ;
     }
@@ -105,8 +120,14 @@ void MainWindow::on_actionDeleteContact_triggered()
 
 void MainWindow::LoadContactTab()
 {
+
+    dbg("Loading Contact Tab") ;
+
     Contact& dr = db.getSelected() ;
+    dbg(QString("Contact = {%1}").arg(dr.getField(Contact::ID))) ;
+
     dr.sortPhoneNumbers() ;
+
     ui->editSurname->setText(dr.getField(Contact::Surname)) ;
     ui->editFirstName->setText(dr.getField(Contact::Names)) ;
     ui->editEmail->setText(dr.getField(Contact::Email)) ;
@@ -158,11 +179,15 @@ void MainWindow::LoadContactTab()
     ui->checkFamily->setChecked(dr.isSet(Contact::GroupFamily)) ;
     ui->checkFriend->setChecked(dr.isSet(Contact::GroupFriend)) ;
     ui->checkOther->setChecked(dr.isSet(Contact::GroupOther)) ;
+
+    dbg("Contact Tab Load Complete") ;
 }
 
 
 bool MainWindow::SaveContactTab()
 {
+    dbg("Saving Contact Tab") ;
+
     Contact& dr = db.getSelected() ;
 
     if (dr.isNull()) return true ;
@@ -286,6 +311,8 @@ bool MainWindow::SaveContactTab()
         dr.getHistory().addEntry(log) ;
         ui->editNotes->document()->setPlainText(dr.getHistory().getHistory());
     }
+
+    dbg("Contact Tab Save Complete") ;
 
     return true ;
 }

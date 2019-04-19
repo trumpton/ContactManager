@@ -5,7 +5,7 @@
 struct{
     Contact::ContactRecord type ;
     bool isflag ;
-    char *description ;
+    char description[48] ;
 } advancedfind_data[] = {
 { Contact::Address, false, "Address" },
 { Contact::Comments, false, "Comments / Notes" },

@@ -86,6 +86,8 @@ bool Contact::createNew()
 {
     QUuid qid ;
 
+    dbg("Creating New Contact") ;
+
     // Clear all fields
     for (int i=0; i<Contact::NumberOfRecords; i++) {
         if (isContactOfType((Contact::ContactRecord)i, Contact::mcFlag)) { setFlag((Contact::ContactRecord)i, false) ; }
@@ -96,6 +98,7 @@ bool Contact::createNew()
     qid = QUuid::createUuid() ;
     if (qid.isNull()) {
         // Error
+        dbg("ERROR: error creating UUID") ;
         setNull() ;
     } else {
         QString qids ;
@@ -127,6 +130,8 @@ bool Contact::createNew()
 // Merge History and ToDo
 void Contact::mergeInto(Contact& other)
 {
+    dbg(QString("{%1} mergeinto(%2)").arg(getField(Contact::ID).arg(other.getField(Contact::ID)))) ;
+
     QString otherhistory = other.getHistory().getHistory() ;
     QString newhistory = getHistory().getHistory() + otherhistory;
     other.getHistory().updateHistory(newhistory) ;
@@ -146,8 +151,11 @@ char *Contact::contactRecordName(enum ContactRecord field) { return (char *)cont
 // TODO: Handle cases where there is an "=" in the middle of the string
 bool Contact::load(QString path, QString idname, Encryption *enc)
 {
+    dbg(QString("load(%1,%2,enc)").arg(path).arg(idname)) ;
+
     if (isnull || !enc) {
         // ERROR
+        dbg("ERROR: Contact record is null or encryption not configured") ;
         return false ;
     }
 
@@ -162,14 +170,22 @@ bool Contact::load(QString path, QString idname, Encryption *enc)
 
     // Attempt to load encrypted contact .zcontact and fall back to legacy .contact
     QByteArray data ;
+
+    dbg(QString("Loading Contact Details from %1").arg(idname)) ;
+
     if (!enc->load(path + idname + ".zcontact", data)) {
+
+        dbg(QString("Encrypted load failed. Trying non-encrypted.")) ;
         QFile file(path + idname + ".contact");
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
             return false;
         data = file.readAll() ;
         file.close() ;
     }
-    if (data.isEmpty()) return false ;
+    if (data.isEmpty()) {
+        dbg("No data loaded") ;
+        return false ;
+    }
 
     QTextStream in(&data);
     in.setCodec("UTF-8") ;
@@ -230,11 +246,16 @@ bool Contact::load(QString path, QString idname, Encryption *enc)
     isnew = false ;
     isdirty = false ;
     if (oldformat) isdirty = true ;
+
+    dbg(QString("Load {%1} complete").arg(getField(Contact::ID))) ;
     return true ;
 }
 
+
 int Contact::find(QString text)
 {
+    dbg(QString("{%1} - find(%2)").arg(getField(Contact::ID).arg(text))) ;
+
     text = text.toLower() ;
     deAccent(text) ;
     text.replace(" ", "") ;
@@ -247,7 +268,7 @@ int Contact::find(QString text)
     overview.replace(",", "") ;
     overview.replace(".", "") ;
     if (re2.exactMatch(overview)) {
-        qDebug() << "Contact::find(" << text << ") Match Overview {" << getField(Contact::ID) << "}\n" ;
+        dbg(QString("Match Overview")) ;
         return 1;
     }
 
@@ -255,7 +276,7 @@ int Contact::find(QString text)
     QString name = firstname + surname ;
     name.replace(" ", "") ;
     if (re2.exactMatch(name)) {
-        qDebug() << "Contact::find(" << text << ") Match Firstname Midddlename Surname {" << getField(Contact::ID) << "}\n" ;
+        dbg(QString("Match Firstname Middlename Surname")) ;
         return 1;
     }
 
@@ -265,7 +286,7 @@ int Contact::find(QString text)
         name = names.at(0) + surname ;
         if (re2.exactMatch(name)) {
             if (re2.exactMatch(name)) {
-                qDebug() << "Contact::find(" << text << ") Match Firstname Surname {" << getField(Contact::ID) << "}\n" ;
+                dbg(QString("Match Firstname Surname")) ;
                 return 1;
             }
         }
@@ -276,7 +297,7 @@ int Contact::find(QString text)
     name.replace(" ", "") ;
     if (re2.exactMatch(name)) {
         if (re2.exactMatch(name)) {
-            qDebug() << "Contact::find(" << text << ") Match Surname Firstname {" << getField(Contact::ID) << "}\n" ;
+            dbg(QString("Match Surname Firstname")) ;
             return 1;
         }
     }
@@ -288,9 +309,11 @@ int Contact::find(QString text)
 // TODO: Make this save a "safe save", i.e. save, check, rename
 bool Contact::save(QString path, Encryption *enc)
 {
+  dbg(QString("save(%1,enc)").arg(path)) ;
 
-  if (isnull) {
+  if (isnull || !enc) {
       // ERROR
+      dbg("ERROR: Contact record is null or encryption not configured") ;
       return false ;
   }
 
@@ -313,13 +336,18 @@ bool Contact::save(QString path, Encryption *enc)
       out.flush();
 
       if (gConf->encryptedEnabled()) {
+          dbg(QString("Saving {%1} as zcontact").arg(filedata[ID])) ;
           if (!enc->save(path + filedata[ID] + ".zcontact", data)) {
+              dbg("failed") ;
               return false ;
           }
       } else {
+          dbg(QString("Saving {%1} as contact").arg(filedata[ID])) ;
           QFile file(path + filedata[ID] + ".contact");
-          if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+          if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+              dbg("failed") ;
               return false;
+          }
           bool success = (file.write(data) == data.length()) ;
           file.close() ;
           return success ;
@@ -362,7 +390,7 @@ QString& Contact::getField(enum Contact::ContactRecord field)
     static QString nullstring="" ;
 
     if (!contactrecordinfook) {
-        nullstring = "Internal Error - ContactRecord Structure Invalid (contact.h)" ;
+        nullstring = "ERROR: ContactRecord Structure Invalid (contact.h)" ;
         return nullstring ;
     }
 
@@ -372,6 +400,8 @@ QString& Contact::getField(enum Contact::ContactRecord field)
 
 bool Contact::sortPhoneNumbers()
 {
+    dbg("sortPhoneNumbers()") ;
+
     bool updated=false;
     if (!filedata[Phone2].isEmpty() || !filedata[Phone3].isEmpty() || !filedata[Phone4].isEmpty()) {
         int len = Phone4Title - Phone2Title + 1 ;
@@ -403,6 +433,7 @@ void Contact::setField(enum Contact::ContactRecord field, QString data)
 {
     if (isnull) {
         // ERROR, attempting to set NULL Contact
+        dbg(QString("ERROR: setField(%1, %2) of NULL contact").arg((int)field).arg(data)) ;
         return ;
     }
 

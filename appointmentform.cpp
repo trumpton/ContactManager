@@ -8,7 +8,6 @@
 #include <QTime>
 
 #include <stdio.h>
-#define dbg(f,t) { FILE *fp = fopen("dbg.log", "a"); fprintf(fp,"%s - %s\n", f, t); fclose(fp) ; }
 
 AppointmentForm::AppointmentForm(QWidget *parent) :
     QDialog(parent),
