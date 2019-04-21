@@ -29,7 +29,7 @@ void MainWindow::on_actionEnableEditHistoryEdit_triggered()
         play(Disabled) ;
     } else {
         ui->editNotes->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard | Qt::TextEditable) ;
-        ui->tabBar->setCurrentIndex(HISTORYTABPOS) ;
+        ui->tabBar->widget(HISTORYTABPOS)->setFocus() ;
         ui->editNotes->setFocus() ;
     }
 }

@@ -266,15 +266,19 @@ void MainWindow::refreshMenus(Contact &contact, bool isediting, bool isnew, bool
         // Move to the selected tab
         if (contact.isNull()) {
             // No Contact
-            ui->tabBar->setCurrentIndex(CALENDARTABPOS);
+            if (ui->tabBar->currentIndex()!=CALENDARTABPOS)
+                ui->tabBar->widget(CALENDARTABPOS)->setFocus() ;
             ui->listCalendar->setFocus() ;
         } else if (isnew) {
             // Create
-            ui->tabBar->setCurrentIndex(CONTACTDETAILSTABPOS);
+            if (ui->tabBar->currentIndex()!=CONTACTDETAILSTABPOS)
+                ui->tabBar->widget(CONTACTDETAILSTABPOS)->setFocus() ;
             ui->editFirstName->setFocus() ;
         } else {
             // Open
-            ui->tabBar->setCurrentIndex(OVERVIEWTABPOS);
+            if (ui->tabBar->currentIndex()!=OVERVIEWTABPOS)
+                ui->tabBar->setCurrentIndex(OVERVIEWTABPOS) ;
+//                 ui->tabBar->widget(OVERVIEWTABPOS)->setFocus() ;
             ui->editOverview->setFocus() ;
         }
 
@@ -346,7 +350,7 @@ void MainWindow::populateDialog(QString id, bool switchtooverview)
             currentindex=OVERVIEWTABPOS ;
         }
 
-        ui->tabBar->setCurrentIndex(currentindex) ;
+        ui->tabBar->widget(currentindex)->setFocus() ;
         switch (currentindex) {
             case OVERVIEWTABPOS: ui->editOverview->setFocus() ; break ;
             case CALENDARTABPOS: ui->listCalendar->setFocus() ; break ;
@@ -679,6 +683,8 @@ void MainWindow::on_action_SMS_Contact_triggered()
 
 void MainWindow::setAccessibleTextAndWindowTitle(QString name)
 {
+    dbg(QString("setAccessibleTextAndWindowTitle(%1)").arg(name)) ;
+
     // Setup the accessible text, window name etc, to include the current contact
     if (name.isEmpty()) {
         setWindowTitle("Contact Manager") ;
@@ -691,6 +697,7 @@ void MainWindow::setAccessibleTextAndWindowTitle(QString name)
         ui->editNotes->setAccessibleName("History for " + name) ;
         ui->editToDo->setAccessibleName("To Do List for " + name) ;
     }
+    dbg("title set complete") ;
 }
 
 

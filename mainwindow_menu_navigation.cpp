@@ -49,7 +49,7 @@ void MainWindow::on_actionGotoToDoList_triggered()
         errorOkDialog(this, "Debug", "on_actionGotoToDoList_triggered") ;
         return ;
     } else {
-        ui->tabBar->setCurrentIndex(TODOTABPOS);
+        ui->tabBar->widget(TODOTABPOS)->setFocus();
         ui->editToDo->setFocus() ;
     }
 }
