@@ -85,7 +85,7 @@ void MainWindow::on_actionEnableContactDetailsEdit_triggered()
     } else {
         dbg("Moving to Contact Details Tab") ;
         ui->tabBar->setTabEnabled(CONTACTDETAILSTABPOS, true);
-        ui->tabBar->setCurrentIndex(CONTACTDETAILSTABPOS);
+        ui->tabBar->widget(CONTACTDETAILSTABPOS)->setFocus();
         ui->editFirstName->setFocus() ;
     }
 }

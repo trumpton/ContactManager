@@ -137,7 +137,7 @@ void MainWindow::on_listCalendar_activated(const QModelIndex &index)
     }
     if (!contactid.isEmpty()) {
         populateDialog(contactid) ;
-        ui->tabBar->setCurrentIndex(CALENDARTABPOS);
+        ui->tabBar->widget(CALENDARTABPOS)->setFocus() ;
         ui->listCalendar->setFocus();
         ui->listCalendar->setCurrentIndex(calendarlist.getModel()->index(idx)) ;
     }
@@ -173,7 +173,7 @@ void MainWindow::on_actionNewAppointment_triggered()
         play(Disabled) ;
     } else {
 
-      ui->tabBar->setCurrentIndex(CALENDARTABPOS);
+      ui->tabBar->widget(CALENDARTABPOS)->setFocus() ;
       ui->listCalendar->setFocus();
 
       Appointment reference = calendar.getNull() ;
@@ -210,7 +210,7 @@ void MainWindow::on_action_Insert_Appointment_After_triggered()
         play(Disabled) ;
     } else {
 
-      ui->tabBar->setCurrentIndex(CALENDARTABPOS);
+      ui->tabBar->widget(CALENDARTABPOS)->setFocus() ;
       ui->listCalendar->setFocus();
 
       Appointment reference ;
