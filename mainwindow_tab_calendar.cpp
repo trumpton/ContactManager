@@ -137,7 +137,10 @@ void MainWindow::on_listCalendar_activated(const QModelIndex &index)
     }
     if (!contactid.isEmpty()) {
         populateDialog(contactid) ;
-        ui->tabBar->widget(CALENDARTABPOS)->setFocus() ;
+
+        if (ui->tabBar->currentIndex()!=CALENDARTABPOS)
+            ui->tabBar->setCurrentIndex((CALENDARTABPOS));
+
         ui->listCalendar->setFocus();
         ui->listCalendar->setCurrentIndex(calendarlist.getModel()->index(idx)) ;
     }
@@ -173,7 +176,9 @@ void MainWindow::on_actionNewAppointment_triggered()
         play(Disabled) ;
     } else {
 
-      ui->tabBar->widget(CALENDARTABPOS)->setFocus() ;
+        if (ui->tabBar->currentIndex()!=CALENDARTABPOS)
+            ui->tabBar->setCurrentIndex(CALENDARTABPOS);
+
       ui->listCalendar->setFocus();
 
       Appointment reference = calendar.getNull() ;
@@ -210,21 +215,22 @@ void MainWindow::on_action_Insert_Appointment_After_triggered()
         play(Disabled) ;
     } else {
 
-      ui->tabBar->widget(CALENDARTABPOS)->setFocus() ;
-      ui->listCalendar->setFocus();
+        if (ui->tabBar->currentIndex()!=CALENDARTABPOS)
+            ui->tabBar->setCurrentIndex(CALENDARTABPOS);
+        ui->listCalendar->setFocus();
 
-      Appointment reference ;
-      int idx = ui->listCalendar->currentIndex().row() ;
+        Appointment reference ;
+        int idx = ui->listCalendar->currentIndex().row() ;
 
-      if (idx>=0) {
-          QString id = calendarlist.hintAt(idx) ;
-          reference = calendar.getAppointmentBy(Appointment::ID, id) ;
-          Appointment newappt ;
-          editAppointment(newappt, reference, db.getSelected().getField(Contact::ID), true) ;
-      } else {
-          play(NotFound) ;
-      }
-   }
+        if (idx>=0) {
+            QString id = calendarlist.hintAt(idx) ;
+            reference = calendar.getAppointmentBy(Appointment::ID, id) ;
+            Appointment newappt ;
+            editAppointment(newappt, reference, db.getSelected().getField(Contact::ID), true) ;
+        } else {
+            play(NotFound) ;
+        }
+    }
 }
 
 

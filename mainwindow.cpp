@@ -267,18 +267,17 @@ void MainWindow::refreshMenus(Contact &contact, bool isediting, bool isnew, bool
         if (contact.isNull()) {
             // No Contact
             if (ui->tabBar->currentIndex()!=CALENDARTABPOS)
-                ui->tabBar->widget(CALENDARTABPOS)->setFocus() ;
+                ui->tabBar->setCurrentIndex(CALENDARTABPOS) ;
             ui->listCalendar->setFocus() ;
         } else if (isnew) {
             // Create
             if (ui->tabBar->currentIndex()!=CONTACTDETAILSTABPOS)
-                ui->tabBar->widget(CONTACTDETAILSTABPOS)->setFocus() ;
+                ui->tabBar->setCurrentIndex(CONTACTDETAILSTABPOS);
             ui->editFirstName->setFocus() ;
         } else {
             // Open
             if (ui->tabBar->currentIndex()!=OVERVIEWTABPOS)
                 ui->tabBar->setCurrentIndex(OVERVIEWTABPOS) ;
-//                 ui->tabBar->widget(OVERVIEWTABPOS)->setFocus() ;
             ui->editOverview->setFocus() ;
         }
 
@@ -350,7 +349,9 @@ void MainWindow::populateDialog(QString id, bool switchtooverview)
             currentindex=OVERVIEWTABPOS ;
         }
 
-        ui->tabBar->widget(currentindex)->setFocus() ;
+        if (ui->tabBar->currentIndex()!=currentindex)
+            ui->tabBar->setCurrentIndex(currentindex) ;
+
         switch (currentindex) {
             case OVERVIEWTABPOS: ui->editOverview->setFocus() ; break ;
             case CALENDARTABPOS: ui->listCalendar->setFocus() ; break ;

@@ -21,16 +21,18 @@ void MainWindow::on_actionGotoMe_triggered()
 //
  void MainWindow::on_actionGotoToday_triggered()
  {
-    ui->tabBar->setCurrentIndex(CALENDARTABPOS);
-    ui->listCalendar->setFocus();
-    ui->listCalendar->setCurrentIndex(calendarlist.getModel()->index(0)) ;
+     if (ui->tabBar->currentIndex()!=CALENDARTABPOS)
+        ui->tabBar->setCurrentIndex(CALENDARTABPOS);
 
-    QString thisid = calendar.getNearestAppointment().getField(Appointment::ID) ;
-    int index = calendarlist.find(thisid) ;
+     ui->listCalendar->setFocus();
+     ui->listCalendar->setCurrentIndex(calendarlist.getModel()->index(0)) ;
 
-    if (index>=0) {
-        ui->listCalendar->setCurrentIndex(calendarlist.getModel()->index(index)) ;
-    }
+     QString thisid = calendar.getNearestAppointment().getField(Appointment::ID) ;
+     int index = calendarlist.find(thisid) ;
+
+     if (index>=0) {
+         ui->listCalendar->setCurrentIndex(calendarlist.getModel()->index(index)) ;
+     }
 }
 
 
@@ -49,7 +51,8 @@ void MainWindow::on_actionGotoToDoList_triggered()
         errorOkDialog(this, "Debug", "on_actionGotoToDoList_triggered") ;
         return ;
     } else {
-        ui->tabBar->widget(TODOTABPOS)->setFocus();
+        if (ui->tabBar->currentIndex()!=TODOTABPOS)
+            ui->tabBar->setCurrentIndex(TODOTABPOS);
         ui->editToDo->setFocus() ;
     }
 }
