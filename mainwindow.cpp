@@ -159,10 +159,10 @@ MainWindow::~MainWindow()
     play(FileSave) ;
     ui->tabBar->setTabEnabled(CONTACTDETAILSTABPOS, false);
 
-    if (gConf!=NULL) delete gConf ;
-    if (ui!=NULL) delete ui;
-    if (enc!=NULL) delete enc ;
-    if (find!=NULL) delete find ;
+    if (gConf) delete gConf ;
+    if (ui) delete ui;
+    if (enc) delete enc ;
+    if (find) delete find ;
 }
 
 void MainWindow::refreshPasswordMenu()
