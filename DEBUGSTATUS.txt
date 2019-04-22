@@ -1,0 +1,6 @@
+Latest Contact Manager
+With Previous 1.0.0 release of mainwindow.ui
+
+No Crash seen on tabBar.setCurrentIndex(XXX)
+
+
