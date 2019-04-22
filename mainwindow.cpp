@@ -55,7 +55,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     setupdebug();
 
     // Connect signals for password menu
-    connect(ui->menuKeyandPassword, SIGNAL(aboutToShow()), this, SLOT(refreshPasswordMenu())) ;
+    //connect(ui->menuKeyandPassword, SIGNAL(aboutToShow()), this, SLOT(refreshPasswordMenu())) ;
 
     // Set the application icon
     QIcon icon(":icon-image.png");
@@ -168,9 +168,9 @@ MainWindow::~MainWindow()
 void MainWindow::refreshPasswordMenu()
 {
     bool loggedin = enc->loggedIn() ;
-    ui->actionSetEncryptionKey->setEnabled(!loggedin) ;
-    ui->actionChangePassword->setEnabled(!loggedin) ;
-    ui->actionLogout->setEnabled(loggedin) ;
+    //ui->actionSetEncryptionKey->setEnabled(!loggedin) ;
+    //ui->actionChangePassword->setEnabled(!loggedin) ;
+    //ui->actionLogout->setEnabled(loggedin) ;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

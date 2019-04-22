@@ -139,28 +139,28 @@ void MainWindow::LoadContactTab()
     ui->editBusiness->setText(dr.getField(Contact::Organisation)) ;
     ui->editHome->setText(dr.getField(Contact::Phone)) ;
 
-    ui->edit2->setText(dr.getField(Contact::Phone2)) ;
+    //ui->edit2->setText(dr.getField(Contact::Phone2)) ;
 
     if (dr.getField(Contact::Phone2Title).isEmpty()) {
-        ui->edit2Title->setText("Other") ;
+    //    ui->edit2Title->setText("Other") ;
     } else {
-        ui->edit2Title->setText(dr.getField(Contact::Phone2Title)) ;
+    //    ui->edit2Title->setText(dr.getField(Contact::Phone2Title)) ;
     }
 
-    ui->edit3->setText(dr.getField(Contact::Phone3)) ;
+    //ui->edit3->setText(dr.getField(Contact::Phone3)) ;
 
     if (dr.getField(Contact::Phone3Title).isEmpty()) {
-        ui->edit3Title->setText("Other") ;
+//        ui->edit3Title->setText("Other") ;
     } else {
-        ui->edit3Title->setText(dr.getField(Contact::Phone3Title)) ;
+//        ui->edit3Title->setText(dr.getField(Contact::Phone3Title)) ;
     }
 
-    ui->edit4->setText(dr.getField(Contact::Phone4)) ;
+    //ui->edit4->setText(dr.getField(Contact::Phone4)) ;
 
     if (dr.getField(Contact::Phone4Title).isEmpty()) {
-        ui->edit4Title->setText("Other") ;
+    //    ui->edit4Title->setText("Other") ;
     } else {
-        ui->edit4Title->setText(dr.getField(Contact::Phone4Title)) ;
+    //    ui->edit4Title->setText(dr.getField(Contact::Phone4Title)) ;
     }
 
     ui->editMobile->setText(dr.getField(Contact::Mobile)) ;
@@ -177,11 +177,11 @@ void MainWindow::LoadContactTab()
     bool emailme = dr.isSet(Contact::EmailMe) ;
     ui->checkEmailMe->setChecked(emailme) ;
     ui->checkHidden->setChecked(dr.isSet(Contact::Hidden)) ;
-    ui->checkBusiness->setChecked(dr.isSet(Contact::GroupBusiness)) ;
-    ui->checkClient->setChecked(dr.isSet(Contact::GroupClient)) ;
-    ui->checkFamily->setChecked(dr.isSet(Contact::GroupFamily)) ;
-    ui->checkFriend->setChecked(dr.isSet(Contact::GroupFriend)) ;
-    ui->checkOther->setChecked(dr.isSet(Contact::GroupOther)) ;
+    //ui->checkBusiness->setChecked(dr.isSet(Contact::GroupBusiness)) ;
+    //ui->checkClient->setChecked(dr.isSet(Contact::GroupClient)) ;
+    //ui->checkFamily->setChecked(dr.isSet(Contact::GroupFamily)) ;
+    //ui->checkFriend->setChecked(dr.isSet(Contact::GroupFriend)) ;
+    //ui->checkOther->setChecked(dr.isSet(Contact::GroupOther)) ;
 
     dbg("Contact Tab Load Complete") ;
 }
@@ -205,26 +205,26 @@ bool MainWindow::SaveContactTab()
     newdr.setField(Contact::Address, ui->editAddress->toPlainText().replace("\n", ", ")) ;
     newdr.setField(Contact::Address2, ui->editAddress2->toPlainText().replace("\n", ", ")) ;
     newdr.setField(Contact::Phone, ui->editHome->text()) ;
-    newdr.setField(Contact::Phone2,ui->edit2->text());
-    if (ui->edit2->text().isEmpty()) {
-        newdr.setField(Contact::Phone2Title, "");
-    } else {
-        newdr.setField(Contact::Phone2Title, ui->edit2Title->text());
-    }
+    //newdr.setField(Contact::Phone2,ui->edit2->text());
+    //if (ui->edit2->text().isEmpty()) {
+    //    newdr.setField(Contact::Phone2Title, "");
+    //} else {
+    //    newdr.setField(Contact::Phone2Title, ui->edit2Title->text());
+    //}
 
-    newdr.setField(Contact::Phone3,ui->edit3->text());
-    if (ui->edit3->text().isEmpty()) {
-        newdr.setField(Contact::Phone3Title, "");
-    } else {
-        newdr.setField(Contact::Phone3Title, ui->edit3Title->text());
-    }
+    //newdr.setField(Contact::Phone3,ui->edit3->text());
+    //if (ui->edit3->text().isEmpty()) {
+    //   newdr.setField(Contact::Phone3Title, "");
+    //} else {
+    //    newdr.setField(Contact::Phone3Title, ui->edit3Title->text());
+    //}
 
-    newdr.setField(Contact::Phone4,ui->edit4->text());
-    if (ui->edit4->text().isEmpty()) {
-        newdr.setField(Contact::Phone4Title, "");
-    } else {
-        newdr.setField(Contact::Phone4Title, ui->edit4Title->text());
-    }
+    //newdr.setField(Contact::Phone4,ui->edit4->text());
+    //if (ui->edit4->text().isEmpty()) {
+    //    newdr.setField(Contact::Phone4Title, "");
+    //} else {
+    //    newdr.setField(Contact::Phone4Title, ui->edit4Title->text());
+   // }
 
     newdr.setField(Contact::Voip, ui->editVoip->text()) ;
 
@@ -235,11 +235,11 @@ bool MainWindow::SaveContactTab()
     newdr.setField(Contact::Webaddress, ui->editWebAddress->text()) ;
     newdr.setField(Contact::Birthday, dateTimeToXsDate(ui->editDateOfBirth->getDateTime()));
     newdr.setField(Contact::Comments, ui->editComment->toPlainText() );
-    newdr.setFlag(Contact::GroupBusiness, ui->checkBusiness->isChecked()) ;
-    newdr.setFlag(Contact::GroupClient, ui->checkClient->isChecked()) ;
-    newdr.setFlag(Contact::GroupFamily, ui->checkFamily->isChecked()) ;
-    newdr.setFlag(Contact::GroupFriend, ui->checkFriend->isChecked()) ;
-    newdr.setFlag(Contact::GroupOther, ui->checkOther->isChecked()) ;
+    //newdr.setFlag(Contact::GroupBusiness, ui->checkBusiness->isChecked()) ;
+    //newdr.setFlag(Contact::GroupClient, ui->checkClient->isChecked()) ;
+    //newdr.setFlag(Contact::GroupFamily, ui->checkFamily->isChecked()) ;
+    //newdr.setFlag(Contact::GroupFriend, ui->checkFriend->isChecked()) ;
+    //newdr.setFlag(Contact::GroupOther, ui->checkOther->isChecked()) ;
     newdr.setFlag(Contact::Hidden, ui->checkHidden->isChecked()) ;
     newdr.setFlag(Contact::EmailMe, ui->checkEmailMe->checkState()!=Qt::Unchecked) ;
     newdr.setFlag(Contact::TextMe, ui->checkTextMe->checkState()!=Qt::Unchecked) ;
