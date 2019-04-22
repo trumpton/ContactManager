@@ -1,6 +1,22 @@
+Tagged -working1
+
 Latest Contact Manager
-With Previous 1.0.0 release of mainwindow.ui
+With Previous 1.0.0 release of mainwindow.ui, and edited files 
+which refer to ui elements.
 
 No Crash seen on tabBar.setCurrentIndex(XXX)
+
+
+Tagged -working2
+
+Latest Contact Manager
+edited files referring to ui elements
+And current mainwindow.ui
+i.e. just mainwindow.ui changed.
+
+No Crash seen on tabBar.setCurrentIndex(XXX)
+
+Which means that something that was commented out to get -working1 
+may be the cause
 
 
