@@ -1,0 +1,9 @@
+
+1. Windows app locks up on contact open.
+   Looks to be something in:
+       mainwindow.ui, mainwindow.cpp, mainwindow_contactdetails.cpp
+
+   What changed recently was that phone and groups were modified in the
+   dialog, the taborder was updated, and also encryption was included.  
+   It could also be the compiler configuration (and the code is actually fine).
+
