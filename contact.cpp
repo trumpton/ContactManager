@@ -86,8 +86,6 @@ bool Contact::createNew()
 {
     QUuid qid ;
 
-    dbg("Creating New Contact") ;
-
     // Clear all fields
     for (int i=0; i<Contact::NumberOfRecords; i++) {
         if (isContactOfType((Contact::ContactRecord)i, Contact::mcFlag)) { setFlag((Contact::ContactRecord)i, false) ; }
@@ -151,13 +149,13 @@ char *Contact::contactRecordName(enum ContactRecord field) { return (char *)cont
 // TODO: Handle cases where there is an "=" in the middle of the string
 bool Contact::load(QString path, QString idname, Encryption *enc)
 {
-    dbg(QString("load(%1,%2,enc)").arg(path).arg(idname)) ;
-
     if (isnull || !enc) {
         // ERROR
-        dbg("ERROR: Contact record is null or encryption not configured") ;
+        dbg("ERROR: load() - Contact record is null or encryption not configured") ;
         return false ;
     }
+
+    dbg(QString("load(%1,%2,enc)").arg(path).arg(idname)) ;
 
     QString Line ;
     QStringList ParsedLine;
@@ -170,8 +168,6 @@ bool Contact::load(QString path, QString idname, Encryption *enc)
 
     // Attempt to load encrypted contact .zcontact and fall back to legacy .contact
     QByteArray data ;
-
-    dbg(QString("Loading Contact Details from %1").arg(idname)) ;
 
     if (!enc->load(path + idname + ".zcontact", data)) {
 
@@ -247,7 +243,6 @@ bool Contact::load(QString path, QString idname, Encryption *enc)
     isdirty = false ;
     if (oldformat) isdirty = true ;
 
-    dbg(QString("Load {%1} complete").arg(getField(Contact::ID))) ;
     return true ;
 }
 
@@ -309,7 +304,6 @@ int Contact::find(QString text)
 // TODO: Make this save a "safe save", i.e. save, check, rename
 bool Contact::save(QString path, Encryption *enc)
 {
-  dbg(QString("save(%1,enc)").arg(path)) ;
 
   if (isnull || !enc) {
       // ERROR
