@@ -8,9 +8,9 @@ About::About(QWidget *parent) :
     ui(new Ui::About)
 {
     QString text = 
-    QString("Contact Manager Version %1 (%2).\n").arg(RELEASEVERSION).arg(RELEASEDATE) +
+    QString("Contact Manager Version %1 (%2).\n").arg(BUILDVERSION).arg(BUILDDATE) +
     QString("It was built on: %1.\n").arg(COMPILEDATE) +
-    QString("\nContact Manager %1 Repository Version: %2.\n").arg(RELEASEVERSION).arg(GITHASH) +
+    QString("\nContact Manager %1 Repository Version: %2.\n").arg(BUILDVERSION).arg(GITHASH) +
     QString("Library %1 Repository Version: %2.\n").arg(LIBVERSION).arg(LIBHASH) ;
 
     ui->setupUi(this);
