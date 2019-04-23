@@ -1,6 +1,6 @@
 #ifndef _VERSION_DEFINED
 #define _VERSION_DEFINED
-#define RELEASEVERSION "2.0.0"
-#define RELEASEDATE "2019-04-23"
+#define BUILDVERSION "2.0.0"
+#define BUILDDATE "2019-04-23"
 #define COMPILEDATE __DATE__ " - " __TIME__
 #endif
