@@ -19,6 +19,12 @@ win32:LIBS += -lUser32
 
 DEFINES += QWIDGET_EXTRA_DEBUG
 
+# Include Git Hash / Revision Details
+GITHASH = "$$system(git --git-dir \"$$PWD/.git\" describe --always --tags)"
+LIBHASH = "$$system(git --git-dir \"$$PWD/../Lib/.git\" describe --always --tags)"
+DEFINES += GITHASH=\\\"$$GITHASH\\\"
+DEFINES += LIBHASH=\\\"$$LIBHASH\\\"
+
 TARGET = ContactManager
 TEMPLATE = app
 
@@ -120,7 +126,8 @@ HEADERS  += mainwindow.h \
     version.h \
     ../Lib/encryption.h \
     ../Lib/aes.h \
-    advancedfind.h
+    advancedfind.h \
+    ../Lib/version.h
 
 FORMS    += mainwindow.ui \
     search.ui \
