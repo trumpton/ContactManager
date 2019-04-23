@@ -64,7 +64,7 @@
        <string>Page Select</string>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>4</number>
       </property>
       <widget class="QWidget" name="OverviewTab">
        <property name="whatsThis">
@@ -1571,6 +1571,7 @@ p, li { white-space: pre-wrap; }
   </customwidget>
  </customwidgets>
  <tabstops>
+  <tabstop>tabBar</tabstop>
   <tabstop>editOverview</tabstop>
   <tabstop>listCalendar</tabstop>
   <tabstop>newAppointmentButton</tabstop>
@@ -1607,7 +1608,6 @@ p, li { white-space: pre-wrap; }
   <tabstop>checkTextMe</tabstop>
   <tabstop>checkEmailMe</tabstop>
   <tabstop>editNotes</tabstop>
-  <tabstop>tabBar</tabstop>
  </tabstops>
  <resources>
   <include location="Icon.qrc"/>
