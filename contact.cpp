@@ -32,6 +32,55 @@ Contact::~Contact()
 {
 }
 
+Contact::Contact(const Contact &rhs)
+{
+    isnull = false ;
+    *this = rhs ;
+}
+
+// COPY: Copies all fields
+Contact& Contact::operator=(const Contact &rhs)
+{
+    if (isnull) {
+        qFatal("ERROR: Copying into NULL contact entry not allowed") ;
+        return *this ;
+    }
+    if (this == &rhs) return *this;
+
+    this->contactrecordinfook = rhs.contactrecordinfook ;
+
+    this->emptystring="" ;
+    this->googleXml="" ;
+    this->mergedidlist.clear() ;
+    this->sortstring="" ;
+    this->getOverviewResponse="" ;
+    this->getOverviewResponseHtml="" ;
+
+    this->isnew = rhs.isnew ;
+    this->isdirty = rhs.isdirty;
+    this->isempty = rhs.isempty ;
+    this->todo = rhs.todo ;
+    this->history = rhs.history ;
+    this->sortstring = rhs.sortstring ;
+    this->surname = rhs.surname ;
+    this->firstname = rhs.firstname ;
+    this->organisation = rhs.organisation ;
+    this->formattedNameResponse = rhs.formattedNameResponse ;
+
+    this->googleSaveDateTimeResponse = rhs.googleSaveDateTimeResponse ;
+    this->contactSaveDateTimeResponse = rhs.contactSaveDateTimeResponse ;
+
+    this->getOverviewDirty = true ;
+    this->getOverviewHtmlDirty = true ;
+
+    for (int x=0; x<Contact::NumberOfRecords; x++) {
+        this->filedata[x]=rhs.filedata[x] ;
+    }
+    return *this ;
+}
+
+
+
 Todo& Contact::getTodo()
 {
     return todo ;
@@ -714,32 +763,7 @@ int Contact::mergedIdCount() { return mergedidlist.length() ; }
 void Contact::appendMergedId(QString id) { mergedidlist.append(id) ; }
 QStringList& Contact::mergedIdList() { return mergedidlist ; }
 
-// Operators
-
-// COPY: Copies all fields
-Contact& Contact::operator=(const Contact &rhs)
-{
-    if (isnull) {
-        // ERROR
-        return *this ;
-    }
-    if (this == &rhs) return *this;
-
-    this->isdirty = rhs.isdirty;
-    this->isempty = rhs.isempty ;
-    this->todo = rhs.todo ;
-    this->history = rhs.history ;
-    this->sortstring = rhs.sortstring ;
-    this->surname = rhs.surname ;
-    this->firstname = rhs.firstname ;
-    this->getOverviewDirty = true ;
-    this->getOverviewHtmlDirty = true ;
-
-    for (int x=0; x<Contact::NumberOfRecords; x++) {
-        this->filedata[x]=rhs.filedata[x] ;
-    }
-    return *this ;
-}
+// test Operators
 
 
 Contact& Contact::getThis()

@@ -11,23 +11,31 @@ using namespace std;
 
 class ContactDatabase
 {
+
+public:
+    ContactDatabase();
+    ~ContactDatabase();
+
+private:
+    // Unused copy construct
+    ContactDatabase(const ContactDatabase& other) ;
+    ContactDatabase& operator =(const ContactDatabase &rhs) ;
+
+public:
+    Contact nullitem ;
+
 private:
     QList<Contact> contacts ;
     int selectedcontact ;
     Encryption *enc ;
 
 public:
-    Contact nullitem ;
-
-    ContactDatabase();
-    ~ContactDatabase();
 
     void setEncryption(Encryption *enc) ;
     bool load() ;
     bool save() ;
     bool reloadJournal(Contact& contact) ;
     bool saveIndex(int j, QString path, QString contactid, QString name, QString phone, QString email, QString address) ;
-
 
     void sort() ;
     int size() ;
@@ -51,6 +59,7 @@ public:
 
     int getIndex(Contact& record) ;
     int getIndex(QString id) ;
+
 };
 
 #endif // DATABASE_H

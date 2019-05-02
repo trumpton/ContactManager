@@ -17,6 +17,12 @@ public:
     explicit ListViewStrings(QObject *parent = 0);
     ~ListViewStrings() ;
 
+private:
+    // Unused copy construct
+    ListViewStrings(const ListViewStrings& other) ;
+    ListViewStrings& operator =(const ListViewStrings &rhs) ;
+
+public:
     QModelIndex findModelIndex(int idx) ;
     void addString(QString resulttext, QString resulthint) ;
     void clearStrings() ;
