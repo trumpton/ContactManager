@@ -99,7 +99,6 @@ private:
 
 private:
     bool contactrecordinfook ;
-    QString *_cid ;
     QString emptystring ;
 
     QString googleXml ;
@@ -128,8 +127,10 @@ private:
 public:
 
     Contact(bool isNull=false);
+    Contact(const Contact& rhs) ;
     ~Contact() ;
 
+public:
     // Test contact record field types
 //    bool isRecordFlag(enum ContactRecord field) ;
     char *contactRecordName(enum ContactRecord field) ;

@@ -31,7 +31,11 @@ public:
 
     History();
     ~History() ;
+private:
+    // Unused copy construct
+    History(History& other) ;
 
+public:
     bool save(QString path = QString("")) ;
     bool load(QString path, QString idname, Encryption *enc) ;
     bool isdirty() ;

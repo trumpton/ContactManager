@@ -122,6 +122,14 @@ private:
     // Constructor, sets the refresh token which has been
     // previously generated with googleAuthorise.
     GoogleAccess();
+
+
+private:
+    // Unused copy construct
+    GoogleAccess(GoogleAccess& other) ;
+    GoogleAccess& operator =(const GoogleAccess &rhs) ;
+
+public:
     void setupRToken(const QString& rt) ;
 
     // Pop up authorisation dialog, and return a refresh_token

@@ -26,6 +26,11 @@ public:
     Todo();
     ~Todo() ;
 
+private:
+    // Unused copy construct
+    Todo(const Todo& other) ;
+
+public:
     bool save(QString path, Encryption *enc) ;
     bool load(QString path, QString idname, Encryption *enc) ;
     bool createNew(QString idname) ;

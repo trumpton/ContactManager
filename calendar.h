@@ -40,6 +40,12 @@ public:
     Calendar();
     ~Calendar() ;
 
+private:
+    // Unused copy construct
+    Calendar(const Calendar& other) ;
+    Calendar& operator =(const Calendar &rhs) ;
+
+public:
     void setEncryption(Encryption *enc) ;
     void clear() ;
     void sort() ;

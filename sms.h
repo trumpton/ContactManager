@@ -13,6 +13,13 @@ public:
 
 public:
     SMS(QString &agent, QString &username, QString& password);
+
+private:
+    // Unused copy construct
+    SMS(const SMS& other) ;
+    SMS& operator =(const SMS &rhs) ;
+
+public:
     bool send(QString number, QString from, QString message) ;
     QString& getErrorMessage() ;
     int getBalance() ;
