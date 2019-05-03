@@ -156,8 +156,8 @@ bool Calendar::appointmentIsInFuture(int n)
     if (n<0 || n >= appointments.size()) {
       return false ;
     } else {
-      Appointment appt = appointments.at(n) ;
-      return appt.isInFuture() ;
+        Appointment appt = appointments.at(n) ;
+        return appt.isInFuture() ;
     }
 }
 

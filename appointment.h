@@ -69,6 +69,7 @@ private:
 public:
 
     Appointment();
+    Appointment(const Appointment& other) ;
     void setNull() ;
 
     ~Appointment();

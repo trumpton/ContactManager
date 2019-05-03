@@ -22,6 +22,11 @@ Appointment::Appointment()
     getDateResponse.setMSecsSinceEpoch(0);
 }
 
+Appointment::Appointment(const Appointment &other)
+{
+    qFatal("FATAL: Appointment copy not supported") ;
+}
+
 // forces record to be a read-only null one
 void Appointment::setNull()
 {
