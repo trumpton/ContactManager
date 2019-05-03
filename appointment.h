@@ -70,6 +70,8 @@ public:
 
     Appointment();
     Appointment(const Appointment& other) ;
+    Appointment& operator=(const Appointment& rhs) ;
+
     void setNull() ;
 
     ~Appointment();
@@ -119,7 +121,6 @@ public:
     bool matches(Appointment &with) ;
     bool clashes(Appointment& with) ;
 
-    Appointment& operator=(const Appointment &rhs);
     Appointment& copyGoogleAccountFieldsTo(Appointment& dest) ;
     Appointment& copySyncedFieldsTo(Appointment& dest) ;
 

@@ -22,9 +22,31 @@ Appointment::Appointment()
     getDateResponse.setMSecsSinceEpoch(0);
 }
 
-Appointment::Appointment(const Appointment &other)
+Appointment::Appointment(const Appointment &rhs)
 {
-    qFatal("FATAL: Appointment copy not supported") ;
+    isnull = false ;
+    *this = rhs ;
+}
+
+Appointment& Appointment::operator=(const Appointment &rhs)
+{
+    if (isnull) {
+        qFatal("ERROR: Copying into NULL appointment entry not allowed") ;
+        return *this ;
+    }
+    if (this == &rhs) return *this;
+
+    isnull = rhs.isnull ;
+    isempty = rhs.isempty ;
+    isdirty = rhs.isdirty ;
+    shortTextResponse = rhs.shortTextResponse ;
+    asTextResponse = rhs.asTextResponse ;
+    asHTMLResponse = rhs.asHTMLResponse ;
+    getDateResponse = rhs.getDateResponse ;
+    for (int i=0; i<LASTRECORD; i++) {
+        filedata[i] = rhs.filedata[i] ;
+    }
+    return *this ;
 }
 
 // forces record to be a read-only null one
@@ -422,24 +444,6 @@ bool Appointment::isCurrent()
 
 
 // Operators
-
-Appointment& Appointment::operator=(const Appointment &rhs)
-{
-    if (!isnull) {
-        if (this == &rhs) return *this;
-        this->isdirty = rhs.isdirty ;
-        this->isempty = rhs.isempty ;
-        this->isnull = rhs.isnull ;
-        this->shortTextResponse = rhs.shortTextResponse ;
-        this->asHTMLResponse = rhs.asHTMLResponse ;
-        this->asTextResponse = rhs.asTextResponse ;
-        this->getDateResponse = rhs.getDateResponse ;
-        for (int x=0; x<=(int)LASTRECORD; x++) {
-            this->filedata[x] = rhs.filedata[x] ;
-        }
-    }
-    return *this ;
-}
 
 // TODO: Check that this should copy GoogleLastSynced too
 // depends how and where this function is actually used
