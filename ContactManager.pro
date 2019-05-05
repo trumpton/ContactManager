@@ -20,8 +20,10 @@ win32:LIBS += -lUser32
 DEFINES += QWIDGET_EXTRA_DEBUG
 
 # Include Git Hash / Revision Details
-GITHASH = "$$system(git --git-dir \"$$PWD/.git\" describe --always --tags)"
-LIBHASH = "$$system(git --git-dir \"$$PWD/../Lib/.git\" describe --always --tags)"
+# Uncomment NOGIT if Git not used.
+#DEFINES += NOGIT
+GITHASH = "$$system(cd \"$$_PRO_FILE_PWD_\" ; git describe --always --tags)"
+LIBHASH = "$$system(cd \"$$_PRO_FILE_PWD_/../Lib\" ; git describe --always --tags)"
 DEFINES += GITHASH=\\\"$$GITHASH\\\"
 DEFINES += LIBHASH=\\\"$$LIBHASH\\\"
 
@@ -126,8 +128,7 @@ HEADERS  += mainwindow.h \
     version.h \
     ../Lib/encryption.h \
     ../Lib/aes.h \
-    advancedfind.h \
-    ../Lib/version.h
+    advancedfind.h
 
 FORMS    += mainwindow.ui \
     search.ui \
