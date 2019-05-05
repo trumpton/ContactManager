@@ -22,10 +22,11 @@ DEFINES += QWIDGET_EXTRA_DEBUG
 # Include Git Hash / Revision Details
 # Uncomment NOGIT if Git not used.
 #DEFINES += NOGIT
-GITHASH = "$$system(cd \"$$_PRO_FILE_PWD_\" ; git describe --always --tags)"
-LIBHASH = "$$system(cd \"$$_PRO_FILE_PWD_/../Lib\" ; git describe --always --tags)"
-DEFINES += GITHASH=\\\"$$GITHASH\\\"
-DEFINES += LIBHASH=\\\"$$LIBHASH\\\"
+GITHASH = \\\"$$system(git --git-dir=\"$$PWD/.git\" describe --always --tags)\\\"
+LIBHASH = \\\"$$system(git --git-dir=\"$$PWD/../Lib/.git\" describe --always --tags)\\\"
+DEFINES += GITHASH=$$GITHASH
+DEFINES += LIBHASH=$$LIBHASH
+DEFINES += PWD=\\\"$$PWD\\\"
 
 TARGET = ContactManager
 TEMPLATE = app
