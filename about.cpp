@@ -1,17 +1,17 @@
 #include "about.h"
 #include "ui_about.h"
 #include "version.h"
-#include "../Lib/version.h"
+#include "../Lib/supportfunctions.h"
 
 About::About(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::About)
 {
     QString text = 
-    QString("Contact Manager Version %1 (%2).\n").arg(BUILDVERSION).arg(BUILDDATE) +
-    QString("It was built on: %1.\n").arg(COMPILEDATE) +
-    QString("\nContact Manager %1 Repository Version: %2.\n").arg(BUILDVERSION).arg(GITHASH) +
-    QString("Library %1 Repository Version: %2.\n").arg(LIBVERSION).arg(LIBHASH) ;
+    QString("Contact Manager Release %1.\n").arg(BUILDVERSION) +
+    QString("It was built on: %1.\n").arg(buildDate()) +
+    QString("\nContact Manager Repository Version: %1.\n").arg(appHash()) +
+    QString("Library Repository Version: %1.\n").arg(libVersion()) ;
 
     ui->setupUi(this);
     ui->aboutinformation->setText(text) ;
