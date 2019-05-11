@@ -6,4 +6,7 @@
    What changed recently was that phone and groups were modified in the
    dialog, the taborder was updated, and also encryption was included.  
    It could also be the compiler configuration (and the code is actually fine).
+   
+   This has been identified as a bug in QT: https://bugreports.qt.io/browse/QTBUG-43482
+   Workaround is to ensure that the QTabDialog is not the last in the tablist of controls.
 
