@@ -167,14 +167,8 @@ public:
     // Get all contacts from Google server
     bool getContacts(ContactDatabase &googlecontacts, bool downloadall=true) ;
 
-    // Download the contact based on Google Details
-//    bool getContact(Contact& contact) ;
-
     // Update contact on Google Server
     bool updateContact(Contact &contact, googleAction action, QString etag = QString("")) ;
-
-    // Update contact's groups on Google Server (called from updateContact)
-    bool updateGoogleContactGroup(Contact& contact, Contact &googlecontact) ;
 
     // Update a group on Google with all contact changes
     bool updateSingleGoogleContactGroup(Contact::ContactRecord rec, ContactDatabase &db, ContactDatabase &googledb) ;
