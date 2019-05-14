@@ -17,7 +17,7 @@
 //
 //    https://people.googleapis.com/v1/contactGroups/ID/members:modify (GoogleAccess::Post)
 //    https://people.googleapis.com/v1/contactGroups (Get)
-//
+//    https://people.googleapis.com/v1/contactGroups (Post)
 //
 
 #include "googleaccess.h"
@@ -29,76 +29,6 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QThread>
-
-
-// TODO: THIS FUNCTION IS FAR FROM FINISHED
-bool GoogleAccess::updateGoogleContactGroup(Contact& contact, Contact& googlecontact)
-{
-    bool success=true ;
-
-    for (int i=Contact::GroupBusiness; i<=Contact::GroupOther; i++) {
-
-        bool contactflag = contact.isSet((Contact::ContactRecord)i) ;
-        bool googleflag = googlecontact.isSet((Contact::ContactRecord)i) ;
-        if ( contactflag != googleflag ) {
-
-            bool state = contact.isSet((Contact::ContactRecord)i) ;
-
-            QString groupid = getGroupId((Contact::ContactRecord)i, false) ;
-            QString groupdesc = getGroupId((Contact::ContactRecord)i, true) ;
-
-            QJsonDocument doc ;
-            QJsonObject entry ;
-            QString updateurl = "https://people.googleapis.com/v1/contactGroups/" + groupid + "/members:modify" ;
-
-            // Construct the json query
-            QJsonArray resources = { contact.getField(Contact::GoogleRecordId) };
-            // { "resourceNamesToAdd": [ string ],
-            //   "resourceNamesToRemove": [ string ] }
-            if (state) {
-                entry.insert("resourceNamesToAdd", resources) ;
-            } else {
-                entry.insert("resourceNamesToRemove", resources) ;
-            }
-            doc.setObject(entry) ;
-
-            int pass=0 ;
-            bool entrysuccess=false ;
-
-            // Update the Group
-            QString jsonresponse ;
-            jsonresponse = googlePutPostDelete(updateurl, GoogleAccess::Post, doc.toJson(), QString("updateGoogleContactGroup-" + groupdesc.replace(" ","").toLower())) ;
-            if (!getNetworkError().isEmpty()) {
-                success=false ;
-                addLog("GoogleAccess::updateGoogleContactGroup: ERROR - " + getNetworkError() + ".\n") ;
-            }
-
-            // GOOGLE BUG
-            // This verify loop should not be necessary
-            if (success) {
-                // Wait and Verify Update
-                do {
-                    success &= getContact(googlecontact, true) ;
-                    entrysuccess = (googlecontact.isSet((Contact::ContactRecord)i) == contact.isSet((Contact::ContactRecord)i)) ;
-                    pass++ ;
-                    if (!entrysuccess) qSleep(pass*750);
-                    // success &= entrysuccess ;
-                } while (success && !entrysuccess && pass<10) ;
-            }
-
-            addLog(QString("GoogleAccess::updateGoogleContactGroup: ") +
-                   QString((entrysuccess?"Success":"Failure")) + QString(" updating Google: ") +
-                   QString((state?": Adding ":": Removing ")) +
-                   contact.getFormattedName(false, false) +
-                   QString((state?" to ":" from ")) +
-                   groupdesc + QString(" Group")) ;
-
-        }
-    }
-
-    return success ;
-}
-
 
 QString GoogleAccess::getGroupId(Contact::ContactRecord rec, bool asverbosename)
 {
@@ -155,10 +85,42 @@ bool GoogleAccess::getGroupIds()
     }
 }
 
-// TODO: MISSING
 bool GoogleAccess::createGroupIds()
 {
-    return true ;
+    bool success=true ;
+    QString groupurl = "https://people.googleapis.com/v1/contactGroups" ;
+
+    for (int i=Contact::GroupBusiness; i<=Contact::GroupOther; i++) {
+
+        if (getGroupId((Contact::ContactRecord)i).isEmpty()) {
+
+            QString groupdesc = getGroupId((Contact::ContactRecord)i, true) ;
+
+            // {
+            //  "contactGroup": {
+            //    "name": "API Group"
+            //  }
+
+            QJsonDocument doc ;
+            QJsonObject entry, group ;
+
+            group.insert("name", groupdesc) ;
+            entry.insert("contactGroup", group) ;
+            doc.setObject(entry) ;
+
+            // Create the Group
+            QString jsonresponse ;
+            jsonresponse = googlePutPostDelete(groupurl, GoogleAccess::Post, doc.toJson(), QString("createGroupId-" + groupdesc.replace(" ","").toLower())) ;
+            if (!getNetworkError().isEmpty()) {
+                success=false ;
+                addLog("GoogleAccess::createGroupIds: ERROR - " + getNetworkError() + ".\n") ;
+            }
+
+        }
+
+    }
+
+    return success ;
 }
 
 bool GoogleAccess::updateSingleGoogleContactGroup(Contact::ContactRecord rec, ContactDatabase &db, ContactDatabase &googledb)
