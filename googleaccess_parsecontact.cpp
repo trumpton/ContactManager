@@ -250,20 +250,29 @@ bool GoogleAccess::parseContact(QJsonObject &item, Contact &contact)
         }
     }
 
-    // Organisation
+    // Organisation (Select 'work' in preference to anything else)
+    QString workorg, otherorg ;
+    QString workorgprof, otherorgprof ;
     QJsonArray organisations = item["organizations"].toArray() ;
     foreach (const QJsonValue& organisationitem, organisations) {
         QString type = organisationitem.toObject()["type"].toString().toLower() ;
         QString value = organisationitem.toObject()["name"].toString() ;
 
-        if (type.compare("work")==0) {
-            if (isMetadataFromProfile(organisationitem)) {
-                contact.setField(Contact::ProfileOrg, value) ;
-            } else if (isMetadataFromContacts(organisationitem)) {
-                contact.setField(Contact::Organisation, value) ;
-            }
+        if (isMetadataFromProfile(organisationitem)) {
+            if (type.compare("work")==0) workorgprof=value ;
+            else otherorgprof=value ;
+        } else if (isMetadataFromContacts(organisationitem)) {
+            if (type.compare("work")==0) workorg=value ;
+            else otherorg=value ;
         }
     }
+
+    if (workorgprof.isEmpty()) workorgprof=otherorgprof ;
+    if (workorg.isEmpty()) workorg=otherorg ;
+    if (workorg.isEmpty()) workorg=otherorgprof ;
+
+    contact.setField(Contact::ProfileOrg, workorgprof) ;
+    contact.setField(Contact::Organisation, workorg) ;
 
     // Address1
     // Address2
