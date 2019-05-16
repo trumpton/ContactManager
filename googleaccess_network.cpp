@@ -8,6 +8,7 @@
 #include <QUrl>
 #include <QNetworkRequest>
 #include <QEventLoop>
+#include <QThread>
 
 //*****************************************************************************************************
 
@@ -54,11 +55,14 @@ QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action
     int retries=1 ;
     int complete=false ;
     int readsuccess=false ;
+    int timeoutretries=3 ;
+    bool timeoutretry=false ;
 
     if (gConf->debugGoogleEnabled())
         writeToFile(gConf->getDatabasePath() + "/" + logfilename, "") ;
 
     do {
+
         if (accesstoken.isEmpty()) {
 
             readsuccess=false ;
@@ -72,6 +76,11 @@ QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action
             QUrl url(link + QueryChar + "access_token=" + accesstoken) ;
             QNetworkRequest request(url) ;
             QEventLoop eventLoop ;
+
+            // Starting flag state
+            readsuccess=false ;
+            timeoutretry=false ;
+            complete=false ;
 
             // get the page
             QObject::connect(&manager, SIGNAL(finished(QNetworkReply *)), &eventLoop, SLOT(quit()));
@@ -151,26 +160,47 @@ QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action
                 errorstatus="Unknown Server Error." ;
                 break ;
             default:
+
                 connectionerror = false ;
                 if (replycode>=200 && replycode<=299) {
                   errorstatus = "" ;
                   googlePutPostResponse = reply->readAll() ;
-                  readsuccess=true ; ;
+                  readsuccess=true ;
+
+                } else if (replycode==429) {
+                    if (timeoutretries>0) {
+                        timeoutretries-- ;
+                        timeoutretry=true ;
+                    } else {
+                        googlePutPostResponse = reply->readAll() ;
+                        errorstatus="Google write quota limit exceeded" ;
+                        readsuccess=true ;
+                        timeoutretry=false ;
+                    }
+
                 } else {
                   errorstatus = "Network Error " + replycode.toString() ;
                   googlePutPostResponse = reply->readAll() ;
+                  connectionerror=true ;
                   readsuccess=false ;
                 }
             }
         }
 
-        // if there is an error refresh the access token and retry once
-        if (readsuccess || retries==0) {
+        if (timeoutretry==true) {
+            // if there is a timeout error, try again
+            QThread::msleep(1000) ;
+            complete=false ;
+
+        } else if (readsuccess || retries==0) {
+            // Complete on successful read
             complete=true ;
+
         } else {
+            // If there is an error refresh the access token and retry once
             googleGetAccessToken() ;
             retries-- ;
-       }
+        }
 
         if (gConf->debugGoogleEnabled())
             writeToFile(gConf->getDatabasePath() + "/" + logfilename,
