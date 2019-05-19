@@ -192,6 +192,16 @@ bool Configuration::encryptedEnabled()
     return (m.compare("true", Qt::CaseInsensitive)==0 || m.compare("yes", Qt::CaseInsensitive)==0) ;
 }
 
+Encryption* Configuration::encryption()
+{
+    return enc ;
+}
+
+void Configuration::setEncryption(Encryption* enc)
+{
+    this->enc = enc ;
+}
+
 QString& Configuration::getCodec()
 {
     settingCodec = ini.get("general", "codec") ;

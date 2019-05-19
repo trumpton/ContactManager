@@ -196,15 +196,17 @@ char *Contact::contactRecordName(enum ContactRecord field) { return (char *)cont
 
 // TODO: Make this load a "safe load", i.e. check for failed saves
 // TODO: Handle cases where there is an "=" in the middle of the string
-bool Contact::load(QString path, QString idname, Encryption *enc)
+bool Contact::load(QString path, QString idname)
 {
+    Encryption *enc = gConf->encryption() ;
+
     if (isnull || !enc) {
         // ERROR
         dbg("ERROR: load() - Contact record is null or encryption not configured") ;
         return false ;
     }
 
-    dbg(QString("load(%1,%2,enc)").arg(path).arg(idname)) ;
+    dbg(QString("load(%1,%2)").arg(path).arg(idname)) ;
 
     QString Line ;
     QStringList ParsedLine;
@@ -215,21 +217,29 @@ bool Contact::load(QString path, QString idname, Encryption *enc)
 
     isdirty = false ;
 
-    // Attempt to load encrypted contact .zcontact and fall back to legacy .contact
     QByteArray data ;
 
-    if (!enc->load(path + idname + ".zcontact", data)) {
+    if (gConf->encryptedEnabled()) {
 
-        dbg(QString("Encrypted load failed. Trying non-encrypted.")) ;
+        // Load Encrypted File
+        if (!enc->load(path + idname + ".zcontact", data)) {
+            dbg(QString("Loading %1.zcontact FAILED").arg(idname)) ;
+            return false ;
+        }
+
+    } else {
+
+        // Load Plaintext File
         QFile file(path + idname + ".contact");
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
             return false;
         data = file.readAll() ;
         file.close() ;
-    }
-    if (data.isEmpty()) {
-        dbg("No data loaded") ;
-        return false ;
+
+        if (data.isEmpty()) {
+            dbg(QString("Loading %1.contact FAILED").arg(idname)) ;
+            return false ;
+        }
     }
 
     QTextStream in(&data);
@@ -285,8 +295,8 @@ bool Contact::load(QString path, QString idname, Encryption *enc)
     if (getField(Contact::Phone4).isEmpty()) { setField(Contact::Phone4Title, "") ; }
 
     sortPhoneNumbers() ;
-    todo.load(path, idname, enc) ;
-    history.load(path, idname, enc) ;
+    todo.load(path, idname) ;
+    history.load(path, idname) ;
 
     isnew = false ;
     isdirty = false ;
@@ -351,55 +361,57 @@ int Contact::find(QString text)
 }
 
 // TODO: Make this save a "safe save", i.e. save, check, rename
-bool Contact::save(QString path, Encryption *enc)
+bool Contact::save(QString path)
 {
+    Encryption *enc = gConf->encryption() ;
 
-  if (isnull || !enc) {
-      // ERROR
-      dbg("ERROR: Contact record is null or encryption not configured") ;
-      return false ;
-  }
+    if (isnull || !enc) {
+        // ERROR
+        dbg("ERROR: Contact record is null or encryption not configured") ;
+        return false ;
+    }
 
-  if (!isempty && todo.isdirty()) todo.save(path + filedata[ID], enc) ;
-  if (!isempty && history.isdirty()) history.save(path + filedata[ID]) ;
+    bool success=true ;
 
-  if (isdirty) {
+    if (!isempty && todo.isdirty()) success &= todo.save(path) ;
+    if (!isempty && history.isdirty()) success &= history.save(path) ;
 
-      QByteArray data ;
-      QTextStream out(&data, QIODevice::WriteOnly);
-      out.setCodec("UTF-8") ;
-      out << "[contact]\n" ;
-      for (int entry=0; entry<Contact::NumberOfRecords; entry++) {
-          if (contactrecordinfo[entry].issaved) {
-              QString entrytext = filedata[entry].trimmed().replace("\n","\\n");
-              out << contactRecordName((enum ContactRecord)entry) << "=" << entrytext << "\n" ;
-          }
-      }
+    if (isdirty) {
 
-      out.flush();
+        QByteArray data ;
+        QTextStream out(&data, QIODevice::WriteOnly);
+        out.setCodec("UTF-8") ;
+        out << "[contact]\n" ;
+        for (int entry=0; entry<Contact::NumberOfRecords; entry++) {
+            if (contactrecordinfo[entry].issaved) {
+                QString entrytext = filedata[entry].trimmed().replace("\n","\\n");
+                out << contactRecordName((enum ContactRecord)entry) << "=" << entrytext << "\n" ;
+            }
+        }
 
-      if (gConf->encryptedEnabled()) {
-          dbg(QString("Saving {%1} as zcontact").arg(filedata[ID])) ;
-          if (!enc->save(path + filedata[ID] + ".zcontact", data)) {
-              dbg("failed") ;
-              return false ;
-          }
-      } else {
-          dbg(QString("Saving {%1} as contact").arg(filedata[ID])) ;
-          QFile file(path + filedata[ID] + ".contact");
-          if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-              dbg("failed") ;
-              return false;
-          }
-          bool success = (file.write(data) == data.length()) ;
-          file.close() ;
-          return success ;
-      }
+        out.flush();
 
-      isnew = false ;
-      isdirty = false ;
-  }
-  return true ;
+        if (gConf->encryptedEnabled()) {
+            dbg(QString("Saving {%1} as zcontact").arg(filedata[ID])) ;
+            if (!enc->save(path + filedata[ID] + ".zcontact", data)) {
+                dbg("failed") ;
+                success = false ;
+            }
+        } else {
+            dbg(QString("Saving {%1} as contact").arg(filedata[ID])) ;
+            QFile file(path + filedata[ID] + ".contact");
+            if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+                dbg("failed") ;
+                success = false;
+            }
+            success &= (file.write(data) == data.length()) ;
+            file.close() ;
+        }
+
+        isnew = false ;
+        isdirty = !success ;
+    }
+    return success ;
 }
 
 
@@ -443,8 +455,6 @@ QString& Contact::getField(enum Contact::ContactRecord field)
 
 bool Contact::sortPhoneNumbers()
 {
-    dbg("sortPhoneNumbers()") ;
-
     bool updated=false;
     if (!filedata[Phone2].isEmpty() || !filedata[Phone3].isEmpty() || !filedata[Phone4].isEmpty()) {
         int len = Phone4Title - Phone2Title + 1 ;
@@ -508,9 +518,11 @@ void Contact::setField(enum Contact::ContactRecord field, QString data)
         // Store data
         filedata[field]=dat ;
         isempty=false ;
-        isdirty = true ;
         getOverviewDirty = true ;
         getOverviewHtmlDirty = true ;
+
+        // Update dirty flag
+        isdirty |= this->contactrecordinfo[(Contact::ContactRecord)field].updatesdirty ;
 
         // Update timestamp
         QDateTime now = QDateTime::currentDateTimeUtc() ;

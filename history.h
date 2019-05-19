@@ -22,7 +22,6 @@ public:
 private:
     QString getOverviewResult ;
     QString cachedPath ;
-    Encryption *enc ;
 
 private:
     bool createNew(QString idname) ;
@@ -37,7 +36,7 @@ private:
 
 public:
     bool save(QString path = QString("")) ;
-    bool load(QString path, QString idname, Encryption *enc) ;
+    bool load(QString path, QString idname) ;
     bool isdirty() ;
     bool isEmpty() ;
 

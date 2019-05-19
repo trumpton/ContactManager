@@ -27,11 +27,9 @@ public:
 private:
     QList<Contact> contacts ;
     int selectedcontact ;
-    Encryption *enc ;
 
 public:
 
-    void setEncryption(Encryption *enc) ;
     bool load() ;
     bool save() ;
     bool reloadJournal(Contact& contact) ;

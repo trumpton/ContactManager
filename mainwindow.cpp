@@ -64,6 +64,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     // Initialise and load configuration
     gConf = new Configuration(this) ;
 
+    // Initialise encryption i/o
+    enc = new Encryption(QString("trumpton.uk"), QString("TextFileEncryption")) ;
+    gConf->setEncryption(enc);
+
     // Timer ticks every minute
     QTimer *timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(tick()));
@@ -78,11 +82,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
     // Set the Default Codecs for Strings
     QTextCodec::setCodecForLocale(QTextCodec::codecForName(gConf->getCodec().toLatin1().constData()));
-
-    // Initialise encryption i/o
-    enc = new Encryption(QString("trumpton.uk"), QString("TextFileEncryption")) ;
-    db.setEncryption(enc) ;
-    calendar.setEncryption(enc) ;
 
     // Login if not already done so
     int count=0 ;

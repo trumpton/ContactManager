@@ -4,17 +4,13 @@
 #include <QStringList>
 #include <QTextStream>
 #include "history.h"
+#include "configuration.h"
+#include "../../Lib/supportfunctions.h"
 
 
 History::History()
 {
-    enc = NULL ;
-    cachedPath = "" ;
-    idName = "" ;
-    dirty=false ;
-    HistoryText = "" ;
-    getOverviewResult="" ;
-    createNew(idName) ;
+    createNew("") ;
 }
 
 History::~History()
@@ -47,45 +43,86 @@ bool History::createNew(QString idname)
     HistoryText="" ;
     idName = idname ;
     cachedPath = "" ;
-    return dirty ;
+    getOverviewResult="" ;
+    return true ;
 }
 
 // TODO: Make this save a "safe save", i.e. save, check, rename
 bool History::save(QString path)
 {
-    if (!enc) return false ;
+    Encryption *enc = gConf->encryption() ;
+    if (!enc) {
+        dbg("ERROR - call without enc") ;
+        return false ;
+    }
+
     if (dirty && idName.compare("")!=0) {
 
         if (path.isEmpty()) {
             path = cachedPath ;
         }
+
+        if (path.isEmpty()) {
+            dbg("ERROR - save with empty path called") ;
+            return false ;
+        }
+
         QByteArray data ;
-        QTextStream out(&data, QIODevice::WriteOnly);
-        out.setCodec("UTF-8") ;
-        out << HistoryText ;
-        out.flush();
-        dirty = !enc->save(path + idName + ".zhistory", data) ;
+         QTextStream out(&data, QIODevice::WriteOnly);
+         out.setCodec("UTF-8") ;
+         out << HistoryText ;
+         out.flush();
+
+         if (gConf->encryptedEnabled()) {
+             // Save encrypted
+             dirty = !enc->save(path + idName + ".zhistory", data) ;
+         } else {
+             // Save Plaintext
+             QFile file(path + idName + ".history");
+             if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+                 return false;
+             file.write(data) ;
+             file.close() ;
+         }
+
     }
     return !dirty ;
 }
 
 // TODO: Make this load a "safe load", i.e. check for failed save
-bool History::load(QString path, QString idname, Encryption *enc)
+bool History::load(QString path, QString idname)
 {
-    if (!enc) return false ;
+    Encryption *enc = gConf->encryption() ;
+    if (!enc) {
+        dbg("ERROR - call without enc") ;
+        return false ;
+    }
+
     createNew(idname) ;
-    this->enc = enc ;
     cachedPath = path ;
 
-    // Attempt to load encrypted history .zhistory and fall back to legacy .history
     QByteArray data ;
-    if (!enc->load(path + idname + ".zhistory", data)) {
+
+    if (gConf->encryptedEnabled()) {
+
+        // Load Encrypted File
+        if (!enc->load(path + idname + ".zhistory", data)) {
+            dbg(QString("Loading %1.zhistory FAILED").arg(idname)) ;
+            return false ;
+        }
+
+    } else {
+
+        // Load Plaintext File
         QFile file(path + idname + ".history");
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
             return false;
         data = file.readAll() ;
         file.close() ;
+
     }
+
+
     QTextStream in(&data);
     in.setCodec("UTF-8") ;
 
@@ -170,6 +207,8 @@ History& History::operator=(const History &rhs)
     this->idName = rhs.idName ;
     this->HistoryText = rhs.HistoryText ;
     this->dirty = rhs.dirty ;
+    this->cachedPath = rhs.cachedPath ;
+    this->getOverviewResult = rhs.getOverviewResult ;
     return *this ;
 }
 
