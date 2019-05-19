@@ -16,7 +16,6 @@
 Calendar::Calendar()
 {
     clear() ;
-    enc=NULL ;
 }
 
 Calendar::~Calendar()
@@ -32,13 +31,11 @@ void Calendar::clear()
     getOverviewResponse="" ;
 }
 
-void Calendar::setEncryption(Encryption *enc)
-{
-    this->enc = enc ;
-}
-
 bool Calendar::load()
 {
+    Encryption *enc = gConf->encryption() ;
+    if (!enc) return false;
+
     QStringList nameFilter;
     QFileInfoList list ;
     QStringList files ;
@@ -87,6 +84,9 @@ bool Calendar::load()
 
 bool Calendar::save()
 {
+    Encryption *enc = gConf->encryption() ;
+    if (!enc) return false ;
+
     bool success=true ;
 
     if (size()>0) {

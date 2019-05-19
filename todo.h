@@ -20,6 +20,7 @@ public:
 
 private:
     QString getOverviewResult ;
+    QString cachedPath ;
 
 public:
 
@@ -31,8 +32,8 @@ private:
     Todo(const Todo& other) ;
 
 public:
-    bool save(QString path, Encryption *enc) ;
-    bool load(QString path, QString idname, Encryption *enc) ;
+    bool save(QString path = QString("")) ;
+    bool load(QString path, QString idname) ;
     bool createNew(QString idname) ;
     bool isdirty() ;
     bool isEmpty() ;

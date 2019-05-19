@@ -83,8 +83,8 @@ private:
         { TextMe,           true,  true,  true, false,  true, false,  true, false, "textme"},         // True if TextMe flag set
         { Deleted,          true,  true,  true, false,  true, false,  true, false, "deleted"},        // True if entry has been deleted
         { ID,              false,  true,  true, false, false, false,  true, false, "id"},             // Contact Manager ID
-        { Updated,         false, false, false, false, false, false,  true, false, "updated"},        // Time Date entry was updated
-        { Created,         false, false, false, false, false, false,  true, false, "created"},        // Time Date entry was created
+        { Updated,         false, false,  true, false, false, false,  true, false, "updated"},        // Time Date entry was updated
+        { Created,         false, false,  true, false, false, false,  true, false, "created"},        // Time Date entry was created
         { ProfileSurname,  false, false,  true,  true, false, false,  true, false, "profilesurname"}, // Surname from profile
         { ProfileNames,    false, false,  true,  true, false, false,  true, false, "profilenames"},   // Names from profile
         { ProfileAddress,  false, false,  true,  true, false, false,  true, false, "profileaddress"}, // Address from profile
@@ -92,7 +92,7 @@ private:
         { ProfileEMail,    false, false,  true,  true, false, false,  true, false, "profileemail"},   // Email from profile
         { ProfileOrg,      false, false,  true,  true, false, false,  true, false, "profileorg"},     // Organisation from profile
         { GoogleRecordId,  false, false,  true, false, false, false,  true, false, "googlerecordid"}, // Google record ID
-        { GoogleEtag,      false, false,  true, false, false, false, false, false, "googleetag"},     // Google Etag from last update
+        { GoogleEtag,      false, false, false, false, false, false, false, false, "googleetag"},     // Google Etag from last update
         { ToBeUploaded,     true, false, false, false, false, false, false, false, "tobeuploaded"},   // Flag to track if google upload required
         { ToBeDownloaded,   true, false, false, false, false, false, false, false, "tobedownloaded"}, // Flag to track if google download required
     };
@@ -126,7 +126,7 @@ private:
 
 public:
 
-    Contact(bool isNull=false);
+    Contact(bool isNull = false);
     Contact(const Contact& rhs) ;
     ~Contact() ;
 
@@ -149,8 +149,8 @@ public:
     bool changedSinceSync(QDateTime &syncdate) ;
 
     bool createNew() ;
-    bool save(QString path, Encryption *enc) ;
-    bool load(QString path, QString filename, Encryption *enc) ;
+    bool save(QString path) ;
+    bool load(QString path, QString filename) ;
     bool reloadJournal(QString path) ;
     bool reloadTodo(QString path) ;
 

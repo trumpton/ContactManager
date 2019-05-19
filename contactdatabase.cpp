@@ -10,7 +10,6 @@
 
 ContactDatabase::ContactDatabase()
 {
-    enc=NULL ;
     nullitem.setNull() ;
     clear() ;
 }
@@ -25,13 +24,14 @@ void ContactDatabase::clear()
     selectedcontact=-1 ;
 }
 
-void ContactDatabase::setEncryption(Encryption *enc)
-{
-    this->enc = enc ;
-}
-
 bool ContactDatabase::load()
 {
+    Encryption *enc = gConf->encryption() ;
+    if (!enc) {
+        dbg("ContactDatabase::load - call without enc") ;
+        return false ;
+    }
+
     QStringList nameFilter;
     //QFileInfoList list ;
     QStringList files ;
@@ -57,7 +57,7 @@ bool ContactDatabase::load()
 
         filename = files.at(i) ;
         filename = filename.replace(".contact","").replace(".zcontact","") ;
-        di.load(gContactSavePath, filename, enc) ;
+        di.load(gContactSavePath, filename) ;
 
         // TODO: Need to remove googlerecordid if entry no longer on google
         if (di.isSet(Contact::Deleted) && di.getField(Contact::GoogleRecordId).isEmpty()) {
@@ -108,7 +108,7 @@ bool ContactDatabase::load()
 // Reload the journal
 bool ContactDatabase::reloadJournal(Contact& contact)
 {
-    return contact.getHistory().load(gContactSavePath, contact.getField(Contact::ID), enc) ;
+    return contact.getHistory().load(gContactSavePath, contact.getField(Contact::ID)) ;
 }
 
 // Create a HTML Index File of the contacts
@@ -153,6 +153,12 @@ bool ContactDatabase::saveIndex(int j, QString path, QString contactid, QString 
 
 bool ContactDatabase::save()
 {
+    Encryption *enc = gConf->encryption() ;
+    if (!enc) {
+        dbg("ContactDatabase::save call without enc") ;
+        return false ;
+    }
+
     sort() ;
     bool success=true ;
     int sz = size() ;
@@ -177,7 +183,7 @@ bool ContactDatabase::save()
             else if (i>=(sz-1)) j=1 ;
             else j=0 ;
 
-            success |= getContact(i).save(gContactSavePath, enc) ;
+            success |= getContact(i).save(gContactSavePath) ;
 
             if (gConf->debugGoogleEnabled()) {
                 saveIndex(j, gContactSavePath, getContact(i).getField(Contact::ID),

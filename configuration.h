@@ -6,7 +6,7 @@
 #include "contactdatabase.h"
 #include "googleaccess.h"
 #include "../Lib/iniconfig.h"
-
+#include "../Lib/encryption.h"
 
 namespace Ui {
 class Configuration;
@@ -58,6 +58,7 @@ private:
     QString settingEncryptedEnabled ;
     QString settingEmailCommand ;
     DatabaseMaster settingDatabaseMaster ;
+    Encryption *enc ;
 
 public:
     explicit Configuration(QWidget *parent = 0);
@@ -112,6 +113,9 @@ public:
 
     QString getDebug(QString key) ;
 
+    // Encryption Info
+    void setEncryption(Encryption *enc) ;
+    Encryption *encryption() ;
 
 //    void setWorkingDirectory(QString dir) ;
 //    void setCodec(QString val) ;
