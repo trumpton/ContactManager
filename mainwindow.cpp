@@ -468,14 +468,18 @@ void MainWindow::on_action_Google_Sync_triggered()
 {
     class GoogleUpdateDialog *frm ;
 
+    // Save tabs before sync
     SaveTabs() ;
+
     frm = new GoogleUpdateDialog(this) ;
     play(Ok) ;
     frm->doUpdate(google, db, calendar) ;
-    db.save() ;
-    calendar.save() ;
-
     delete frm ;
+
+    // Save tabs again - saves contact/calendar, and removes entries if deleted by sync
+    SaveTabs() ;
+
+    // And re-load
     LoadTabs() ;
 }
 
