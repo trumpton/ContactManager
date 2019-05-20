@@ -402,6 +402,13 @@ void MainWindow::on_tabBar_currentChanged(int index)
 
 void MainWindow::LoadTabs()
 {
+    if (db.getSelected().isSet(Contact::Deleted)) {
+        // Select a blank entry, and refresh the screen / menus
+        db.selectContact(SELECT_OVERVIEW);
+        populateDialog(SELECT_OVERVIEW) ;
+        dbg("Contact has been deleted - de-selecting") ;
+    }
+
     LoadOverviewTab() ;
     LoadContactTab() ;
     LoadCalendarTab() ;
@@ -475,9 +482,6 @@ void MainWindow::on_action_Google_Sync_triggered()
     play(Ok) ;
     frm->doUpdate(google, db, calendar) ;
     delete frm ;
-
-    // Save tabs again - saves contact/calendar, and removes entries if deleted by sync
-    SaveTabs() ;
 
     // And re-load
     LoadTabs() ;
