@@ -308,11 +308,20 @@ bool MainWindow::SaveContactTab()
         }
     }
 
+    // Copy details and group, whilst retaining non-form parameters
+    newdr.setField(Contact::Deleted, dr.getField(Contact::Deleted)) ;
     newdr.copyTo(dr, Contact::mcDetailsGroup) ;
 
     if (!log.isEmpty()) {
         dr.getHistory().addEntry(log) ;
         ui->editNotes->document()->setPlainText(dr.getHistory().getHistory());
+    }
+
+    // If contact has been deleted, select a blank entry, and refresh the screen / menus
+    // This would happen if contact is open, and it is removed by a sync operation
+    if (dr.isSet(Contact::Deleted)) {
+        db.selectContact(SELECT_OVERVIEW);
+        populateDialog(SELECT_OVERVIEW) ;
     }
 
     dbg("Contact Tab Save Complete") ;
