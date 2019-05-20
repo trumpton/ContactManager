@@ -189,9 +189,9 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
             deletedcontact.setFlag(Contact::Deleted, true) ;
             googledb.addContact(deletedcontact) ;
 
-            if (localcontact.isSet(Contact::Hidden)) {
+            if (localcontact.isSet(Contact::Hidden) || localcontact.isSet(Contact::Deleted)) {
 
-                // Contact is hidden, so don't override any options
+                // Contact is hidden or deleted, so don't override any options
                 // But, forget any previous Google Record ID
                 localcontact.setField(Contact::GoogleRecordId, "") ;
 
@@ -231,7 +231,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
         ui->progressBar->setValue(640 + ( i * 10)/size4 ) ;
         Contact& googlecontact = googledb.getContact(i) ;
         Contact& localcontact = db.getContactById(googlecontact.getField(Contact::ID)) ;
-        if (localcontact.isNull()) {
+        if (localcontact.isNull() && !googlecontact.isSet(Contact::Deleted)) {
             ui->updateStatusReport->append(QString("    ") + googlecontact.getFormattedName(false,false)) ;
             Contact newlocal ;
             newlocal.setField(Contact::ID, googlecontact.getField(Contact::ID)) ;
