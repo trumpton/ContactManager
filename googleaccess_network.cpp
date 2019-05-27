@@ -55,8 +55,9 @@ QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action
     int retries=1 ;
     int complete=false ;
     int readsuccess=false ;
-    int timeoutretries=3 ;
+    int timeoutretries=5 ;
     bool timeoutretry=false ;
+    int timeoutscalefactor=1 ;
 
     if (gConf->debugGoogleEnabled())
         writeToFile(gConf->getDatabasePath() + "/" + logfilename, "") ;
@@ -170,6 +171,7 @@ QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action
                 } else if (replycode==429) {
                     if (timeoutretries>0) {
                         timeoutretries-- ;
+                        timeoutscalefactor*=2 ;
                         timeoutretry=true ;
                     } else {
                         googlePutPostResponse = reply->readAll() ;
@@ -189,7 +191,7 @@ QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action
 
         if (timeoutretry==true) {
             // if there is a timeout error, try again
-            QThread::msleep(1000) ;
+            QThread::msleep(800*timeoutscalefactor) ;
             complete=false ;
 
         } else if (readsuccess || retries==0) {
