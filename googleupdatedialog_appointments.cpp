@@ -24,6 +24,8 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     }
     ui->updateStatusReport->append(QString("    Downloaded: ") + QString::number(numchangedongoogle) + QString(" entries")) ;
 
+    if (state<0) return false ;
+
     // DOWNLOAD GOOGLE ENTRIES FOR CHANGED LOCAL ENTRIES NOT ALREADY DOWNLOADED
     if (networkok && state>0) {
        ui->progressBar->setValue(ui->progressBar->value()+100) ;
@@ -40,9 +42,12 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                  googlecal.addAppointment(googleappt) ;
                  ui->updateStatusReport->append(QString("    Downloading: ") + googleappt.asText()) ;
              }
+             if (state<0) return false ;
          }
        ui->updateStatusReport->append(QString("    Downloaded: ") + QString::number(googlecal.size() - numchangedongoogle) + QString(" entries")) ;
     }
+
+    if (state<0) return false ;
 
     // TODO: Purged Google Entries will appear as Deleted, without any Extended Properties
     // Need this if we are to support an 'unpurge' (create a new entry), or 'delete' - remove
@@ -62,8 +67,11 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                 cal.addAppointment(googleappt) ;
                 ui->updateStatusReport->append(QString("    Storing: ") + googleappt.asText()) ;
             }
+            if (state<0) return false ;
         }
     }
+
+    if (state<0) return false ;
 
     // UPLOAD LOCAL ENTRIES FOR NEW NON-DELETED LOCAL ENTRIES NOT ALREADY ON GOOGLE
     if (networkok && state>0) {
@@ -78,15 +86,19 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                 googlecal.addAppointment(localappt) ;
                 ui->updateStatusReport->append(QString("    Uploading ") + localappt.asText()) ;
             }
+            if (state<0) return false ;
         }
     }
 
+    if (state<0) return false ;
 
     // WALK THROUGH THE LOCAL LIST
     if (networkok && state>0) {
         ui->progressBar->setValue(ui->progressBar->value()+100) ;
         ui->updateStatusReport->append(QString("  Synchronising Changes")) ;
         for (int i=0, gsz=googlecal.size(); networkok && state>0 && i<gsz; i++) {
+
+            if (state<0) return false ;
 
             Appointment& googleappt = googlecal.getAppointment(i) ;
             QString id = googleappt.getGoogleRecordId() ;
@@ -122,6 +134,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
         }
     }
 
+    if (state<0) return false ;
 
     // SYNCHRONISE TOKENS
     if (networkok && state>0) {
