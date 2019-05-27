@@ -62,6 +62,8 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
         google.getGroupIds() ;
     }
 
+    if (state<0) return false ;
+
     // ------------------------------------------------------------------------------------
     //
     // 2. Download Google Contact List (all)
@@ -70,6 +72,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     networkok &= google.getContacts(googledb, true) ;
     ui->updateStatusReport->append(QString("  Downloaded ") + QString::number(googledb.size()) + QString(" Contacts from Google.")) ;
 
+    if (state<0) return false ;
 
     // ------------------------------------------------------------------------------------
     //
@@ -96,6 +99,8 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
         localcontact.setFlag(Contact::ToBeUploaded, upload) ;
     }
 
+    if (state<0) return false ;
+
     // ------------------------------------------------------------------------------------
     //
     // 4. Fix broken ID links
@@ -114,6 +119,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
         }
     }
 
+    if (state<0) return false ;
 
     // ------------------------------------------------------------------------------------
     //
@@ -168,6 +174,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
         }
     }
 
+    if (state<0) return false ;
 
     // ------------------------------------------------------------------------------------
     //
@@ -219,6 +226,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
         }
     }
 
+    if (state<0) return false ;
 
     // ------------------------------------------------------------------------------------
     //
@@ -241,7 +249,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
         }
     }
 
-
+    if (state<0) return false ;
 
     // ------------------------------------------------------------------------------------
     //
@@ -260,6 +268,8 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
         }
     }
 
+    if (state<0) return false ;
+
     // ------------------------------------------------------------------------------------
     //
     // 9. Synchronise changes (download first)
@@ -270,6 +280,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     for (int i=0; i<size9; i++) {
 
         ui->progressBar->setValue(660 + ( i * 240)/size9 ) ;
+        if (state<0) return false ;
 
         Contact& localcontact = db.getContact(i) ;
         Contact& googlecontact = googledb.getContactBy(Contact::ID, localcontact.getField(Contact::ID)) ;
@@ -344,6 +355,8 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
 
     }
 
+    if (state<0) return false ;
+
     // 10. Synchronise Groups
     ui->progressBar->setValue(900) ;
 
@@ -351,14 +364,24 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
         // Upload record groups
         if (networkok) { networkok = updateSingleGoogleContactGroup(google, Contact::GroupBusiness, db, googledb) ; }
         ui->progressBar->setValue(918) ;
+        if (state<0) return false ;
+
         if (networkok) { networkok = updateSingleGoogleContactGroup(google, Contact::GroupClient, db, googledb) ; }
         ui->progressBar->setValue(936) ;
+        if (state<0) return false ;
+
         if (networkok) { networkok = updateSingleGoogleContactGroup(google, Contact::GroupFamily, db, googledb) ; }
         ui->progressBar->setValue(954) ;
+        if (state<0) return false ;
+
         if (networkok) { networkok = updateSingleGoogleContactGroup(google, Contact::GroupFriend, db, googledb) ; }
         ui->progressBar->setValue(972) ;
+        if (state<0) return false ;
+
         if (networkok) { networkok = updateSingleGoogleContactGroup(google, Contact::GroupOther, db, googledb) ; }
         ui->progressBar->setValue(990) ;
+        if (state<0) return false ;
+
     }
 
 
@@ -366,14 +389,24 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
         // Download record groups
         updateSingleLocalContactGroup(google, Contact::GroupBusiness, db, googledb) ;
         ui->progressBar->setValue(992) ;
+        if (state<0) return false ;
+
         updateSingleLocalContactGroup(google, Contact::GroupClient, db, googledb) ;
         ui->progressBar->setValue(994) ;
+        if (state<0) return false ;
+
         updateSingleLocalContactGroup(google, Contact::GroupFamily, db, googledb) ;
         ui->progressBar->setValue(996) ;
+        if (state<0) return false ;
+
         updateSingleLocalContactGroup(google, Contact::GroupFriend, db, googledb) ;
         ui->progressBar->setValue(998) ;
+        if (state<0) return false ;
+
         updateSingleLocalContactGroup(google, Contact::GroupOther, db, googledb) ;
         ui->progressBar->setValue(1000) ;
+        if (state<0) return false ;
+
     }
 
 
@@ -434,6 +467,7 @@ bool GoogleUpdateDialog::updateSingleLocalContactGroup(GoogleAccess &google, Con
                     deletedstr = deletedstr + "   - " + googlecontact.getFormattedName(false, false) ;
                 }
             }
+            if (state<0) return false ;
         }
     }
 

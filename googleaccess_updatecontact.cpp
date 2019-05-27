@@ -123,8 +123,8 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
         a_names.append(o_name) ;
         if (a_names.size()>0) {
             entry.insert("names", a_names) ;
-            personFields = personFields + ",names" ;
         }
+        personFields = personFields + ",emailAddresses" ;
 
 
         // "emailAddresses": [{
@@ -151,8 +151,8 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
         }
         if (a_emails.size()>0) {
             entry.insert("emailAddresses", a_emails) ;
-            personFields = personFields + ",emailAddresses" ;
         }
+        personFields = personFields + ",emailAddresses" ;
 
         // "sipAddresses": [{
         //    "value": string,
@@ -166,8 +166,8 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
             o_sipaddress.insert("value", sipaddress) ;
             a_sipaddresses.append(o_sipaddress) ;
             entry.insert("sipAddresses", a_sipaddresses) ;
-            personFields = personFields + ",sipAddresses" ;
         }
+        personFields = personFields + ",sipAddresses" ;
 
         // "phoneNumbers": [{
         //     "value": "PHONENUMBERWITHSPACES",
@@ -195,8 +195,8 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
         }
         if (a_numbers.size()>0) {
             entry.insert("phoneNumbers", a_numbers) ;
-            personFields = personFields + ",phoneNumbers" ;
         }
+        personFields = personFields + ",phoneNumbers" ;
 
         // "userDefined": [{
         //       "key": "CUSTOMLABEL1",
@@ -250,8 +250,8 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
             organisation.insert("type", "work") ;
             organisations.append(organisation) ;
             entry.insert("organizations", organisations) ;
-            personFields = personFields + ",organizations" ;
         }
+        personFields = personFields + ",organizations" ;
 
         // "urls": [ {
         //    "metadata": {
@@ -268,8 +268,8 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
             item.insert("type", "homePage") ;
             urls.append(item) ;
             entry.insert("urls", urls) ;
-            personFields = personFields + ",urls" ;
         }
+        personFields = personFields + ",urls" ;
 
         // "birthdays": [{
         //    "metadata": { "source": { "type": "CONTACT" }},
@@ -298,8 +298,8 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
             date.insert("date", datedetails) ;
             birthdays.append(date) ;
             entry.insert("birthdays", birthdays) ;
-            personFields = personFields + ",birthdays" ;
         }
+        personFields = personFields + ",birthdays" ;
 
         // "biographies": [{
         //    "metadata": { "source": { "type": "CONTACT" }},
@@ -341,8 +341,8 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
         }
         if (addresses.size()>0) {
             entry.insert("addresses", addresses) ;
-            personFields = personFields + ",addresses" ;
         }
+        personFields = personFields + ",addresses" ;
 
         QString jsonresponse ;
         Contact googlecontact ;
