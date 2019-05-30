@@ -250,7 +250,10 @@ bool MainWindow::SaveContactTab()
     if (dr.matches(newdr, Contact::mcDetailsGroup)) return true ;
 
     // Check the textme and emailme fields are right for a client
-    if ( !dr.isSet(Contact::GroupClient) && newdr.isSet(Contact::GroupClient) && !( newdr.isSet(Contact::TextMe) || newdr.isSet(Contact::EmailMe))) {
+    if ( gConf->getEnableReminders() &&
+         !dr.isSet(Contact::GroupClient) &&
+         newdr.isSet(Contact::GroupClient) &&
+         !( newdr.isSet(Contact::TextMe) || newdr.isSet(Contact::EmailMe))) {
             if (!warningYesNoDialog(this,
                  "Contact Details Query",
                  "You've identified the contact as a client, but not selected Text or Email reminders.\nIs this right?")) {

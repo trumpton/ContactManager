@@ -54,42 +54,63 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
     bool calsuccess = true ;
 
     ui->updateStatusReport->append(QString("\nSYNCHRONISING CALENDAR")) ;
-    ui->updateStatusReport->append(QString("Last Calendar Synchronisation Date: ") + calendarsyncdatestr ) ;
 
-    calsuccess = processCalendarUpdate(calendarsyncdate, google, cal) ;
-    if (!calsuccess) {
-        ui->updateStatusReport->append(QString("CALENDAR SYNCHRONISATION FAILED: ") + google.getNetworkError()) ;
+    if (gConf->calendarSyncEnabled()) {
+
+        ui->updateStatusReport->append(QString("\nSYNCHRONISING CALENDAR")) ;
+        ui->updateStatusReport->append(QString("Last Calendar Synchronisation Date: ") + calendarsyncdatestr ) ;
+
+        calsuccess = processCalendarUpdate(calendarsyncdate, google, cal) ;
+        if (!calsuccess) {
+            ui->updateStatusReport->append(QString("CALENDAR SYNCHRONISATION FAILED: ") + google.getNetworkError()) ;
+        } else {
+
+            // Sleep to allow local changes that have been made during the sync to be
+            // recorded as before the sync, to prevent re-syncing
+            qSleep(1000) ;
+            QString nextsyncdate = nowToIsoString() ;
+            gConf->setLastGoogleCalendarSyncDate(nextsyncdate) ;
+
+            // And store sync token for next time
+            gConf->setLastGoogleCalendarSyncToken(google.getCalendarSyncToken());
+
+            ui->updateStatusReport->append(QString("CALENDAR SYCHRONISATION SUCCESS.")) ;
+        }
+
     } else {
 
-        // Sleep to allow local changes that have been made during the sync to be
-        // recorded as before the sync, to prevent re-syncing
-        qSleep(1000) ;
-        QString nextsyncdate = nowToIsoString() ;
-        gConf->setLastGoogleCalendarSyncDate(nextsyncdate) ;
+        ui->updateStatusReport->append(QString("Calendar Synchronisation disabled in configuration.")) ;
 
-        // And store sync token for next time
-        gConf->setLastGoogleCalendarSyncToken(google.getCalendarSyncToken());
-
-        ui->updateStatusReport->append(QString("CALENDAR SYCHRONISATION SUCCESS.")) ;
     }
 
     ui->progressBar->setValue(500) ;
 
+    bool consuccess = true ;
+
     ui->updateStatusReport->append(QString("\nSYNCHRONISING CONTACTS")) ;
-    ui->updateStatusReport->append(QString("Last Contact Synchronisation Date: ") + contactsyncdatestr ) ;
-    bool consuccess = processContactUpdate(contactsyncdate, google, db) ;
-    if (!consuccess) {
-        ui->updateStatusReport->append(QString("CONTACTS SYNCHRONISATION FAILED: ") + google.getNetworkError()) ;
+
+    if (gConf->contactSyncEnabled()) {
+
+        ui->updateStatusReport->append(QString("Last Contact Synchronisation Date: ") + contactsyncdatestr ) ;
+        consuccess = processContactUpdate(contactsyncdate, google, db) ;
+        if (!consuccess) {
+            ui->updateStatusReport->append(QString("CONTACTS SYNCHRONISATION FAILED: ") + google.getNetworkError()) ;
+        } else {
+            // next syncdate after sync means anything changed on google during the sync may be lost
+            qSleep(1000) ;
+            QString nextsyncdate = nowToIsoString() ;
+            gConf->setLastGoogleContactSyncDate(nextsyncdate) ;
+
+            // And store sync token for next time
+            gConf->setLastGoogleContactSyncToken(google.getContactSyncToken());
+
+            ui->updateStatusReport->append(QString("CONTACTS SYCHRONISATION SUCCESS.")) ;
+        }
+
     } else {
-        // next syncdate after sync means anything changed on google during the sync may be lost
-        qSleep(1000) ;
-        QString nextsyncdate = nowToIsoString() ;
-        gConf->setLastGoogleContactSyncDate(nextsyncdate) ;
 
-        // And store sync token for next time
-        gConf->setLastGoogleContactSyncToken(google.getContactSyncToken());
+        ui->updateStatusReport->append(QString("Calendar Synchronisation disabled in configuration.")) ;
 
-        ui->updateStatusReport->append(QString("CONTACTS SYCHRONISATION SUCCESS.")) ;
     }
 
     ui->updateStatusReport->append(QString("")) ;
