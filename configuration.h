@@ -57,6 +57,8 @@ private:
     QString settingDebugEnabled ;
     QString settingEncryptedEnabled ;
     QString settingEmailCommand ;
+    QString settingContactSyncEnabled ;
+    QString settingCalendarSyncEnabled ;
     DatabaseMaster settingDatabaseMaster ;
     Encryption *enc ;
 
@@ -88,6 +90,8 @@ public:
     bool googleMaster() ;
     bool debugGoogleEnabled() ;
     bool encryptedEnabled() ;
+    bool contactSyncEnabled() ;
+    bool calendarSyncEnabled() ;
 
     // QSettings Access Functions
     QString &getMe() ;

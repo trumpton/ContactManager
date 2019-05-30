@@ -43,6 +43,8 @@ Configuration::Configuration(QWidget *parent) :
     settingSMTPPassword = "" ;
     settingDebugEnabled = "" ;
     settingEncryptedEnabled = "" ;
+    settingContactSyncEnabled = "" ;
+    settingCalendarSyncEnabled = "" ;
     settingDatabaseMaster = ContactManagerMaster ;
 
     ui->setupUi(this);
@@ -137,6 +139,10 @@ bool Configuration::SetupForm(ContactDatabase *currentdatabase, GoogleAccess *ga
         break ;
     }
 
+    // Load Sync Enabled Status
+    ui->checkBox_syncCalendar->setChecked(calendarSyncEnabled()) ;
+    ui->checkBox_syncContacts->setChecked(contactSyncEnabled()) ;
+
     // Show ini file path
     ui->iniFilePath->setText(ini.canonicalPath()) ;
 
@@ -158,15 +164,28 @@ bool Configuration::SaveForm()
     settings->setValue("googleusername", ui->googleUsername->text()) ;
     settings->setValue("smtppassword", ui->emailPassword->text());
     settings->setValue("smspassword", ui->smsPassword->text()) ;
+
     if (ui->conflictContactManager->isChecked())
         settings->setValue("databasemaster", ContactManagerMaster) ;
     else if (ui->conflictGoogle->isChecked())
         settings->setValue("databasemaster", GoogleMaster) ;
+
     if (ui->enableReminders->isChecked()) {
         settings->setValue("enablereminders", "yes") ;
     } else {
         settings->setValue("enablereminders", "no") ;
     }
+
+    if (ui->checkBox_syncCalendar->isChecked())
+        settings->setValue("calendarsync", "yes") ;
+    else
+        settings->setValue("calendarsync", "no") ;
+
+    if (ui->checkBox_syncContacts->isChecked())
+        settings->setValue("contactsync", "yes") ;
+    else
+        settings->setValue("contactsync", "no") ;
+
     return true ;
 }
 
@@ -190,6 +209,18 @@ bool Configuration::encryptedEnabled()
 {
     QString m = ini.get("database", "encrypted") ;
     return (m.compare("true", Qt::CaseInsensitive)==0 || m.compare("yes", Qt::CaseInsensitive)==0) ;
+}
+
+bool Configuration::calendarSyncEnabled()
+{
+    QString m = settings->value("calendarsync").toString() ;
+    return (m.compare("yes", Qt::CaseInsensitive)==0) ;
+}
+
+bool Configuration::contactSyncEnabled()
+{
+    QString m = settings->value("contactsync").toString() ;
+    return (m.compare("yes", Qt::CaseInsensitive)==0) ;
 }
 
 Encryption* Configuration::encryption()
