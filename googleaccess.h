@@ -91,14 +91,6 @@ private:
     QString& findGroupName(QString id) ;
     QString& findGroupId(QString name) ;
 
-    // XML Helper functions
-    QDomElement domSearchChild(QDomElement &node, QString tag, QString rellabel=QString(), int occurrence=1) ;
-    bool updateElementTextAttribute(QDomDocument doc, QDomElement documentroot, char *thistagname, QString value, char *rellabel, char *attribute=(char *)0) ;
-    bool updateElementAttribute(QDomDocument doc, QDomElement documentroot, char *thistagname, char *attribute, QString value, char *rellabel=(char *)0) ;
-    bool updateElementText(QDomDocument doc, QDomElement documentroot, char *thistagname, QString value, char *rellabel=(char *)0) ;
-    bool updateElementText2(QDomDocument doc, QDomElement documentroot, char *parenttagname, char *thistagname, QString value, char *rellabel=(char *)0) ;
-    bool updateElementHrefFlag(QDomDocument doc, QDomElement documentroot, QString thistagname, QString attributevalue, bool set) ;
-
   public:
 
     // Constructor, sets the refresh token which has been
