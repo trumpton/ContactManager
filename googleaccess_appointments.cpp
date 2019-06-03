@@ -13,41 +13,41 @@
 // Public: GoogleAccess - getCalendar
 //
 //  Returns a list of all of the contacts on the google contacts
-//  account.
+//  account.  Note that this downloads all entries, not just those
+//  which have changed since the last sync.
 //
 
-bool GoogleAccess::getCalendar(Calendar &googlecalendar)
+bool GoogleAccess::getCalendar(Calendar &googlecalendar, int startdays, int enddays)
 {
     QJsonParseError err;
     QJsonDocument doc ;
     QString json ;
+    bool success=false ;
 
     googlecalendar.clear() ;
 
-    QString account = gConf->getGoogleUsername();
+    QString account = gConf->getGoogleUsername().toHtmlEscaped() ;
 
     if (refreshtoken.isEmpty()) return false ;
 
     QString url = "https://www.googleapis.com/calendar/v3/calendars/" +
-            account.toHtmlEscaped() + "/events?v=3.0" ;
+            account + "/events?v=3.0" ;
 
-    if (calendarsynctoken.isEmpty()) {
+    // Full refresh, so get everything that covers dates from startdays ago to enddays
+    QDateTime startwindow = QDateTime::currentDateTimeUtc().addDays(-1 * startdays) ;
+    QDateTime endwindow = QDateTime::currentDateTimeUtc().addDays(enddays) ;
+    QString startwindowstr = dateTimeToIsoString(startwindow) ;
+    QString startwindowstrz = dateTimeStringToZulu(startwindowstr) ;
+    QString endwindowstr = dateTimeToIsoString(endwindow) ;
+    QString endwindowstrz = dateTimeStringToZulu(endwindowstr) ;
 
-        // Full refresh, so get everything that covers dates from 8 months ago
-        QDateTime startwindow = QDateTime::currentDateTimeUtc().addMonths(-18) ;
-        QString startwindowstr = dateTimeToIsoString(startwindow) ;
-        QString startwindowstrz = dateTimeStringToZulu(startwindowstr) ;
-        url = url + "&showDeleted=true&showHidden=true&timeMin=" + startwindowstrz ;
+    url = url + "&showDeleted=true&showHidden=true&timeMin=" + startwindowstrz + "&timeMax=" + endwindowstrz ;
 
-    } else {
-
-        // Just get what has changed since the last successful call
-        url = url + QString("&syncToken=") + calendarsynctoken ;
-
-    }
 
     json = googleGet(url, "getCalendar") ;
-    if (!errorstatus.isEmpty()) return false ;
+    success = errorstatus.isEmpty() ;
+
+    if (!success) return false ;
 
     doc = QJsonDocument::fromJson(json.toUtf8(), &err) ;
 
@@ -58,11 +58,6 @@ bool GoogleAccess::getCalendar(Calendar &googlecalendar)
     QJsonObject obj = doc.object() ;
     QJsonArray items = obj["items"].toArray() ;
 
-    // Retrieve the sync token
-    QString token = obj["nextSyncToken"].toString() ;
-    if (token.isEmpty()) return false ;
-    calendarsynctoken = token ;
-
     // get a copy of the QJsonObject
 
     foreach (const QJsonValue & value, items) {
@@ -71,10 +66,12 @@ bool GoogleAccess::getCalendar(Calendar &googlecalendar)
             Appointment appt ;
             QJsonObject item = value.toObject() ;
 
-            // Add the changes
-            if (parseAppointment(item, appt, account)) {                
+            // Add the changes, storing only non-deleted entries
+            if (parseAppointment(item, appt, account)) {
+                if (!appt.isSet(Appointment::Deleted)) {
                     googlecalendar.addAppointment(appt, false) ;
                 }
+            }
         }
     }
     return true ;
@@ -85,7 +82,7 @@ bool GoogleAccess::getAppointment(Appointment& appt)
     QJsonParseError err;
     QJsonDocument doc ;
     QString json ;
-    QString& account = appt.getField(Appointment::GoogleAccount) ;
+    QString account = gConf->getGoogleUsername().toHtmlEscaped() ;
     QString& record = appt.getField(Appointment::GoogleRecordId) ;
 
     QString url = "https://www.googleapis.com/calendar/v3/calendars/" +
@@ -178,8 +175,8 @@ bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QStrin
 
     if (!(googleid.isEmpty() && googleicaluid.isEmpty())) {
         appt.setField(Appointment::GoogleRecordId, googleid) ;
-        appt.setField( Appointment::GoogleIcalUid, googleicaluid) ;
-        appt.setField(Appointment::GoogleAccount, account) ;
+//        appt.setField( Appointment::GoogleIcalUid, googleicaluid) ;
+//        appt.setField(Appointment::GoogleAccount, account) ;
         appt.setField(Appointment::GoogleSequence, QString::number(sequence)) ;
         appt.setField(Appointment::GoogleCreated, googlecreated) ;
         appt.setFlag(Appointment::InternetOwned, !organiserself) ;
@@ -232,9 +229,7 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
         return true ;
 
     // Get account
-    QString account = gConf->getGoogleUsername() ;
-    // TODO: QUrl::toPercentEncoding
-    account = account.replace("@", "%40") ;
+    QString account = gConf->getGoogleUsername().toHtmlEscaped() ;
 
     // Calculate URL
     if (action==GoogleAccess::Delete) {
@@ -269,7 +264,7 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
         // TODO: iCalUID may have @ / %40 translation requirements here and in parse
         if (action==GoogleAccess::Put) {
             root.insert("id", appt.getField(Appointment::GoogleRecordId)) ;
-            root.insert("iCalUID", appt.getField(Appointment::GoogleIcalUid)) ;
+//            root.insert("iCalUID", appt.getField(Appointment::GoogleIcalUid)) ;
             qint64 sequence = appt.getField(Appointment::GoogleSequence).toLong() ;
             root.insert("sequence", QString::number(sequence+1)) ;
         }
@@ -328,9 +323,18 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
 
         Appointment apptresponse ;
         if (parseAppointment(jsonresponse, apptresponse, account)) {
-            apptresponse.copySyncedFieldsTo(appt) ;
-            apptresponse.copyGoogleAccountFieldsTo(appt) ;
-            success=true ;
+
+            if (apptresponse.matches(appt, Appointment::maDetailsNoUpdatedDate)) {
+                apptresponse.copyTo(appt, Appointment::maSavedFields) ;
+                success=true ;
+
+            } else {
+                // Returned info doesn't match sent
+                addLog(QString("ERROR GoogleAccess::UpdateAppointment: Upload mismatch (%1) - %2")
+                       .arg(appt.getField(Appointment::ID))
+                       .arg(apptresponse.mismatch(appt, Appointment::maDetailsNoUpdatedDate, true))) ;
+                success=false ;
+            }
         }
     }
 

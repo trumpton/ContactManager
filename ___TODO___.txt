@@ -1,0 +1,5 @@
+
+Verify that XML processing is no longer required, and remove code
+Search for XXX and TODO, and Fix
+Remove all unused variables, or add Q_UNUSED()
+

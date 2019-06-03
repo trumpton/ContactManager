@@ -15,6 +15,14 @@
 
 Appointment::Appointment()
 {
+    // Check Params
+    appointmentrecordinfook=true ;
+    for (int i=0; i<NumberOfRecords; i++) {
+        if (appointmentrecordinfo[i].recordtype!=(Appointment::AppointmentRecord)i) {
+            appointmentrecordinfook=false ;
+        }
+    }
+
     isnull=false ;
     createNew() ;
     asTextResponse = "" ;
@@ -43,7 +51,7 @@ Appointment& Appointment::operator=(const Appointment &rhs)
     asTextResponse = rhs.asTextResponse ;
     asHTMLResponse = rhs.asHTMLResponse ;
     getDateResponse = rhs.getDateResponse ;
-    for (int i=0; i<LASTRECORD; i++) {
+    for (int i=0; i<NumberOfRecords; i++) {
         filedata[i] = rhs.filedata[i] ;
     }
     return *this ;
@@ -138,8 +146,8 @@ bool Appointment::load(QString path, QString idname)
             // TODO: Handle cases where there is an "=" in the middle of the string
 
             if (ParsedLine.count()==2) {
-                for (int i=FIRSTRECORD; i<=LASTRECORD; i++) {
-                    if (ParsedLine.at(0).compare(getAppointmentRecordName((enum AppointmentRecord)i))==0) {
+                for (int i=0; i<NumberOfRecords; i++) {
+                    if (ParsedLine.at(0).compare(appointmentrecordinfo[i].name)==0) {
                         QString entrytext = ParsedLine.at(1) ;
                         entrytext = entrytext.replace("\\n","\n") ;
                         setField((enum AppointmentRecord)i, entrytext) ;
@@ -168,9 +176,11 @@ bool Appointment::save(QString path)
 
        out << "[appointment]\n" ;
 
-       for (int entry=FIRSTRECORD ; entry <= LASTRECORD; entry++) {
-           QString entrytext = getField((enum Appointment::AppointmentRecord) entry).replace("\n","\\n") ;
-           out << getAppointmentRecordName((enum AppointmentRecord)entry) << "=" << entrytext.trimmed() << "\n" ;
+       for (int entry=0 ; entry < NumberOfRecords; entry++) {
+           if (appointmentrecordinfo[entry].issaved) {
+               QString entrytext = getField((enum Appointment::AppointmentRecord) entry).replace("\n","\\n") ;
+               out << appointmentrecordinfo[entry].name << "=" << entrytext.trimmed() << "\n" ;
+           }
        }
 
        file.close() ;
@@ -179,45 +189,9 @@ bool Appointment::save(QString path)
     return true ;
 }
 
-
-char *Appointment::getAppointmentRecordName(enum Appointment::AppointmentRecord field) {
-    switch (field) {
-        case Appointment::ID: return (char *)"id" ; break ;
-        case Appointment::ContactId: return (char *)"contactid" ; break ;
-        case Appointment::For: return (char *)"for" ; break ;
-        case Appointment::Description: return  (char *)"description" ; break ;
-        case Appointment::Location: return  (char *)"location" ; break ;
-        case Appointment::From: return  (char *)"from" ; break ;
-        case Appointment::To: return  (char *)"to" ; break ;
-        case Appointment::Repeat: return  (char *)"repeat" ; break ;
-        case Appointment::RepeatInterval: return (char *)"repeatinterval" ; break ;
-        case Appointment::Flags: return  (char *)"flags" ; break ;
-        case Appointment::Deleted: return (char *)"deleted" ; break ;
-        case Appointment::FromUpdated: return (char *)"fromupdated" ; break ;
-        case Appointment::MessageSent: return (char *)"messagesent" ; break ;
-        case Appointment::ReminderMessageSent: return (char *)"remindermessagesent" ; break ;
-        case Appointment::Created: return (char *)"created" ; break ;
-        case Appointment::Temporary: return (char *)"istemporary" ; break ;
-        case Appointment::InternetOwned: return (char *)"isreadonly" ; break ;
-        case Appointment::Updated: return (char *)"updated" ; break ;
-        case Appointment::GoogleAccount: return (char *)"googleaccount" ; break ;
-        case Appointment::GoogleRecordId: return (char *)"googlerecordid" ; break ;
-        case Appointment::GoogleIcalUid: return (char *)"googleicaluid" ; break ;
-        case Appointment::GoogleSequence: return (char *)"googlesequence" ; break ;
-        case Appointment::GoogleCreated: return (char *)"googlecreated" ; break ;
-        case Appointment::GoogleStatus: return (char *)"googlestatus" ; break ;
-        default: return  (char *)"INVALID-RECORD-TYPE" ; break ;
-    }
-}
-
-bool Appointment::isForAccount(QString googleaccount)
-{
-    return (getField(Appointment::GoogleAccount).compare(googleaccount)==0) ;
-}
-
 bool Appointment::isSet(enum Appointment::AppointmentRecord field) const
 {
-    if (field>=FIRSTRECORD && field<=LASTRECORD &&
+    if (field>=0 && field< NumberOfRecords &&
             filedata[field].compare("true")==0) return true ;
     return false;
 }
@@ -250,7 +224,7 @@ QDateTime& Appointment::getDate(enum AppointmentRecord field) const
 QString& Appointment::getField(enum Appointment::AppointmentRecord field) const
 {
     static QString nullstring ;
-    if (field>=FIRSTRECORD && field<=LASTRECORD) { return (QString&)filedata[field] ; }
+    if (field>=0 && field<NumberOfRecords) { return (QString&)filedata[field] ; }
     return nullstring ;
 }
 
@@ -266,7 +240,7 @@ void Appointment::setField(enum Appointment::AppointmentRecord field, QString da
     // Safety checks for poor programming
     //
 
-    if (field<0 || field>Appointment::LASTRECORD) {
+    if (field<0 || field>=NumberOfRecords) {
         warningOkDialog(0, "ERROR", "Appointment set FILE field invalid", true) ;
         return ;
     }
@@ -286,11 +260,11 @@ void Appointment::setField(enum Appointment::AppointmentRecord field, QString da
     // Set field data, and update dirty / empty flags as required
     //
 
-    if (field>=FIRSTRECORD && field<=LASTRECORD &&
+    if (field>=0 && field<NumberOfRecords &&
             dat.compare(filedata[field])!=0) {
 
         // Set updated and fromupdated times
-        if (field<=Appointment::LASTSYNCEDRECORD) {
+        if (appointmentrecordinfo[field].issynced) {
             QString now = nowToIsoString() ;
             filedata[Appointment::Updated] = now ;
             if (field==Appointment::From) filedata[Appointment::FromUpdated] = now ;
@@ -299,7 +273,11 @@ void Appointment::setField(enum Appointment::AppointmentRecord field, QString da
         // Now set the data
         filedata[field]=dat ;
         isempty = false ;
-        isdirty = true ;
+
+        if (appointmentrecordinfo[field].updatesdirty) {
+            isdirty = true ;
+        }
+
     }
 
     // TODO: This line is for debug purposes, so the summary can be seen in the debugger
@@ -313,8 +291,12 @@ void Appointment::createNew()
 {
     if (isnull) return ;
 
-    for (int i=(int)FIRSTRECORD; i<=(int)LASTRECORD; i++) {
-        setField((enum Appointment::AppointmentRecord)i, "") ;
+    for (int i=(int)0; i<(int)NumberOfRecords; i++) {
+        if (appointmentrecordinfo[i].isflag) {
+            setFlag((enum Appointment::AppointmentRecord)i, false) ;
+        } else {
+            setField((enum Appointment::AppointmentRecord)i, "") ;
+        }
     }
 
     QUuid qid = QUuid::createUuid() ;
@@ -339,13 +321,6 @@ void Appointment::createNew()
 
     // Set default dates
     setField(Appointment::Created, nowToIsoString()) ;
-    setField(Appointment::MessageSent, QString("")) ;
-    setField(Appointment::ReminderMessageSent, QString("")) ;
-
-    // Set flags
-    setFlag(Appointment::Deleted, false) ;
-    setFlag(Appointment::Temporary, false) ;
-    setFlag(Appointment::InternetOwned, false) ;
 
     isempty = true ;
     isnull = false ;
@@ -381,6 +356,10 @@ QString& Appointment::asText(QString name, QString start, QString mid, QString e
             asTextResponse = asTextResponse + name + " - " ;
         }
         asTextResponse += getField(Appointment::Description).replace("\n", ". ") ;
+
+        if (isSet(Appointment::Deleted)) {
+            asTextResponse = asTextResponse + " (deleted)" ;
+        }
         asTextResponse += end ;
 
     }
@@ -443,47 +422,67 @@ bool Appointment::isCurrent()
 }
 
 
-// Operators
-
-// TODO: Check that this should copy GoogleLastSynced too
-// depends how and where this function is actually used
-Appointment& Appointment::copyGoogleAccountFieldsTo(Appointment& dest)
+// Return true if i is of type mctype
+bool Appointment::isAppointmentOfType(Appointment::AppointmentRecord i, int matype)
 {
-    for (int i=GOOGLEFIRSTRECORD; i<=GOOGLELASTRECORD; i++) {
-        dest.setField((Appointment::AppointmentRecord)i, getField((Appointment::AppointmentRecord)i)) ;
-    }
-    return *this ;
+
+    bool testid = ( (matype&Appointment::maId)!=0) ;
+    bool testgoogleid = ( (matype&Appointment::maGoogleId)!=0) ;
+    bool testflag = ( (matype&Appointment::maFlag)!=0) ;
+    bool testcontrol = ( (matype&Appointment::maControlFlags) !=0) ;
+    bool testupdateddate = ( (matype&Appointment::maUpdatedDate) !=0) ;
+    bool testdetails = ( (matype&Appointment::maDetailsNoUpdatedDate) !=0) ;
+    bool testgoogleacct = ( (matype&Appointment::maGoogleAcct) !=0) ;
+    bool testsaved = ( (matype&Appointment::maSavedFields) !=0) ;
+
+    return (
+         (testid && i==(int)Appointment::ID) ||
+         (testgoogleid && i==(int)Appointment::GoogleRecordId) ||
+         (testflag && appointmentrecordinfo[i].isflag) ||
+         (testcontrol && !appointmentrecordinfo[i].issaved) ||
+         (testdetails && appointmentrecordinfo[i].isdetails) ||
+         (testupdateddate && i==(int)Appointment::Updated) ||
+         (testgoogleacct && appointmentrecordinfo[i].isgacct) ||
+         (testsaved && appointmentrecordinfo[i].issaved)) ;
 }
 
-Appointment& Appointment::copySyncedFieldsTo(Appointment& dest)
+// Copy Fields to other
+bool Appointment::copyTo(Appointment &other, int matype)
 {
-    for (int i=FIRSTSYNCEDRECORD; i<=LASTSYNCEDRECORD; i++) {
-        dest.setField((Appointment::AppointmentRecord)i, getField((Appointment::AppointmentRecord)i)) ;
+    bool copied=false ;
+    for (int i=0; i<Appointment::NumberOfRecords; i++) {
+        if ( isAppointmentOfType((Appointment::AppointmentRecord)i, matype)) {
+            other.setField((Appointment::AppointmentRecord)i, getField((Appointment::AppointmentRecord)i)) ;
+            copied=true ;
+        }
     }
-    return *this ;
+    return copied ;
 }
 
-
-bool Appointment::matches(Appointment &with)
+// Compare this with 'with' and return true/false
+bool Appointment::matches(Appointment &with, int matype)
 {
-    bool match = true ;
-
-    QString thisfield = getField(Appointment::GoogleAccount) ;
-    QString thatfield = with.getField(Appointment::GoogleAccount) ;
-    if (thisfield.compare(thatfield)!=0) match=false ;
-
-    bool thisdeleted = isSet(Appointment::Deleted) ;
-    bool thatdeleted = with.isSet(Appointment::Deleted) ;
-
-    if (!(thisdeleted && thatdeleted)) for (int i=FIRSTSYNCEDRECORD; i<=LASTSYNCEDRECORD; i++) {
-        QString thisfield = getField((Appointment::AppointmentRecord)i) ;
-        QString thatfield = with.getField((Appointment::AppointmentRecord)i) ;
-        if (thisfield.compare(thatfield)!=0) match=false ;
-    }
-
-    return match ;
+    return mismatch(with, matype).isEmpty() ;
 }
 
+// Compare this with 'with' and return description of differences
+QString Appointment::mismatch(Appointment &with, int matype, bool showboth)
+{
+    QString result = "" ;
+    for (int i=0; i<Appointment::NumberOfRecords; i++) {
+        if ( isAppointmentOfType((Appointment::AppointmentRecord)i, matype)) {
+            QString thisfield = getField((Appointment::AppointmentRecord)i) ;
+            QString thatfield = with.getField((Appointment::AppointmentRecord)i) ;
+            if (thisfield.compare(thatfield)!=0) {
+                if (!result.isEmpty()) result = result + QString(", ") ;
+                result = result + appointmentrecordinfo[i].name + QString(": ") ;
+                result = result + thisfield ;
+                if (showboth) result = result + QString(" / ") + thatfield ;
+            }
+        }
+    }
+    return result ;
+}
 
 bool Appointment::clashes(Appointment& with)
 {

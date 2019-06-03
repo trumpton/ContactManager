@@ -55,7 +55,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     // 1. Fetch IDs
     //
     ui->progressBar->setValue(500) ;
-    ui->updateStatusReport->append(QString("  Fetching Group IDs.")) ;
+    ui->updateStatusReport->append(QString("  Fetching Group IDs:")) ;
     if (!google.getGroupIds()) {
         ui->updateStatusReport->append(QString("    Creating Missing Groups.")) ;
         google.createGroupIds() ;
@@ -69,7 +69,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     // 2. Download Google Contact List (all)
     //
     ui->progressBar->setValue(550) ;
-    networkok &= google.getContacts(googledb, true) ;
+    networkok &= google.getContacts(googledb) ;
     ui->updateStatusReport->append(QString("  Downloaded ") + QString::number(googledb.size()) + QString(" Contacts from Google.")) ;
 
     if (state<0) return false ;
@@ -181,7 +181,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     // 6. Add Fake entry in Google list for missing  contacts, and identify new local records
     //
     ui->progressBar->setValue(630) ;
-    ui->updateStatusReport->append(QString("  Identifying local contacts missing on Google")) ;
+    ui->updateStatusReport->append(QString("  Identifying local contacts missing on Google:")) ;
     int size3 = db.size() ;
     for (int i=0; i<size3; i++) {
         ui->progressBar->setValue(630 + ( i * 10)/size3 ) ;
@@ -233,7 +233,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     // 7. Add Fake entry in Local list for missing contacts, and identify new google records
     //
     ui->progressBar->setValue(640) ;
-    ui->updateStatusReport->append(QString("  Identifying Google contacts missing locally")) ;
+    ui->updateStatusReport->append(QString("  Identifying Google contacts missing locally:")) ;
     int size4 = googledb.size() ;
     for (int i=0; i<size4; i++) {
         ui->progressBar->setValue(640 + ( i * 10)/size4 ) ;

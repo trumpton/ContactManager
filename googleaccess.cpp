@@ -33,39 +33,7 @@ GoogleAccess::GoogleAccess()
     errorstatus="" ;
     accesstoken="" ;
     refreshtokenandusername = "" ;
-    contactsynctoken="" ;
-    calendarsynctoken="" ;
     logsequencenumber = 1 ;
-}
-
-//=====================================================================================================
-//
-// Public: setContactSyncToken
-// Public: setCalendaSyncToken
-// Public: getContactSyncToken
-// Public: getCalendaSyncToken
-//
-//   Sets and retrieves the contact and calendar sync tokens
-//
-
-void GoogleAccess::setContactSyncToken(QString& token)
-{
-    contactsynctoken=token ;
-}
-
-void GoogleAccess::setCalendarSyncToken(QString& token)
-{
-    calendarsynctoken=token ;
-}
-
-QString& GoogleAccess::getContactSyncToken()
-{
-    return contactsynctoken ;
-}
-
-QString& GoogleAccess::getCalendarSyncToken()
-{
-    return calendarsynctoken ;
 }
 
 //=====================================================================================================
@@ -92,7 +60,7 @@ void GoogleAccess::resetLogFiles()
     QStringList nameFilter, files ;
 
     QDir logdir(gConf->getDatabasePath()) ;
-    nameFilter << "????-*.cmlog" ;
+    nameFilter << QString("????-*.cmlog") ;
     logdir.setNameFilters(nameFilter) ;
     files = logdir.entryList() ;
     for (int i=files.size()-1; i>=0; i--) {

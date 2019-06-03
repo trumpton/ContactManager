@@ -50,9 +50,6 @@ private:
     // Groups update record
     QString addedstr, deletedstr ;
 
-    // Contact and Calendar Sync Tokens
-    QString contactsynctoken, calendarsynctoken ;
-
     // Group IDs
     QString gidbusiness, gidclient, gidfamily, gidfriend, gidother ;
 
@@ -60,11 +57,6 @@ private:
     void googleGetAccessToken() ;
     QString accesstoken  ;
 
-    // Get all contacts from server, and save in QString and list of Contacts
-/*    QList<Contact> *convertXmlToContacts() ;
-    QString googleContactsXml ;
-    QList<Contact> contactlist ;
-*/
     // Parse JSon
     bool parseContact(QString &json, QString &tag, Contact &contact) ;
     bool parseContact(QJsonObject &item, Contact &contact) ;
@@ -74,11 +66,6 @@ private:
     bool isMetadataFromContacts(QJsonValue object) ;
     bool isMetadataFromProfile(QJsonValue object) ;
     bool isMetadataPrimary(QJsonValue object) ;
-
-    // Get all appointments from server, and save in QString and list of Appointments
-//    QList<Appointment> &convertJsonToAppointments(QString &json) ;
-//    QString googleAppointmentJson ;
-//    QList<Appointment> appointmentlist ;
 
     // Parse JSon
     bool parseAppointment(QString &json, Appointment &appt, QString account) ;
@@ -103,11 +90,6 @@ private:
     QString& findMyContactsId() ;
     QString& findGroupName(QString id) ;
     QString& findGroupId(QString name) ;
-
-/*    QString googleGroupsXml ;
-    QString getGroupsXml() ;
-    QString getContactsXml() ;
-*/
 
     // XML Helper functions
     QDomElement domSearchChild(QDomElement &node, QString tag, QString rellabel=QString(), int occurrence=1) ;
@@ -148,7 +130,7 @@ public:
     bool isConnectionError() ;
 
     // Get all calendar from Google server
-    bool getCalendar(Calendar &googlecalendar) ;
+    bool getCalendar(Calendar &googlecalendar, int startdays, int enddays) ;
 
     // Download the appointment based on Google Details
     bool getAppointment(Appointment& appt) ;
@@ -165,7 +147,7 @@ public:
 
 
     // Get all contacts from Google server
-    bool getContacts(ContactDatabase &googlecontacts, bool downloadall=true) ;
+    bool getContacts(ContactDatabase &googlecontacts) ;
 
     // Update contact on Google Server
     bool updateContact(Contact &contact, googleAction action, QString etag = QString("")) ;
@@ -177,12 +159,6 @@ public:
 
     // Get Contact, and validate against reference if provided
     bool getContact(Contact& googlecontact, bool getgrouponly=false) ;
-
-    // Sets and retrieves the sync tokens
-    void setContactSyncToken(QString& token) ;
-    void setCalendarSyncToken(QString& token) ;
-    QString& getContactSyncToken() ;
-    QString& getCalendarSyncToken() ;
 
     // Useful debug functions
     void resetLogFiles() ;
