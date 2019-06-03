@@ -16,7 +16,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 
-bool GoogleAccess::getContacts(ContactDatabase &googlecontacts, bool downloadall)
+bool GoogleAccess::getContacts(ContactDatabase &googlecontacts)
 {
     QJsonParseError err;
     QJsonDocument doc ;
@@ -31,15 +31,9 @@ bool GoogleAccess::getContacts(ContactDatabase &googlecontacts, bool downloadall
     url = url + "?pageSize=2000" ;
     url = url + "&sortOrder=LAST_NAME_ASCENDING" ;
     url = url + QString("&personFields=") + QString(PERSONFIELDS) ;
-    url = url + "&requestSyncToken=true" ;
-
-    QString synctokenurl="" ;
-    if (!contactsynctoken.isEmpty() && !downloadall) {
-        synctokenurl = "&syncToken=" + contactsynctoken ;
-    }
 
     // If this returns 403, check that the API is enabled on google
-    json = googleGet(url+synctokenurl, QString("getContacts")) ;
+    json = googleGet(url, QString("getContacts")) ;
     if (!errorstatus.isEmpty()) return false ;
 
     doc = QJsonDocument::fromJson(json.toUtf8(), &err) ;
@@ -49,11 +43,6 @@ bool GoogleAccess::getContacts(ContactDatabase &googlecontacts, bool downloadall
     if (!doc.isObject()) return false ;
 
     QJsonObject obj = doc.object() ;
-
-    // Get the next sync token
-    QString synctoken = obj["nextSyncToken"].toString() ;
-    if (synctoken.isEmpty()) return false ;
-    contactsynctoken = synctoken ;
 
     // Transfer the contacts to the ContactDatabase
     QJsonArray items = obj["connections"].toArray() ;

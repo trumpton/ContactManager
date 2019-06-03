@@ -43,8 +43,8 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
     google.setupRToken(refreshtoken) ;
 
     // Set the sync tokens before synchronisation
-    google.setCalendarSyncToken(gConf->getLastGoogleCalendarSyncToken());
-    google.setContactSyncToken(gConf->getLastGoogleContactSyncToken());
+//    google.setCalendarSyncToken(gConf->getLastGoogleCalendarSyncToken());
+//    google.setContactSyncToken(gConf->getLastGoogleContactSyncToken());
 
     QString contactsyncdatestr = gConf->getLastGoogleContactSyncDate() ;
     QDateTime contactsyncdate = isoStringToDateTime(contactsyncdatestr) ;
@@ -72,7 +72,7 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
             gConf->setLastGoogleCalendarSyncDate(nextsyncdate) ;
 
             // And store sync token for next time
-            gConf->setLastGoogleCalendarSyncToken(google.getCalendarSyncToken());
+//            gConf->setLastGoogleCalendarSyncToken(google.getCalendarSyncToken());
 
             ui->updateStatusReport->append(QString("CALENDAR SYCHRONISATION SUCCESS.")) ;
         }
@@ -102,7 +102,7 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
             gConf->setLastGoogleContactSyncDate(nextsyncdate) ;
 
             // And store sync token for next time
-            gConf->setLastGoogleContactSyncToken(google.getContactSyncToken());
+//            gConf->setLastGoogleContactSyncToken(google.getContactSyncToken());
 
             ui->updateStatusReport->append(QString("CONTACTS SYCHRONISATION SUCCESS.")) ;
         }
