@@ -55,7 +55,6 @@ SOURCES += main.cpp\
     googleaccess_contacts.cpp \
     googleaccess_oauth2.cpp \
     googleaccess_network.cpp \
-    googleaccess_xmlprocessing.cpp \
     accessibledatetimeedit.cpp \
     logform.cpp \
     accessibledaterangeedit.cpp \
