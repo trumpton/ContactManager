@@ -152,6 +152,7 @@ void MainWindow::on_listCalendar_activated(const QModelIndex &index)
 //
 void MainWindow::on_listCalendar_clicked(const QModelIndex &index)
 {
+    Q_UNUSED(index) ;
     if (gConf->debugGoogleEnabled()) {
         // TODO: if debug
         int idx = ui->listCalendar->currentIndex().row() ;

@@ -46,6 +46,8 @@ bool GoogleUpdateDialog::uploadContact(Contact& contact, GoogleAccess &google, Q
 
 bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess& google, class ContactDatabase& db)
 {
+    Q_UNUSED(lastsync) ;
+
     bool networkok = true ;
 
     ContactDatabase googledb ;

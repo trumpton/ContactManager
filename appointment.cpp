@@ -330,6 +330,7 @@ void Appointment::createNew()
 
 QString& Appointment::asText(QString name, QString start, QString mid, QString end)
 {
+    Q_UNUSED(mid) ;
     QDateTime from = getDate(Appointment::From) ;
     QDateTime to = getDate(Appointment::To) ;
 

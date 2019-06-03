@@ -545,10 +545,6 @@ void Contact::setField(enum Contact::ContactRecord field, QString data)
         sortstring.replace(".", "") ;
     }
 
-    if ( !filedata[Names].isEmpty() && (field==Names || field==ID) &&
-        filedata[Names].compare(filedata[ID])!=0) {
-        int trap=1 ;
-    }
     isnull = false ;
 }
 

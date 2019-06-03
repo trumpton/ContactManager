@@ -92,8 +92,10 @@ QString GoogleAccess::Authorise()
       reply = manager.post(request, params.query(QUrl::FullyEncoded).toUtf8());
 
       eventLoop.exec() ;
-      QNetworkReply::NetworkError err = reply->error() ;
-      QString errstring = reply->errorString() ;
+
+      //QNetworkReply::NetworkError err = reply->error() ;
+      //QString errstring = reply->errorString() ;
+
       resultstring = reply->readAll() ;
       device_code = ExtractParameter(resultstring, "device_code") ;
       user_code = ExtractParameter(resultstring, "user_code") ;
@@ -128,11 +130,6 @@ QString GoogleAccess::Authorise()
         return refreshtokenandusername ;
     }
 
-
-
-
-    // TODO: UP TO HERE IN FLOW
-
     // Get the refresh and access tokens
     {
       QNetworkReply *reply ;
@@ -155,9 +152,6 @@ QString GoogleAccess::Authorise()
       accesstoken = ExtractParameter(resultstring, "access_token") ;
 
     }
-
-    // Above should have been polled ....
-
 
     // Get the username (i.e. the login email address)
     {

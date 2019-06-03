@@ -258,6 +258,7 @@ bool MainWindow::searchContactRecordSet(QString searchtext, Contact &contact, Co
     case Contact::Organisation: r[1]=Contact::ProfileOrg ; break ;
     case Contact::ID: r[1]=Contact::GoogleRecordId ; break ;
     case Contact::ProfileAddress: r[1]=Contact::ProfileEMail ; r[2]=Contact::ProfileNames ; r[3]=Contact::ProfileOrg ; r[4]=Contact::ProfilePhone ; r[5]=Contact::ProfileSurname ; break ;
+    default: break ;
     }
 
     QString srch = searchtext.toLower().replace(" ","") ;

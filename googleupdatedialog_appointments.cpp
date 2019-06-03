@@ -10,6 +10,8 @@
 
 bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess& google, class Calendar& cal)
 {
+    Q_UNUSED(lastsync) ;
+
     bool networkok = true ;
     QDateTime fromwindow = QDateTime::currentDateTimeUtc().addDays(-1*APPOINTMENTSTARTWINDOW).addSecs(3600) ;
     QDateTime towindow = QDateTime::currentDateTimeUtc().addDays(APPOINTMENTENDWINDOW).addSecs(-3600) ;
