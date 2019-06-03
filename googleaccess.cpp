@@ -60,7 +60,10 @@ void GoogleAccess::resetLogFiles()
     QStringList nameFilter, files ;
 
     QDir logdir(gConf->getDatabasePath()) ;
-    nameFilter << QString("????-*.cmlog") ;
+
+    // Longhand to prevent trigraph warning
+    nameFilter << QString("?") + QString("?") + QString("?") + QString("?-*.cmlog") ;
+
     logdir.setNameFilters(nameFilter) ;
     files = logdir.entryList() ;
     for (int i=files.size()-1; i>=0; i--) {
