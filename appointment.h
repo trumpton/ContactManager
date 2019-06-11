@@ -38,9 +38,12 @@ public:
         Updated,                // Updated when field upto LASTSYNCED changed
         FromUpdated,            // Updated when From changed (used to re-send SMS alerts)
 
-        // Message Flags
+        // Message Timestamps
         MessageSent,            // Updated when message sent
         ReminderMessageSent,    // Updated when reminder sent
+
+        // Counters
+        MessageCounter,         // Number of Message Sends
 
         // Flags
         Temporary,              // Temporary flag (used for local birthdays & repeats)
@@ -86,15 +89,16 @@ public:
         { GoogleCreated,       false,  true,  true, false,  true, true, "googlecreated" },
         { GoogleStatus,        false,  true,  true, false,  true, true, "googlestatus" },
 
-        { Created,             false,  true,  true, false, false, true, "created" },
-        { Updated,             false, false,  true, false, false, true, "Updated" },
-        { FromUpdated,         false,  true,  true, false, false, true, "fromupdated" },
-        { MessageSent,          true,  true,  true, false, false, true, "messagesent" },
-        { ReminderMessageSent,  true,  true,  true, false, false, true, "remindermessageSent" },
+        { Created,             false,  true,  true, false, false, true, "createddate" },
+        { Updated,             false, false,  true, false, false, true, "Updateddate" },
+        { FromUpdated,         false,  true,  true, false, false, true, "fromupdateddate" },
+        { MessageSent,         false,  true,  true, false, false, true, "messagesentdate" },
+        { ReminderMessageSent, false,  true,  true, false, false, true, "remindermessagesentdate" },
+        { MessageCounter,      false, false,  true, false, false, true, "messagecounter" },
 
         { Temporary,           false,  true,  true, false,  true, true, "istemporary" },
-        { ToBeUploaded,         true, false, false, false, false, false, "toBeuploaded" },
-        { ToBeDownloaded,       true, false, false, false, false, false, "toBedownloaded" }
+        { ToBeUploaded,         true, false, false, false, false, false, "tobeuploaded" },
+        { ToBeDownloaded,       true, false, false, false, false, false, "tobedownloaded" }
     } ;
 
     // Match and Copy Masks (matype)

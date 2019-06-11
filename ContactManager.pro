@@ -15,9 +15,12 @@ QMAKE_LFLAGS +=
 win32:RC_FILE=icon.rc
 win32:LIBS += -lUser32
 
-#CONFIG += console
-
 DEFINES += QWIDGET_EXTRA_DEBUG
+
+CONFIG(debug, debug|release) {
+# When debugging, allow SMS and Email to be sent at night, and don't wait 2 mins
+# DEFINES += DEBUGTIMER
+}
 
 # Include Git Hash / Revision Details
 # Uncomment NOGIT if Git not used.
@@ -90,7 +93,8 @@ SOURCES += main.cpp\
     googleaccess_getcontacts.cpp \
     googleaccess_updatecontactgroups.cpp \
     googleaccess_getcontact.cpp \
-    advancedfind.cpp
+    advancedfind.cpp \
+    mainwindow_test.cpp
 
 HEADERS  += mainwindow.h \
     history.h \

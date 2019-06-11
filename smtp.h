@@ -42,7 +42,15 @@ public:
 
     bool isConnected() ;
 
-    bool success() ;
+    // Returns: -1 - Not Started Sending
+    //          -2 - Network Error
+    //          -3 - Error during transaction
+    //          -4 - Unable to Send / Possibly Sent
+    //           1 - Send OK
+    int success() ;
+
+    // Returns error message
+    QString& errorMessage() ;
 
 signals:
     void status( const QString &);
@@ -53,7 +61,6 @@ private slots:
     void disconnected();
     void connected();
     void readyRead();
-
  
 private:
     int timeout;
@@ -66,8 +73,12 @@ private:
     QString user;
     QString pass;
     QString host;
+
+    QString errmsg ;
+    int sendsuccess ;
+
     int port;
-    int state;
+    int state ;
     enum states{Disconnected,ConnectFailure,Tls,HandShake,Auth,User,Pass,Rcpt,Mail,Data,Init,Body,Quit,Timeout,Success,Failed};
 
 };

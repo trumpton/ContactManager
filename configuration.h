@@ -26,6 +26,10 @@ enum DatabaseMaster {
 #define MSG_SMS_UPDATE 7
 #define MSG_SMS_REMINDER 8
 
+// Max Number of SMS/Emails to send for a single appointment
+// (used to trap send bugs to prevent client being bombarded)
+#define MAXMESSAGERETRIES 10
+
 class Configuration : public QDialog
 {
     Q_OBJECT

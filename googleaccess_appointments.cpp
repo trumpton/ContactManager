@@ -261,16 +261,11 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
 
         // Put / Post
 
-        // TODO: iCalUID may have @ / %40 translation requirements here and in parse
         if (action==GoogleAccess::Put) {
             root.insert("id", appt.getField(Appointment::GoogleRecordId)) ;
-//            root.insert("iCalUID", appt.getField(Appointment::GoogleIcalUid)) ;
             qint64 sequence = appt.getField(Appointment::GoogleSequence).toLong() ;
             root.insert("sequence", QString::number(sequence+1)) ;
         }
-
-        // TODO: Don't need to store the sequence, as on success, it is extracted from the response
-        //appt.setField(Appointment::GoogleSequence, QString::number(sequence+1), Appointment::GAccount) ;
 
         // TODO: Set Repeat / RepeatInterval
 

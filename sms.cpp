@@ -25,7 +25,13 @@ QString& SMS::getErrorMessage()
     return smsErrorData ;
 }
 
-bool SMS::send(QString number, QString from, QString message)
+// Returns: -1 - Not Started Sending
+//          -2 - Network Error
+//          -3 - Error during transaction
+//          -4 - Unable to Send / Possibly Sent
+//           1 - Send OK
+
+int SMS::send(QString number, QString from, QString message)
 {
 
     switch (agent) {
@@ -53,7 +59,7 @@ int SMS::getBalance()
 // Clockwork SMS API
 //
 
-bool SMS::sendClockwork(QString number, QString from, QString message)
+int SMS::sendClockwork(QString number, QString from, QString message)
 {
     QString URL = "https://api.clockworksms.com/http/send.aspx" ;
 
@@ -75,7 +81,7 @@ bool SMS::sendClockwork(QString number, QString from, QString message)
 
     if (manager.networkAccessible() == QNetworkAccessManager::NotAccessible) {
 
-        return false ;
+        return -2 ;
 
     } else {
 
@@ -85,7 +91,16 @@ bool SMS::sendClockwork(QString number, QString from, QString message)
         smsErrorData = reply->readAll().trimmed() ;
         bool iserror = smsErrorData.left(5).toLower().compare("error")==0 ;
 
-        return !iserror && (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute))==200 ;
+        if (iserror) {
+            // Received error response
+            return -3 ;
+        } else if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute)==200) {
+            // Received 200 OK response
+            return 1 ;
+        } else {
+            // Not received 200 OK response
+            return -4 ;
+        }
 
     }
 }
@@ -108,14 +123,16 @@ int SMS::getClockworkBalance()
 
     if (manager.networkAccessible() == QNetworkAccessManager::NotAccessible) {
 
-        return -1 ;
+        // Connection Error
+        return -2 ;
 
     } else {
 
         reply = manager.post(request, params) ;
         eventLoop.exec() ;
 
-        if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute)!=200) return -1 ;
+        // Error response returned
+        if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute)!=200) return -4 ;
 
         QString balance = reply->readAll().toLower().trimmed() ;
         QRegExp exp("[^0-9]*([0-9]+)[\\.:]([0-9]+)[^0-9]*") ;
@@ -123,7 +140,8 @@ int SMS::getClockworkBalance()
             return exp.cap(1).toInt() * 100 + exp.cap(2).toInt() ;
         }
 
-        return -2 ;
+        // Unable to decode
+        return -3 ;
 
     }
 }

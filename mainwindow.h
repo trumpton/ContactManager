@@ -158,6 +158,9 @@ private:
     Encryption *enc ;
     AdvancedFind *find ;
 
+    bool SMSCredits ;
+    QString SMTPSMSErrorMessage ;
+
     // Manage dialog controls / enables etc.
     void UpdateContactsList() ;          // Update drop-down list
     void populateDialog(QString id, bool switchtooverview=true) ;    // Update dialog with requested details
@@ -196,10 +199,9 @@ private:
     bool searchContactRecordSet(QString searchtext, Contact &contact, Contact::ContactRecord record) ;
 
     // EMail & SMS
-    bool SendMail(QString from, QString emailaddress, QString subject, QString message) ;
-    bool SendSMS(QString from, QString mobile, QString message) ;
+    int SendMail(QString from, QString emailaddress, QString subject, QString message) ;
+    int SendSMS(QString from, QString mobile, QString message) ;
     bool CheckSMSCredits() ;
-    QString GetSMSErrorMessage() ;
     bool loadMessage(QString filename, QString& from, QString& title,QString& message, Appointment& appt, Contact& contact) ;
 
 };
