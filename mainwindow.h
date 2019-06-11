@@ -158,7 +158,6 @@ private:
     Encryption *enc ;
     AdvancedFind *find ;
 
-    bool SMSCredits ;
     QString SMTPSMSErrorMessage ;
 
     // Manage dialog controls / enables etc.
@@ -201,7 +200,7 @@ private:
     // EMail & SMS
     int SendMail(QString from, QString emailaddress, QString subject, QString message) ;
     int SendSMS(QString from, QString mobile, QString message) ;
-    bool CheckSMSCredits() ;
+    int GetSMSBalance() ;
     bool loadMessage(QString filename, QString& from, QString& title,QString& message, Appointment& appt, Contact& contact) ;
 
 };
