@@ -32,8 +32,6 @@ void MainWindow::sendMailSMS()
     testappt.setDate(Appointment::From, fromt) ;
     testappt.setDate(Appointment::To, tot) ;
 
-    bool skipmessage=false ;
-
     for (int i=0, csz=calendar.size(); i<csz; i++) {
 
         Appointment &appt = calendar.getAppointment(i) ;
@@ -81,21 +79,21 @@ void MainWindow::sendMailSMS()
                 bool istime = appt.clashes(testappt) ;
 
                 //
-                // Send first confirmation email
+                // Send first confirmation email / sms
                 //
 
                 if (emailme && !deleted && !messagesent && messagecounter<MAXMESSAGERETRIES) {
 
                     QString cfgfile = gConf->getMessageFile(MSG_EMAIL_CONFIRMATION) ;
-                    msg("Sending Email message to " + emailaddress) ;
+                    msg("Sending confirmation email to " + emailaddress) ;
                    if (loadMessage(cfgfile, from, title, message, appt, contact)) {
 
                        switch (SendMail(from, emailaddress, title, message)) {
                        case 1:
-                           addLog("Sent email confirmation message to " + emailaddress) ;
+                           addLog("Sent confirmation email to " + emailaddress) ;
                            appt.setField(Appointment::MessageSent, nowToIsoString()) ;
                            if (istime) {
-                               addLog("Not sending reminder message to " + emailaddress + " as appointment is near") ;
+                               addLog("Not sending confirmation email to " + emailaddress + " as appointment is near") ;
                                appt.setField(Appointment::ReminderMessageSent, nowToIsoString()) ;
                            } else {
                                appt.setField(Appointment::ReminderMessageSent, "") ;
@@ -120,28 +118,26 @@ void MainWindow::sendMailSMS()
                    }
                 }
 
-                //
-                // Send Change
-                //
+                else if (textme && !emailme && !deleted && !messagesent && messagecounter<MAXMESSAGERETRIES) {
 
-                else if (emailme && !deleted && changed && messagesent && messagecounter<MAXMESSAGERETRIES) {
 
-                   QString cfgfile = gConf->getMessageFile(MSG_EMAIL_UPDATE) ;
-                   msg("Sending Email change message to " + emailaddress) ;
+                    QString cfgfile = gConf->getMessageFile(MSG_SMS_CONFIRMATION) ;
+                    msg("Sending confirmation sms to " + mobile) ;
+
                    if (loadMessage(cfgfile, from, title, message, appt, contact)) {
 
-                       switch (SendMail(from, emailaddress, title, message)) {
+                       switch (SendSMS(from, mobile, title)) {
                        case 1:
-                           addLog("Sent Email change message to " + emailaddress) ;
+                           addLog("Sent confirmation sms to " + mobile) ;
                            appt.setField(Appointment::MessageSent, nowToIsoString()) ;
                            if (istime) {
-                               addLog("Not sending reminder message to " + emailaddress + " as appointment is near") ;
+                               addLog("Not sending confirmation sms to " + mobile + " as appointment is near") ;
                                appt.setField(Appointment::ReminderMessageSent, nowToIsoString()) ;
                            } else {
                                appt.setField(Appointment::ReminderMessageSent, "") ;
                            }
 
-                           contact.getHistory().addEntry("Sending change email for appointment: " + apptdate)  ;
+                           contact.getHistory().addEntry("Sending confirmation sms for appointment: " + apptdate)  ;
                            play(Sent) ;
                            calendar.save() ;
                            break ;
@@ -151,28 +147,108 @@ void MainWindow::sendMailSMS()
                        case -3: // -3 - Error during transaction
                        case -4: // -4 - Unable to Send / Possibly Sent
                            appt.setField(Appointment::MessageCounter, QString::number(++messagecounter)) ;
-                           addLog("Error Sending Change Confirmation Email to " + emailaddress + ": " + SMTPSMSErrorMessage) ;
+                           addLog("Error Sending confirmation sms to " + mobile + ": " + SMTPSMSErrorMessage) ;
                            break ;
                        }
 
                    } else {
                        addLog(QString("Error loading: ") + cfgfile) ;
                    }
+
                 }
 
+
                 //
-                // Send Deleted / Cancelled
+                // Send Change email / sms
+                //
+
+                else if (emailme && !deleted && changed && messagesent && messagecounter<MAXMESSAGERETRIES) {
+
+                    QString cfgfile = gConf->getMessageFile(MSG_EMAIL_UPDATE) ;
+                    msg("Sending change email to " + emailaddress) ;
+                    if (loadMessage(cfgfile, from, title, message, appt, contact)) {
+
+                        switch (SendMail(from, emailaddress, title, message)) {
+                        case 1:
+                            addLog("Sent change email to " + emailaddress) ;
+                            appt.setField(Appointment::MessageSent, nowToIsoString()) ;
+                            if (istime) {
+                                addLog("Not sending change email to " + emailaddress + " as appointment is near") ;
+                                appt.setField(Appointment::ReminderMessageSent, nowToIsoString()) ;
+                            } else {
+                                appt.setField(Appointment::ReminderMessageSent, "") ;
+                            }
+
+                            contact.getHistory().addEntry("Sending change email for appointment: " + apptdate)  ;
+                            play(Sent) ;
+                            calendar.save() ;
+                            break ;
+                        case -1: // -1 - Not Started Sending
+                        case -2: // -2 - Network Error
+                            break ;
+                        case -3: // -3 - Error during transaction
+                        case -4: // -4 - Unable to Send / Possibly Sent
+                            appt.setField(Appointment::MessageCounter, QString::number(++messagecounter)) ;
+                            addLog("Error Sending Change Confirmation Email to " + emailaddress + ": " + SMTPSMSErrorMessage) ;
+                            break ;
+                        }
+
+                    } else {
+                        addLog(QString("Error loading: ") + cfgfile) ;
+                    }
+                 }
+
+                else if (textme && !emailme && !deleted && changed && messagesent && messagecounter<MAXMESSAGERETRIES) {
+
+
+                        QString cfgfile = gConf->getMessageFile(MSG_SMS_UPDATE) ;
+                        msg("Sending change sms to " + mobile) ;
+                        if (loadMessage(cfgfile, from, title, message, appt, contact)) {
+
+                            switch (SendSMS(from, mobile, title)) {
+                            case 1:
+                                addLog("Sent change sms to " + mobile) ;
+                                appt.setField(Appointment::MessageSent, nowToIsoString()) ;
+                                if (istime) {
+                                    addLog("Not sending change sms to " + mobile + " as appointment is near") ;
+                                    appt.setField(Appointment::ReminderMessageSent, nowToIsoString()) ;
+                                } else {
+                                    appt.setField(Appointment::ReminderMessageSent, "") ;
+                                }
+
+                                contact.getHistory().addEntry("Sending change SMS for appointment: " + apptdate)  ;
+                                play(Sent) ;
+                                calendar.save() ;
+                                break ;
+                            case -1: // -1 - Not Started Sending
+                            case -2: // -2 - Network Error
+                                break ;
+                            case -3: // -3 - Error during transaction
+                            case -4: // -4 - Unable to Send / Possibly Sent
+                                appt.setField(Appointment::MessageCounter, QString::number(++messagecounter)) ;
+                                addLog("Error Sending Change Confirmation sms to " + mobile + ": " + SMTPSMSErrorMessage) ;
+                                break ;
+                            }
+
+                        } else {
+                            addLog(QString("Error loading: ") + cfgfile) ;
+                        }
+                    }
+
+
+                //
+                // Send Deleted email/sms
                 //
 
                 else if (emailme && deleted && messagesent && messagecounter<MAXMESSAGERETRIES) {
 
                    QString cfgfile = gConf->getMessageFile(MSG_EMAIL_DELETION) ;
-                   msg("Sending Email cancelled message to " + emailaddress) ;
+                   msg("Sending cancellation email to " + emailaddress) ;
                    if (loadMessage(cfgfile, from, title, message, appt, contact)) {
 
                        switch (SendMail(from, emailaddress, title, message)) {
                        case 1:
-                           addLog("Sent Email cancellation message to " + emailaddress) ;
+                           addLog("Sent cancellation email to " + emailaddress) ;
                            appt.setField(Appointment::MessageSent, "") ;
                            appt.setField(Appointment::ReminderMessageSent, "") ;
                            contact.getHistory().addEntry("Sending cancellation email for appointment: " + apptdate)  ;
@@ -194,20 +270,52 @@ void MainWindow::sendMailSMS()
                    }
                 }
 
+                else if (textme && !emailme && deleted && messagesent && messagecounter<MAXMESSAGERETRIES) {
+
+                   QString cfgfile = gConf->getMessageFile(MSG_SMS_DELETION) ;
+                   msg("Sending cancelled sms to " + mobile) ;
+                   if (loadMessage(cfgfile, from, title, message, appt, contact)) {
+
+                       switch (SendSMS(from, mobile, title)) {
+                       case 1:
+                           addLog("Sent cancellation sms to " + mobile) ;
+                           appt.setField(Appointment::MessageSent, "") ;
+                           appt.setField(Appointment::ReminderMessageSent, "") ;
+                           contact.getHistory().addEntry("Sending cancellation sms for appointment: " + apptdate)  ;
+                           play(Sent) ;
+                           calendar.save() ;
+                           break ;
+                       case -1: // -1 - Not Started Sending
+                       case -2: // -2 - Network Error
+                           break ;
+                       case -3: // -3 - Error during transaction
+                       case -4: // -4 - Unable to Send / Possibly Sent
+                           appt.setField(Appointment::MessageCounter, QString::number(++messagecounter)) ;
+                           addLog("Error Sending cancellation sms to " + mobile + ": " + SMTPSMSErrorMessage) ;
+                           break ;
+                       }
+
+                   } else {
+                       addLog(QString("Error loading: ") + cfgfile) ;
+                   }
+                }
+
+
                 //
-                // Send SMS Reminder if we have a mobile number
+                // Send reminder sms/email
+                // note: SMS preferred for reminders
                 //
 
                 else if (textme && !deleted && istime && !remindermessagesent && messagecounter<MAXMESSAGERETRIES) {
 
                     QString cfgfile = gConf->getMessageFile(MSG_SMS_REMINDER) ;
-                    msg("Sending Reminder SMS message to " + mobile) ;
+                    msg("Sending reminder sms message to " + mobile) ;
                     if (loadMessage(cfgfile, from, title, message, appt, contact)) {
                         // Note: 'message' is not used
 
                         switch(SendSMS(from, mobile, title)) {
                         case 1:
-                            addLog("Sent SMS reminder to " + mobile) ;
+                            addLog("Sent reminder sms to " + mobile) ;
                             appt.setField(Appointment::ReminderMessageSent, nowToIsoString()) ;
                             contact.getHistory().addEntry("Sending reminder email for appointment: " + apptdate)  ;
                             play(Sent) ;
@@ -219,14 +327,7 @@ void MainWindow::sendMailSMS()
                         case -3: // -3 - Error during transaction
                         case -4: // -4 - Unable to Send / Possibly Sent
                             appt.setField(Appointment::MessageCounter, QString::number(++messagecounter)) ;
-                            addLog("Error Sending Reminder SMS to " + mobile + ": " + SMTPSMSErrorMessage) ;
-
-                            if (!CheckSMSCredits() && !skipmessage) {
-                                warningOkDialog(this,"Send SMS", "You have insufficient credit to send SMS messages") ;
-                                skipmessage=true ; // Skip the rest
-                                emailme=true ; // Revert to email (text not working)
-                                textme=false ;
-                            }
+                            addLog("Error Sending reminder sms to " + mobile + ": " + SMTPSMSErrorMessage) ;
                             break ;
                         }
 
@@ -235,19 +336,15 @@ void MainWindow::sendMailSMS()
                     }
                 }
 
-                //
-                // Else, send an email if we have an email address
-                //
-
                 else if (!textme && emailme && !deleted && istime && !remindermessagesent && messagecounter<MAXMESSAGERETRIES) {
 
                     QString cfgfile = gConf->getMessageFile(MSG_EMAIL_REMINDER) ;
-                    msg("Sending Reminder Email message to " + emailaddress) ;
+                    msg("Sending reminder email to " + emailaddress) ;
                     if (loadMessage(cfgfile, from, title, message, appt, contact)) {
 
                         switch (SendMail(from, emailaddress, title, message)) {
                         case 1:
-                            addLog("Sent reminder message to " + emailaddress) ;
+                            addLog("Sent reminder email to " + emailaddress) ;
                             appt.setField(Appointment::ReminderMessageSent, nowToIsoString()) ;
                             contact.getHistory().addEntry("Sending reminder email for appointment: " + apptdate)  ;
                             play(Sent) ;
@@ -259,7 +356,7 @@ void MainWindow::sendMailSMS()
                         case -3: // -3 - Error during transaction
                         case -4: // -4 - Unable to Send / Possibly Sent
                             appt.setField(Appointment::MessageCounter, QString::number(++messagecounter)) ;
-                            addLog("Error Sending Reminder Email to " + emailaddress + ": " + SMTPSMSErrorMessage) ;
+                            addLog("Error Sending reminder email to " + emailaddress + ": " + SMTPSMSErrorMessage) ;
                             break ;
                         }
 
@@ -313,14 +410,14 @@ int MainWindow::SendSMS(QString from, QString mobile, QString message)
 {
     SMS sms(gConf->getSMSAgent(), gConf->getSMSUsername(), gConf->getSMSPassword()) ;
     int success = sms.send(mobile, from, message) ;
-    SMSCredits = sms.checkCredits() ;
     SMTPSMSErrorMessage =  sms.getErrorMessage() ;
     return success ;
 }
 
-bool MainWindow::CheckSMSCredits()
+int MainWindow::GetSMSBalance()
 {
-    return SMSCredits ;
+    SMS sms(gConf->getSMSAgent(), gConf->getSMSUsername(), gConf->getSMSPassword()) ;
+    return sms.getBalance() ;
 }
 
 bool MainWindow::loadMessage(QString filename,

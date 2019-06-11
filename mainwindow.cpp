@@ -68,10 +68,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     enc = new Encryption(QString("trumpton.uk"), QString("TextFileEncryption")) ;
     gConf->setEncryption(enc);
 
-    // Timer ticks every 30 seconds
+    // Timer ticks every second
     QTimer *timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(tick()));
-    timer->start(30000);
+    timer->start(1000);
 
     // Populate contact record with a blank entry
     db.selectContact(SELECT_OVERVIEW);
@@ -589,17 +589,30 @@ void MainWindow::on_actionGotoJournal_triggered()
     }
 }
 
-// Tick triggered every 30 seconds
+// Tick triggered every second
 void MainWindow::tick()
 {
-    static int everyhour=120 ;
+    static int everyhour=1800 ; // First backup occurs in 30 minutes
+    static int everyday=86400 ;
 
-    if ((everyhour++)>=120) {
+    if ((++everyhour)>=3600) {
         everyhour=0 ;
         doBackup() ;
     }
 
-    if (gConf->getEnableReminders()) sendMailSMS() ;
+    if (gConf->getEnableReminders()) {
+
+         if ((++everyday)>86400) {
+            everyday=0 ;
+            int balance = GetSMSBalance() ;
+            addLog(QString("SMS Balance = ") + QString::number(balance)) ;
+            if (balance>=0 && balance<100) {
+                warningOkDialog(this,"Send SMS", "You have low SMS credit") ;
+            }
+        }
+
+        sendMailSMS() ;
+    }
 }
 
 
