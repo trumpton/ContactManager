@@ -20,7 +20,14 @@ private:
     SMS& operator =(const SMS &rhs) ;
 
 public:
-    bool send(QString number, QString from, QString message) ;
+
+    // Returns: -1 - Not Started Sending
+    //          -2 - Network Error
+    //          -3 - Error during transaction
+    //          -4 - Unable to Send / Possibly Sent
+    //           1 - Send OK
+
+    int send(QString number, QString from, QString message) ;
     QString& getErrorMessage() ;
     int getBalance() ;
     bool checkCredits() ;
@@ -31,7 +38,7 @@ private:
     QString username ;
     QString password ;
     QString smsErrorData ;
-    bool sendClockwork(QString number, QString from, QString message) ;
+    int sendClockwork(QString number, QString from, QString message) ;
     int getClockworkBalance() ;
 };
 
