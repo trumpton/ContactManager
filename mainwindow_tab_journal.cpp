@@ -30,9 +30,12 @@ void MainWindow::on_actionEnableEditHistoryEdit_triggered()
     } else {
         ui->editNotes->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard | Qt::TextEditable) ;
 
-        if (ui->tabBar->currentIndex()!=HISTORYTABPOS)
+        if (ui->tabBar->currentIndex()!=HISTORYTABPOS) {
+            dbg("tabBar->setCurrentIndex(HISTORYTABPOS)") ;
             ui->tabBar->setCurrentIndex(HISTORYTABPOS);
+        }
 
+        dbg("editNotes->setFocus()") ;
         ui->editNotes->setFocus() ;
     }
 }

@@ -265,18 +265,27 @@ void MainWindow::refreshMenus(Contact &contact, bool isediting, bool isnew, bool
         // Move to the selected tab
         if (contact.isNull()) {
             // No Contact
-            if (ui->tabBar->currentIndex()!=CALENDARTABPOS)
+            if (ui->tabBar->currentIndex()!=CALENDARTABPOS) {
+                dbg("tabBar->setCurrentIndex(CALENDARTABPOS)") ;
                 ui->tabBar->setCurrentIndex(CALENDARTABPOS) ;
+            }
+            dbg("listCalendar->setFocus()") ;
             ui->listCalendar->setFocus() ;
         } else if (isnew) {
             // Create
-            if (ui->tabBar->currentIndex()!=CONTACTDETAILSTABPOS)
+            if (ui->tabBar->currentIndex()!=CONTACTDETAILSTABPOS) {
+                dbg("tabBar->setCurrentIndex(CONTACTDETAILSTABPOS)") ;
                 ui->tabBar->setCurrentIndex(CONTACTDETAILSTABPOS);
+            }
+            dbg("editFirstName->setFocus()") ;
             ui->editFirstName->setFocus() ;
         } else {
             // Open
-            if (ui->tabBar->currentIndex()!=OVERVIEWTABPOS)
+            if (ui->tabBar->currentIndex()!=OVERVIEWTABPOS) {
+                dbg("tabBar->setCurrentIndex(OVERVIEWTABPOS)") ;
                 ui->tabBar->setCurrentIndex(OVERVIEWTABPOS) ;
+            }
+            dbg("editOverview->setFocus()") ;
             ui->editOverview->setFocus() ;
         }
 
@@ -348,15 +357,30 @@ void MainWindow::populateDialog(QString id, bool switchtooverview)
             currentindex=OVERVIEWTABPOS ;
         }
 
-        if (ui->tabBar->currentIndex()!=currentindex)
+        if (ui->tabBar->currentIndex()!=currentindex) {
+            dbg("tabBar->setCurrentIndex()") ;
             ui->tabBar->setCurrentIndex(currentindex) ;
+        }
 
         switch (currentindex) {
-            case OVERVIEWTABPOS: ui->editOverview->setFocus() ; break ;
-            case CALENDARTABPOS: ui->listCalendar->setFocus() ; break ;
-            case TODOTABPOS: ui->editToDo->setFocus() ; break ;
-            case CONTACTDETAILSTABPOS: break ;
-            case HISTORYTABPOS: ui->editNotes->setFocus() ; break ;
+            case OVERVIEWTABPOS:
+                dbg("editOverview->setFocus()") ;
+                ui->editOverview->setFocus() ;
+                break ;
+            case CALENDARTABPOS:
+                dbg("listCalendar->setFocus()") ;
+                ui->listCalendar->setFocus() ;
+                break ;
+            case TODOTABPOS:
+                dbg("editToDo->setFocus()") ;
+                ui->editToDo->setFocus() ;
+                break ;
+            case CONTACTDETAILSTABPOS:
+                break ;
+            case HISTORYTABPOS:
+                dbg("editNotes->setFocus()") ;
+                ui->editNotes->setFocus() ;
+                break ;
         }
 
     }

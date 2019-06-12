@@ -33,6 +33,7 @@ void MainWindow::LoadCalendarTab()
        }
     }
     ui->listCalendar->setModel(calendarlist.getModel()) ;
+    dbg("listCalendar->setCurrentIndex()") ;
     ui->listCalendar->setCurrentIndex(calendarlist.getModel()->index(matchidx)) ;
 }
 
@@ -111,6 +112,8 @@ void MainWindow::editAppointment(Appointment &editing, Appointment &reference, Q
 
         QString thisid = appt.getField(Appointment::ID) ;
         int index = calendarlist.find(thisid) ;
+
+        dbg("listCalendar->setCurrentIndex()") ;
         if (index>=0) ui->listCalendar->setCurrentIndex(calendarlist.getModel()->index(index)) ;
         else ui->listCalendar->setCurrentIndex(calendarlist.getModel()->index(0)) ;
 
@@ -138,9 +141,12 @@ void MainWindow::on_listCalendar_activated(const QModelIndex &index)
     if (!contactid.isEmpty()) {
         populateDialog(contactid) ;
 
-        if (ui->tabBar->currentIndex()!=CALENDARTABPOS)
+        if (ui->tabBar->currentIndex()!=CALENDARTABPOS) {
+            dbg("tabBar->setCurrentIndex(CALENDARTABPOS)") ;
             ui->tabBar->setCurrentIndex((CALENDARTABPOS));
+        }
 
+        dbg("listCalendar->setFocus() & setCurrentIndex()") ;
         ui->listCalendar->setFocus();
         ui->listCalendar->setCurrentIndex(calendarlist.getModel()->index(idx)) ;
     }
@@ -177,9 +183,12 @@ void MainWindow::on_actionNewAppointment_triggered()
         play(Disabled) ;
     } else {
 
-        if (ui->tabBar->currentIndex()!=CALENDARTABPOS)
+        if (ui->tabBar->currentIndex()!=CALENDARTABPOS) {
+            dbg("tabBar->setCurrentIndex(CALENDARTABPOS)") ;
             ui->tabBar->setCurrentIndex(CALENDARTABPOS);
+        }
 
+      dbg("listCalendar->setFocus()") ;
       ui->listCalendar->setFocus();
 
       Appointment reference = calendar.getNull() ;
@@ -216,8 +225,12 @@ void MainWindow::on_action_Insert_Appointment_After_triggered()
         play(Disabled) ;
     } else {
 
-        if (ui->tabBar->currentIndex()!=CALENDARTABPOS)
+        if (ui->tabBar->currentIndex()!=CALENDARTABPOS) {
+            dbg("tabBar->setCurrentIndex(CALENDARTABPOS)") ;
             ui->tabBar->setCurrentIndex(CALENDARTABPOS);
+        }
+
+        dbg("listCalendar->setFocus()") ;
         ui->listCalendar->setFocus();
 
         Appointment reference ;

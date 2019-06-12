@@ -1,6 +1,7 @@
 #include "search.h"
 #include "ui_search.h"
 #include "listviewstrings.h"
+#include "../Lib/supportfunctions.h"
 
 Search::Search(QWidget *parent) :
     QDialog(parent),
@@ -23,6 +24,7 @@ void Search::clearResults()
 void Search::addString(QString resulttext, QString resulthint)
 {
     strings.addString(resulttext, resulthint) ;
+    dbg("Search::addString: listSearchResults->setFocus()") ;
     ui->listSearchResults->setFocus() ;
     entries++ ;
 }
