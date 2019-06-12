@@ -149,6 +149,7 @@ void MainWindow::on_actionFindNext_triggered()
             }
 
             if (found) {
+                dbg("currentlistview->setCurrentIndex()") ;
                 currentlistview->setCurrentIndex(currentlist->findModelIndex(index)) ;
             }
         }
@@ -224,6 +225,7 @@ void MainWindow::on_actionGlobalFind_triggered()
 
         if (id.compare("--calendar--")==0) {
             // Switch to the calendar
+            dbg("tabBar->setCurrentIndex(CALEDARTABPOS)") ;
             ui->tabBar->setCurrentIndex(CALENDARTABPOS) ;
             // TODO: search calendarlist, and select returned index
             //ui->listCalendar->set;

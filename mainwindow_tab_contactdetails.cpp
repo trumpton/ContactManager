@@ -13,7 +13,7 @@ void MainWindow::on_action_Name_triggered()
         errorOkDialog(this, "Debug", "on_action_Name_triggered") ;
         return ;
     } else {
-        dbg("Setting FirstName Focus") ;
+        dbg("editFirstName->setFocus()") ;
         ui->editFirstName->setFocus() ;
     }
 }
@@ -26,7 +26,7 @@ void MainWindow::on_actionE_Mail_triggered()
         errorOkDialog(this, "Debug", "on_action_E_Mail_triggered") ;
         return ;
     } else {
-        dbg("Setting Email Focus") ;
+        dbg("editEmail->setFocus()") ;
         ui->editEmail->setFocus() ;
     }
 }
@@ -39,7 +39,7 @@ void MainWindow::on_action_Address_triggered()
         errorOkDialog(this, "Debug", "on_action_Address_triggered") ;
         return ;
     } else {
-        dbg("Setting Address Focus") ;
+        dbg("editAddress->setFocus()") ;
         ui->editAddress->setFocus() ;
     }
 }
@@ -52,7 +52,7 @@ void MainWindow::on_action_Phone_triggered()
         errorOkDialog(this, "Debug", "on_action_Phone_triggered") ;
         return ;
     } else {
-        dbg("Setting Home Focus") ;
+        dbg("editHome->setFocus()") ;
         ui->editHome->setFocus() ;
     }
 }
@@ -65,7 +65,7 @@ void MainWindow::on_action_Birthday_triggered()
         errorOkDialog(this, "Debug", "on_action_Birthday_triggered") ;
         return ;
     } else {
-        dbg("Setting DOB Focus") ;
+        dbg("editDateOfBirth->setFocus()") ;
         ui->editDateOfBirth->setFocus() ;
     }
 }
@@ -86,9 +86,12 @@ void MainWindow::on_actionEnableContactDetailsEdit_triggered()
         dbg("Moving to Contact Details Tab") ;
         ui->tabBar->setTabEnabled(CONTACTDETAILSTABPOS, true);
 
-        if (ui->tabBar->currentIndex()!=CONTACTDETAILSTABPOS)
+        if (ui->tabBar->currentIndex()!=CONTACTDETAILSTABPOS) {
+            dbg("tabBar->setCurrentIndex(CALENDARTABPOS)") ;
             ui->tabBar->setCurrentIndex(CONTACTDETAILSTABPOS) ;
+        }
 
+        dbg("editFirstName->setFocus()") ;
         ui->editFirstName->setFocus() ;
     }
 }
@@ -258,6 +261,7 @@ bool MainWindow::SaveContactTab()
                  "Contact Details Query",
                  "You've identified the contact as a client, but not selected Text or Email reminders.\nIs this right?")) {
                 on_actionEnableContactDetailsEdit_triggered() ;
+                dbg("checkTextMe->setFocus()") ;
                 ui->checkTextMe->setFocus() ;
                 return false ;
             }
@@ -271,6 +275,7 @@ bool MainWindow::SaveContactTab()
              "Contact Details Query",
              "You've selected a mobile number that doesn't look like a mobile number\nIs this right?")) {
             on_actionEnableContactDetailsEdit_triggered() ;
+            dbg("editMobile->setFocus()") ;
             ui->editMobile->setFocus() ;
             return false ;
         }
