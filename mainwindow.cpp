@@ -141,6 +141,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     // Setup Advanced Find
     find = new AdvancedFind(this) ;
 
+    // Set up Calendar Model
+    ui->listCalendar->setModel(calendarlist.getModel()) ;
+
+
     dbg("Initialisation complete") ;
 
 }

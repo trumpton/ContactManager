@@ -32,7 +32,7 @@ void MainWindow::LoadCalendarTab()
           }
        }
     }
-    ui->listCalendar->setModel(calendarlist.getModel()) ;
+
     dbg("listCalendar->setCurrentIndex()") ;
     ui->listCalendar->setCurrentIndex(calendarlist.getModel()->index(matchidx)) ;
 }
