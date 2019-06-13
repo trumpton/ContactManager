@@ -33,8 +33,9 @@ void MainWindow::LoadCalendarTab()
        }
     }
 
+    // !!! TODO: It is this line which causes the focus to change to the calendar
     dbg("listCalendar->setCurrentIndex()") ;
-    ui->listCalendar->setCurrentIndex(calendarlist.getModel()->index(matchidx)) ;
+//    ui->listCalendar->setCurrentIndex(calendarlist.getModel()->index(matchidx)) ;
 }
 
 
