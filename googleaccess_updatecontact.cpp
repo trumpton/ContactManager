@@ -213,6 +213,11 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
         QString emailme = contact.getField((Contact::EmailMe));
         QString hidden = contact.getField((Contact::Hidden)) ;
 
+        QJsonObject uploadedproperty ;
+        uploadedproperty.insert("key", "uploaded") ;
+        uploadedproperty.insert("value", "true") ;
+        properties.append(uploadedproperty) ;
+
         QJsonObject textmeproperty ;
         textmeproperty.insert("key", "textme") ;
         textmeproperty.insert("value", textme) ;
@@ -368,7 +373,7 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
             // Decode Response
             QString tag = "" ;
             if (parseContact(jsonresponse, tag, googlecontact)) {
-                contact.setField(Contact::GoogleRecordId, googlecontact.getField(Contact::GoogleRecordId)) ;
+                googlecontact.copyTo(contact, Contact::mcGoogleId) ;
                 QString mismatch = contact.mismatch(googlecontact, Contact::mcDetails|Contact::mcId, true) ;
                 if (mismatch.isEmpty()) {
                     addLog(QString("    parseContact OK ")) ;

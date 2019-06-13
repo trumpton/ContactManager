@@ -203,6 +203,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
                 // Contact is hidden or deleted, so don't override any options
                 // But, forget any previous Google Record ID
                 localcontact.setField(Contact::GoogleRecordId, "") ;
+                localcontact.setField(Contact::Uploaded, "") ;
 
             } else {
 
@@ -245,8 +246,10 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
             ui->updateStatusReport->append(QString("    ") + googlecontact.getFormattedName(false,false)) ;
             Contact newlocal ;
             newlocal.setField(Contact::ID, googlecontact.getField(Contact::ID)) ;
+            // Download (save) Google details
             newlocal.setFlag(Contact::ToBeDownloaded, true) ;
-            newlocal.setFlag(Contact::ToBeUploaded, true) ;
+            // Re-upload to affix ID if it was not already available on Google
+            if (!googlecontact.isSet(Contact::Uploaded)) newlocal.setFlag(Contact::ToBeUploaded, true) ;
             db.addContact(newlocal) ;
         }
     }

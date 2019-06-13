@@ -32,6 +32,7 @@ public:
         ProfileSurname, ProfileNames, ProfileAddress, ProfilePhone, ProfileEMail, ProfileOrg,
         GoogleRecordId,
         GoogleEtag,
+        Uploaded,
         ToBeUploaded, ToBeDownloaded,
         NumberOfRecords
     };
@@ -93,6 +94,7 @@ private:
         { ProfileOrg,      false, false,  true,  true, false, false,  true, false, "profileorg"},     // Organisation from profile
         { GoogleRecordId,  false, false,  true, false, false, false,  true, false, "googlerecordid"}, // Google record ID
         { GoogleEtag,      false, false, false, false, false, false, false, false, "googleetag"},     // Google Etag from last update
+        { Uploaded,         true, false, false, false, false, false, false, false, "wasuploaded"},       // True if record has been uploaded to Google
         { ToBeUploaded,     true, false, false, false, false, false, false, false, "tobeuploaded"},   // Flag to track if google upload required
         { ToBeDownloaded,   true, false, false, false, false, false, false, false, "tobedownloaded"}, // Flag to track if google download required
     };
