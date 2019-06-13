@@ -308,7 +308,7 @@ bool Contact::load(QString path, QString idname)
 
 int Contact::find(QString text)
 {
-    dbg(QString("{%1} - find(%2)").arg(getField(Contact::ID).arg(text))) ;
+    dbg(QString("{%1} - find(%2)").arg(getField(Contact::ID)).arg(text)) ;
 
     text = text.toLower() ;
     deAccent(text) ;
@@ -795,7 +795,7 @@ bool Contact::isContactOfType(Contact::ContactRecord i, int mctype)
     return ( (testdetails && this->contactrecordinfo[(Contact::ContactRecord)i].isdetails) ||
          (testgroup && this->contactrecordinfo[(Contact::ContactRecord)i].isgroupdetails) ||
          (testid && i==(int)Contact::ID) ||
-         (testgoogleid && i==(int)Contact::GoogleRecordId) ||
+         (testgoogleid && (i==(int)Contact::GoogleRecordId || i==(int)Contact::Uploaded)) ||
          (testflag && this->contactrecordinfo[(Contact::ContactRecord)i].isflag) ||
          (testprofile && this->contactrecordinfo[(Contact::ContactRecord)i].isprofile) ||
          (testetag && i==(int)Contact::GoogleEtag) ||

@@ -123,6 +123,7 @@ bool GoogleAccess::parseContact(QJsonObject &item, Contact &contact)
             if (name.compare("textme")==0) contact.setField(Contact::TextMe,value) ;
             if (name.compare("emailme")==0) contact.setField(Contact::EmailMe,value) ;
             if (name.compare("hidden")==0) contact.setField(Contact::Hidden,value) ;
+            if (name.compare("uploaded")==0) contact.setField(Contact::Uploaded, value) ;
         }
     }
 
