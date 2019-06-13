@@ -308,7 +308,7 @@ bool Contact::load(QString path, QString idname)
 
 int Contact::find(QString text)
 {
-    dbg(QString("{%1} - find(%2)").arg(getField(Contact::ID).arg(text))) ;
+    dbg(QString("{%1} - find(%2)").arg(getField(Contact::ID)).arg(text)) ;
 
     text = text.toLower() ;
     deAccent(text) ;

@@ -212,14 +212,15 @@ void MainWindow::on_actionGlobalFind_triggered()
               warningOkDialog(this, "", "No Match Found.") ;
         }
 
-        if (matches==1) {
+        else if (matches==1) {
             // One active entry, so Skip search dialog
             id = srch->getFirst() ;
             Contact c = db.getContactById(id) ;
             if (!c.isSet(Contact::Deleted) && !c.isSet(Contact::Hidden)) matches=-1 ;
         }
 
-        if (matches>0) {
+        else if (matches>1) {
+            // Several entries, so prompt for choice
              if (srch->exec()==QDialog::Accepted) id = srch->getSelection() ;
         }
 
