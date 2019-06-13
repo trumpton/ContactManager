@@ -795,7 +795,7 @@ bool Contact::isContactOfType(Contact::ContactRecord i, int mctype)
     return ( (testdetails && this->contactrecordinfo[(Contact::ContactRecord)i].isdetails) ||
          (testgroup && this->contactrecordinfo[(Contact::ContactRecord)i].isgroupdetails) ||
          (testid && i==(int)Contact::ID) ||
-         (testgoogleid && i==(int)Contact::GoogleRecordId) ||
+         (testgoogleid && (i==(int)Contact::GoogleRecordId || i==(int)Contact::Uploaded)) ||
          (testflag && this->contactrecordinfo[(Contact::ContactRecord)i].isflag) ||
          (testprofile && this->contactrecordinfo[(Contact::ContactRecord)i].isprofile) ||
          (testetag && i==(int)Contact::GoogleEtag) ||
