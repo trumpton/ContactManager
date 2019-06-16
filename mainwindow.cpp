@@ -144,6 +144,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     // Set up Calendar Model
     ui->listCalendar->setModel(calendarlist.getModel()) ;
 
+    // Fire 'Goto Today' after initialisation complete
+    QTimer::singleShot(500, this, SLOT(on_actionGotoToday_triggered()));
 
     dbg("Initialisation complete") ;
 
