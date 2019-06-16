@@ -147,9 +147,8 @@ void MainWindow::on_listCalendar_activated(const QModelIndex &index)
             ui->tabBar->setCurrentIndex((CALENDARTABPOS));
         }
 
-        dbg("listCalendar->setFocus() & setCurrentIndex()") ;
+        dbg("listCalendar->setFocus()") ;
         ui->listCalendar->setFocus();
-        ui->listCalendar->setCurrentIndex(calendarlist.getModel()->index(idx)) ;
     }
 }
 
@@ -341,7 +340,4 @@ void MainWindow::on_actionRemoveAppointment_triggered()
 {
      on_removeAppointmentButton_clicked() ;
 }
-
-
-
 
