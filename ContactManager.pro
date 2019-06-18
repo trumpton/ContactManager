@@ -46,7 +46,6 @@ SOURCES += main.cpp\
     appointment.cpp \
     appointmentform.cpp \
     configuration.cpp \
-    listviewstrings.cpp \
     googleaccess.cpp \
     googleupdatedialog.cpp \
     ../Lib/supportfunctions.cpp \
@@ -94,7 +93,8 @@ SOURCES += main.cpp\
     googleaccess_updatecontactgroups.cpp \
     googleaccess_getcontact.cpp \
     advancedfind.cpp \
-    mainwindow_test.cpp
+    mainwindow_test.cpp \
+    accessiblestringlistmodel.cpp
 
 HEADERS  += mainwindow.h \
     history.h \
@@ -105,7 +105,6 @@ HEADERS  += mainwindow.h \
     appointment.h \
     appointmentform.h \
     configuration.h \
-    listviewstrings.h \
     googleaccess.h \
     googleupdatedialog.h \
     ../Lib/supportfunctions.h \
@@ -132,7 +131,8 @@ HEADERS  += mainwindow.h \
     version.h \
     ../Lib/encryption.h \
     ../Lib/aes.h \
-    advancedfind.h
+    advancedfind.h \
+    accessiblestringlistmodel.h
 
 FORMS    += mainwindow.ui \
     search.ui \

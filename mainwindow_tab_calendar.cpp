@@ -9,10 +9,10 @@
 void MainWindow::LoadCalendarTab()
 {
     int idx = ui->listCalendar->currentIndex().row() ;
-    QString id = calendarlist.hintAt(idx) ;
+    QString id = calendarlist. hintAt(idx) ;
     int matchidx=0 ;
 
-    calendarlist.clearStrings() ;
+    calendarlist.clear() ;
     calendar.sort() ;
     int ne=calendar.size() ;
     for (int i=0; i<ne; i++) {
@@ -26,7 +26,8 @@ void MainWindow::LoadCalendarTab()
                apptfor = contact.getFormattedName(false, false) ;
            }
            QString title = appt.asText(apptfor) ;
-           calendarlist.addString(title, appt.getField(Appointment::ID)) ;
+           QString accessibletitle = appt.asAccessibleDescription(apptfor) ;
+           calendarlist.appendData(title, accessibletitle, appt.getField(Appointment::ID)) ;
           if (id.compare(appt.getField(Appointment::ID))==0) {
               matchidx = i ;
           }
@@ -112,11 +113,10 @@ void MainWindow::editAppointment(Appointment &editing, Appointment &reference, Q
         LoadTabs() ;
 
         QString thisid = appt.getField(Appointment::ID) ;
-        int index = calendarlist.find(thisid) ;
+        QModelIndex index = calendarlist.find(thisid) ;
 
         dbg("listCalendar->setCurrentIndex()") ;
-        if (index>=0) ui->listCalendar->setCurrentIndex(calendarlist.getModel()->index(index)) ;
-        else ui->listCalendar->setCurrentIndex(calendarlist.getModel()->index(0)) ;
+        ui->listCalendar->setCurrentIndex(index) ;
 
     }
 

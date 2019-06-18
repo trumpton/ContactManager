@@ -11,5 +11,6 @@
 
 void MainWindow::on_actionTest_Function_triggered()
 {
+    calendarlist.debug() ;
 }
 
