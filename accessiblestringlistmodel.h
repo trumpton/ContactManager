@@ -30,9 +30,9 @@ public:
     QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const;
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
     bool setData( const QModelIndex &index, QVariant data, int role = Qt::DisplayRole) ;
+    bool insertRows(int row, int column, const QModelIndex &parent = QModelIndex()) ;
 
     void clear() ;
-    bool insertRow(int row, const QModelIndex &parent = QModelIndex()) ;
     bool setData(const QModelIndex &index, QVariant display, QVariant accessibletext, QVariant user) ;
     bool appendData(QVariant display, QVariant accessibletext, QVariant user) ;
 
