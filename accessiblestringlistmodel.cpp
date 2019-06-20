@@ -14,7 +14,7 @@ void AccessibleStringListModel::clear()
 
 bool AccessibleStringListModel::appendData(QVariant display, QVariant accessibletext, QVariant user)
 {
-    if (insertRow(rowCount())) {
+    if (insertRows(rowCount(), 1)) {
         return setData(index(rowCount()-1, 0), display, accessibletext, user) ;
     } else {
         return false ;
@@ -29,13 +29,19 @@ bool AccessibleStringListModel::setData(const QModelIndex &index, QVariant displ
     return true ;
 }
 
-bool AccessibleStringListModel::insertRow(int row, const QModelIndex &parent)
+
+bool AccessibleStringListModel::insertRows(int row, int count, const QModelIndex &parent)
 {
+    Q_UNUSED(parent) ;
     QList<QVariant> newentry ;
     newentry.append(QVariant(""));
     newentry.append(QVariant(""));
     newentry.append(QVariant(""));
-    modeldata.insert(row, newentry) ;
+    beginInsertRows(parent, row, row + count - 1) ;
+    for (int i=0; i<count; i++) {
+        modeldata.insert(row, newentry) ;
+    }
+    endInsertRows();
     return true ;
 }
 
