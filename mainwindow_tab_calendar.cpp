@@ -26,7 +26,7 @@ void MainWindow::LoadCalendarTab()
                apptfor = contact.getFormattedName(false, false) ;
            }
            QString title = appt.asText(apptfor) ;
-           QString accessibletitle = appt.asAccessibleDescription(apptfor) ;
+           QString accessibletitle = appt.asAccessibleText(apptfor) ;
            calendarlist.appendData(title, accessibletitle, appt.getField(Appointment::ID)) ;
           if (id.compare(appt.getField(Appointment::ID))==0) {
               matchidx = i ;
@@ -34,9 +34,9 @@ void MainWindow::LoadCalendarTab()
        }
     }
 
-    // !!! TODO: It is this line which causes the focus to change to the calendar
+    // Restore Calendar Index
     dbg("listCalendar->setCurrentIndex()") ;
-//    ui->listCalendar->setCurrentIndex(calendarlist.getModel()->index(matchidx)) ;
+    ui->listCalendar->setCurrentIndex(calendarlist.index(matchidx,0)) ;
 }
 
 
