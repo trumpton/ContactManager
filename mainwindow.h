@@ -8,7 +8,7 @@
 #include "calendar.h"
 #include "configuration.h"
 #include "googleaccess.h"
-#include "listviewstrings.h"
+#include "accessiblestringlistmodel.h"
 
 #include "ui_mainwindow.h"
 #include "search.h"
@@ -18,7 +18,6 @@
 #include "appointmentform.h"
 #include "googleupdatedialog.h"
 #include "configuration.h"
-#include "listviewstrings.h"
 #include "transactionform.h"
 #include "../Lib/supportfunctions.h"
 #include "../Lib/encryption.h"
@@ -153,7 +152,7 @@ private:
     class ContactDatabase db ;                      // Database of Everything
     QString searchtext ;                            // search text for find
     GoogleAccess google ;                           // Google calendar / contacts
-    ListViewStrings calendarlist;                   // Contents of Calendar display
+    AccessibleStringListModel calendarlist;         // Contents of Calendar display
     QTimer *timer ;
     Encryption *enc ;
     AdvancedFind *find ;

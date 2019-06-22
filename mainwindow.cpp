@@ -46,7 +46,6 @@
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow)
 {
-    calendarlist.clearStrings() ;
     searchtext="" ;
 
     ui->setupUi(this);
@@ -72,6 +71,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     QTimer *timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(tick()));
     timer->start(1000);
+
+    // Set up Calendar Model
+    calendarlist.clear() ;
+    ui->listCalendar->setModel(&calendarlist) ;
 
     // Populate contact record with a blank entry
     db.selectContact(SELECT_OVERVIEW);
@@ -102,7 +105,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
              return ;
          }
      }
-
 
     // Load the local data
     dbg("Loading database and calendar") ;
@@ -140,10 +142,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
     // Setup Advanced Find
     find = new AdvancedFind(this) ;
-
-    // Set up Calendar Model
-    ui->listCalendar->setModel(calendarlist.getModel()) ;
-
 
     dbg("Initialisation complete") ;
 

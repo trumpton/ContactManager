@@ -281,7 +281,7 @@ void Appointment::setField(enum Appointment::AppointmentRecord field, QString da
     }
 
     // TODO: This line is for debug purposes, so the summary can be seen in the debugger
-    asText() ;
+    // asText() ;
 
     isnull = false ;
 }
@@ -327,6 +327,11 @@ void Appointment::createNew()
     isdirty = false ;
 }
 
+QString& Appointment::asAccessibleText(QString name)
+{
+    asAccessibleTextResponse = asText(name) ;
+    return asAccessibleTextResponse ;
+}
 
 QString& Appointment::asText(QString name, QString start, QString mid, QString end)
 {
