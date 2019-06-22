@@ -23,7 +23,7 @@ void MainWindow::on_actionFindNext_triggered()
         QTextEdit *currenttextedit=NULL ;
         QPlainTextEdit *currentplaintextedit=NULL ;
         QListView *currentlistview=NULL;
-        ListViewStrings *currentlist=NULL ;
+        AccessibleStringListModel *currentlist=NULL ;
 
         // Work out what is the  current text field
         switch (ui->tabBar->currentIndex()) {
@@ -132,14 +132,14 @@ void MainWindow::on_actionFindNext_triggered()
         }
 
         if (currentlistview!=NULL && currentlist!=NULL) {
-            int index = currentlistview->currentIndex().row() ;
-            index=currentlist->find(searchtext, index) ;
-            if (index>=0) {
+            int row = currentlistview->currentIndex().row() ;
+            QModelIndex index=currentlist->find(searchtext, row) ;
+            if (index.isValid()) {
                 play(Found) ;
                 found = true ;
             } else {
-                index=currentlist->find(searchtext, -1) ;
-                if (index>=0) {
+                index=currentlist->find(searchtext, 0) ;
+                if (index.row()>=0) {
                     play(Wrapped) ;
                     found = true ;
                 } else {
@@ -150,7 +150,7 @@ void MainWindow::on_actionFindNext_triggered()
 
             if (found) {
                 dbg("currentlistview->setCurrentIndex()") ;
-                currentlistview->setCurrentIndex(currentlist->findModelIndex(index)) ;
+                currentlistview->setCurrentIndex(index) ;
             }
         }
     }

@@ -1,32 +1,27 @@
 #include "search.h"
 #include "ui_search.h"
-#include "listviewstrings.h"
 #include "../Lib/supportfunctions.h"
 
 Search::Search(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::Search)
 {
-    getSelectionResponse = "" ;
     ui->setupUi(this);
+    ui->listSearchResults->setModel(&strings) ;
     clearResults() ;
-    ui->listSearchResults->setModel(strings.getModel()) ;
 }
 
 void Search::clearResults()
 {
     ui->listSearchResults->reset() ;
-    strings.clearStrings() ;
-    selectedindex = -1 ;
-    entries = 0 ;
+    strings.clear() ;
 }
 
 void Search::addString(QString resulttext, QString resulthint)
 {
-    strings.addString(resulttext, resulthint) ;
+    strings.appendData(resulttext, resulttext, resulthint) ;
     dbg("Search::addString: listSearchResults->setFocus()") ;
     ui->listSearchResults->setFocus() ;
-    entries++ ;
 }
 
 Search::~Search()
@@ -37,23 +32,13 @@ Search::~Search()
 QString Search::getSelection()
 {
     int index = ui->listSearchResults->currentIndex().row() ;
-    if (index>=0)
-        getSelectionResponse = strings.hintAt(index) ;
-    else
-        getSelectionResponse = "" ;
-    return getSelectionResponse ;
+    if (index>=0) return strings.hintAt(index) ;
+    else return QString("") ;
 }
 
 QString Search::getFirst()
 {
-    getSelectionResponse = "" ;
-    if (entries>0) getSelectionResponse = strings.hintAt(0) ;
-    return getSelectionResponse ;
+    if (strings.rowCount()>0)  return strings.hintAt(0) ;
+    else return QString("") ;
 }
 
-void Search::on_listSearchResults_clicked(const QModelIndex &index)
-{
-    Q_UNUSED(index) ;
-    // TODO: store index so that serc form can be queried for the ID
-    //selectedindex = ui->listSearchResults->currentIndex().row() ;
-}
