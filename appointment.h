@@ -127,7 +127,7 @@ private:
     QString asTextResponse ;
     QString asHTMLResponse ;
     QDateTime getDateResponse ;
-    QString asAccessibleDescriptionResponse ;
+    QString asAccessibleTextResponse ;
 
 public:
 
@@ -174,7 +174,7 @@ public:
     QString& getContactId() ;
 
     QString& asText(QString name="", QString start="", QString mid="", QString end="") ;
-    QString& asAccessibleDescription(QString name="") ;
+    QString& asAccessibleText(QString name="") ;
     QString& shortText() ;
     QString& asHTML(QString name="") ;
 

@@ -327,10 +327,10 @@ void Appointment::createNew()
     isdirty = false ;
 }
 
-QString& Appointment::asAccessibleDescription(QString name)
+QString& Appointment::asAccessibleText(QString name)
 {
-    asAccessibleDescriptionResponse = QString("Accessible Description: ") + asText(name) ;
-    return asAccessibleDescriptionResponse ;
+    asAccessibleTextResponse = asText(name) ;
+    return asAccessibleTextResponse ;
 }
 
 QString& Appointment::asText(QString name, QString start, QString mid, QString end)
