@@ -143,6 +143,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     // Setup Advanced Find
     find = new AdvancedFind(this) ;
 
+    // Fire 'Goto Today' after initialisation complete
+    QTimer::singleShot(500, this, SLOT(on_actionGotoToday_triggered()));
+
     dbg("Initialisation complete") ;
 
 }
@@ -730,14 +733,14 @@ void MainWindow::setAccessibleTextAndWindowTitle(QString name)
     // Setup the accessible text, window name etc, to include the current contact
     if (name.isEmpty()) {
         setWindowTitle("Contact Manager") ;
-        ui->editOverview->setAccessibleName("Overview") ;
-        ui->editNotes->setAccessibleName("History") ;
-        ui->editToDo->setAccessibleName("To Do List") ;
+        ui->editOverview->setAccessibleDescription("Overview") ;
+        ui->editNotes->setAccessibleDescription("History") ;
+        ui->editToDo->setAccessibleDescription("To Do List") ;
     } else {
         setWindowTitle(name + " - Contact Manager") ;
-        ui->editOverview->setAccessibleName("Overview for " + name) ;
-        ui->editNotes->setAccessibleName("History for " + name) ;
-        ui->editToDo->setAccessibleName("To Do List for " + name) ;
+        ui->editOverview->setAccessibleDescription("Overview for " + name) ;
+        ui->editNotes->setAccessibleDescription("History for " + name) ;
+        ui->editToDo->setAccessibleDescription("To Do List for " + name) ;
     }
     dbg("title set complete") ;
 }
