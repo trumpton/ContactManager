@@ -12,16 +12,6 @@
 
 //*****************************************************************************************************
 
-// TODO: IfMatch ETag
-//       see: https://developers.google.com/google-apps/contacts/v3/#updating_contacts
-//
-// TODO: retry in case accesstoken had expired
-//
-// TODO: merge post and get into same finction
-//       googleQuery(QString link, QString xml, bool post)
-//       if xml is empty, it is a get (and the content type xml is not set)
-//       if post is true, it's a post
-//       otherwise it's a put
 
 //=====================================================================================================
 //

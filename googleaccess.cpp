@@ -1,12 +1,5 @@
 /*
  *
- *  TODO:
- *
- *   Retrieve data into DOM structure from Google - OK, in function xxxx
- *   Create a new blank DOM structure - OK, just creates an entry tag
- *   Search a DOM structure for a named tag/label/rel - OK, but only returns first
- *   Modify the found element of DOM structure - No
- *   Insert an element in the DOM structure if not found - No
  *
  */
 

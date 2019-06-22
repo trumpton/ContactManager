@@ -1,5 +1,4 @@
 
-// TODO: progress bar during sync
 
 #include <QApplication>
 #include <QSharedMemory>

@@ -24,8 +24,6 @@ void MainWindow::doBackup()
     gConf->setBackupDate(nowdate) ;
     gConf->setBackupSequence(seq+1) ;
 
-    // TODO: Remove old backups ...
-
     msg("Backup complete.") ;
 
 }
