@@ -1,39 +1,8 @@
 //
-// TODO: After Control-S, the focus on the braille display is returned to the Calendar
-//       but the visible entry remains on the contact details
+// Contact Manager
 //
-// TODO: Braille display does not speak calendar entries on startup
-//       Suspect that the code to force the focus to change on the calendar tab is buggering up the refresh
-//       Don't need to LoadTabs the Calendar Tab on Control-S ???
+//  mainwindow.cpp
 //
-// TODO: safe save
-//
-// TODO: check for appointment clashes on startup
-//
-// TODO: Email address ends up being copied into home, even if just work is specified.
-//
-// TODO: Control-S after editing a new contact saves it but doesn't update the menus etc.
-//
-// TODO: A Google appointment is downloaded, and then re-uploaded as a different appointment.
-//       It never syncs properly.  Even if you delete the google appointments, each sync re-uploads
-//       the same ones agains and again.
-//
-// TODO:  Some google uploads gets error 400 - probably due to invalid format DOB
-//
-
-
-// ==========================================================================
-//
-// There are lots of things to do
-//
-//  The big change in moving contacts to the people api:
-//
-//    You can now be a member of several groups
-//    You can read the groups when reading a contact
-//    You have to write to the groups api to change groupies though
-//    Ive changed syncing so that a cache of what was on google is not maintained
-//    So syncing will now have to overwrite a whole contact (at one end or the other) not just individual fields
-//    Need to draw all this out on a bit of paper
 //
 // ==========================================================================
 

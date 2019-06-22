@@ -7,9 +7,6 @@
 #include <QTextDecoder>
 #include "../Lib/supportfunctions.h"
 
-// TODO: Need to think about how recurring appointments are handled, perhaps getFromDate and getToDate can take an occurrence parameter?
-
-// TODO: Always work with dates in UTC
 // Bug Observation: QDateTime.SetDate() Only works if the QDateTime item is set to Utc.
 // e.g. qDateTimeGmt.setDate(QDate::CurrentDate()) sets the qDateTimeGmt to "invalid"
 

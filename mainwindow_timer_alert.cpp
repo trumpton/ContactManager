@@ -3,8 +3,6 @@
 #include "configuration.h"
 #include "../Lib/alertsound.h"
 
-// TODO: smtp::disconnected:83 unknown error
-
 void MainWindow::sendMailSMS()
 {
     QString from, title, message ;

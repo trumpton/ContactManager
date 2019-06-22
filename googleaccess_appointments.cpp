@@ -133,8 +133,6 @@ bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QStrin
     QString contact = item["extendedProperties"].toObject()["private"].toObject()["ContactID"].toString().replace("\n","") ;
     bool organiserself = item["organizer"].toObject()["self"].toBool() ;
 
-    // TODO: Appointment repeats are missing
-
     // Remove any trailing brackets appointment-for {}, and set description and appointmentfor
     if (!appointmentfor.isEmpty()) {
         description = description.trimmed().replace(QRegExp("\\{(.*)\\}$"), "").trimmed() ;
@@ -159,8 +157,6 @@ bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QStrin
         appt.setField(Appointment::From, fromdate) ;
         appt.setField(Appointment::To, todate) ;
     }
-
-    //TODO: Process and extract Repeat and RepeatInterval
 
     if (!id.isEmpty()) appt.setField(Appointment::ID, id) ;
     appt.setField(Appointment::ContactId, contact) ;
@@ -223,7 +219,6 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
     if (appt.isSet(Appointment::Deleted))
         action = GoogleAccess::Delete ;
 
-    // TODO: need a private flag or flip sense of googleorganiseself to googleothercalendar
     // Prevent read-only Google entries being changed (should never happen as entry is readonly)
     if (action!=GoogleAccess::Post && appt.isSet(Appointment::InternetOwned))
         return true ;
@@ -267,8 +262,6 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
             root.insert("sequence", QString::number(sequence+1)) ;
         }
 
-        // TODO: Set Repeat / RepeatInterval
-
         root.insert("status", "confirmed") ;
 
         QString summary = appt.getField(Appointment::Description) ;
@@ -300,8 +293,6 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
 
         ExtendedProperties.insert("private", PrivateExtendedProperties) ;
         root.insert("extendedProperties", ExtendedProperties) ;
-
-        // TODO: also set google save fields (to be same as appt fields)
 
         doc.setObject(root) ;
         QString jsontext = doc.toJson() ;
