@@ -89,7 +89,7 @@ public:
         { GoogleCreated,       false,  true,  true, false,  true, true, "googlecreated" },
         { GoogleStatus,        false,  true,  true, false,  true, true, "googlestatus" },
 
-        { Created,             false,  true,  true, false, false, true, "createddate" },
+        { Created,             false, false,  true, false, false, true, "createddate" },
         { Updated,             false, false,  true, false, false, true, "Updateddate" },
         { FromUpdated,         false,  true,  true, false, false, true, "fromupdateddate" },
         { MessageSent,         false,  true,  true, false, false, true, "messagesentdate" },
