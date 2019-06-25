@@ -185,7 +185,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
             Appointment& googleappt = googlecal.getAppointmentBy(Appointment::ID, localappt.getField(Appointment::ID)) ;
 
             bool deletedlocaldeletedgoogle = (googleappt.isNull() || googleappt.isSet(Appointment::Deleted)) && (localappt.isSet(Appointment::Deleted)) ;
-            bool googlematcheslocal = googleappt.matches(localappt, Appointment::maDetails|Appointment::maId) ;
+            bool googlematcheslocal = googleappt.matches(localappt, Appointment::maDetailsNoUpdatedDate|Appointment::maId) ;
 
             if ( deletedlocaldeletedgoogle ) {
 
@@ -205,7 +205,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                         summary = QString("deleted") ;
                         localappt.setFlag(Appointment::Deleted, true) ;
                     } else {
-                        changes = QString("Downloaded: ") + googleappt.mismatch(localappt, Appointment::maDetails) + QString(". ");
+                        changes = QString("Downloaded: ") + googleappt.mismatch(localappt, Appointment::maDetailsNoUpdatedDate) + QString(". ");
                         summary = QString("downloaded") ;
                         googleappt.copyTo(localappt, Appointment::maDetails|Appointment::maGoogleId) ;
                     }
@@ -218,7 +218,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                         changes = QString("Deleted.") ;
                         summary = QString("deleted") ;
                     } else {
-                        changes = QString("Uploaded: ") + localappt.mismatch(googleappt, Appointment::maDetails|Appointment::maId) + QString(". ");
+                        changes = QString("Uploaded: ") + localappt.mismatch(googleappt, Appointment::maDetailsNoUpdatedDate|Appointment::maId) + QString(". ");
                         summary = QString("uploaded") ;
                     }
                     ui->updateStatusReport->append(QString("    ") + localappt.asText() + QString(" - Updating Google Contact Details (%1)").arg(summary)) ;
