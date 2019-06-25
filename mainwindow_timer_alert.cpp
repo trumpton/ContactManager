@@ -5,6 +5,8 @@
 
 void MainWindow::sendMailSMS()
 {
+    if (!gConf->getEnableReminders()) return ;
+
     QString from, title, message ;
     static int mutex=0 ;
     QDateTime now = QDateTime::currentDateTimeUtc() ;
