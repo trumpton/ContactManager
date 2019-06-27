@@ -39,8 +39,7 @@ void MainWindow::on_actionIncome_triggered()
     ret = frm->exec() ;
     if (ret!=0) {
         QString msg = "Income Received: " + frm->getValue() + " - " + frm->getDescription() ;
-        dr.getHistory().addEntry(msg) ;
-        LoadEditHistory() ;
+        appendHistory(dr, msg) ;
     }
     delete frm ;
 }
@@ -89,8 +88,7 @@ void MainWindow::on_actionPayment_triggered()
     ret = frm->exec() ;
     if (ret!=0) {
         QString msg = "Payment Expense: " + frm->getValue() + " - " + frm->getDescription() ;
-        rec->getHistory().addEntry(msg) ;
-        LoadEditHistory() ;
+        appendHistory(*rec, msg) ;
     }
     delete frm ;
 }

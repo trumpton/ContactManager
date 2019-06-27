@@ -169,6 +169,8 @@ private:
     void LoadTabs() ;               // Loads / Populates all Tabs
     void SaveTabs() ;               // Saves all Tabs
 
+    void appendHistory(Contact& contact, QString msg) ;
+
     void LoadOverviewTab() ;  // Transfer Database Overview -> Overview Tab
     void LoadContactTab() ;     // Transfer Database Item Contact Data -> Contact Tab
     bool SaveContactTab() ;     // Transfer Contact Tab -> Database Item Contact Data

@@ -261,19 +261,16 @@ void Appointment::setField(enum Appointment::AppointmentRecord field, QString da
             dat.compare(filedata[field])!=0) {
 
         // Set updated and fromupdated times
-        if (appointmentrecordinfo[field].issynced) {
+        if (appointmentrecordinfo[field].issaved) {
             QString now = nowToIsoString() ;
             filedata[Appointment::Updated] = now ;
-            if (field==Appointment::From) filedata[Appointment::FromUpdated] = now ;
+            if (field==Appointment::From || field==Appointment::To) filedata[Appointment::DateUpdated] = now ;
+            isdirty = true ;
         }
 
         // Now set the data
         filedata[field]=dat ;
         isempty = false ;
-
-        if (appointmentrecordinfo[field].updatesdirty) {
-            isdirty = true ;
-        }
 
     }
 
@@ -434,7 +431,7 @@ bool Appointment::isAppointmentOfType(Appointment::AppointmentRecord i, int maty
     bool testflag = ( (matype&Appointment::maFlag)!=0) ;
     bool testcontrol = ( (matype&Appointment::maControlFlags) !=0) ;
     bool testupdateddate = ( (matype&Appointment::maUpdatedDate) !=0) ;
-    bool testdetails = ( (matype&Appointment::maDetailsNoUpdatedDate) !=0) ;
+    bool testdetails = ( (matype&Appointment::maDetails) !=0) ;
     bool testgoogleacct = ( (matype&Appointment::maGoogleAcct) !=0) ;
     bool testsaved = ( (matype&Appointment::maSavedFields) !=0) ;
 

@@ -36,7 +36,7 @@ public:
         // Timestamps
         Created,                // Set when created
         Updated,                // Updated when field upto LASTSYNCED changed
-        FromUpdated,            // Updated when From changed (used to re-send SMS alerts)
+        DateUpdated,            // Updated when To/From changed (used to re-send SMS alerts)
 
         // Message Timestamps
         MessageSent,            // Updated when message sent
@@ -46,7 +46,6 @@ public:
         MessageCounter,         // Number of Message Sends
 
         // Flags
-        Temporary,              // Temporary flag (used for local birthdays & repeats)
         ToBeUploaded,           // Used to track uploads
         ToBeDownloaded,         // Used to track downloads
 
@@ -58,61 +57,56 @@ public:
     struct AppointmentRecordInfo {
         enum AppointmentRecord recordtype;
         bool isflag ;            // True if entry is a boolean
-        bool issynced ;          // True if entry is synced (i.e. changes require uploading)
-        bool updatesdirty ;      // True if entry affects dirty flag (and Updated)
         bool isdetails ;         // True if entry contains field details
         bool isgacct ;           // Tru if entry contains google account details
-        bool issaved ;           // True if entry is saved / loaded
+        bool issaved ;           // True if entry affects dirty flag (and Updated)
         char name[24] ;
     } ;
 
 //    ContactRecordInfo const contactrecordinfo[NumberOfRecords][sizeof(ContactRecordInfo)] = {
     AppointmentRecordInfo const appointmentrecordinfo[NumberOfRecords] = {
-        // type                flag   sync   dirty details gacct  saved name
+        // type                flag  details gacct saved name
 
-        { ID,                  false,  true,  true, false, false, true, "id" },
+        { ID,                  false, false, false, true, "id" },
 
-        { Deleted,              true,  true,  true,  true, false, true, "deleted" },
-        { ContactId,           false,  true,  true,  true, false, true, "contactid" },
-        { For,                 false,  true,  true,  true, false, true, "for" },
-        { Description,         false,  true,  true,  true, false, true, "description" },
-        { Location,            false,  true,  true,  true, false, true, "location" },
-        { From,                false,  true,  true,  true, false, true, "from" },
-        { To,                  false,  true,  true,  true, false, true, "to" },
-        { Repeat,              false,  true,  true,  true, false, true, "repeat" },
-        { RepeatInterval,      false,  true,  true,  true, false, true, "repeatinterval" },
-        { Flags,               false,  true,  true,  true, false, true, "flags" },
+        { Deleted,              true,  true, false, true, "deleted" },
+        { ContactId,           false,  true, false, true, "contactid" },
+        { For,                 false,  true, false, true, "for" },
+        { Description,         false,  true, false, true, "description" },
+        { Location,            false,  true, false, true, "location" },
+        { From,                false,  true, false, true, "from" },
+        { To,                  false,  true, false, true, "to" },
+        { Repeat,              false,  true, false, true, "repeat" },
+        { RepeatInterval,      false,  true, false, true, "repeatinterval" },
+        { Flags,               false,  true, false, true, "flags" },
 
-        { InternetOwned,        true,  true,  true, false,  true, true, "isreadonly" },
-        { GoogleRecordId,      false,  true,  true, false,  true, true, "googlerecordId" },
-        { GoogleSequence,      false,  true,  true, false,  true, true, "googlesequence" },
-        { GoogleCreated,       false,  true,  true, false,  true, true, "googlecreated" },
-        { GoogleStatus,        false,  true,  true, false,  true, true, "googlestatus" },
+        { InternetOwned,        true, false,  true, true, "isreadonly" },
+        { GoogleRecordId,      false, false,  true, true, "googlerecordId" },
+        { GoogleSequence,      false, false,  true, true, "googlesequence" },
+        { GoogleCreated,       false, false,  true, true, "googlecreated" },
+        { GoogleStatus,        false, false,  true, true, "googlestatus" },
 
-        { Created,             false, false,  true, false, false, true, "createddate" },
-        { Updated,             false, false,  true, false, false, true, "Updateddate" },
-        { FromUpdated,         false,  true,  true, false, false, true, "fromupdateddate" },
-        { MessageSent,         false,  true,  true, false, false, true, "messagesentdate" },
-        { ReminderMessageSent, false,  true,  true, false, false, true, "remindermessagesentdate" },
-        { MessageCounter,      false, false,  true, false, false, true, "messagecounter" },
+        { Created,             false, false, false, true, "createddate" },
+        { Updated,             false, false, false, true, "updateddate" },
+        { DateUpdated,         false, false, false, true, "dateupdateddate" },
+        { MessageSent,         false, false, false, true, "messagesentdate" },
+        { ReminderMessageSent, false, false, false, true, "remindermessagesentdate" },
+        { MessageCounter,      false, false, false, true, "messagecounter" },
 
-        { Temporary,           false,  true,  true, false,  true, true, "istemporary" },
-        { ToBeUploaded,         true, false, false, false, false, false, "tobeuploaded" },
-        { ToBeDownloaded,       true, false, false, false, false, false, "tobedownloaded" }
+        { ToBeUploaded,         true, false, false, false, "tobeuploaded" },
+        { ToBeDownloaded,       true, false, false, false, "tobedownloaded" }
     } ;
 
     // Match and Copy Masks (matype)
     static const int maId=0x01 ;            // ID
     static const int maGoogleId=0x02 ;      // Google ID
-    static const int maDetailsNoUpdatedDate=0x04 ; // Data details (not google account info / updated)
+    static const int maDetails=0x04 ;       // Data details (not google account info / updated)
     static const int maGoogleAcct=0x08 ;    // All Google account details
     static const int maUpdatedDate=0x10 ;   // Updated date Stamp
     static const int maFlag=0x20 ;
     static const int maSynced=0x40 ;
     static const int maControlFlags=0x100 ; // Uploaded / downloaded control flags
     static const int maSavedFields=0x200 ;  // All fields which are saved
-
-    static const int maDetails = (maDetailsNoUpdatedDate | maUpdatedDate) ;
 
     bool appointmentrecordinfook ;
 

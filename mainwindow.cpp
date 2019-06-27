@@ -352,8 +352,8 @@ void MainWindow::populateDialog(QString id, bool switchtooverview)
             case CONTACTDETAILSTABPOS:
                 break ;
             case HISTORYTABPOS:
-                dbg("editNotes->setFocus()") ;
-                ui->editNotes->setFocus() ;
+                dbg("editHistory->setFocus()") ;
+                ui->editHistory->setFocus() ;
                 break ;
         }
 
@@ -703,12 +703,12 @@ void MainWindow::setAccessibleTextAndWindowTitle(QString name)
     if (name.isEmpty()) {
         setWindowTitle("Contact Manager") ;
         ui->editOverview->setAccessibleDescription("Overview") ;
-        ui->editNotes->setAccessibleDescription("History") ;
+        ui->editHistory->setAccessibleDescription("History") ;
         ui->editToDo->setAccessibleDescription("To Do List") ;
     } else {
         setWindowTitle(name + " - Contact Manager") ;
         ui->editOverview->setAccessibleDescription("Overview for " + name) ;
-        ui->editNotes->setAccessibleDescription("History for " + name) ;
+        ui->editHistory->setAccessibleDescription("History for " + name) ;
         ui->editToDo->setAccessibleDescription("To Do List for " + name) ;
     }
     dbg("title set complete") ;
