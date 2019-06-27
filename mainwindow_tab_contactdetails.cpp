@@ -321,8 +321,7 @@ bool MainWindow::SaveContactTab()
     newdr.copyTo(dr, Contact::mcDetailsGroup) ;
 
     if (!log.isEmpty()) {
-        dr.getHistory().addEntry(log) ;
-        ui->editNotes->document()->setPlainText(dr.getHistory().getHistory());
+        appendHistory(dr, log) ;
     }
 
     // If contact has been deleted, select a blank entry, and refresh the screen / menus

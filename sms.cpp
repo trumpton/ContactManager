@@ -5,6 +5,7 @@
 #include <QEventLoop>
 #include <QNetworkReply>
 #include <QRegExp>
+#include <QDebug>
 
 SMS::SMS(QString& agent, QString& username, QString& password)
 {
@@ -79,22 +80,35 @@ int SMS::sendClockwork(QString number, QString from, QString message)
     QObject::connect(&manager, SIGNAL(finished(QNetworkReply *)), &eventLoop, SLOT(quit()));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
-    if (manager.networkAccessible() == QNetworkAccessManager::NotAccessible) {
+    qDebug() << "SMS Connecting to " << URL ;
 
+    QNetworkAccessManager::NetworkAccessibility na = manager.networkAccessible() ;
+    if (na != QNetworkAccessManager::Accessible) {
+        // Connection Failure (network not up)
+        qDebug() << "Connection Failed" ;
         return -2 ;
 
     } else {
 
+        qDebug() << "Sending " << params ;
         reply = manager.post(request, params) ;
         eventLoop.exec() ;
+
+        if (reply->error()!=QNetworkReply::NoError) {
+            // Unable to send
+            qDebug() << "Post returned error " << reply->errorString() ;
+            return -1 ;
+        }
 
         smsErrorData = reply->readAll().trimmed() ;
         bool iserror = smsErrorData.left(5).toLower().compare("error")==0 ;
 
         if (iserror) {
+            qDebug() << "Post response error " << smsErrorData ;
             // Received error response
             return -3 ;
         } else if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute)==200) {
+            qDebug() << "Post returned 200 OK" ;
             // Received 200 OK response
             return 1 ;
         } else {

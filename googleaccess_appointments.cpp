@@ -171,8 +171,6 @@ bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QStrin
 
     if (!(googleid.isEmpty() && googleicaluid.isEmpty())) {
         appt.setField(Appointment::GoogleRecordId, googleid) ;
-//        appt.setField( Appointment::GoogleIcalUid, googleicaluid) ;
-//        appt.setField(Appointment::GoogleAccount, account) ;
         appt.setField(Appointment::GoogleSequence, QString::number(sequence)) ;
         appt.setField(Appointment::GoogleCreated, googlecreated) ;
         appt.setFlag(Appointment::InternetOwned, !organiserself) ;
@@ -181,7 +179,7 @@ bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QStrin
 
     // Set updated last
     appt.setField(Appointment::Created, googlecreated) ;
-    appt.setField(Appointment::FromUpdated, googleupdated) ;
+    appt.setField(Appointment::DateUpdated, googleupdated) ;
     appt.setField(Appointment::Updated, googleupdated) ;
 
     return (!googleid.isEmpty()) ;
@@ -310,15 +308,15 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
         Appointment apptresponse ;
         if (parseAppointment(jsonresponse, apptresponse, account)) {
 
-            if (apptresponse.matches(appt, Appointment::maDetailsNoUpdatedDate)) {
-                apptresponse.copyTo(appt, Appointment::maSavedFields) ;
+            if (apptresponse.matches(appt, Appointment::maDetails|Appointment::maId)) {
+                apptresponse.copyTo(appt, Appointment::maSynced) ;
                 success=true ;
 
             } else {
                 // Returned info doesn't match sent
                 addLog(QString("ERROR GoogleAccess::UpdateAppointment: Upload mismatch (%1) - %2")
                        .arg(appt.getField(Appointment::ID))
-                       .arg(apptresponse.mismatch(appt, Appointment::maDetailsNoUpdatedDate, true))) ;
+                       .arg(apptresponse.mismatch(appt, Appointment::maDetails|Appointment::maId, true))) ;
                 success=false ;
             }
         }

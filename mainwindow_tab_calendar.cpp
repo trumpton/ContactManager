@@ -62,7 +62,7 @@ void MainWindow::editAppointment(Appointment &editing, Appointment &reference, Q
 
     // TODO TODO TODO TODO
     // Check appointment is editable
-    if (appt.isSet(Appointment::Temporary) || appt.isSet(Appointment::InternetOwned)) {
+    if (appt.isSet(Appointment::InternetOwned)) {
         // Error, read-only
         return ;
     }

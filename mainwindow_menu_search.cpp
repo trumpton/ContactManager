@@ -38,7 +38,7 @@ void MainWindow::on_actionFindNext_triggered()
             currentplaintextedit = ui->editToDo ;
             break ;
         case HISTORYTABPOS:
-            currentplaintextedit = ui->editNotes ;
+            currentplaintextedit = ui->editHistory ;
             break ;
         default:
               ;;

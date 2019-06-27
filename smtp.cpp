@@ -79,6 +79,7 @@ Smtp::~Smtp()
     if (t!=NULL) delete t;
     delete socket;
 }
+
 void Smtp::stateChanged(QAbstractSocket::SocketState socketState)
 {
  
