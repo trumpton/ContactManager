@@ -36,8 +36,15 @@ void MainWindow::on_actionGotoMe_triggered()
      QString thisid = nearest.getField(Appointment::ID) ;
      QModelIndex index = calendarlist.find(thisid) ;
 
-     dbg("listCalendar->setCurrentIndex()") ;
-     ui->listCalendar->setCurrentIndex(index) ;
+     if (!index.isValid()) {
+         // No nearest entry found, try start of list
+         index = calendarlist.index(0,0) ;
+     }
+
+     if (index.isValid()) {
+         dbg("listCalendar->setCurrentIndex()") ;
+         ui->listCalendar->setCurrentIndex(index) ;
+     }
 }
 
 

@@ -76,8 +76,8 @@ void Smtp::sendMail(const QString &from, const QString &to, const QString &subje
  
 Smtp::~Smtp()
 {
-    if (t!=NULL) delete t;
-    delete socket;
+    if (t!=NULL) { delete t; t = NULL ; }
+    if (socket!=NULL) { delete socket; socket = NULL ; }
 }
 
 void Smtp::stateChanged(QAbstractSocket::SocketState socketState)
@@ -88,13 +88,16 @@ void Smtp::stateChanged(QAbstractSocket::SocketState socketState)
  
 void Smtp::errorReceived(QAbstractSocket::SocketError socketError)
 {
-    qDebug() << "error " <<socketError;
+    qDebug() << "error " << socketError;
 }
  
 void Smtp::disconnected()
 {
- 
-    qDebug() <<"disconneted, error (if any) = "  << socket->errorString();
+   if (state==Success) {
+       qDebug() << "disconnected, ok" ;
+   } else {
+       qDebug() << "disconneted, error (if any) = "  << socket->errorString();
+   }
 }
  
 void Smtp::connected()
@@ -117,7 +120,7 @@ void Smtp::readyRead()
         return ;
     }
 
-     qDebug() <<"readyRead";
+     qDebug() << "readyRead";
     // SMTP is line-oriented
  
     QString responseLine, responseCode;
@@ -307,7 +310,8 @@ void Smtp::readyRead()
 
     } else if (state == Success || state == Timeout || state == Failed) {
 
-        deleteLater();
+        delete t ;
+        t = NULL ;
         return;
 
     } else {
@@ -316,6 +320,8 @@ void Smtp::readyRead()
         state = Failed;
         errmsg = QString("FATAL Error ") + responseLine  ;
         emit status( tr( "FAILED to send message: " ) + response );
+        delete t ;
+        t = NULL ;
 
     }
     response = "";
