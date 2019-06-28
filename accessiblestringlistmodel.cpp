@@ -1,5 +1,4 @@
 #include "accessiblestringlistmodel.h"
-#include <QRegExp>
 
 AccessibleStringListModel::AccessibleStringListModel()
 {
@@ -107,10 +106,11 @@ QVariant AccessibleStringListModel::data(const QModelIndex &index, int role) con
 QModelIndex AccessibleStringListModel::find(QVariant user, int startrow)
 {
     int result=-1 ;
-    QRegExp re(QString(".*%1.*").arg(user.toString().toLower())) ;
+    QString userstring = user.toString() ;
     for (int i=startrow; result<0 && i<modeldata.size(); i++) {
-        QString srch = modeldata.at(i).toVector().at(2).toString().toLower() ;
-        if (re.indexIn(srch)) result=i ;
+        const QList<QVariant>& entry = modeldata.at(i) ;
+        QString srch = entry.toVector().at(2).toString() ;
+        if (srch.contains(userstring, Qt::CaseInsensitive)) result=i ;
     }
     if (result<0) return QModelIndex() ;
     else return index(result,0) ;

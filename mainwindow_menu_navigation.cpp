@@ -32,7 +32,8 @@ void MainWindow::on_actionGotoMe_triggered()
      dbg("listCalendar->setCurrentIndex()") ;
      ui->listCalendar->setCurrentIndex(calendarlist.index(0,0)) ;
 
-     QString thisid = calendar.getNearestAppointment().getField(Appointment::ID) ;
+     Appointment nearest = calendar.getNearestAppointment() ;
+     QString thisid = nearest.getField(Appointment::ID) ;
      QModelIndex index = calendarlist.find(thisid) ;
 
      dbg("listCalendar->setCurrentIndex()") ;
