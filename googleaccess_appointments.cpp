@@ -118,7 +118,8 @@ bool GoogleAccess::getAppointment(Appointment& appt)
 
 bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QString account)
 {
-    QString description = item["summary"].toString().trimmed()  ;
+    QString summary = item["summary"].toString().trimmed()  ;
+    QString description = item["description"].toString().trimmed()  ;
     QString location = item["location"].toString().trimmed()  ;
     QString fromdatetime = item["start"].toObject()["dateTime"].toString().trimmed()  ;
     QString todatetime = item["end"].toObject()["dateTime"].toString().trimmed()  ;
@@ -135,9 +136,9 @@ bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QStrin
 
     // Remove any trailing brackets appointment-for {}, and set description and appointmentfor
     if (!appointmentfor.isEmpty()) {
-        description = description.trimmed().replace(QRegExp("\\{(.*)\\}$"), "").trimmed() ;
+        summary = summary.trimmed().replace(QRegExp("\\{(.*)\\}$"), "").trimmed() ;
     }
-    description = description.replace(QString("{"),"(").replace(QString("}"),")") ;
+    summary = summary.replace(QString("{"),"(").replace(QString("}"),")") ;
 
     if (!appointmentfor.isEmpty()) {
         appt.setField(Appointment::For, appointmentfor) ;
@@ -146,6 +147,7 @@ bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QStrin
     }
 
     appt.setFlag(Appointment::Deleted, (status.compare("cancelled")==0) ) ;
+    appt.setField(Appointment::Summary, summary) ;
     appt.setField(Appointment::Description, description) ;
     appt.setField(Appointment::Location, location) ;
     appt.setField(Appointment::Flags, flags) ;
@@ -262,12 +264,13 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
 
         root.insert("status", "confirmed") ;
 
-        QString summary = appt.getField(Appointment::Description) ;
+        QString summary = appt.getField(Appointment::Summary) ;
         if (!appt.getField(Appointment::ContactId).isEmpty() && appt.getField(Appointment::ContactId).compare(gConf->getMe())!=0) {
             summary = summary + " {" + appt.getField(Appointment::For) + "}" ;
         }
 
         root.insert("summary",  summary) ;
+        root.insert("description",  appt.getField(Appointment::Description)) ;
         root.insert("location", appt.getField(Appointment::Location)) ;
 
         if (false) {
@@ -309,7 +312,7 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
         if (parseAppointment(jsonresponse, apptresponse, account)) {
 
             if (apptresponse.matches(appt, Appointment::maDetails|Appointment::maId)) {
-                apptresponse.copyTo(appt, Appointment::maSynced) ;
+                apptresponse.copyTo(appt, Appointment::maDetails|Appointment::maGoogleAcct) ;
                 success=true ;
 
             } else {
