@@ -29,6 +29,7 @@ AppointmentForm::AppointmentForm(QWidget *parent) :
 void AppointmentForm::setupForm(ContactDatabase &db, QString contactid, Appointment &editing, Appointment &reference, bool createNew)
 {
    QDateTime now, then ;
+   QString summary ;
    QString description ;
    Contact& contact = db.getContactById(contactid) ;
    QString contactName ;
@@ -50,9 +51,6 @@ void AppointmentForm::setupForm(ContactDatabase &db, QString contactid, Appointm
    }
 
    if (contactid.isEmpty()) contactid = appt.getField(Appointment::ContactId) ;
-   now = appt.getDate(Appointment::From);
-   then = appt.getDate(Appointment::To) ;
-   description = appt.getField(Appointment::Description) ;
 
    if (appt.isEmpty()) {
 
@@ -69,14 +67,22 @@ void AppointmentForm::setupForm(ContactDatabase &db, QString contactid, Appointm
        }
 
        then = now.addSecs(60*60) ;
-       description = "Appointment" ;
+       summary = "Appointment" ;
+
+   } else {
+
+       now = appt.getDate(Appointment::From);
+       then = appt.getDate(Appointment::To) ;
+       summary = appt.getField(Appointment::Summary) ;
+       description = appt.getField(Appointment::Description).replace("\\n","\n") ;
    }
 
    int duration = (int)now.secsTo(then) / 60 ;
 
    ui->editWhenFrom->setDateTime(now, duration) ;
    ui->editWhenTo->setDateTime(then) ;
-   ui->editDescription->setText(description) ;
+   ui->editSummary->setText(summary) ;
+   ui->plaintexteditDescription->setPlainText(description);
 }
 
 AppointmentForm::~AppointmentForm()
@@ -87,16 +93,16 @@ AppointmentForm::~AppointmentForm()
 Appointment& AppointmentForm::getAppointmentDetails()
 {
     QDateTime from, to ;
-    QString Desc ;
+    QString summary, description ;
 
     QString contactName = ui->contactName->currentText() ;
     QString contactData = ui->contactName->currentData() ;
     appt.setField(Appointment::For, contactName) ;
     appt.setField(Appointment::ContactId, contactData) ;
 
-    Desc = ui->editDescription->text() ;
-    if (Desc.isEmpty()) Desc="Appointment" ;
-    appt.setField(Appointment::Description, Desc) ;
+    summary = ui->editSummary->text() ;
+    if (summary.isEmpty()) summary="Appointment" ;
+    appt.setField(Appointment::Summary, summary) ;
 
     from=ui->editWhenFrom->getDateTime() ;
 
@@ -106,6 +112,10 @@ Appointment& AppointmentForm::getAppointmentDetails()
 
     appt.setDate(Appointment::From, from) ;
     appt.setDate(Appointment::To, to) ;
+
+    description = ui->plaintexteditDescription->document()->toPlainText() ;
+    description = description.replace("\n","\\n") ;
+    appt.setField(Appointment::Description, description) ;
 
     return appt ;
 }

@@ -355,7 +355,7 @@ QString& Appointment::asText(QString name, QString start, QString mid, QString e
         if (!name.isEmpty()) {
             asTextResponse = asTextResponse + name + " - " ;
         }
-        asTextResponse += getField(Appointment::Description).replace("\n", ". ") ;
+        asTextResponse += getField(Appointment::Summary).replace("\n", ". ") ;
 
         if (isSet(Appointment::Deleted)) {
             asTextResponse = asTextResponse + " (deleted)" ;

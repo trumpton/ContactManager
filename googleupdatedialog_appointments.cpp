@@ -149,7 +149,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
             newlocal.setField(Appointment::ID, googleappt.getField(Appointment::ID)) ;
             newlocal.setField(Appointment::From, googleappt.getField(Appointment::From)) ;
             newlocal.setField(Appointment::To, googleappt.getField(Appointment::To)) ;
-            newlocal.setField(Appointment::Description, QString("--! Undefined !--")) ;
+            newlocal.setField(Appointment::Summary, QString("--! Undefined !--")) ;
 
             newlocal.setFlag(Appointment::ToBeDownloaded, true) ;
             newlocal.setFlag(Appointment::ToBeUploaded, true) ;
@@ -207,7 +207,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                     } else {
                         changes = QString("Downloaded: ") + googleappt.mismatch(localappt, Appointment::maDetails) + QString(". ");
                         summary = QString("downloaded") ;
-                        googleappt.copyTo(localappt, Appointment::maSynced) ;
+                        googleappt.copyTo(localappt, Appointment::maDetails|Appointment::maGoogleAcct) ;
                     }
                     ui->updateStatusReport->append(QString("    ") + localappt.asText() + QString(" - Updating Local Contact Details (%1)").arg(summary)) ;
                 }

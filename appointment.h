@@ -22,6 +22,7 @@ public:
 
         ContactId,
         For,
+        Summary,
         Description,
         Location,
         From, To, Repeat,  RepeatInterval,
@@ -72,6 +73,7 @@ public:
         { Deleted,              true,  true, false, true, "deleted" },
         { ContactId,           false,  true, false, true, "contactid" },
         { For,                 false,  true, false, true, "for" },
+        { Summary,             false,  true, false, true, "summary"},
         { Description,         false,  true, false, true, "description" },
         { Location,            false,  true, false, true, "location" },
         { From,                false,  true, false, true, "from" },
@@ -104,7 +106,6 @@ public:
     static const int maGoogleAcct=0x08 ;    // All Google account details
     static const int maUpdatedDate=0x10 ;   // Updated date Stamp
     static const int maFlag=0x20 ;
-    static const int maSynced=0x40 ;
     static const int maControlFlags=0x100 ; // Uploaded / downloaded control flags
     static const int maSavedFields=0x200 ;  // All fields which are saved
 

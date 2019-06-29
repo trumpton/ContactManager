@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>426</width>
-    <height>185</height>
+    <height>258</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -19,7 +19,7 @@
   <property name="maximumSize">
    <size>
     <width>16777215</width>
-    <height>185</height>
+    <height>258</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -79,12 +79,12 @@
         </size>
        </property>
        <property name="text">
-        <string>Description</string>
+        <string>Summary</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="SafeLineEdit" name="editDescription">
+      <widget class="SafeLineEdit" name="editSummary">
        <property name="accessibleName">
         <string>Appointment Title</string>
        </property>
@@ -150,6 +150,29 @@
     </layout>
    </item>
    <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_5">
+     <property name="topMargin">
+      <number>0</number>
+     </property>
+     <item>
+      <widget class="QLabel" name="label_4">
+       <property name="minimumSize">
+        <size>
+         <width>100</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Description</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="SafeTextEdit" name="plaintexteditDescription"/>
+     </item>
+    </layout>
+   </item>
+   <item>
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
@@ -163,14 +186,19 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>SafeLineEdit</class>
-   <extends>QLineEdit</extends>
-   <header>../Lib/safelineedit.h</header>
-  </customwidget>
-  <customwidget>
    <class>LineEditNavigator</class>
    <extends>QLineEdit</extends>
    <header>../Lib/lineeditnavigator.h</header>
+  </customwidget>
+  <customwidget>
+   <class>SafeTextEdit</class>
+   <extends>QPlainTextEdit</extends>
+   <header>../Lib/safetextedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>SafeLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>../Lib/safelineedit.h</header>
   </customwidget>
   <customwidget>
    <class>AccessibleDateRangeEdit</class>
@@ -183,7 +211,7 @@
  </customwidgets>
  <tabstops>
   <tabstop>contactName</tabstop>
-  <tabstop>editDescription</tabstop>
+  <tabstop>editSummary</tabstop>
   <tabstop>editWhenFrom</tabstop>
   <tabstop>editWhenTo</tabstop>
  </tabstops>
