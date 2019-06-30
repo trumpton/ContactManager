@@ -74,7 +74,7 @@ void AppointmentForm::setupForm(ContactDatabase &db, QString contactid, Appointm
        now = appt.getDate(Appointment::From);
        then = appt.getDate(Appointment::To) ;
        summary = appt.getField(Appointment::Summary) ;
-       description = appt.getField(Appointment::Description).replace("\\n","\n") ;
+       description = appt.getField(Appointment::Description) ;
    }
 
    int duration = (int)now.secsTo(then) / 60 ;
@@ -114,7 +114,6 @@ Appointment& AppointmentForm::getAppointmentDetails()
     appt.setDate(Appointment::To, to) ;
 
     description = ui->plaintexteditDescription->document()->toPlainText() ;
-    description = description.replace("\n","\\n") ;
     appt.setField(Appointment::Description, description) ;
 
     return appt ;
