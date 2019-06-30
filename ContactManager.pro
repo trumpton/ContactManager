@@ -127,7 +127,7 @@ HEADERS  += mainwindow.h \
     help.h \
     ../Lib/iniconfig.h \
     sendsmsform.h \
-    googleaccess-account.h \
+    account-googleaccess.h \
     version.h \
     ../Lib/encryption.h \
     ../Lib/aes.h \
