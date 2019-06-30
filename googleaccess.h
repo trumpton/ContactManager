@@ -18,7 +18,8 @@
 // relations,relationshipInterests,relationshipStatuses,residences,sipAddresses,skills,
 // taglines,urls,userDefined
 //#define ALLPERSONFIELDS "addresses,ageRanges,biographies,birthdays,,braggingRights,coverPhotos,emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,residences,sipAddresses,skills,taglines,urls,userDefined"
-#define PERSONFIELDS "addresses,biographies,birthdays,emailAddresses,events,memberships,metadata,names,organizations,phoneNumbers,sipAddresses,urls,userDefined"
+#define READPERSONFIELDS "addresses,biographies,birthdays,emailAddresses,events,memberships,metadata,names,organizations,phoneNumbers,sipAddresses,urls,userDefined"
+#define WRITEPERSONFIELDS "addresses,biographies,birthdays,emailAddresses,names,organizations,phoneNumbers,sipAddresses,urls,userDefined"
 #define GROUPPERSONFIELDS "memberships,userDefined"
 
 class GoogleAccess
