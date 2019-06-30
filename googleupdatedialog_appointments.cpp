@@ -102,11 +102,11 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
 
             if (googleappt.isNull()) {
 
+                // Add Dummy Entry to googlecalendar
                 Appointment deletedappt ;
                 deletedappt.setField(Appointment::ID, localappt.getField(Appointment::ID)) ;
                 deletedappt.setFlag(Appointment::Deleted, true) ;
                 googlecal.addAppointment(deletedappt) ;
-                ui->updateStatusReport->append(QString("        ") + googleappt.asText()) ;
 
                 if (localappt.getField(Appointment::GoogleRecordId).isEmpty()) {
 
