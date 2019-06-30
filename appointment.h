@@ -33,6 +33,7 @@ public:
         GoogleSequence,
         GoogleCreated,
         GoogleStatus,
+        Uploaded,
 
         // Timestamps
         Created,                // Set when created
@@ -87,6 +88,7 @@ public:
         { GoogleSequence,      false, false,  true, true, "googlesequence" },
         { GoogleCreated,       false, false,  true, true, "googlecreated" },
         { GoogleStatus,        false, false,  true, true, "googlestatus" },
+        { Uploaded,             true, false,  true,  true, "uploaded" },
 
         { Created,             false, false, false, true, "createddate" },
         { Updated,             false, false, false, true, "updateddate" },
