@@ -134,6 +134,10 @@ private slots:
     void on_Authenticate_clicked();
     void on_ResetLastSync_clicked();
 
+    void on_conflictGoogle_clicked();
+
+    void on_conflictContactManager_clicked();
+
 private:
     QString expandVars(QString str, QString name=QString(""), QString to=QString("")) ;
     QString tidyPath(QString path, bool appendslash=true) ;
