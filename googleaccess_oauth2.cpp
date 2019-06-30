@@ -10,7 +10,7 @@
 #include <QNetworkRequest>
 #include <QUrlQuery>
 
-#include "googleaccess-account.h"
+#include "account-googleaccess.h"
 
 //
 // Useful Links
@@ -105,7 +105,7 @@ QString GoogleAccess::Authorise()
     }
 
     if (user_code.isEmpty()) {
-        addLog("GoogleAccess::Authorise: Unable to authorise with Google.  This is caused by either a network error (check your connection); incorrectly configured googleaccess-account.h (during compilation); or missing OpenSSL files - ssleay32.dll / libeay32.dll (Windows Clients)") ;
+        addLog("GoogleAccess::Authorise: Unable to authorise with Google.  This is caused by either a network error (check your connection); incorrectly configured account-googleaccess.h (during compilation); or missing OpenSSL files - ssleay32.dll / libeay32.dll (Windows Clients)") ;
         errorOkDialog(NULL, "Contact Manager Error", "Unable to connect.  Network error or invalid configuration.  See Log for details.") ;
         return refreshtokenandusername ;
     }
