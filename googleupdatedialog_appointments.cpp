@@ -152,7 +152,12 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
             newlocal.setField(Appointment::Summary, QString("--! Undefined !--")) ;
 
             newlocal.setFlag(Appointment::ToBeDownloaded, true) ;
-            newlocal.setFlag(Appointment::ToBeUploaded, true) ;
+
+            // Only re-upload if appointment has not already been uploaded before
+            // (perhaps by another instance of contact manager)
+            if (!googleappt.isSet(Appointment::Uploaded)) {
+                newlocal.setFlag(Appointment::ToBeUploaded, true) ;
+            }
             cal.addAppointment(newlocal) ;
             ui->updateStatusReport->append(QString("        ") + googleappt.asText()) ;
         }

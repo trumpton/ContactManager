@@ -131,6 +131,7 @@ bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QStrin
     QString appointmentfor = item["extendedProperties"].toObject()["private"].toObject()["AppointmentFor"].toString().trimmed() ;
     QString id = item["extendedProperties"].toObject()["private"].toObject()["ID"].toString().replace("\n","") ;
     QString flags = item["extendedProperties"].toObject()["private"].toObject()["Flags"].toString().replace("\n","") ;
+    QString uploaded = item["extendedProperties"].toObject()["private"].toObject()["Uploaded"].toString().replace("\n","") ;
     QString contact = item["extendedProperties"].toObject()["private"].toObject()["ContactID"].toString().replace("\n","") ;
     bool organiserself = item["organizer"].toObject()["self"].toBool() ;
 
@@ -177,6 +178,11 @@ bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QStrin
         appt.setField(Appointment::GoogleCreated, googlecreated) ;
         appt.setFlag(Appointment::InternetOwned, !organiserself) ;
         appt.setField(Appointment::GoogleStatus, status) ;
+        if (uploaded.compare("yes")==0) {
+            appt.setFlag(Appointment::Uploaded, true) ;
+        } else {
+            appt.setFlag(Appointment::Uploaded, false) ;
+        }
     }
 
     // Set updated last
@@ -290,6 +296,7 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
         PrivateExtendedProperties.insert("ID", appt.getField(Appointment::ID)) ;
         PrivateExtendedProperties.insert("ContactID", appt.getField(Appointment::ContactId)) ;
         PrivateExtendedProperties.insert("AppointmentFor", appt.getField(Appointment::For)) ;
+        PrivateExtendedProperties.insert("Uploaded", "yes") ;
         PrivateExtendedProperties.insert("Flags", appt.getField(Appointment::Flags)) ;
 
         ExtendedProperties.insert("private", PrivateExtendedProperties) ;
