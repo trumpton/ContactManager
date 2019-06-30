@@ -41,7 +41,6 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
     QString googlerecordid = contact.getField(Contact::GoogleRecordId) ;
     QString url ;
     bool success=true ;
-    QString personFields="userDefined" ;
 
 #ifdef DEBUGTRAPID
     if (contact.getField(Contact::ID).compare(DEBUGTRAPID)==-0) {
@@ -124,8 +123,6 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
         if (a_names.size()>0) {
             entry.insert("names", a_names) ;
         }
-        personFields = personFields + ",emailAddresses" ;
-
 
         // "emailAddresses": [{
         //     "value": "EMAILADDRESS",
@@ -152,7 +149,6 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
         if (a_emails.size()>0) {
             entry.insert("emailAddresses", a_emails) ;
         }
-        personFields = personFields + ",emailAddresses" ;
 
         // "sipAddresses": [{
         //    "value": string,
@@ -167,7 +163,6 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
             a_sipaddresses.append(o_sipaddress) ;
             entry.insert("sipAddresses", a_sipaddresses) ;
         }
-        personFields = personFields + ",sipAddresses" ;
 
         // "phoneNumbers": [{
         //     "value": "PHONENUMBERWITHSPACES",
@@ -196,7 +191,6 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
         if (a_numbers.size()>0) {
             entry.insert("phoneNumbers", a_numbers) ;
         }
-        personFields = personFields + ",phoneNumbers" ;
 
         // "userDefined": [{
         //       "key": "CUSTOMLABEL1",
@@ -256,7 +250,6 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
             organisations.append(organisation) ;
             entry.insert("organizations", organisations) ;
         }
-        personFields = personFields + ",organizations" ;
 
         // "urls": [ {
         //    "metadata": {
@@ -274,7 +267,6 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
             urls.append(item) ;
             entry.insert("urls", urls) ;
         }
-        personFields = personFields + ",urls" ;
 
         // "birthdays": [{
         //    "metadata": { "source": { "type": "CONTACT" }},
@@ -304,7 +296,6 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
             birthdays.append(date) ;
             entry.insert("birthdays", birthdays) ;
         }
-        personFields = personFields + ",birthdays" ;
 
         // "biographies": [{
         //    "metadata": { "source": { "type": "CONTACT" }},
@@ -319,7 +310,6 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
             item.insert("contentType", "TEXT_PLAIN") ;
             biographies.append(item) ;
             entry.insert("biographies", biographies) ;
-            personFields = personFields + ",biographies" ;
         }
 
         // "addresses": [{
@@ -347,8 +337,6 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
         if (addresses.size()>0) {
             entry.insert("addresses", addresses) ;
         }
-        personFields = personFields + ",addresses" ;
-
         QString jsonresponse ;
         Contact googlecontact ;
 
@@ -360,7 +348,7 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
             QString jsontext = doc.toJson() ;
 
             // createnew = POST, Update = PUT
-            jsonresponse = googlePutPostDelete(url.replace("{{PFD}}", personFields), action, jsontext, QString("updateContact-PutPostPatch-")+contact.getFormattedName(false,false).replace(" ","")) ;
+            jsonresponse = googlePutPostDelete(url.replace("{{PFD}}", WRITEPERSONFIELDS), action, jsontext, QString("updateContact-PutPostPatch-")+contact.getFormattedName(false,false).replace(" ","")) ;
             if (getNetworkError().isEmpty()) {
                 addLog("    Put/Post/Patch OK") ;
             } else {

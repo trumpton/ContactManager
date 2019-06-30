@@ -30,7 +30,7 @@ bool GoogleAccess::getContacts(ContactDatabase &googlecontacts)
     QString url = "https://people.googleapis.com/v1/people/me/connections" ;
     url = url + "?pageSize=2000" ;
     url = url + "&sortOrder=LAST_NAME_ASCENDING" ;
-    url = url + QString("&personFields=") + QString(PERSONFIELDS) ;
+    url = url + QString("&personFields=") + QString(READPERSONFIELDS) ;
 
     // If this returns 403, check that the API is enabled on google
     json = googleGet(url, QString("getContacts")) ;

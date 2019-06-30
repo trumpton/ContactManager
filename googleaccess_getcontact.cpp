@@ -28,7 +28,7 @@
 bool GoogleAccess::getContact(Contact& googlecontact, bool getgrouponly)
 {
     bool success=true ;
-    QString verifyurl = "https://people.googleapis.com/v1/" + googlecontact.getField(Contact::GoogleRecordId) + "?personFields=" + (getgrouponly?GROUPPERSONFIELDS:PERSONFIELDS) ;
+    QString verifyurl = "https://people.googleapis.com/v1/" + googlecontact.getField(Contact::GoogleRecordId) + "?personFields=" + (getgrouponly?GROUPPERSONFIELDS:READPERSONFIELDS) ;
     QString verifyjsonresponse ;
 
     verifyjsonresponse = googleGet(verifyurl, (getgrouponly?"getContact(Groups)":"getContact")) ;
