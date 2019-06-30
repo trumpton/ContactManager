@@ -127,15 +127,17 @@ bool Configuration::SetupForm(ContactDatabase *currentdatabase, GoogleAccess *ga
     ui->smsAccount->setText(smsAccountName) ;
     ui->smsPassword->setText(getSMSPassword()) ;
 
-    ui->enableReminders->setChecked(getEnableReminders()) ;
-
     switch (getDatabaseMaster()) {
     default:
     case ContactManagerMaster:
         ui->conflictContactManager->setChecked(true) ;
+        ui->enableReminders->setEnabled(true) ;
+        ui->enableReminders->setChecked(getEnableReminders()) ;
         break ;
     case GoogleMaster:
         ui->conflictGoogle->setChecked(true) ;
+        ui->enableReminders->setEnabled(false) ;
+        ui->enableReminders->setChecked(false) ;
         break ;
     }
 
@@ -513,4 +515,15 @@ void Configuration::on_ResetLastSync_clicked()
     setLastGoogleContactSyncToken(QString("")) ;
     ui->lastContactSync->setText(getLastGoogleContactSyncDate()) ;
     ui->lastCalendarSync->setText(getLastGoogleCalendarSyncDate()) ;
+}
+
+void Configuration::on_conflictGoogle_clicked()
+{
+    ui->enableReminders->setEnabled(false) ;
+    ui->enableReminders->setChecked(true) ;
+}
+
+void Configuration::on_conflictContactManager_clicked()
+{
+    ui->enableReminders->setEnabled(true) ;
 }

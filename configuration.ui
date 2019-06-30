@@ -310,13 +310,6 @@
      <property name="topMargin">
       <number>0</number>
      </property>
-     <item>
-      <widget class="QCheckBox" name="enableReminders">
-       <property name="text">
-        <string>Enable SMS and Email Reminders</string>
-       </property>
-      </widget>
-     </item>
     </layout>
    </item>
    <item>
@@ -357,47 +350,64 @@
       </font>
      </property>
      <property name="title">
-      <string>Database Conflict Management  </string>
+      <string>Database and Reminders   </string>
      </property>
-     <layout class="QHBoxLayout" name="horizontalLayout_9">
+     <layout class="QVBoxLayout" name="verticalLayout_6">
       <item>
-       <widget class="QRadioButton" name="conflictGoogle">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
+       <layout class="QHBoxLayout" name="horizontalLayout_10">
+        <property name="leftMargin">
+         <number>0</number>
         </property>
-        <property name="minimumSize">
-         <size>
-          <width>150</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="text">
-         <string>Google is the master</string>
-        </property>
-       </widget>
+        <item>
+         <widget class="QRadioButton" name="conflictContactManager">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>150</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Contact Manager is the master</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QRadioButton" name="conflictGoogle">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>150</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Google is the master</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
       <item>
-       <widget class="QRadioButton" name="conflictContactManager">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>150</width>
-          <height>0</height>
-         </size>
+       <widget class="QCheckBox" name="enableReminders">
+        <property name="enabled">
+         <bool>false</bool>
         </property>
         <property name="text">
-         <string>Contact Manager is the master</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
+         <string>Enable SMS and Email Reminders</string>
         </property>
        </widget>
       </item>
