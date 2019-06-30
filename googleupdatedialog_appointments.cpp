@@ -209,7 +209,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                         summary = QString("downloaded") ;
                         googleappt.copyTo(localappt, Appointment::maDetails|Appointment::maGoogleAcct) ;
                     }
-                    ui->updateStatusReport->append(QString("    ") + localappt.asText() + QString(" - Updating Local Contact Details (%1)").arg(summary)) ;
+                    ui->updateStatusReport->append(QString("    ") + localappt.asText() + QString(" - Updating Local Appointment (%1)").arg(summary)) ;
                 }
 
                 // Update Details on Google
@@ -221,7 +221,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                         changes = QString("Uploaded: ") + localappt.mismatch(googleappt, Appointment::maDetails|Appointment::maId) + QString(". ");
                         summary = QString("uploaded") ;
                     }
-                    ui->updateStatusReport->append(QString("    ") + localappt.asText() + QString(" - Updating Google Contact Details (%1)").arg(summary)) ;
+                    ui->updateStatusReport->append(QString("    ") + localappt.asText() + QString(" - Updating Google Appointment (%1)").arg(summary)) ;
 
                     bool status ;
                     if (localappt.getField(Appointment::GoogleRecordId).isEmpty()) {
