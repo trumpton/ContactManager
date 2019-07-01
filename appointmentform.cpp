@@ -41,8 +41,8 @@ void AppointmentForm::setupForm(ContactDatabase &db, QString contactid, Appointm
        for (int i=0; i<db.size(); i++) {
            ui->contactName->addItem(db.getContact(i).getFormattedName(false, true), db.getContact(i).getField(Contact::ID)) ;
        }
-        ui->contactName->addItem(" - Unknown Contact - ", "");
-        ui->contactName->selectItem(" - Unknown Contact - ") ;
+        ui->contactName->addItem(" - Unnamed Contact - ", "UNNAMED");
+        ui->contactName->selectItem(" - Unnamed Contact - ") ;
         ui->contactName->setReadOnly(false);
    } else {
        ui->contactName->addItem(contact.getFormattedName(false, true), contact.getField(Contact::ID));
@@ -94,9 +94,14 @@ Appointment& AppointmentForm::getAppointmentDetails()
 {
     QDateTime from, to ;
     QString summary, description ;
+    QString contactName, contactData ;
 
-    QString contactName = ui->contactName->currentText() ;
-    QString contactData = ui->contactName->currentData() ;
+    contactName = ui->contactName->currentText() ;
+    contactData = ui->contactName->currentData() ;
+    if (contactData.compare("UNNAMED")==0) {
+        contactName = "Unnamed Contact" ;
+        contactData = "" ;
+    }
     appt.setField(Appointment::For, contactName) ;
     appt.setField(Appointment::ContactId, contactData) ;
 
