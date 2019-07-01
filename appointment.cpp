@@ -143,12 +143,15 @@ bool Appointment::load(QString path, QString idname)
             // TODO: Handle cases where there is an "=" in the middle of the string
 
             if (ParsedLine.count()==2) {
-                for (int i=0; i<NumberOfRecords; i++) {
+
+                for (int i=0; i<Appointment::NumberOfRecords; i++) {
+
                     if (ParsedLine.at(0).compare(appointmentrecordinfo[i].name)==0) {
                         QString entrytext = ParsedLine.at(1) ;
-                        entrytext = entrytext.replace("\\n","\n") ;
+                        entrytext = entrytext.replace("\\n","\n").replace("\r","") ;
                         setField((enum AppointmentRecord)i, entrytext) ;
                     }
+
                 }
             }
         }
@@ -175,7 +178,7 @@ bool Appointment::save(QString path)
 
        for (int entry=0 ; entry < NumberOfRecords; entry++) {
            if (appointmentrecordinfo[entry].issaved) {
-               QString entrytext = getField((enum Appointment::AppointmentRecord) entry).replace("\n","\\n") ;
+               QString entrytext = getField((enum Appointment::AppointmentRecord) entry).trimmed().replace("\n","\\n") ;
                out << appointmentrecordinfo[entry].name << "=" << entrytext.trimmed() << "\n" ;
            }
        }
