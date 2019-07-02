@@ -159,14 +159,16 @@
   or you can create a new appointment for yourself with Control-Shift-N.
   You can also create an appointment following the currently selected one with
   Control-I, or one for yourself with Control-Shift-I.
-  You can update update an appointment with Alt-U, or remove it with Alt-R.
+  You can update update an appointment with Control-U, or remove it with 
+  Control-R.
 
 &gt;&gt; 5.1. THE APPOINTMENT FORM 
   The form is laid out with four fields:
   For:          The contact the appointment is for
-  Description:  A description of the appointment
+  Summary:      A one-line of the appointment
   From:         The start date /time of the appointment, and the duration
   To:           The end date / time of the appointment
+  Description:  A multi-line description of the appointment
   The From and To edits work in much the same way as the Birthday field in the
   Contact Details - you can navigate with the arrow keys, or type in dates
   (and times) numerically.  The duration (in brackets) can be changed with
@@ -196,14 +198,14 @@
    Pressing F9 causes the contact details and appointments to be synchronised 
    with Google.  Any phones or email packages that also synchronise with
    he same account will be updated.
-   ontact Manager can be set to be the master, in cases of conflict - this is the
-   recommended setting, and means that any erroneous modifications made using
+   Contact Manager can be set to be the master, in cases of conflict - this is
+   the recommended setting, and means that any erroneous modifications made using
    other devices will be repaired through a contact manager synchronisaiton.
    This does mean that edits made on other devices will be lost, however, new
    contacts and appointments made on remote devices will automatically be added.
-   Other options are to allow Google to be the master, and to ask each time there
-   is a potential conflict. Any modifications made are recorded in the History
-   for the appropriate contact, and can be found on the History tab (Alt-Y).
+   Alternatively, Google can be set to be the master. Any modifications made are 
+   recorded in the History for the appropriate contact, and can be found on the 
+   History tab (Alt-Y).
 
 &gt;&gt; 8. CONFIGURATION
 
