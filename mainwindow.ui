@@ -64,7 +64,7 @@
        <string>Page Select</string>
       </property>
       <property name="currentIndex">
-       <number>4</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="OverviewTab">
        <property name="whatsThis">
@@ -133,78 +133,6 @@ p, li { white-space: pre-wrap; }
              <set>QAbstractItemView::NoEditTriggers</set>
             </property>
            </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QVBoxLayout" name="verticalLayout">
-          <property name="rightMargin">
-           <number>0</number>
-          </property>
-          <item>
-           <widget class="QPushButton" name="newAppointmentButton">
-            <property name="accessibleName">
-             <string>Make New Appointment</string>
-            </property>
-            <property name="accessibleDescription">
-             <string/>
-            </property>
-            <property name="text">
-             <string>&amp;New</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="insertAppointmentButton">
-            <property name="accessibleName">
-             <string>Make New Appointment</string>
-            </property>
-            <property name="accessibleDescription">
-             <string/>
-            </property>
-            <property name="text">
-             <string>&amp;Insert After</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="moveAppointmentButton">
-            <property name="accessibleName">
-             <string>Update Appointment</string>
-            </property>
-            <property name="accessibleDescription">
-             <string/>
-            </property>
-            <property name="text">
-             <string>&amp;Update</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="removeAppointmentButton">
-            <property name="accessibleName">
-             <string>Remove Appointment</string>
-            </property>
-            <property name="accessibleDescription">
-             <string/>
-            </property>
-            <property name="text">
-             <string>&amp;Remove</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <spacer name="verticalSpacer">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>40</height>
-             </size>
-            </property>
-           </spacer>
           </item>
          </layout>
         </item>
@@ -1149,14 +1077,20 @@ p, li { white-space: pre-wrap; }
     </property>
     <widget class="QMenu" name="menuInsert_Appointment">
      <property name="title">
-      <string>Insert Appointment</string>
+      <string>&amp;Insert Appointment</string>
      </property>
      <addaction name="action_Insert_Appointment_After"/>
      <addaction name="actionInsert_My_Appointment_After"/>
     </widget>
+    <widget class="QMenu" name="menuNewAppointment">
+     <property name="title">
+      <string>&amp;New Appointment</string>
+     </property>
+     <addaction name="actionNewAppointment"/>
+     <addaction name="actionNewMyAppointment"/>
+    </widget>
     <addaction name="menuInsert_Appointment"/>
-    <addaction name="actionNewMyAppointment"/>
-    <addaction name="actionNewAppointment"/>
+    <addaction name="menuNewAppointment"/>
     <addaction name="actionMoveAppointment"/>
     <addaction name="actionRemoveAppointment"/>
     <addaction name="separator"/>
@@ -1284,10 +1218,16 @@ p, li { white-space: pre-wrap; }
    <property name="text">
     <string>&amp;Update Appointment</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+U</string>
+   </property>
   </action>
   <action name="actionRemoveAppointment">
    <property name="text">
     <string>&amp;Remove Appointment</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+R</string>
    </property>
   </action>
   <action name="actionGlobalFind">
@@ -1382,14 +1322,6 @@ p, li { white-space: pre-wrap; }
     <string>Ctrl+Shift+L</string>
    </property>
   </action>
-  <action name="actionNewMyAppointment">
-   <property name="text">
-    <string>New &amp;My Appointment</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+Shift+N</string>
-   </property>
-  </action>
   <action name="actionTest_Function">
    <property name="text">
     <string>Test Function</string>
@@ -1475,22 +1407,6 @@ p, li { white-space: pre-wrap; }
     <string>Ctrl+Shift+I</string>
    </property>
   </action>
-  <action name="actionNewAppointment">
-   <property name="text">
-    <string>New &amp;Appointment</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+N</string>
-   </property>
-  </action>
-  <action name="actionGoto_Contact_s_Next_Appointment">
-   <property name="text">
-    <string>Goto Contact's Next &amp;Appointment</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+A</string>
-   </property>
-  </action>
   <action name="actionNewContact">
    <property name="text">
     <string>New &amp;Contact</string>
@@ -1559,6 +1475,22 @@ p, li { white-space: pre-wrap; }
     <string>Ctrl+Shift+G</string>
    </property>
   </action>
+  <action name="actionNewMyAppointment">
+   <property name="text">
+    <string>New &amp;My Appointment</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+N</string>
+   </property>
+  </action>
+  <action name="actionNewAppointment">
+   <property name="text">
+    <string>&amp;New Appointment</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+N</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -1587,10 +1519,6 @@ p, li { white-space: pre-wrap; }
   <tabstop>tabBar</tabstop>
   <tabstop>editOverview</tabstop>
   <tabstop>listCalendar</tabstop>
-  <tabstop>newAppointmentButton</tabstop>
-  <tabstop>insertAppointmentButton</tabstop>
-  <tabstop>moveAppointmentButton</tabstop>
-  <tabstop>removeAppointmentButton</tabstop>
   <tabstop>editToDo</tabstop>
   <tabstop>editFirstName</tabstop>
   <tabstop>editSurname</tabstop>

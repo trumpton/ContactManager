@@ -365,12 +365,9 @@ void MainWindow::populateDialog(QString id, bool switchtooverview)
 void MainWindow::on_tabBar_currentChanged(int index)
 {
     if (index==1) { // Calendar
-        // Button Alt-N conflicts with Contact Details Alt-N, so only one can be enabled at once
-        ui->newAppointmentButton->setEnabled(true) ;
         ui->actionMoveAppointment->setEnabled(true) ;
         ui->actionRemoveAppointment->setEnabled(true) ;
     } else {
-        ui->newAppointmentButton->setEnabled(false) ;
         ui->actionMoveAppointment->setEnabled(false) ;
         ui->actionRemoveAppointment->setEnabled(false) ;
     }
