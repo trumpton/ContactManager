@@ -60,7 +60,7 @@
   Contact Details tab is disabled).
 
 &gt;&gt; 2.1. MENUS AND TABS
-  Menus: File (Alt-F); Search (Alt-S); Goto (Alt-G); Edit (Alt-E); ...
+  Menus: File (Alt-F); Search (Alt-S); Goto (Alt-G); Edit (Alt-E); 
          Tools (Alt-T)
   Tabs:  Overview (Alt-O); Calendar (Alt-C); To-Do List (Alt-L); ...
          Contact Details (Alt-D); History (Alt-Y)
@@ -108,12 +108,11 @@
   Name:         This is the first name (or names of the contact)
   Surname:       This is the contact's surname
   Organisation: This is the contact's business name
-  Contact Type: This is the type of the contact - use the up/down arrows, 
-                or press the first letter.
-  Hidden:       For contacts that are not currently needed, they can be hidden, 
-                rather than deleted.  These contacts won't sync with mobile
-                phones, or appear in the open menu, but they will appear 
-                (in brackets) at the bottom of any Global Search (Control-G).
+  Type: This is a series of tick boxes - select one or more for the contact.
+        For contacts that are not currently needed, they can be hidden, 
+        rather than deleted.  These contacts won't sync with mobile
+        phones, or appear in the open menu, but they will appear 
+        (in brackets) at the bottom of any Global Search (Control-G).
 
 &gt;&gt; 4.2.2. EMAIL (Alt-M)
   Email:        The contact's email address
@@ -133,16 +132,16 @@
   Home:         Home telephone number
   Work:         Work telephone number
   Mobile:       Mobile telephone number
-  VOIP / Skype: VOIP or Skype address
   Other:        The name of another phone number, plus the number  
+  VOIP / Skype: VOIP or Skype address
 
 &gt;&gt; 4.2.5. BIRTHDAY, COMMENTS AND OPTIONS
   Birthday:     This is the contact's birthday.  You can edit it with the
                 up/down arrow keys, or type the date in numbers.  Note that 
                 you don't need to enter the year, but if you do, it is the year
                 expressed as 4 digits.  If you want to remove the year, press
-                minus.  e.g. Entering 15091949 will result in the field being 
-                set to 15/Sep/1949.  Pressing minus when editing the year will 
+                minus.  e.g. Entering 15091969 will result in the field being 
+                set to 15/Sep/1969.  Pressing minus when editing the year will 
                 result in 15/Sep/----.
   Comment:      This is a free-text comment field, that is saved in the contact 
                 record, and is accessible through any synchronised mobile phone.
