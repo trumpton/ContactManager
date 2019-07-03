@@ -146,6 +146,8 @@ private slots:
 
     void on_action_Advanced_Find_triggered();
 
+    void on_initial_focus() ;
+
 private:
     Ui::MainWindow *ui;
     class Calendar calendar ;                       // Calendar
