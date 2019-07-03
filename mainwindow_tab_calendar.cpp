@@ -33,6 +33,7 @@ void MainWindow::LoadCalendarTab()
           }
        }
     }
+    calendarlist.appendData(" -- Add New Appointment for Me (Control-Shift-N) -- ", "Add New Appointment for Me", "ADD") ;
 
     // Restore Calendar Index
     dbg("listCalendar->setCurrentIndex()") ;
@@ -135,20 +136,29 @@ void MainWindow::on_listCalendar_activated(const QModelIndex &index)
     Q_UNUSED(index) ;
     int idx = ui->listCalendar->currentIndex().row() ;
     QString id = calendarlist.hintAt(idx) ;
-    QString contactid = calendar.getAppointmentBy(Appointment::ID, id).getField(Appointment::ContactId) ;
-    if (contactid.isEmpty()) {
-        play(NotFound) ;
-    }
-    if (!contactid.isEmpty()) {
-        populateDialog(contactid) ;
 
-        if (ui->tabBar->currentIndex()!=CALENDARTABPOS) {
-            dbg("tabBar->setCurrentIndex(CALENDARTABPOS)") ;
-            ui->tabBar->setCurrentIndex((CALENDARTABPOS));
+    if (id.compare("ADD")==0) {
+
+        on_actionNewMyAppointment_triggered() ;
+
+    } else {
+
+        QString contactid = calendar.getAppointmentBy(Appointment::ID, id).getField(Appointment::ContactId) ;
+        if (contactid.isEmpty()) {
+            play(NotFound) ;
+        }
+        if (!contactid.isEmpty()) {
+            populateDialog(contactid) ;
+
+            if (ui->tabBar->currentIndex()!=CALENDARTABPOS) {
+                dbg("tabBar->setCurrentIndex(CALENDARTABPOS)") ;
+                ui->tabBar->setCurrentIndex((CALENDARTABPOS));
+            }
+
+            dbg("listCalendar->setFocus()") ;
+            ui->listCalendar->setFocus();
         }
 
-        dbg("listCalendar->setFocus()") ;
-        ui->listCalendar->setFocus();
     }
 }
 
