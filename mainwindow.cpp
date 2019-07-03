@@ -113,13 +113,19 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     find = new AdvancedFind(this) ;
 
     // Fire 'Goto Today' after initialisation complete
-    QKeyEvent *event1 = new QKeyEvent ( QEvent::KeyPress, Qt::Key_T, Qt::ControlModifier);
-    QCoreApplication::postEvent (this, event1);
-    QKeyEvent *event2 = new QKeyEvent ( QEvent::KeyRelease, Qt::Key_T, Qt::ControlModifier);
-    QCoreApplication::postEvent (this, event2);
+    QTimer::singleShot(500, this, SLOT(on_initial_focus()));
 
     dbg("Initialisation complete") ;
 
+}
+
+void MainWindow::on_initial_focus()
+{
+    // Fire 'Goto Today' after initialisation complete
+    QKeyEvent *event1 = new QKeyEvent ( QEvent::KeyPress, Qt::Key_T, Qt::ControlModifier);
+    QKeyEvent *event2 = new QKeyEvent ( QEvent::KeyRelease, Qt::Key_T, Qt::ControlModifier);
+    QCoreApplication::postEvent (this, event1);
+    QCoreApplication::postEvent (this, event2);
 }
 
 void MainWindow::abort()
