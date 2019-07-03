@@ -81,10 +81,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     calendar.load() ;
 
     ui->editDateOfBirth->setFormat("", "dd/MMM/yyyy", true) ;
-    populateDialog(SELECT_OVERVIEW) ;
+    //populateDialog(SELECT_OVERVIEW) ;
 
-    on_tabBar_currentChanged(1) ;
-    on_actionGotoToday_triggered() ;
+    //on_tabBar_currentChanged(1) ;
+    //on_actionGotoToday_triggered() ;
 
     // Warn if no synchronisation has taken place in a while
     bool changed=false ;
@@ -121,11 +121,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
 void MainWindow::on_initial_focus()
 {
-    // Fire 'Goto Today' after initialisation complete
-    QKeyEvent *event1 = new QKeyEvent ( QEvent::KeyPress, Qt::Key_T, Qt::ControlModifier);
-    QKeyEvent *event2 = new QKeyEvent ( QEvent::KeyRelease, Qt::Key_T, Qt::ControlModifier);
-    QCoreApplication::postEvent (this, event1);
-    QCoreApplication::postEvent (this, event2);
+    populateDialog(SELECT_OVERVIEW) ;
+    on_tabBar_currentChanged(1) ;
+    on_actionGotoToday_triggered() ;
 }
 
 void MainWindow::abort()
