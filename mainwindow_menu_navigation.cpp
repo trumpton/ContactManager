@@ -37,8 +37,9 @@ void MainWindow::on_actionGotoMe_triggered()
      QModelIndex index = calendarlist.find(thisid) ;
 
      if (!index.isValid()) {
-         // No nearest entry found, try start of list
-         index = calendarlist.index(0,0) ;
+         // No nearest entry found, goto end of list
+         int rows = calendarlist.rowCount() ;
+         index = calendarlist.index(rows-1,0) ;
      }
 
      if (index.isValid()) {
