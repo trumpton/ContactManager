@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
 
         // Set Application Name
         a.setApplicationName("Contact Manager") ;
-        a.setApplicationVersion("2.0") ;
+        a.setApplicationVersion(appHash().replace("v","")) ;
 
         // Initialise the sound alerts
         initSound() ;
