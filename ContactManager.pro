@@ -128,7 +128,6 @@ HEADERS  += mainwindow.h \
     ../Lib/iniconfig.h \
     sendsmsform.h \
     account-googleaccess.h \
-    version.h \
     ../Lib/encryption.h \
     ../Lib/aes.h \
     advancedfind.h \
