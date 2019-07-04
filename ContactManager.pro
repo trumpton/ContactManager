@@ -7,6 +7,7 @@
 # QT 5.6 += webenginewidgets
 
 QT       += core gui network xml multimedia
+win32:QT += console
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
