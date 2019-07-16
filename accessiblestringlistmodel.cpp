@@ -47,7 +47,7 @@ bool AccessibleStringListModel::insertRows(int row, int count, const QModelIndex
 bool AccessibleStringListModel::setData(const QModelIndex &index, QVariant data, int role)
 {
     int row = index.row() ;
-    if (row<0 || row>=modeldata.size()) return false ;
+    if (row<0 || row>=modeldata.count()) return false ;
 
     const QList<QVariant>& selected = modeldata.at(row) ;
     switch (role) {
@@ -86,7 +86,7 @@ bool AccessibleStringListModel::setData(const QModelIndex &index, QVariant data,
 QVariant AccessibleStringListModel::data(const QModelIndex &index, int role) const
 {
     int row = index.row() ;
-    if (row<0 || row>=modeldata.size()) return QVariant() ;
+    if (row<0 || row>=modeldata.count()) return QVariant() ;
     const QList<QVariant>& selected = modeldata.at(row) ;
     switch (role){
         case Qt::DisplayRole:
@@ -107,7 +107,7 @@ QModelIndex AccessibleStringListModel::find(QVariant user, int startrow)
 {
     int result=-1 ;
     QString userstring = user.toString() ;
-    for (int i=startrow; result<0 && i<modeldata.size(); i++) {
+    for (int i=startrow; result<0 && i<modeldata.count(); i++) {
         const QList<QVariant>& entry = modeldata.at(i) ;
         QString srch = entry.toVector().at(2).toString() ;
         if (srch.contains(userstring, Qt::CaseInsensitive)) result=i ;
@@ -133,7 +133,7 @@ QModelIndex AccessibleStringListModel::index(int row, int column, const QModelIn
 int AccessibleStringListModel::rowCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent) ;
-    return modeldata.size() ;
+    return modeldata.count() ;
 }
 
 Qt::ItemFlags AccessibleStringListModel::flags(const QModelIndex &index) const
