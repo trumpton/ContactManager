@@ -30,8 +30,7 @@ private:
       QString idName ;
       bool isdirty ;
       QString getOverviewResponse ;
-
-      bool loadAppointment(QString ident) ;
+      QString selectedappointment ;
 
 public:
     Calendar();
@@ -41,6 +40,7 @@ private:
     // Unused copy construct
     Calendar(const Calendar& other) ;
     Calendar& operator =(const Calendar &rhs) ;
+    bool loadAppointment(QString ident) ;
 
 public:
     void clear() ;
@@ -50,7 +50,6 @@ public:
     bool load() ;
     bool save() ;
     int find(QString text, bool futureonly=false) ;
-
 
     bool appointmentIsInFuture(int n) ;
     bool appointmentIsInRange(int n, qint64 beforedays, qint64 afterdays) ;
@@ -72,6 +71,10 @@ public:
     QString& getAppointmentAsText(int n) ;
     QString& getAppointmentAsHTML(int n) ;
     QString getOverview(enum CalendarOverviewType overviewtype, QString contactid, bool futureonly=true) ;
+
+    Appointment& selectAppointment(QString id) ;
+    Appointment& selectAppointment(Appointment &appointment) ;
+    Appointment& getSelected() ;
 
 };
 
