@@ -39,7 +39,7 @@ public:
     QString hintAt(int row) ;
     QModelIndex find(QVariant user, int startrow=0);
 
-    void debug() ;
+    QStringList &debug() const ;
 
 };
 
