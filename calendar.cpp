@@ -29,6 +29,7 @@ void Calendar::clear()
     idName="" ;
     isdirty=false ;
     getOverviewResponse="" ;
+    selectedappointment=-1 ;
 }
 
 bool Calendar::load()
@@ -339,4 +340,35 @@ Appointment& Calendar::getAppointmentClash(Appointment& appt)
                 appt.clashes(test)) return test ;
     }
     return getNull() ;
+}
+
+//
+// Searching and Selection
+//
+
+Appointment& Calendar::selectAppointment(QString id)
+{
+    selectedappointment=id ;
+    return getSelected() ;
+}
+
+Appointment& Calendar::selectAppointment(Appointment &appointment)
+{
+    return selectAppointment(appointment.getField(Appointment::ID)) ;
+}
+
+Appointment& Calendar::getSelected()
+{
+    Appointment *appt = NULL ;
+    for (int i=0, ne=appointments.size(); i<ne && !appt; i++) {
+        QString& recordid = appointments[i].getField(Appointment::ID) ;
+        if (selectedappointment.compare(recordid)==0) appt = (Appointment*)&appointments[i] ;
+    }
+
+    if (!appt) {
+        appt=(Appointment *)&getNull() ;
+        selectedappointment = "" ;
+    }
+
+    return *appt ;
 }

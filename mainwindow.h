@@ -124,6 +124,7 @@ private slots:
     void on_actionNewContact_triggered();
 
     void on_listCalendar_clicked(const QModelIndex &index);
+    void on_listCalendar_SelectionChanged(const QModelIndex &index) ;
 
     void on_actionSearch_EmailSMSToContacts_triggered();
 

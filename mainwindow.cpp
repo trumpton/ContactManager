@@ -22,9 +22,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     // Enable debug
     setupdebug();
 
-    // Connect signals for password menu
-    connect(ui->menuKeyandPassword, SIGNAL(aboutToShow()), this, SLOT(refreshPasswordMenu())) ;
-
     // Set the application icon
     QIcon icon(":icon-image.png");
     setWindowIcon(icon);
@@ -111,6 +108,19 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
     // Setup Advanced Find
     find = new AdvancedFind(this) ;
+
+    // Connect signals for password menu and calendar list
+    // ref: https://stackoverflow.com/questions/26422154/my-signal-slot-connection-does-not-work
+
+    connect(ui->menuKeyandPassword,
+            &QMenu::aboutToShow,
+            this,
+            &MainWindow::refreshPasswordMenu) ;
+
+    connect(ui->listCalendar,
+            &SafeListView::selectionChanged,
+            this,
+            &MainWindow::on_listCalendar_SelectionChanged) ;
 
     // Fire 'Goto Today' after initialisation complete
     QTimer::singleShot(500, this, SLOT(on_initial_focus()));
@@ -420,12 +430,13 @@ void MainWindow::LoadTabs()
 
 void MainWindow::SaveTabs()
 {
-    SaveContactTab() ;
-    SaveEditHistory() ;
     SaveTodo() ;
+    SaveEditHistory() ;
+    SaveCalendarTab();
+    SaveContactTab() ;
+    LoadOverviewTab() ;
     db.save() ;
     calendar.save() ;
-    LoadOverviewTab() ;
 }
 
 //

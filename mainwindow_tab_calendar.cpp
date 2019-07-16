@@ -8,14 +8,13 @@
 
 void MainWindow::LoadCalendarTab()
 {
-    int idx = ui->listCalendar->currentIndex().row() ;
-    QString id = calendarlist. hintAt(idx) ;
-    int matchidx=0 ;
+    QString id = calendar.getSelected().getField(Appointment::ID) ;
+    int matchid=-1 ;
 
     calendarlist.clear() ;
     calendar.sort() ;
     int ne=calendar.size() ;
-    for (int i=0; i<ne; i++) {
+    for (int i=0,j=0; i<ne; i++) {
        Appointment &appt = calendar.getAppointment(i) ;
        if (!appt.isSet(Appointment::Deleted) &&
                appt.isInRange(APPOINTMENTSTARTWINDOW, APPOINTMENTENDWINDOW) ) {
@@ -29,20 +28,28 @@ void MainWindow::LoadCalendarTab()
            QString accessibletitle = appt.asAccessibleText(apptfor) ;
            calendarlist.appendData(title, accessibletitle, appt.getField(Appointment::ID)) ;
           if (id.compare(appt.getField(Appointment::ID))==0) {
-              matchidx = i ;
+              matchid = j ;
           }
+          j++ ;
        }
     }
-    calendarlist.appendData(" -- Add New Appointment for Me (Control-Shift-N) -- ", "Add New Appointment for Me", "ADD") ;
 
-    // Restore Calendar Index
-    dbg("listCalendar->setCurrentIndex()") ;
-    ui->listCalendar->setCurrentIndex(calendarlist.index(matchidx,0)) ;
+    calendarlist.appendData(" -- Add New Appointment for Me (Control-Shift-N) -- ", "Add New Appointment for Me", "ADD") ;
+    if (matchid<0) {
+        matchid=calendarlist.rowCount() - 1 ;
+        dbg(QString("listCalendar->setCurrentIndex(endoflist))")) ;
+    } else {
+        dbg(QString("listCalendar->setCurrentIndex(%1)").arg(matchid)) ;
+    }
+    ui->listCalendar->setCurrentIndex(calendarlist.index(matchid,0)) ;
 }
 
 
 void MainWindow::SaveCalendarTab()
 {
+    int idx = ui->listCalendar->currentIndex().row() ;
+    QString id = calendarlist. hintAt(idx) ;
+    calendar.selectAppointment(id) ;
 }
 
 //
@@ -136,6 +143,7 @@ void MainWindow::on_listCalendar_activated(const QModelIndex &index)
     Q_UNUSED(index) ;
     int idx = ui->listCalendar->currentIndex().row() ;
     QString id = calendarlist.hintAt(idx) ;
+    calendar.selectAppointment(id) ;
 
     if (id.compare("ADD")==0) {
 
@@ -177,6 +185,11 @@ void MainWindow::on_listCalendar_clicked(const QModelIndex &index)
     }
 }
 
+void MainWindow::on_listCalendar_SelectionChanged(const QModelIndex &index)
+{
+    dbg(QString("on_listCalendar_SelectionChanged(%1)").arg(index.row())) ;
+    calendar.selectAppointment(calendarlist.data(index, Qt::UserRole).toString()) ;
+}
 
 //
 // Appointment Menu Options
