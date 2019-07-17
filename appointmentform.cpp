@@ -52,9 +52,9 @@ void AppointmentForm::setupForm(ContactDatabase &db, QString contactid, Appointm
 
    if (contactid.isEmpty()) contactid = appt.getField(Appointment::ContactId) ;
 
-   if (appt.isEmpty()) {
+   if (createNew) {
 
-       if (createNew && !reference.isEmpty()) {
+       if (!reference.isEmpty()) {
 
            now = reference.getDate(Appointment::To) ;
 
@@ -67,17 +67,17 @@ void AppointmentForm::setupForm(ContactDatabase &db, QString contactid, Appointm
        }
 
        then = now.addSecs(60*60) ;
-       summary = "Appointment" ;
 
    } else {
 
        now = appt.getDate(Appointment::From);
        then = appt.getDate(Appointment::To) ;
-       summary = appt.getField(Appointment::Summary) ;
        description = appt.getField(Appointment::Description) ;
+
    }
 
    int duration = (int)now.secsTo(then) / 60 ;
+   summary = appt.getField(Appointment::Summary) ;
 
    ui->editWhenFrom->setDateTime(now, duration) ;
    ui->editWhenTo->setDateTime(then) ;

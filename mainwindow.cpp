@@ -8,6 +8,8 @@
 
 #include <QProcess>
 #include <QMessageBox>
+#include <QShortcut>
+
 #include "mainwindow.h"
 #include "sendsmsform.h"
 #include "../Lib/itemselect.h"
@@ -32,11 +34,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     // Initialise encryption i/o
     enc = new Encryption(QString("trumpton.uk"), QString("TextFileEncryption")) ;
     gConf->setEncryption(enc);
-
-    // Timer ticks every second
-    QTimer *timer = new QTimer(this);
-    connect(timer, SIGNAL(timeout()), this, SLOT(tick()));
-    timer->start(1000);
 
     // Set up Calendar Model
     calendarlist.clear() ;
@@ -121,6 +118,20 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
             &SafeListView::selectionChanged,
             this,
             &MainWindow::on_listCalendar_SelectionChanged) ;
+
+    QShortcut* delshortcut = new QShortcut(QKeySequence(Qt::Key_Delete), ui->listCalendar);
+    connect(delshortcut,
+            &QShortcut::activated,
+            this,
+            &MainWindow::on_actionRemoveAppointment_triggered) ;
+
+    // Timer ticks every second
+    QTimer *timer = new QTimer(this);
+    connect(timer,
+            &QTimer::timeout,
+            this,
+            &MainWindow::tick) ;
+    timer->start(1000);
 
     // Fire 'Goto Today' after initialisation complete
     QTimer::singleShot(500, this, SLOT(on_initial_focus()));

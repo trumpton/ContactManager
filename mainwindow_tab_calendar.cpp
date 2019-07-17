@@ -202,8 +202,16 @@ void MainWindow::on_listCalendar_SelectionChanged(const QModelIndex &index)
 void MainWindow::on_actionNewAppointment_triggered()
 {
     Contact &dr = db.getSelected() ;
+    QString me = gConf->getMe() ;
+
     if (dr.isNull()) {
+
         play(Disabled) ;
+
+    } else if (dr.getField(Contact::ID).compare(me)==0) {
+
+        on_actionNewMyAppointment_triggered();
+
     } else {
 
         if (ui->tabBar->currentIndex()!=CALENDARTABPOS) {
@@ -216,6 +224,7 @@ void MainWindow::on_actionNewAppointment_triggered()
 
       Appointment reference = calendar.getNull() ;
       Appointment newappt ;
+      newappt.setField(Appointment::Summary,QString("Appointment"));
       editAppointment(newappt, reference, db.getSelected().getField(Contact::ID), true) ;
    }
 }
@@ -233,6 +242,7 @@ void MainWindow::on_actionNewMyAppointment_triggered()
     } else {
         Appointment reference = calendar.getNull() ;
         Appointment newappt ;
+        newappt.setField(Appointment::Summary,"Event");
         editAppointment(newappt, reference, me, true) ;
     }
 }
