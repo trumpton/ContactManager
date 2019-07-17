@@ -391,7 +391,7 @@ QString& Appointment::asHTML(QString name)
 
 bool Appointment::isNotFor(QString& id)
 {
-    QString& apptfor = getField(Appointment::For) ;
+    QString& apptfor = getField(Appointment::ContactId) ;
     return (apptfor.compare(id)!=0) ;
 }
 

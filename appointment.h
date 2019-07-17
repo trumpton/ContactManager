@@ -149,7 +149,6 @@ public:
 
     void setId(QString newid) ;
     void setContactId(QString contactid) ;
-    void setDescription(QString desc) ;
 
     bool isInFuture() ;
     bool isCurrent() ;
