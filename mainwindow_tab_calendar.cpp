@@ -333,6 +333,7 @@ void MainWindow::on_removeAppointmentButton_clicked()
 {
     int idx = ui->listCalendar->currentIndex().row() ;
     QString id = calendarlist.hintAt(idx) ;
+
     Appointment& appt = calendar.getAppointmentBy(Appointment::ID, id) ;
     if (appt.isNull()) {
         play(NotFound) ;
@@ -341,10 +342,24 @@ void MainWindow::on_removeAppointmentButton_clicked()
                                  appt.asText() +
                                  ".\nThis is not easily undone....")) {
 
+            QString nextid = calendarlist.hintAt(idx+1) ;
             appt.setFlag(Appointment::Deleted, true) ;
             calendar.save() ;
             LoadTabs() ;
-            on_actionGotoToday_triggered() ;
+
+            QModelIndex index = calendarlist.find(nextid) ;
+
+            if (!index.isValid()) {
+                // No entry found, goto end of list
+                int rows = calendarlist.rowCount() ;
+                index = calendarlist.index(rows-1,0) ;
+            }
+
+            if (index.isValid()) {
+                dbg("listCalendar->setCurrentIndex()") ;
+                ui->listCalendar->setCurrentIndex(index) ;
+            }
+
         }
     }
 }
