@@ -545,13 +545,21 @@ int Appointment::operator<(const Appointment &rhs) const
     QDateTime f2 = rhs.getDate(Appointment::From) ;
     QDateTime t1 = getDate(Appointment::To) ;
     QDateTime t2 = rhs.getDate(Appointment::To) ;
+    QString s1 = filedata[Appointment::For] + filedata[Appointment::Summary] ;
+    QString s2 = rhs.filedata[Appointment::For] + rhs.filedata[Appointment::Summary] ;
+    int c = s1.compare(s2) ;
+    int i = filedata[Appointment::ID].compare(rhs.filedata[Appointment::ID]) ;
 
-    if ( f1 < f2 ) {
+    if ( ( f1<f2 ) ||                                            // Date less than
+         ( ( f1==f2 ) && ( t1<t2 ) ) ||                          // Date match, and time less than
+         ( ( f1==f2 ) && ( t1==t2 ) && ( c<0 ) ) ||              // Date/Time match & Name/Summary less than
+         ( ( f1==f2 ) && ( t1==t2 ) && ( c==0 ) && ( i<0 ) ) ) { // Date/Time/Name/Summary match & ID less than
+
         return 1 ;
-    } else if (  (f1==f2) && (t1<t2) ) {
-        return 1 ;
+
     } else {
+
         return 0 ;
+
     }
 }
-
