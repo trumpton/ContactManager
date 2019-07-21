@@ -11,8 +11,20 @@ void MainWindow::LoadCalendarTab()
     QString id = calendar.getSelected().getField(Appointment::ID) ;
     int matchid=-1 ;
 
-    calendarlist.clear() ;
+    // Refresh birthdays (all but mine), and sort ready for load
+    calendar.purgeBirthdays();
+    for (int i=0; i<db.size(); i++) {
+        Contact &c = db.getContact(i) ;
+        if (c.getField(Contact::ID).compare(gConf->getMe())!=0) {
+            QString when = c.getField(Contact::Birthday) ;
+            QString who = QString("%1 %2").arg(c.getField(Contact::Names)).arg(c.getField(Contact::Surname)) ;
+            QString whoid = c.getField(Contact::ID) ;
+            calendar.addBirthday(who, whoid, when) ;
+        }
+    }
     calendar.sort() ;
+
+    calendarlist.clear() ;
     int ne=calendar.size() ;
     for (int i=0,j=0; i<ne; i++) {
        Appointment &appt = calendar.getAppointment(i) ;
@@ -70,8 +82,9 @@ void MainWindow::editAppointment(Appointment &editing, Appointment &reference, Q
 
     // TODO TODO TODO TODO
     // Check appointment is editable
-    if (appt.isSet(Appointment::InternetOwned)) {
+    if (appt.isTemp() || appt.isSet(Appointment::InternetOwned)) {
         // Error, read-only
+        play(Error) ;
         return ;
     }
 
@@ -305,12 +318,23 @@ void MainWindow::on_actionInsert_My_Appointment_After_triggered()
     }
 }
 
-
 //
-// Move Appointments
+// Buttons on Calendar Dialog
 //
 
-void MainWindow::on_moveAppointmentButton_clicked()
+/*
+void MainWindow::on_newAppointmentButton_clicked()
+{
+    on_actionNewAppointment_triggered() ;
+}
+
+void MainWindow::on_insertAppointmentButton_clicked()
+{
+    on_action_Insert_Appointment_After_triggered();
+}
+*/
+
+void MainWindow::on_actionMoveAppointment_triggered()
 {
     // TODO: If calendar not selected, beep
     int idx = ui->listCalendar->currentIndex().row() ;
@@ -325,18 +349,14 @@ void MainWindow::on_moveAppointmentButton_clicked()
     }
 }
 
-//
-// Remove Appointment
-//
-
-void MainWindow::on_removeAppointmentButton_clicked()
+void MainWindow::on_actionRemoveAppointment_triggered()
 {
     int idx = ui->listCalendar->currentIndex().row() ;
     QString id = calendarlist.hintAt(idx) ;
 
     Appointment& appt = calendar.getAppointmentBy(Appointment::ID, id) ;
-    if (appt.isNull()) {
-        play(NotFound) ;
+    if (appt.isNull() || appt.isTemp()) {
+        play(Disabled) ;
     } else {
         if (warningYesNoDialog(this, "Delete Appointment?", "Are you sure you want to delete " +
                                  appt.asText() +
@@ -363,29 +383,3 @@ void MainWindow::on_removeAppointmentButton_clicked()
         }
     }
 }
-
-//
-// Buttons on Calendar Dialog
-//
-
-
-void MainWindow::on_newAppointmentButton_clicked()
-{
-    on_actionNewAppointment_triggered() ;
-}
-
-void MainWindow::on_insertAppointmentButton_clicked()
-{
-    on_action_Insert_Appointment_After_triggered();
-}
-
-void MainWindow::on_actionMoveAppointment_triggered()
-{
-    on_moveAppointmentButton_clicked() ;
-}
-
-void MainWindow::on_actionRemoveAppointment_triggered()
-{
-     on_removeAppointmentButton_clicked() ;
-}
-

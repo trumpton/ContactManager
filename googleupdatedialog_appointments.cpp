@@ -55,8 +55,13 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
             upload=true ;
         }
 
-        localappt.setFlag(Appointment::ToBeDownloaded, !upload) ;
-        localappt.setFlag(Appointment::ToBeUploaded, upload) ;
+        if (localappt.isTemp()) {
+            localappt.setFlag(Appointment::ToBeDownloaded, false) ;
+            localappt.setFlag(Appointment::ToBeUploaded, false) ;
+        } else {
+            localappt.setFlag(Appointment::ToBeDownloaded, !upload) ;
+            localappt.setFlag(Appointment::ToBeUploaded, upload) ;
+        }
     }
 
     if (state<0) return false ;
@@ -92,8 +97,8 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
         QDateTime from = localappt.getDate(Appointment::From) ;
         QDateTime to = localappt.getDate(Appointment::To) ;
 
-        // Just process non-deleted entries within sync window
-        if ( !localappt.isSet(Appointment::Deleted) &&
+        // Just process non-temp, non-deleted entries within sync window
+        if ( !localappt.isTemp() && !localappt.isSet(Appointment::Deleted) &&
               ( (from <= fromwindow && to >= fromwindow) ||
                 (from >= fromwindow && to <= towindow) ||
                 ( from <= towindow && to >= towindow) ) ) {
@@ -182,10 +187,11 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
         QDateTime from = localappt.getDate(Appointment::From) ;
         QDateTime to = localappt.getDate(Appointment::To) ;
 
-        // Just process entries within sync window
-        if ( (from <= fromwindow && to >= fromwindow) ||
-             (from >= fromwindow && to <= towindow) ||
-             ( from <= towindow && to >= towindow) ) {
+        // Just process non-temp entries within sync window
+        if ( !localappt.isTemp() &&
+               ( (from <= fromwindow && to >= fromwindow) ||
+                 (from >= fromwindow && to <= towindow) ||
+                 ( from <= towindow && to >= towindow) )  ) {
 
             Appointment& googleappt = googlecal.getAppointmentBy(Appointment::ID, localappt.getField(Appointment::ID)) ;
 

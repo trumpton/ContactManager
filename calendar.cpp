@@ -372,3 +372,56 @@ Appointment& Calendar::getSelected()
 
     return *appt ;
 }
+
+void Calendar::purgeBirthdays()
+{
+    QList<Appointment>::iterator it = appointments.begin();
+    while (it != appointments.end()) {
+        if ((*it).isTemp()) {
+            it = appointments.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
+void Calendar::addBirthday(QString who, QString whoid, QString when)
+{
+    QStringList de = when.split("-") ;
+
+    if (de.size()==3 && de.at(0).toInt() > 0) {
+
+        int day = de.at(2).toInt() ;
+        int month = de[1].toInt() ;
+        QTime midnight(0,0,0) ;
+
+        QDateTime last, now, next ;
+        int year = last.currentDateTimeUtc().date().year() ;
+
+        last = QDateTime( QDate(year-1, month, day), midnight, Qt::UTC) ;
+        Appointment *appt1 = new Appointment() ;
+        appt1->setField(Appointment::Summary, QString("Birthday")) ;
+        appt1->setField(Appointment::For, who) ;
+        appt1->setField(Appointment::ContactId, whoid) ;
+        appt1->setDate(Appointment::From, last) ;
+        appt1->setDate(Appointment::To, last) ;
+        appt1->setId(QString("1-%1").arg(whoid)) ;
+        appt1->markAsTemp();
+        appointments.append(*appt1) ;
+
+        now = QDateTime( QDate(year, month, day), midnight, Qt::UTC) ;
+        Appointment *appt2 = new Appointment(*appt1) ;
+        appt2->setDate(Appointment::From, now) ;
+        appt2->setDate(Appointment::To, now) ;
+        appt1->setId(QString("2-%1").arg(whoid)) ;
+        appointments.append(*appt2) ;
+
+        next = QDateTime( QDate(year+1, month, day), midnight, Qt::UTC) ;
+        Appointment *appt3 = new Appointment(*appt1) ;
+        appt3->setDate(Appointment::From, next) ;
+        appt3->setDate(Appointment::To, next) ;
+        appt1->setId(QString("3-%1").arg(whoid)) ;
+        appointments.append(*appt3) ;
+
+    }
+}

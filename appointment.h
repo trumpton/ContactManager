@@ -117,6 +117,7 @@ private:
     bool isnull ;
     bool isempty ;
     bool isdirty ;
+    bool istemp ;
 
     QString filedata[NumberOfRecords] ;
 
@@ -139,6 +140,7 @@ public:
     bool isNull() ;
     bool isEmpty() ;
     bool isDirty() ;
+    bool isTemp() ;
 
     bool load(QString path, QString idname) ;
     void createNew() ;
@@ -146,6 +148,7 @@ public:
 
     void markAsSaved() ;
     void markAsDirty() ;
+    void markAsTemp() ;
 
     void setId(QString newid) ;
     void setContactId(QString contactid) ;

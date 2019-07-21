@@ -78,11 +78,6 @@ private slots:
     void on_actionMoveAppointment_triggered();
     void on_actionRemoveAppointment_triggered();
 
-    void on_newAppointmentButton_clicked();
-    void on_insertAppointmentButton_clicked();
-    void on_moveAppointmentButton_clicked();
-    void on_removeAppointmentButton_clicked();
-
     void on_actionEnableContactDetailsEdit_triggered();
     void on_actionDeleteContact_triggered();
     void on_actionAbout_triggered();
