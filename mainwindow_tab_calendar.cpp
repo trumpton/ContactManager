@@ -13,17 +13,19 @@ void MainWindow::LoadCalendarTab()
 
     // Refresh birthdays (all but mine), and sort ready for load
     calendar.purgeBirthdays();
-    for (int i=0; i<db.size(); i++) {
-        Contact &c = db.getContact(i) ;
-        if (c.getField(Contact::ID).compare(gConf->getMe())!=0) {
-            QString when = c.getField(Contact::Birthday) ;
-            QString who = QString("%1 %2").arg(c.getField(Contact::Names)).arg(c.getField(Contact::Surname)) ;
-            QString whoid = c.getField(Contact::ID) ;
-            calendar.addBirthday(who, whoid, when) ;
+    if (gConf->calendarShowBirthdays()) {
+        for (int i=0; i<db.size(); i++) {
+            Contact &c = db.getContact(i) ;
+            if (c.getField(Contact::ID).compare(gConf->getMe())!=0) {
+                QString when = c.getField(Contact::Birthday) ;
+                QString who = QString("%1 %2").arg(c.getField(Contact::Names)).arg(c.getField(Contact::Surname)) ;
+                QString whoid = c.getField(Contact::ID) ;
+                calendar.addBirthday(who, whoid, when) ;
+            }
         }
     }
-    calendar.sort() ;
 
+    calendar.sort() ;
     calendarlist.clear() ;
     int ne=calendar.size() ;
     for (int i=0,j=0; i<ne; i++) {

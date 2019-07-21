@@ -58,11 +58,7 @@ private:
     QString settingSMTPUsername ;
     QString settingSMTPPort ;
     QString settingSMTPPassword ;
-    QString settingDebugEnabled ;
-    QString settingEncryptedEnabled ;
     QString settingEmailCommand ;
-    QString settingContactSyncEnabled ;
-    QString settingCalendarSyncEnabled ;
     DatabaseMaster settingDatabaseMaster ;
     Encryption *enc ;
 
@@ -96,6 +92,7 @@ public:
     bool encryptedEnabled() ;
     bool contactSyncEnabled() ;
     bool calendarSyncEnabled() ;
+    bool calendarShowBirthdays() ;
 
     // QSettings Access Functions
     QString &getMe() ;

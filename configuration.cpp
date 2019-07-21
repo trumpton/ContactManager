@@ -41,10 +41,6 @@ Configuration::Configuration(QWidget *parent) :
     settingSMTPUsername = "" ;
     settingSMTPPort = "" ;
     settingSMTPPassword = "" ;
-    settingDebugEnabled = "" ;
-    settingEncryptedEnabled = "" ;
-    settingContactSyncEnabled = "" ;
-    settingCalendarSyncEnabled = "" ;
     settingDatabaseMaster = ContactManagerMaster ;
 
     ui->setupUi(this);
@@ -145,6 +141,9 @@ bool Configuration::SetupForm(ContactDatabase *currentdatabase, GoogleAccess *ga
     ui->checkBox_syncCalendar->setChecked(calendarSyncEnabled()) ;
     ui->checkBox_syncContacts->setChecked(contactSyncEnabled()) ;
 
+    // Load flags
+    ui->showBirthdays->setChecked(calendarShowBirthdays()) ;
+
     // Show ini file path
     ui->iniFilePath->setText(ini.canonicalPath()) ;
 
@@ -177,6 +176,13 @@ bool Configuration::SaveForm()
     } else {
         settings->setValue("enablereminders", "no") ;
     }
+
+    if (ui->showBirthdays->isChecked()) {
+        settings->setValue("showbirthdays", "yes") ;
+    } else {
+        settings->setValue("showbirthdays", "no") ;
+    }
+
 
     if (ui->checkBox_syncCalendar->isChecked())
         settings->setValue("calendarsync", "yes") ;
@@ -222,6 +228,12 @@ bool Configuration::calendarSyncEnabled()
 bool Configuration::contactSyncEnabled()
 {
     QString m = settings->value("contactsync").toString() ;
+    return (m.compare("yes", Qt::CaseInsensitive)==0) ;
+}
+
+bool Configuration::calendarShowBirthdays()
+{
+    QString m = settings->value("showbirthdays").toString() ;
     return (m.compare("yes", Qt::CaseInsensitive)==0) ;
 }
 

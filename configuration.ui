@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>600</width>
-    <height>444</height>
+    <height>550</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -19,13 +19,13 @@
   <property name="minimumSize">
    <size>
     <width>600</width>
-    <height>0</height>
+    <height>550</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>10000</width>
-    <height>600</height>
+    <width>6000</width>
+    <height>4000</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -350,7 +350,7 @@
       </font>
      </property>
      <property name="title">
-      <string>Database and Reminders   </string>
+      <string>Database Management</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_6">
       <item>
@@ -401,6 +401,15 @@
         </item>
        </layout>
       </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox_3">
+     <property name="title">
+      <string>Options</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_7">
       <item>
        <widget class="QCheckBox" name="enableReminders">
         <property name="enabled">
@@ -408,6 +417,13 @@
         </property>
         <property name="text">
          <string>Enable SMS and Email Reminders</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="showBirthdays">
+        <property name="text">
+         <string>Show Birthdays in Calendar List</string>
         </property>
        </widget>
       </item>
