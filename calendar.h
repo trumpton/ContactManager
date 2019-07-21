@@ -76,6 +76,10 @@ public:
     Appointment& selectAppointment(Appointment &appointment) ;
     Appointment& getSelected() ;
 
+    void purgeBirthdays() ;
+    void addBirthday(QString who, QString whoid, QString when) ;
+
+
 };
 
 bool Compare(const Appointment &A, const Appointment &B) ;

@@ -33,12 +33,13 @@ void MainWindow::sendMailSMS()
     for (int i=0, csz=calendar.size(); i<csz; i++) {
 
         Appointment &appt = calendar.getAppointment(i) ;
+        bool istemp = appt.isTemp() ;
         bool deleted = appt.isSet(Appointment::Deleted) ;
         QDateTime messagesentdate = appt.getDate(Appointment::MessageSent) ;
         bool messagesent = messagesentdate.isValid()  ;
 
-        // Only process non-deleted or non-recently-deleted messages
-        if (!deleted || (deleted && messagesent)) {
+        // Only process non-temp and non-deleted or non-recently-deleted messages
+        if (!istemp && (!deleted || (deleted && messagesent))) {
 
             bool isinfuture = appt.isInFuture() ;
             Contact& contact = db.getContactById(appt.getContactId()) ;

@@ -44,6 +44,7 @@ Appointment& Appointment::operator=(const Appointment &rhs)
     isnull = rhs.isnull ;
     isempty = rhs.isempty ;
     isdirty = rhs.isdirty ;
+    istemp = rhs.istemp ;
     shortTextResponse = rhs.shortTextResponse ;
     asTextResponse = rhs.asTextResponse ;
     asHTMLResponse = rhs.asHTMLResponse ;
@@ -62,6 +63,10 @@ void Appointment::setNull()
     isnull=true ;
 }
 
+void Appointment::setId(QString newid)
+{
+    filedata[ID] = newid ;
+}
 
 Appointment::~Appointment()
 {
@@ -85,6 +90,11 @@ bool Appointment::isDirty()
     return isdirty ;
 }
 
+bool Appointment::isTemp()
+{
+    return istemp ;
+}
+
 void Appointment::markAsSaved()
 {
     isdirty=false ;
@@ -93,6 +103,11 @@ void Appointment::markAsSaved()
 void Appointment::markAsDirty()
 {
     isdirty=true ;
+}
+
+void Appointment::markAsTemp()
+{
+    istemp=true ;
 }
 
 QString& Appointment::getId()
@@ -165,7 +180,7 @@ bool Appointment::load(QString path, QString idname)
 
 bool Appointment::save(QString path)
 {
-    if (isdirty && !isempty && !isnull) {
+    if (isdirty && !isempty && !isnull && !istemp) {
 
        QString fullPath = path + filedata[Appointment::ID] + ".appointment" ;
        QFile file(fullPath);
@@ -322,6 +337,7 @@ void Appointment::createNew()
     isempty = true ;
     isnull = false ;
     isdirty = false ;
+    istemp = false ;
 }
 
 QString& Appointment::asAccessibleText(QString name)
@@ -342,19 +358,33 @@ QString& Appointment::asText(QString name, QString start, QString mid, QString e
 
     } else {
 
-        // TODO: parse from/to
         asTextResponse = start ;
-        asTextResponse += from.toLocalTime().toString("dd MMM yy hh:mm") ;
-        asTextResponse += " - " ;
+        asTextResponse += from.toString("dd MMM yyyy ") ;
+
         if (from == to) {
-            asTextResponse += "reminder: " ;
-        } else {
-            if (from.date() == to.date()) {
-                asTextResponse+= to.toLocalTime().toString("hh:mm") + ": " ;
+
+            int h = from.time().hour() ;
+            int m = from.time().minute() ;
+            int s = from.time().second() ;
+
+            if (h==0 && m==0 && s==0) {
+                // Midnight - assume whole day event
+                s=0 ;
             } else {
-                asTextResponse += to.toLocalTime().toString(" dd MMM yy hh:mm") + ": " ;
+                // Reminder at specific time
+                asTextResponse+= from.toLocalTime().toString("hh:mm") ;
             }
+
+        } else if (from.date() == to.date()) {
+            // Appointment all on same day
+            asTextResponse+= from.toLocalTime().toString("hh:mm") + " - " + to.toLocalTime().toString("hh:mm") ;
+        } else {
+            // Appointment crossing two days
+            asTextResponse += from.toLocalTime().toString("hh:mm") + " - " + to.toLocalTime().toString("dd MMM yyyy hh:mm") ;
         }
+
+        asTextResponse += ": " ;
+
         if (!name.isEmpty()) {
             asTextResponse = asTextResponse + name + " - " ;
         }
@@ -489,6 +519,9 @@ QString Appointment::mismatch(Appointment &with, int matype, bool showboth)
 
 bool Appointment::clashes(Appointment& with)
 {
+    // Temporary entries can never clash
+    if (isTemp() || with.isTemp()) return false ;
+
     //
     // Appointments clash if they are identical, or overlap
     //
@@ -525,12 +558,21 @@ int Appointment::operator==(const Appointment& rhs) const
     QDateTime f2 = rhs.getDate(Appointment::From) ;
     QDateTime t1 = getDate(Appointment::To) ;
     QDateTime t2 = rhs.getDate(Appointment::To) ;
+    QString s1 = filedata[Appointment::For] + filedata[Appointment::Summary] ;
+    QString s2 = rhs.filedata[Appointment::For] + rhs.filedata[Appointment::Summary] ;
+    int c = s1.compare(s2) ;
+    int i = filedata[Appointment::ID].compare(rhs.filedata[Appointment::ID]) ;
 
-    if (  f1==f2 && t1==t2){
+    if ( ( f1==f2 ) && ( t1==t2 ) && ( c==0 ) && ( i==0 ) ) { // Date/Time/Name/Summary/ID match
+
         return 1 ;
+
     } else {
+
         return 0 ;
+
     }
+
 }
 
 
