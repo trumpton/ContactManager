@@ -5,7 +5,7 @@
 #include <QTextStream>
 #include "history.h"
 #include "configuration.h"
-#include "../../Lib/supportfunctions.h"
+#include "../Lib/supportfunctions.h"
 
 
 History::History()
