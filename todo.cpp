@@ -5,7 +5,7 @@
 #include <QTextStream>
 #include "todo.h"
 #include "configuration.h"
-#include "../../Lib/supportfunctions.h"
+#include "../Lib/supportfunctions.h"
 
 
 Todo::Todo()
