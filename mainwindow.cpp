@@ -126,7 +126,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
             &MainWindow::on_actionRemoveAppointment_triggered) ;
 
     // Timer ticks every second
-    QTimer *timer = new QTimer(this);
+    timer = new QTimer(this);
     connect(timer,
             &QTimer::timeout,
             this,
@@ -155,15 +155,18 @@ void MainWindow::abort()
 
 MainWindow::~MainWindow()
 {
+
     // Save current details if required
     SaveTabs() ;
     play(FileSave) ;
     ui->tabBar->setTabEnabled(CONTACTDETAILSTABPOS, false);
 
-    if (gConf) delete gConf ;
-    if (ui) delete ui;
-    if (enc) delete enc ;
-    if (find) delete find ;
+    // Free up memory
+    if (gConf) delete gConf ; gConf=NULL ;
+    if (timer) delete timer ; timer=NULL ;
+    if (ui) delete ui; ui=NULL ;
+    if (enc) delete enc ; enc=NULL ;
+    if (find) delete find ; find=NULL ;
 }
 
 void MainWindow::refreshPasswordMenu()
