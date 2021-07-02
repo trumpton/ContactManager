@@ -143,7 +143,7 @@ bool Calendar::addAppointment(Appointment &appt, bool dosort)
 
 void Calendar::sort()
 {
-    qSort(appointments.begin(), appointments.end()) ;
+    std::sort(appointments.begin(), appointments.end()) ;
 }
 
 
@@ -389,7 +389,8 @@ void Calendar::addBirthday(QString who, QString whoid, QString when)
 {
     QStringList de = when.split("-") ;
 
-    if (de.size()==3 && de.at(0).toInt() > 0) {
+    int count = de.count() ;
+    if (count==3) {
 
         int day = de.at(2).toInt() ;
         int month = de[1].toInt() ;
