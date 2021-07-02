@@ -20,6 +20,7 @@ Calendar::Calendar()
 
 Calendar::~Calendar()
 {
+    clear() ;
 }
 
 void Calendar::clear()
