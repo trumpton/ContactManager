@@ -587,7 +587,6 @@ void MainWindow::on_actionOpen_triggered()
     play(Query) ;
     bool result = list.exec() ;
     if (result) {
-        QString name=list.getSelection() ;
         QString data=list.getData() ;
          populateDialog(data) ;
     }

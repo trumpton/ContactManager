@@ -18,7 +18,7 @@ void MainWindow::LoadCalendarTab()
             Contact &c = db.getContact(i) ;
             if (c.getField(Contact::ID).compare(gConf->getMe())!=0) {
                 QString when = c.getField(Contact::Birthday) ;
-                QString who = QString("%1 %2").arg(c.getField(Contact::Names)).arg(c.getField(Contact::Surname)) ;
+                QString who = QString("%1 %2").arg(c.getField(Contact::Names),c.getField(Contact::Surname)) ;
                 QString whoid = c.getField(Contact::ID) ;
                 calendar.addBirthday(who, whoid, when) ;
             }

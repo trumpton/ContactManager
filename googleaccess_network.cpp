@@ -153,12 +153,12 @@ QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action
             default:
 
                 connectionerror = false ;
-                if (replycode>=200 && replycode<=299) {
+                if (replycode.toInt()>=200 && replycode.toInt()<=299) {
                   errorstatus = "" ;
                   googlePutPostResponse = reply->readAll() ;
                   readsuccess=true ;
 
-                } else if (replycode==429) {
+                } else if (replycode.toInt()==429) {
                     if (timeoutretries>0) {
                         timeoutretries-- ;
                         timeoutscalefactor*=2 ;
@@ -250,7 +250,7 @@ QString GoogleAccess::googleGet(QString link, QString logfile)
                             QString("\n\n"), true) ;
 
             // get the page
-            QObject::connect(&manager, SIGNAL(finished(QNetworkReply *)), &eventLoop, SLOT(quit()));
+            QObject::connect(&manager, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
             reply = manager.get(request);
             eventLoop.exec() ;
             QVariant replycode=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) ;
@@ -276,7 +276,7 @@ QString GoogleAccess::googleGet(QString link, QString logfile)
             default:
                 connectionerror=false ;
                 // if page load is OK, get details, else set error string
-                if (replycode>=200 && replycode<=299) {
+                if (replycode.toInt()>=200 && replycode.toInt()<=299) {
                   googleGetResponse = reply->readAll() ;
                   errorstatus="" ;
                   readsuccess=true ;

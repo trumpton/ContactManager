@@ -138,7 +138,7 @@ int AccessibleStringListModel::rowCount(const QModelIndex &parent) const
 
 Qt::ItemFlags AccessibleStringListModel::flags(const QModelIndex &index) const
 {
-    if (!index.isValid()) return 0;
+    if (!index.isValid()) return Qt::NoItemFlags;
     return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 }
 

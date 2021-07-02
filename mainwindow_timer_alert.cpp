@@ -162,8 +162,8 @@ void MainWindow::sendMailSMS()
                             if (deleteremindermessagesent) appt.setField(Appointment::ReminderMessageSent, "") ;
                             if (updatemessagesent) appt.setField(Appointment::MessageSent, nowToIsoString()) ;
                             if (updateremindermessagesent) appt.setField(Appointment::ReminderMessageSent, nowToIsoString()) ;
-                            addLog(QString("%1 - %2").arg(type).arg(apptdate)) ;
-                            appendHistory(contact, QString("%1: %2").arg(type).arg(apptdate)) ;
+                            addLog(QString("%1 - %2").arg(type,apptdate)) ;
+                            appendHistory(contact, QString("%1: %2").arg(type,apptdate)) ;
                             msg(type) ;
                             play(Sent) ;
                             calendar.save() ;
@@ -174,7 +174,7 @@ void MainWindow::sendMailSMS()
                         case -3: // -3 - Error during transaction
                         case -4: // -4 - Unable to Send / Possibly Sent
                             appt.setField(Appointment::MessageCounter, QString::number(++messagecounter)) ;
-                            addLog(QString("Error %1: %2").arg(type).arg(SMTPSMSErrorMessage)) ;
+                            addLog(QString("Error %1: %2").arg(type,SMTPSMSErrorMessage)) ;
                             break ;
                         }
 
@@ -220,6 +220,7 @@ int MainWindow::SendMail(QString from, QString emailaddress, QString subject, QS
         SMTPSMSErrorMessage = smtp.errorMessage() ;
         return smtp.success() ;
     }
+    return false ;
 }
 
 int MainWindow::SendSMS(QString from, QString mobile, QString message)
