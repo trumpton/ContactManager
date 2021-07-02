@@ -77,7 +77,7 @@ int SMS::sendClockwork(QString number, QString from, QString message)
 
     params.append("key=").append(password).append("&to=").append(number).append("&content=").append(message) ;
 
-    QObject::connect(&manager, SIGNAL(finished(QNetworkReply *)), &eventLoop, SLOT(quit()));
+    QObject::connect(&manager, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
     qDebug() << "SMS Connecting to " << URL ;
@@ -132,7 +132,7 @@ int SMS::getClockworkBalance()
 
     params.append("key=").append(password) ;
 
-    QObject::connect(&manager, SIGNAL(finished(QNetworkReply *)), &eventLoop, SLOT(quit()));
+    QObject::connect(&manager, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
     if (manager.networkAccessible() == QNetworkAccessManager::NotAccessible) {

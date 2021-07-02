@@ -220,7 +220,7 @@ void GoogleAccess::googleGetAccessToken()
         break ;
     default:
         QVariant replycode=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) ;
-        if (replycode>=200 && replycode<=299) {
+        if (replycode.toInt()>=200 && replycode.toInt()<=299) {
             QString resultstring = reply->readAll() ;
             accesstoken = ExtractParameter(resultstring, "access_token") ;
             if (accesstoken.isEmpty()) {

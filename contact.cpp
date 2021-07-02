@@ -41,11 +41,12 @@ Contact::Contact(const Contact &rhs)
 // COPY: Copies all fields
 Contact& Contact::operator=(const Contact &rhs)
 {
+    if (this == &rhs || (isnull && rhs.isnull)) return *this;
+
     if (isnull) {
         qFatal("ERROR: Copying into NULL contact entry not allowed") ;
         return *this ;
     }
-    if (this == &rhs) return *this;
 
     this->contactrecordinfook = rhs.contactrecordinfook ;
 
@@ -206,7 +207,7 @@ bool Contact::load(QString path, QString idname)
         return false ;
     }
 
-    dbg(QString("load(%1,%2)").arg(path).arg(idname)) ;
+    dbg(QString("load(%1,%2)").arg(path,idname)) ;
 
     QString Line ;
     QStringList ParsedLine;
@@ -556,7 +557,7 @@ void Contact::setDate(enum ContactRecord field, QDateTime data)
 QDateTime& Contact::getDate(enum ContactRecord field)
 {
     static QDateTime dt ;
-    dt.setUtcOffset(0);
+    dt.setOffsetFromUtc(0);
     dt = dt.fromString(getField(field)) ;
     return dt ;
 }

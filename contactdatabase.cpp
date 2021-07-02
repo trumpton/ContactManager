@@ -211,7 +211,7 @@ bool ContactDatabase::isNull()
 void ContactDatabase::sort()
 {
     QString id = getContact(selectedcontact).getField(Contact::ID) ;
-    qSort(contacts.begin(), contacts.end()) ;
+    std::sort(contacts.begin(), contacts.end()) ;
     selectedcontact=getIndex(id) ;
 }
 

@@ -35,11 +35,12 @@ Appointment::Appointment(const Appointment &rhs)
 
 Appointment& Appointment::operator=(const Appointment &rhs)
 {
+    if (this == &rhs || (isnull && rhs.isnull)) return *this;
+
     if (isnull) {
         qFatal("ERROR: Copying into NULL appointment entry not allowed") ;
         return *this ;
     }
-    if (this == &rhs) return *this;
 
     isnull = rhs.isnull ;
     isempty = rhs.isempty ;
@@ -369,7 +370,6 @@ QString& Appointment::asText(QString name, QString start, QString mid, QString e
 
             if (h==0 && m==0 && s==0) {
                 // Midnight - assume whole day event
-                s=0 ;
             } else {
                 // Reminder at specific time
                 asTextResponse+= from.toLocalTime().toString("hh:mm") ;
