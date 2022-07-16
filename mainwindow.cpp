@@ -19,6 +19,11 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 {
     searchtext="" ;
 
+    gConf=NULL ;
+    timer=NULL ;
+    enc=NULL ;
+    find=NULL ;
+
     ui->setupUi(this);
 
     // Enable debug
@@ -664,7 +669,7 @@ void MainWindow::on_action_Email_Contact_triggered()
     }
 
     QProcess *myProcess = new QProcess(NULL) ;
-    QStringList args = cmd.split( QRegExp(" (?=[^\"]*(\"[^\"]*\"[^\"]*)*$)") );
+    QStringList args = cmd.split( QRegularExpression(" (?=[^\"]*(\"[^\"]*\"[^\"]*)*$)") );
     for (int a=0; a<args.length(); a++) {
       QString entry = args.at(a) ;
       entry = entry.replace("\\\"", "***REALQUOTE***") ;

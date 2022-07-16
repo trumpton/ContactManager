@@ -45,7 +45,7 @@ void MainWindow::sendMailSMS()
             Contact& contact = db.getContactById(appt.getContactId()) ;
             bool validcontact = !contact.isNull() && !contact.isSet(Contact::Deleted) && !contact.isSet(Contact::Hidden);
             QDateTime created = appt.getDate(Appointment::Created) ;
-            unsigned long int elapsed = ( now.toTime_t() - created.toTime_t() ) ;
+            unsigned long int elapsed = ( now.toSecsSinceEpoch() - created.toSecsSinceEpoch() ) ;
             int messagecounter = appt.getField(Appointment::MessageCounter).toInt() ;
 
 #ifdef DEBUGTIMER
@@ -246,7 +246,7 @@ bool MainWindow::loadMessage(QString filename,
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
         return false;
     QTextStream in(&file);
-    in.setCodec("UTF-8") ;
+    in.setEncoding(QStringConverter::Utf8) ;
 
     if (!in.atEnd()) from = in.readLine().trimmed() ;
     if (!in.atEnd()) title = in.readLine().trimmed() ;

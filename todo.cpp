@@ -32,9 +32,10 @@ bool Todo::isEmpty()
 int Todo::find(QString text, int startline)
 {
     Q_UNUSED(startline) ;
-    QRegExp re(".*(" +text.toLower() +").*") ;
     QString overview = getText().toLower() ;
-    if (re.exactMatch(overview)) return 1;
+    QRegularExpression re(".*(" +text.toLower() +").*") ;
+    QRegularExpressionMatch rem = re.match(overview) ;
+    if (rem.hasMatch()) return 1;
     else  return -1 ;
 }
 
@@ -70,7 +71,7 @@ bool Todo::save(QString path)
 
         QByteArray data ;
         QTextStream out(&data, QIODevice::WriteOnly);
-        out.setCodec("UTF-8") ;
+        out.setEncoding(QStringConverter::Utf8) ;
         out << todoText ;
         out.flush();
 
@@ -127,7 +128,7 @@ bool Todo::load(QString path, QString idname)
     }
 
     QTextStream in(&data);
-    in.setCodec("UTF-8") ;
+    in.setEncoding(QStringConverter::Utf8) ;
 
     while (!in.atEnd()) {
        todoText = todoText + in.readLine() + "\n" ;

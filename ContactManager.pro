@@ -9,6 +9,7 @@
 QT       += core gui network xml multimedia
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+greaterThan(QT_MAJOR_VERSION, 5): QT += core5compat
 
 QMAKE_LFLAGS += 
 
@@ -97,6 +98,7 @@ SOURCES += main.cpp\
     accessiblestringlistmodel.cpp
 
 HEADERS  += mainwindow.h \
+    account-googleaccess.h \
     history.h \
     contact.h \
     search.h \

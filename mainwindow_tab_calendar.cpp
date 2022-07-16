@@ -110,7 +110,7 @@ void MainWindow::editAppointment(Appointment &editing, Appointment &reference, Q
 
             clash = calendar.getAppointmentClash(appt) ;
 
-            qint64 duration = appt.getDate(Appointment::To).toTime_t() - appt.getDate(Appointment::From).toTime_t() ;
+            qint64 duration = appt.getDate(Appointment::To).toSecsSinceEpoch() - appt.getDate(Appointment::From).toSecsSinceEpoch() ;
 
             if (!clash.isNull()) {
                 QString msg ;

@@ -30,7 +30,7 @@ void Calendar::clear()
     idName="" ;
     isdirty=false ;
     getOverviewResponse="" ;
-    selectedappointment=-1 ;
+    selectedappointment="" ;
 }
 
 bool Calendar::load()
@@ -177,9 +177,11 @@ bool Calendar::appointmentIsInRange(int n, qint64 beforedays, qint64 afterdays)
 // Search for string, and return -1 on failure
 int Calendar::find(QString text, bool futureonly)
 {
-    QRegExp re(".*(" +text.toLower() +").*") ;
+    QRegularExpression re(".*(" +text.toLower() +").*") ;
+    QRegularExpressionMatch rem ;
     QString overview = getOverview(calendarAsText, "", futureonly).toLower() ;
-    if (re.exactMatch(overview)) return 1;
+    rem = re.match(overview) ;
+    if (rem.hasMatch()) return 1;
     else  return -1 ;
 }
 

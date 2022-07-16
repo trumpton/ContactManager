@@ -240,7 +240,7 @@ void AccessibleDateRangeEdit::keyPressEvent(QKeyEvent *event)
         else if (datetext.at(newpos).isDigit()) {
 
             // Replace the given digit with the keypress
-            QChar ch = '0' + key - Qt::Key_0 ;
+            QChar ch = (char)((int)'0' + key - (int)Qt::Key_0) ;
             datetext.replace(newpos, 1, ch) ;
 
             // If the entry is the first digit of the day, set second digit to 1.

@@ -105,8 +105,9 @@ QString GoogleAccess::Authorise()
     }
 
     if (user_code.isEmpty()) {
-        addLog("GoogleAccess::Authorise: Unable to authorise with Google.  This is caused by either a network error (check your connection); incorrectly configured account-googleaccess.h (during compilation); or missing OpenSSL files - ssleay32.dll / libeay32.dll (Windows Clients)") ;
-        errorOkDialog(NULL, "Contact Manager Error", "Unable to connect.  Network error or invalid configuration.  See Log for details.") ;
+        QString errmsg = ExtractParameter(resultstring, "error_description") ;
+        addLog(QString("GoogleAccess::Authorise: Unable to authorise with Google.  This is caused by either a network error (check your connection); incorrectly configured account-googleaccess.h (during compilation); or missing OpenSSL files - ssleay32.dll / libeay32.dll (Windows Clients): ") + errmsg) ;
+        errorOkDialog(NULL, "Contact Manager Error", QString( "Unable to connect. : ") + errmsg) ;
         return refreshtokenandusername ;
     }
 
@@ -244,7 +245,9 @@ void GoogleAccess::googleGetAccessToken()
 
 QString GoogleAccess::ExtractParameter(QString Response, QString Parameter, int Occurrence)
 {
-    QRegExp rx ;
+    QRegularExpression rx ;
+    QRegularExpressionMatch rem ;
+
     QStringList records;
     QString record ;
     QString pattern ;
@@ -261,10 +264,10 @@ QString GoogleAccess::ExtractParameter(QString Response, QString Parameter, int 
 
     // Find "parameter" : "xxxx",
     // Or "parameter" : "xxxx"}
-    pattern = "\"" + Parameter + "\" *: *\"(.*)\"" ;
+    pattern = "\"" + Parameter + "\" *: *\"(.*?)\"" ;
     rx.setPattern(pattern) ;
-    rx.setMinimal(true) ;
-    if (rx.indexIn(record)>=0) extracttokenresult = rx.cap(1) ;
+    rem = rx.match(Response) ;
+    if (rem.hasMatch()) extracttokenresult = rem.captured(1) ;
     return extracttokenresult ;
 }
 

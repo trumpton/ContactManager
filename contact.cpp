@@ -211,7 +211,7 @@ bool Contact::load(QString path, QString idname)
 
     QString Line ;
     QStringList ParsedLine;
-    QRegExp sep("(\\=)");
+    QRegularExpression sep("(\\=)");
     bool oldformat = false ;
 
     createNew() ;
@@ -244,7 +244,7 @@ bool Contact::load(QString path, QString idname)
     }
 
     QTextStream in(&data);
-    in.setCodec("UTF-8") ;
+    in.setEncoding(QStringConverter::Utf8) ;
 
     // Isempty is updated by setfield
     isempty = true ;
@@ -307,6 +307,8 @@ bool Contact::load(QString path, QString idname)
 }
 
 
+// TODO: I think rex.match() will not work with multi-line unless an option is provided
+
 int Contact::find(QString text)
 {
     dbg(QString("{%1} - find(%2)").arg(getField(Contact::ID)).arg(text)) ;
@@ -314,7 +316,8 @@ int Contact::find(QString text)
     text = text.toLower() ;
     deAccent(text) ;
     text.replace(" ", "") ;
-    QRegExp re2(".*(" + text + ").*") ;
+    QRegularExpression re2(".*(" + text + ").*") ;
+    QRegularExpressionMatch rem ;
 
     // Search in the overview
     QString overview = getOverview(contactAsText).toLower() ;
@@ -322,7 +325,9 @@ int Contact::find(QString text)
     overview.replace(" ", "") ;    
     overview.replace(",", "") ;
     overview.replace(".", "") ;
-    if (re2.exactMatch(overview)) {
+
+    rem = re2.match(overview) ;
+    if (rem.hasMatch()) {
         dbg(QString("Match Overview")) ;
         return 1;
     }
@@ -330,7 +335,8 @@ int Contact::find(QString text)
     // Search in a firstname middlename surname
     QString name = firstname + surname ;
     name.replace(" ", "") ;
-    if (re2.exactMatch(name)) {
+    rem = re2.match(name) ;
+    if (rem.hasMatch()) {
         dbg(QString("Match Firstname Middlename Surname")) ;
         return 1;
     }
@@ -339,22 +345,20 @@ int Contact::find(QString text)
     QStringList names = firstname.split(" ") ;
     if (names.size()>0) {
         name = names.at(0) + surname ;
-        if (re2.exactMatch(name)) {
-            if (re2.exactMatch(name)) {
-                dbg(QString("Match Firstname Surname")) ;
-                return 1;
-            }
+        rem = re2.match(name) ;
+        if (rem.hasMatch()) {
+          dbg(QString("Match Firstname Surname")) ;
+          return 1;
         }
     }
 
     // Search in a surname firstname
     name = surname + firstname ;
     name.replace(" ", "") ;
-    if (re2.exactMatch(name)) {
-        if (re2.exactMatch(name)) {
-            dbg(QString("Match Surname Firstname")) ;
-            return 1;
-        }
+    rem = re2.match(name) ;
+    if (rem.hasMatch()) {
+        dbg(QString("Match Surname Firstname")) ;
+        return 1;
     }
 
     // No Match Found
@@ -381,7 +385,7 @@ bool Contact::save(QString path)
 
         QByteArray data ;
         QTextStream out(&data, QIODevice::WriteOnly);
-        out.setCodec("UTF-8") ;
+        out.setEncoding(QStringConverter::Utf8) ;
         out << "[contact]\n" ;
         for (int entry=0; entry<Contact::NumberOfRecords; entry++) {
             if (contactrecordinfo[entry].issaved) {
@@ -584,7 +588,7 @@ QString& Contact::parsePhoneNumber(QString src)
 
     // Replace leading 00 with +
     // [...].replace(QRegExp("((?:https?|ftp)://\\S+)"), "<a href=\"\\1\">\\1</a>")
-    result = result.replace(QRegExp("^00(.*)"), "+\\1") ;
+    result = result.replace(QRegularExpression("^00(.*)"), "+\\1") ;
 
     // If the number starts with +, assume it's got all the right digits
     if (result.left(1).compare("+")!=0) {
@@ -597,13 +601,13 @@ QString& Contact::parsePhoneNumber(QString src)
                 !gConf->getLocalDiallingCode().isEmpty()) {
 
             result = gConf->getLocalDiallingCode() + result ;
-            result = result.replace(QRegExp("^00(.*)"), "+\\1") ;
+            result = result.replace(QRegularExpression("^00(.*)"), "+\\1") ;
         }
 
         // Add a Country Code if Missing
         if (result.left(1).compare("+")!=0 && !gConf->getCountryDiallingCode().isEmpty()) {
-            result = result.replace(QRegExp("^0(.*)"), gConf->getCountryDiallingCode() + "\\1") ;
-            result = result.replace(QRegExp("^00(.*)"), "+\\1") ;
+            result = result.replace(QRegularExpression("^0(.*)"), gConf->getCountryDiallingCode() + "\\1") ;
+            result = result.replace(QRegularExpression("^00(.*)"), "+\\1") ;
         }
 
     }
@@ -620,22 +624,27 @@ QString& Contact::parsePhoneNumber(QString src)
 
     // Format spaces for the Country
 
-    QRegExp other("\\+(\\d\\d)(\\d*)$") ;
-    QRegExp france("\\+33(\\d*)(\\d\\d)(\\d\\d)(\\d\\d)$") ;
-    QRegExp uk2("\\+44(2\\d)(\\d\\d\\d\\d)(\\d\\d\\d\\d)$") ;
-    QRegExp uk389("\\+44([389]\\d\\d)(\\d\\d\\d)(\\d\\d\\d\\d)$") ;
-    QRegExp uk("\\+44(\\d*)(\\d\\d\\d\\d\\d\\d)$") ;
+    QRegularExpression other("\\+(\\d\\d)(\\d*)$") ;
+    QRegularExpressionMatch otherrem = other.match(result) ;
+    QRegularExpression france("\\+33(\\d*)(\\d\\d)(\\d\\d)(\\d\\d)$") ;
+    QRegularExpressionMatch francerem = france.match(result) ;
+    QRegularExpression uk2("\\+44(2\\d)(\\d\\d\\d\\d)(\\d\\d\\d\\d)$") ;
+    QRegularExpressionMatch uk2rem = uk2.match(result) ;
+    QRegularExpression uk389("\\+44([389]\\d\\d)(\\d\\d\\d)(\\d\\d\\d\\d)$") ;
+    QRegularExpressionMatch uk389rem = uk389.match(result) ;
+    QRegularExpression uk("\\+44(\\d*)(\\d\\d\\d\\d\\d\\d)$") ;
+    QRegularExpressionMatch ukrem = uk.match(result) ;
 
-    if (france.indexIn(result)>=0) {
-        result = "+33 " + france.cap(1) + " " + france.cap(2) + " " + france.cap(3) + " " + france.cap(4) ;
-    } else if (uk2.indexIn(result)>=0) {
-        result = "+44 " + uk2.cap(1) + " " + uk2.cap(2) + " " + uk2.cap(3);
-    } else if (uk389.indexIn(result)>=0) {
-        result = "+44 " + uk389.cap(1) + " " + uk389.cap(2) + " " + uk389.cap(3);
-    } else if (uk.indexIn(result)>=0) {
-        result = "+44 " + uk.cap(1) + " " + uk.cap(2) ;
-    } else if (other.indexIn(result)>=0) {
-        result = "+" + other.cap(1) + " " + other.cap(2) ;
+    if (francerem.hasMatch()) {
+        result = "+33 " + francerem.captured(1) + " " + francerem.captured(2) + " " + francerem.captured(3) + " " + francerem.captured(4) ;
+    } else if (uk2rem.hasMatch()) {
+        result = "+44 " + uk2rem.captured(1) + " " + uk2rem.captured(2) + " " + uk2rem.captured(3);
+    } else if (uk389rem.hasMatch()) {
+        result = "+44 " + uk389rem.captured(1) + " " + uk389rem.captured(2) + " " + uk389rem.captured(3);
+    } else if (ukrem.hasMatch()) {
+        result = "+44 " + ukrem.captured(1) + " " + ukrem.captured(2) ;
+    } else if (otherrem.hasMatch()) {
+        result = "+" + otherrem.captured(1) + " " + otherrem.captured(2) ;
     }
 
     return result ;

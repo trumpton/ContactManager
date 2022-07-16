@@ -3,6 +3,7 @@
 #include <QDateTime>
 #include <QStringList>
 #include <QTextStream>
+#include <QRegularExpression>
 #include "history.h"
 #include "configuration.h"
 #include "../Lib/supportfunctions.h"
@@ -31,9 +32,11 @@ bool History::isEmpty()
 int History::find(QString text, int startline)
 {
     Q_UNUSED(startline) ;
-    QRegExp re(".*(" +text.toLower() +").*") ;
+    QRegularExpression re(".*?(" +text.toLower() +").*?") ;
+    QRegularExpressionMatch rem ;
     QString overview = getOverview(historyAsText).toLower() ;
-    if (re.exactMatch(overview)) return 1;
+    rem = re.match(overview) ;
+    if (rem.hasMatch()) return 1;
     else  return -1 ;
 }
 
@@ -69,7 +72,7 @@ bool History::save(QString path)
 
         QByteArray data ;
          QTextStream out(&data, QIODevice::WriteOnly);
-         out.setCodec("UTF-8") ;
+         out.setEncoding(QStringConverter::Utf8) ;
          out << HistoryText ;
          out.flush();
 
@@ -124,7 +127,7 @@ bool History::load(QString path, QString idname)
 
 
     QTextStream in(&data);
-    in.setCodec("UTF-8") ;
+    in.setEncoding(QStringConverter::Utf8) ;
 
     while (!in.atEnd()) {
        HistoryText = HistoryText + in.readLine() + "\n" ;
@@ -141,14 +144,20 @@ QString History::getOverview(enum HistoryOverviewType overviewtype)
     if (overviewtype==historyAsHTML || overviewtype==historyTopLinesAsHTML) {
         QString hist = getHistory() ;
         QStringList journallines = hist.replace("[\n]+", "\n").split("\n") ;
-        QRegExp re("(\\d{1,2}[-\\s]+\\w{3,10}[-\\s]+\\d{2,4})[\\s-:]+(.*)$") ;
+
+        // TODO: check this match string for move from 5.15 to 6.24
+        QRegularExpression re("(\\d{1,2}[-\\s]+\\w{3,10}[-\\s]+\\d{2,4})[\\s-:]+(.*)$") ;
+        QRegularExpressionMatch rem ;
+
         for (int i=0; i<journallines.size() && (overviewtype==historyAsHTML ||
              (overviewtype==historyTopLinesAsHTML && i<5)); i++) {
             QString line = journallines.at(i) ;
             line = line.trimmed() ;
             if (!line.isEmpty()) {
-                if (re.exactMatch(line)) {
-                    getOverviewResult += "<b>" + re.cap(1) + ": </b><i>" + re.cap(2) + "</i><br/>\n" ;
+
+                rem = re.match(line) ;
+                if (rem.hasMatch()) {
+                    getOverviewResult += "<b>" + rem.captured(1) + ": </b><i>" + rem.captured(2) + "</i><br/>\n" ;
                 } else {
                     getOverviewResult += "&nbsp;&nbsp;" + line + "<br/>\n" ;
                 }
@@ -174,8 +183,8 @@ bool History::addEntry(QString Entry)
     QDateTime today ;
 
    if (Entry.compare("")!=0) {
-      Entry = Entry.replace(QRegExp("[\n\r \t]*\n[\n\r \t]*"), "; ") ;
-      Entry = Entry.replace(QRegExp("[\\. ;]*$"), QString("")).trimmed() ;
+      Entry = Entry.replace(QRegularExpression("[\n\r \t]*\n[\n\r \t]*"), "; ") ;
+      Entry = Entry.replace(QRegularExpression("[\\. ;]*$"), QString("")).trimmed() ;
       NewEntry +=  today.currentDateTime().toString("dd-MMM-yyyy: ") + Entry + ".\n";
       HistoryText = NewEntry + HistoryText ;
       dirty = true ;
