@@ -265,12 +265,14 @@ bool MainWindow::searchContactRecordSet(QString searchtext, Contact &contact, Co
     }
 
     QString srch = searchtext.toLower().replace(" ","") ;
-    QRegExp re1(".*(" + srch + ").*") ;
+    QRegularExpression re1(".*(" + srch + ").*") ;
+    QRegularExpressionMatch rem1 ;
     for (int i=0; i<8; i++) {
         if (r[i]!=Contact::NumberOfRecords) {
             QString fieldtext = contact.getField(r[i]).toLower().replace(" ","") ;
             if (!fieldtext.isEmpty()) allempty=false ;
-            if (!srch.isEmpty() && re1.exactMatch(fieldtext)) { match = true ; }
+            rem1 = re1.match(fieldtext) ;
+            if (!srch.isEmpty() && rem1.hasMatch()) { match = true ; }
         }
     }
     if (srch.isEmpty() && allempty) match = true ;

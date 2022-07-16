@@ -137,7 +137,7 @@ bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QStrin
 
     // Remove any trailing brackets appointment-for {}, and set description and appointmentfor
     if (!appointmentfor.isEmpty()) {
-        summary = summary.trimmed().replace(QRegExp("\\{(.*)\\}$"), "").trimmed() ;
+        summary = summary.trimmed().replace(QRegularExpression("\\{(.*)\\}$"), "").trimmed() ;
     }
     summary = summary.replace(QString("{"),"(").replace(QString("}"),")") ;
 

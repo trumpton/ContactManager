@@ -143,7 +143,7 @@ void AppointmentForm::on_editWhenTo_valueChanged(const QDateTime &newto, int dur
 
     if (from.addSecs(duration*60)!=newto) {
         if (from>newto) from=newto ;
-        qint64 newduration = (newto.toTime_t() - from.toTime_t()) / 60 ;
+        qint64 newduration = (newto.toSecsSinceEpoch() - from.toSecsSinceEpoch()) / 60 ;
         ui->editWhenFrom->setDateTime(from, newduration) ;
     }
 }

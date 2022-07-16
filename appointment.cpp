@@ -5,6 +5,7 @@
 #include <QStringList>
 #include <QTextStream>
 #include <QTextDecoder>
+#include <QRegularExpression>
 #include "../Lib/supportfunctions.h"
 
 // Bug Observation: QDateTime.SetDate() Only works if the QDateTime item is set to Utc.
@@ -141,7 +142,7 @@ bool Appointment::load(QString path, QString idname)
 
         QString Line ;
         QStringList ParsedLine;
-        QRegExp sep("(\\=)");
+        QRegularExpression sep("(\\=)");
 
         createNew() ;
         isdirty = false ;
@@ -150,7 +151,7 @@ bool Appointment::load(QString path, QString idname)
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
             return false;
         QTextStream in(&file);
-        in.setCodec("UTF-8") ;
+        in.setEncoding(QStringConverter::Utf8) ;
 
         while (!in.atEnd()) {
             Line = in.readLine();
@@ -188,7 +189,7 @@ bool Appointment::save(QString path)
        if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
            return false;
        QTextStream out(&file);
-       out.setCodec("UTF-8") ;
+       out.setEncoding(QStringConverter::Utf8) ;
 
        out << "[appointment]\n" ;
 
@@ -326,7 +327,7 @@ void Appointment::createNew()
     setField(Appointment::RepeatInterval, "0") ;
 
     // Set a default date/time to 1st January 1970
-    QDateTime t = QDateTime::fromTime_t(0) ;
+    QDateTime t = QDateTime::fromSecsSinceEpoch(0) ;
     t.setTimeSpec(Qt::UTC) ;
     setDate(Appointment::From, t) ;
     setDate(Appointment::To, t) ;

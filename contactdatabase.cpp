@@ -3,6 +3,7 @@
 #include <QFileInfo>
 #include <QStringList>
 #include <QtAlgorithms>
+#include <QTextStream>
 
 #include "../Lib/supportfunctions.h"
 #include "contactdatabase.h"
@@ -127,7 +128,7 @@ bool ContactDatabase::saveIndex(int j, QString path, QString contactid, QString 
     }
 
     QTextStream out(&file);
-    out.setCodec("UTF-8") ;
+    out.setEncoding(QStringConverter::Utf8) ;
 
     if (j<0) {
         out << "<html><body><table border='1'>\n" ;

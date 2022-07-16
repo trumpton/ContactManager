@@ -49,11 +49,11 @@ int main(int argc, char *argv[])
         a.setApplicationName("Contact Manager") ;
         a.setApplicationVersion(appHash().replace("v","")) ;
 
-        // Initialise the sound alerts
-        initSound() ;
-
         MainWindow w;
         int result ;
+
+        // Initialise the sound alerts
+        initSound(NULL) ;
 
         QSharedMemory *sharedMem = new QSharedMemory("ContactManager");
         qint64 master = masterPID(&w, sharedMem) ;

@@ -75,48 +75,49 @@ int SMS::sendClockwork(QString number, QString from, QString message)
     from = from.replace(" ", "") ;
     message = message.replace(" ", "+") ;
 
-    params.append("key=").append(password).append("&to=").append(number).append("&content=").append(message) ;
+    params.append("key=").append(password.toLatin1()).append("&to=").append(number.toLatin1()).append("&content=").append(message.toLatin1()) ;
 
     QObject::connect(&manager, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
     qDebug() << "SMS Connecting to " << URL ;
 
+    /*
+    // This is not supported in QT6
     QNetworkAccessManager::NetworkAccessibility na = manager.networkAccessible() ;
     if (na != QNetworkAccessManager::Accessible) {
         // Connection Failure (network not up)
         qDebug() << "Connection Failed" ;
         return -2 ;
-
-    } else {
-
-        qDebug() << "Sending " << params ;
-        reply = manager.post(request, params) ;
-        eventLoop.exec() ;
-
-        if (reply->error()!=QNetworkReply::NoError) {
-            // Unable to send
-            qDebug() << "Post returned error " << reply->errorString() ;
-            return -1 ;
-        }
-
-        smsErrorData = reply->readAll().trimmed() ;
-        bool iserror = smsErrorData.left(5).toLower().compare("error")==0 ;
-
-        if (iserror) {
-            qDebug() << "Post response error " << smsErrorData ;
-            // Received error response
-            return -3 ;
-        } else if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute)==200) {
-            qDebug() << "Post returned 200 OK" ;
-            // Received 200 OK response
-            return 1 ;
-        } else {
-            // Not received 200 OK response
-            return -4 ;
-        }
-
     }
+    */
+
+    qDebug() << "Sending " << params ;
+    reply = manager.post(request, params) ;
+    eventLoop.exec() ;
+
+    if (reply->error()!=QNetworkReply::NoError) {
+        // Unable to send
+        qDebug() << "Post returned error " << reply->errorString() ;
+        return -1 ;
+    }
+
+    smsErrorData = reply->readAll().trimmed() ;
+    bool iserror = smsErrorData.left(5).toLower().compare("error")==0 ;
+
+    if (iserror) {
+        qDebug() << "Post response error " << smsErrorData ;
+        // Received error response
+        return -3 ;
+    } else if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute)==200) {
+        qDebug() << "Post returned 200 OK" ;
+        // Received 200 OK response
+        return 1 ;
+    } else {
+        // Not received 200 OK response
+        return -4 ;
+    }
+
 }
 
 int SMS::getClockworkBalance()
@@ -130,33 +131,32 @@ int SMS::getClockworkBalance()
     QNetworkReply *reply ;
     QByteArray params ;
 
-    params.append("key=").append(password) ;
+    params.append("key=").append(password.toLatin1()) ;
 
     QObject::connect(&manager, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
+    /*
+    // Not supported in QT6
     if (manager.networkAccessible() == QNetworkAccessManager::NotAccessible) {
-
         // Connection Error
         return -2 ;
-
-    } else {
-
-        reply = manager.post(request, params) ;
-        eventLoop.exec() ;
-
-        // Error response returned
-        if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute)!=200) return -4 ;
-
-        QString balance = reply->readAll().toLower().trimmed() ;
-        QRegExp exp("[^0-9]*([0-9]+)[\\.:]([0-9]+)[^0-9]*") ;
-        if (exp.indexIn(balance)>=0) {
-            return exp.cap(1).toInt() * 100 + exp.cap(2).toInt() ;
-        }
-
-        // Unable to decode
-        return -3 ;
-
     }
+    */
+
+    reply = manager.post(request, params) ;
+    eventLoop.exec() ;
+
+    // Error response returned
+    if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute)!=200) return -4 ;
+
+    QString balance = reply->readAll().toLower().trimmed() ;
+    QRegExp exp("[^0-9]*([0-9]+)[\\.:]([0-9]+)[^0-9]*") ;
+    if (exp.indexIn(balance)>=0) {
+        return exp.cap(1).toInt() * 100 + exp.cap(2).toInt() ;
+    }
+
+    // Unable to decode
+    return -3 ;
 }
 
