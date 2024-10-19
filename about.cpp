@@ -6,10 +6,11 @@ About::About(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::About)
 {
-    QString text = 
-            QString("Contact Manager Version: %1.\n").arg(appHash()) +
-            QString("Library Version: %1.\n").arg(libVersion()) +
-            QString("Built on: %1.\n").arg(buildDate()) ;
+    QString text ;
+
+    if (QString(GITHASH).length()>0) text = text + QString("Contact Manager Version: %1.\n").arg(GITHASH) ;
+    if (QString(LIBHASH).length()>0) text = text + QString("Library Version: %1.\n").arg(LIBHASH) ;
+    text = text + QString("Build Date: %1.\n").arg(BUILDDATE) ;
 
     ui->setupUi(this);
     ui->aboutinformation->setText(text) ;

@@ -6,7 +6,7 @@
 
 #include "appointment.h"
 
-using namespace std;
+//using namespace std;
 
 enum CalendarOverviewType {
     calendarAsText = 0,
