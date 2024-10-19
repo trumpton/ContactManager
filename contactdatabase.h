@@ -7,7 +7,7 @@
 #include "contact.h"
 #include "../Lib/encryption.h"
 
-using namespace std;
+//using namespace std;
 
 class ContactDatabase
 {
