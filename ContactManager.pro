@@ -20,7 +20,7 @@ TEMPLATE = app
 
 # Start Common Versioning Includes
 
-unix:BUILDDATE = $$system(date +"%Y-%d-%m %H:%M:%S")
+unix:BUILDDATE = $$system(date +\"%Y-%d-%m %H:%M:%S\")
 win32:BUILDDATE = $$system(echo "%date:~6,4%-%date:~3,2%-%date:~0,2% %time:~0,8%")
 
 GITHASH = $$system(git --git-dir=\"$$PWD/.git\" describe --always --tags)
