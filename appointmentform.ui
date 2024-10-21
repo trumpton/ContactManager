@@ -168,7 +168,11 @@
       </widget>
      </item>
      <item>
-      <widget class="SafeTextEdit" name="plaintexteditDescription"/>
+      <widget class="SafeTextEdit" name="plaintexteditDescription">
+       <property name="tabChangesFocus">
+        <bool>true</bool>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>
@@ -186,6 +190,11 @@
  </widget>
  <customwidgets>
   <customwidget>
+   <class>SafeLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>../Lib/safelineedit.h</header>
+  </customwidget>
+  <customwidget>
    <class>LineEditNavigator</class>
    <extends>QLineEdit</extends>
    <header>../Lib/lineeditnavigator.h</header>
@@ -194,11 +203,6 @@
    <class>SafeTextEdit</class>
    <extends>QPlainTextEdit</extends>
    <header>../Lib/safetextedit.h</header>
-  </customwidget>
-  <customwidget>
-   <class>SafeLineEdit</class>
-   <extends>QLineEdit</extends>
-   <header>../Lib/safelineedit.h</header>
   </customwidget>
   <customwidget>
    <class>AccessibleDateRangeEdit</class>
