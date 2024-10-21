@@ -146,7 +146,7 @@ const QString& Todo::getOverview(enum TodoOverviewType overviewtype)
         Q_FOREACH(QString line, lines) {
             line = line.trimmed() ;
             if (!line.isEmpty()) {
-                getOverviewResult += line + "<br/>\n" ;
+                getOverviewResult += "<p>" + line + "</p>\n" ;
             }
          }
     } else {
