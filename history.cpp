@@ -157,9 +157,9 @@ QString History::getOverview(enum HistoryOverviewType overviewtype)
 
                 rem = re.match(line) ;
                 if (rem.hasMatch()) {
-                    getOverviewResult += "<b>" + rem.captured(1) + ": </b><i>" + rem.captured(2) + "</i><br/>\n" ;
+                    getOverviewResult += "<p><b>" + rem.captured(1) + ": </b><i>" + rem.captured(2) + "</i></p>\n" ;
                 } else {
-                    getOverviewResult += "&nbsp;&nbsp;" + line + "<br/>\n" ;
+                    getOverviewResult += "<p>&nbsp;&nbsp;" + line + "</p>\n" ;
                 }
             }
          }

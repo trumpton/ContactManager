@@ -696,9 +696,9 @@ QString& Contact::getOverview(enum ContactOverviewType overviewtype)
 
     // TODO: Use Stylesheets
     if (overviewtype == contactAsHTML) {
-        titlestart = "<b>" ;
+        titlestart = "<p><b>" ;
         titleend = "</b>" ;
-        lineend = "<br/>\n" ;
+        lineend = "</p>\n" ;       // DEBUG ATTEMPT - This has replaced <br/>
     } else /* asText && asVCARD */ {
         titlestart = "" ;
         titleend = "" ;

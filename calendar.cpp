@@ -321,8 +321,9 @@ QString Calendar::getOverview(enum CalendarOverviewType overviewtype, QString co
                 !getAppointment(i).isSet(Appointment::Deleted)) {
             switch (overviewtype) {
             case calendarAsHTML:
+                getOverviewResponse += "<p>" ;
                 getOverviewResponse += getAppointmentAsHTML(i) ;
-                getOverviewResponse += "<br/>" ;
+                getOverviewResponse += "</p>\n" ;
                 break ;
             default:
                 getOverviewResponse += getAppointmentAsText(i) ;
