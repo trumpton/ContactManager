@@ -7,6 +7,7 @@
 #include <QJsonValueRef>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QUrl>
 
 //=====================================================================================================
 //
@@ -41,39 +42,54 @@ bool GoogleAccess::getCalendar(Calendar &googlecalendar, int startdays, int endd
     QString endwindowstr = dateTimeToIsoString(endwindow) ;
     QString endwindowstrz = dateTimeStringToZulu(endwindowstr) ;
 
-    url = url + "&showDeleted=true&showHidden=true&timeMin=" + startwindowstrz + "&timeMax=" + endwindowstrz ;
+    url = url + "&showDeleted=true&showHidden=true&timeMin=" + startwindowstrz + "&timeMax=" + endwindowstrz + "&maxResults=2500" ;
 
 
-    json = googleGet(url, "getCalendar") ;
-    success = errorstatus.isEmpty() ;
+    // Page through the events, following nextPageToken.  Google returns one
+    // page at a time (maxResults), so without this later events are missing.
+    QString pagetoken ;
+    int pagecount=0 ;
+    do {
+        QString pageurl = url ;
+        if (!pagetoken.isEmpty()) pageurl = url + "&pageToken=" + QString(QUrl::toPercentEncoding(pagetoken)) ;
 
-    if (!success) return false ;
+        json = googleGet(pageurl, "getCalendar") ;
+        success = errorstatus.isEmpty() ;
 
-    doc = QJsonDocument::fromJson(json.toUtf8(), &err) ;
+        if (!success) return false ;
 
-    if (err.error != QJsonParseError::NoError) return false ;
-    if (doc.isNull()) return false ;
-    if (!doc.isObject()) return false ;
+        doc = QJsonDocument::fromJson(json.toUtf8(), &err) ;
 
-    QJsonObject obj = doc.object() ;
-    QJsonArray items = obj["items"].toArray() ;
+        if (err.error != QJsonParseError::NoError) return false ;
+        if (doc.isNull()) return false ;
+        if (!doc.isObject()) return false ;
 
-    // get a copy of the QJsonObject
+        QJsonObject obj = doc.object() ;
+        QJsonArray items = obj["items"].toArray() ;
 
-    foreach (const QJsonValue & value, items) {
+        // get a copy of the QJsonObject
 
-        if (value.isObject()){
-            Appointment appt ;
-            QJsonObject item = value.toObject() ;
+        foreach (const QJsonValue & value, items) {
 
-            // Add the changes, storing only non-deleted entries
-            if (parseAppointment(item, appt, account)) {
-                if (!appt.isSet(Appointment::Deleted)) {
-                    googlecalendar.addAppointment(appt, false) ;
+            if (value.isObject()){
+                Appointment appt ;
+                QJsonObject item = value.toObject() ;
+
+                // Add the changes, storing only non-deleted entries
+                if (parseAppointment(item, appt, account)) {
+                    if (!appt.isSet(Appointment::Deleted)) {
+                        googlecalendar.addAppointment(appt, false) ;
+                    }
                 }
             }
         }
-    }
+
+        pagetoken = obj["nextPageToken"].toString() ;
+        pagecount++ ;
+
+    } while (!pagetoken.isEmpty()) ;
+
+    dbg(QString("TIMING getCalendar: %1 page(s), %2 events").arg(pagecount).arg(googlecalendar.size())) ;
     return true ;
 }
 

@@ -5,6 +5,7 @@
 #include <QDomElement>
 #include <QString>
 #include <QList>
+#include <QNetworkAccessManager>
 
 #include "contact.h"
 #include "appointment.h"
@@ -57,6 +58,10 @@ private:
     // Gets an access token, using the refresh token
     void googleGetAccessToken() ;
     QString accesstoken  ;
+
+    // One network manager is shared by all the requests, so connections (and
+    // the TLS session) are reused instead of being set up again for each request
+    QNetworkAccessManager netmanager ;
 
     // Parse JSon
     bool parseContact(QString &json, QString &tag, Contact &contact) ;

@@ -61,7 +61,7 @@ QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action
 
         } else {
 
-            QNetworkAccessManager manager ;
+            QNetworkAccessManager &manager = netmanager ;
             QNetworkReply *reply ;
             QString QueryChar="?" ;
             if (link.contains("?")) QueryChar="&" ;
@@ -184,6 +184,8 @@ QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action
                   readsuccess=false ;
                 }
             }
+            // The reply has been read, so free it (the manager is shared)
+            reply->deleteLater() ;
         }
 
         if (timeoutretry==true) {
@@ -245,7 +247,7 @@ QString GoogleAccess::googleGet(QString link, QString logfile)
 
             QString QueryChar="?" ;
             if (link.contains("?")) QueryChar="&" ;
-            QNetworkAccessManager manager ;
+            QNetworkAccessManager &manager = netmanager ;
             QNetworkReply *reply ;
             QUrl url(link + QueryChar + "access_token=" + accesstoken) ;
             QNetworkRequest request(url) ;
@@ -300,6 +302,8 @@ QString GoogleAccess::googleGet(QString link, QString logfile)
                 }
                 break ;
             }
+            // The reply has been read, so free it (the manager is shared)
+            reply->deleteLater() ;
         }
 
         // Add log file name to error status
