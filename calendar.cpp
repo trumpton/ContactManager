@@ -114,9 +114,12 @@ bool Calendar::save()
 
 Appointment &Calendar::getAppointmentBy(enum Appointment::AppointmentRecord type, QString id)
 {
-    for (int i=0, sz=size(); i<sz; i++) {
-        if (getAppointment(i).getField(type).compare(id)==0) {
-            return getAppointment(i) ;
+    // Read the list directly.  Going through getAppointment(int) builds a
+    // temporary Appointment on every call, which made this search very slow
+    // on large calendars (and addAppointment() calls it for every download).
+    for (int i=0, sz=appointments.size(); i<sz; i++) {
+        if (appointments[i].getField(type).compare(id)==0) {
+            return appointments[i] ;
         }
     }
     return getNull() ;
@@ -192,21 +195,21 @@ Appointment &Calendar::getAppointment(enum CalendarSearchType method, int starti
     Appointment *nearestappointment = &getNull() ;
     Appointment *lastappointment = &getNull() ;
     Appointment *nextappointment = &getNull() ;
-    Appointment testappointment ;
-
     if (startindex < 0 || startindex >= appointments.size()) {
       return getNull() ;
     }
 
-    QDateTime now = QDateTime::currentDateTimeUtc() ;
-    QDateTime ago = now.addSecs(-900) ;
-
-    testappointment.setDate(Appointment::From, ago) ;
-    testappointment.setDate(Appointment::To, now) ;
-
     if (method == calendarSearchExact) {
         startappointment = (Appointment *)&appointments.at(startindex) ;
     } else {
+
+        // The test window is only needed by the searches, so it is built here
+        Appointment testappointment ;
+        QDateTime now = QDateTime::currentDateTimeUtc() ;
+        QDateTime ago = now.addSecs(-900) ;
+
+        testappointment.setDate(Appointment::From, ago) ;
+        testappointment.setDate(Appointment::To, now) ;
 
         int n = appointments.size() ;
 
