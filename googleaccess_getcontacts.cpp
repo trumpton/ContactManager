@@ -9,6 +9,7 @@
 
 #include "googleaccess.h"
 #include "../Lib/supportfunctions.h"
+#include <QUrl>
 
 #include <QUrl>
 #include <QJsonDocument>
@@ -28,46 +29,58 @@ bool GoogleAccess::getContacts(ContactDatabase &googlecontacts)
     if (refreshtoken.isEmpty()) return false ;
 
     QString url = "https://people.googleapis.com/v1/people/me/connections" ;
-    url = url + "?pageSize=2000" ;
+    url = url + "?pageSize=1000" ;
     url = url + "&sortOrder=LAST_NAME_ASCENDING" ;
     url = url + QString("&personFields=") + QString(READPERSONFIELDS) ;
 
-    // If this returns 403, check that the API is enabled on google
-    json = googleGet(url, QString("getContacts")) ;
-    if (!errorstatus.isEmpty()) return false ;
+    // Page through the list, following nextPageToken
+    QString pagetoken ;
+    do {
+        QString pageurl = url ;
+        if (!pagetoken.isEmpty()) pageurl = url + "&pageToken=" + QString(QUrl::toPercentEncoding(pagetoken)) ;
 
-    doc = QJsonDocument::fromJson(json.toUtf8(), &err) ;
+        // If this returns 403, check that the API is enabled on google
+        json = googleGet(pageurl, QString("getContacts")) ;
+        if (!errorstatus.isEmpty()) return false ;
 
-    if (err.error != QJsonParseError::NoError) return false ;
-    if (doc.isNull()) return false ;
-    if (!doc.isObject()) return false ;
+        doc = QJsonDocument::fromJson(json.toUtf8(), &err) ;
 
-    QJsonObject obj = doc.object() ;
+        if (err.error != QJsonParseError::NoError) return false ;
+        if (doc.isNull()) return false ;
+        if (!doc.isObject()) return false ;
 
-    // Transfer the contacts to the ContactDatabase
-    QJsonArray items = obj["connections"].toArray() ;
-    foreach (const QJsonValue & value, items) {
+        QJsonObject obj = doc.object() ;
 
-        if (value.isObject()){
-            QJsonObject item = value.toObject() ;
-            Contact contact ;
+        // Transfer the contacts to the ContactDatabase
+        QJsonArray items = obj["connections"].toArray() ;
+        foreach (const QJsonValue & value, items) {
 
-            // Add the changes to the contacts list if the parse was
-            // successful, even if the contact was deleted
-            if (parseContact(item, contact)) {
-                Contact& search = googlecontacts.getContactByGoogleId(contact.getField(Contact::GoogleRecordId)) ;
-                if (search.isEmpty()) {
-                    // Add new contact to google list
-                    Contact& newcontact = googlecontacts.addContact() ;
-                    contact.copyTo(newcontact, Contact::mcDetailsGroupProfile|Contact::mcId|Contact::mcGoogleId|Contact::mcEtag) ;
+            if (value.isObject()){
+                QJsonObject item = value.toObject() ;
+                Contact contact ;
+
+                // Add the changes to the contacts list if the parse was
+                // successful, even if the contact was deleted
+                if (parseContact(item, contact)) {
+                    Contact& search = googlecontacts.getContactByGoogleId(contact.getField(Contact::GoogleRecordId)) ;
+                    if (search.isEmpty()) {
+                        // Add new contact to google list
+                        Contact& newcontact = googlecontacts.addContact() ;
+                        contact.copyTo(newcontact, Contact::mcDetailsGroupProfile|Contact::mcId|Contact::mcGoogleId|Contact::mcEtag) ;
+                    } else {
+                        // Update contact google list, so just update it
+                        contact.copyTo(search, Contact::mcDetailsGroupProfile|Contact::mcId|Contact::mcGoogleId|Contact::mcEtag) ;
+                    }
                 } else {
-                    // Update contact google list, so just update it
-                    contact.copyTo(search, Contact::mcDetailsGroupProfile|Contact::mcId|Contact::mcGoogleId|Contact::mcEtag) ;
+                    success=false ;
                 }
-            } else {
-                success=false ;
             }
         }
-    }
+
+        pagetoken = obj["nextPageToken"].toString() ;
+        dbg(QString("TIMING getContacts: page of %1, more pages: %2").arg(items.size()).arg(!pagetoken.isEmpty())) ;
+
+    } while (!pagetoken.isEmpty()) ;
+
     return success ;
 }
