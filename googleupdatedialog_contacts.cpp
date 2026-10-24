@@ -203,10 +203,20 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     PHASE_DONE("before identifying local contacts") ;
     ui->updateStatusReport->append(QString("  Identifying local contacts missing on Google:")) ;
     int size3 = db.size() ;
+
+    // TIMING: where the time in this loop goes
+    qint64 lookupns=0, addns=0 ;
+    QElapsedTimer looptimer ;
+    looptimer.start() ;
+
     for (int i=0; i<size3; i++) {
         ui->progressBar->setValue(630 + ( i * 10)/size3 ) ;
         Contact& localcontact = db.getContact(i) ;
+
+        QElapsedTimer lookuptimer ;
+        lookuptimer.start() ;
         Contact& googlecontact = googledb.getContactById(localcontact.getField(Contact::ID)) ;
+        lookupns += lookuptimer.nsecsElapsed() ;
 
         if (googlecontact.isNull()) {
 
@@ -214,7 +224,11 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
             Contact deletedcontact ;
             deletedcontact.setField(Contact::ID, localcontact.getField(Contact::ID)) ;
             deletedcontact.setFlag(Contact::Deleted, true) ;
+
+            QElapsedTimer addtimer ;
+            addtimer.start() ;
             googledb.addContact(deletedcontact) ;
+            addns += addtimer.nsecsElapsed() ;
 
             if (localcontact.isSet(Contact::Hidden) || localcontact.isSet(Contact::Deleted)) {
 
@@ -254,6 +268,9 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     // 7. Add Fake entry in Local list for missing contacts, and identify new google records
     //
     ui->progressBar->setValue(640) ;
+    dbg(QString("TIMING identify local contacts: %1 entries, loop %2 ms, Google ID lookups %3 ms, adding fake Google entries %4 ms (other work %5 ms)")
+        .arg(size3).arg(looptimer.elapsed()).arg(lookupns/1000000).arg(addns/1000000)
+        .arg(looptimer.elapsed() - lookupns/1000000 - addns/1000000)) ;
     PHASE_DONE("identifying local contacts") ;
     ui->updateStatusReport->append(QString("  Identifying Google contacts missing locally:")) ;
     int size4 = googledb.size() ;
