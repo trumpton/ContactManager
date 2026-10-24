@@ -862,8 +862,15 @@ int Contact::operator==(const Contact &rhs) const
 
 int Contact::operator<(const Contact &rhs) const
 {
-    if (rhs.filedata[Contact::Hidden].compare("true")==0 ||
-            rhs.filedata[Contact::Deleted].compare("true")==0) return false;
+    // Must be a strict weak ordering for std::sort: hidden and deleted
+    // contacts sort after live ones, and within each group by sortstring.
+    bool lhsout = filedata[Contact::Hidden].compare("true")==0 ||
+                  filedata[Contact::Deleted].compare("true")==0 ;
+    bool rhsout = rhs.filedata[Contact::Hidden].compare("true")==0 ||
+                  rhs.filedata[Contact::Deleted].compare("true")==0 ;
+    if (lhsout != rhsout) {
+        return rhsout ? 1 : 0 ;
+    }
     return (sortstring.compare(rhs.sortstring)<0) ;
 }
 
