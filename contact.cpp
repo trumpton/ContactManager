@@ -8,6 +8,7 @@
 #include <QDebug>
 #include "history.h"
 #include "../Lib/supportfunctions.h"
+#include <algorithm>
 
 // Debug Trap
 //#define TRAPID "d8d7df66-36b2-44d2-91c2-6f6835bd5e78"
@@ -460,28 +461,33 @@ QString& Contact::getField(enum Contact::ContactRecord field)
 
 bool Contact::sortPhoneNumbers()
 {
-    bool updated=false;
-    if (!filedata[Phone2].isEmpty() || !filedata[Phone3].isEmpty() || !filedata[Phone4].isEmpty()) {
-        int len = Phone4Title - Phone2Title + 1 ;
-        for (int i=0;i<len; i++) {
-            for (int j=0; j<(len-i-1);j++) {
-                int j1t = j + Phone2Title ;
-                int j1 = j + Phone2 ;
-                int j2t = j + Phone2Title + 1 ;
-                int j2 = j + Phone2 + 1 ;
+    // Phone2..Phone4 are held as (title, number) pairs.  Pairs with a number
+    // come first, ordered by title+number; empty slots go last.
+    struct PhonePair {
+        QString title ;
+        QString number ;
+    } ;
 
-                QString s1 = filedata[j1t]+filedata[j1] ;
-                QString s2 = filedata[j2t]+filedata[j2] ;
-                if (!s2.isEmpty() && s1.compare(s2)>0) {
-                    QString t1t = filedata[j1t] ;
-                    QString t1 = filedata[j1] ;
-                    filedata[j1t] = filedata[j2t] ;
-                    filedata[j1] = filedata[j2] ;
-                    filedata[j2t] = t1t ;
-                    filedata[j2] = t1 ;
-                    updated=true ;
-                }
-            }
+    int len = Phone4Title - Phone2Title + 1 ;
+
+    QList<PhonePair> pairs ;
+    for (int i=0; i<len; i++) {
+        pairs.append(PhonePair{ filedata[Phone2Title+i], filedata[Phone2+i] }) ;
+    }
+
+    std::stable_sort(pairs.begin(), pairs.end(), [](const PhonePair &a, const PhonePair &b) {
+        bool aempty = a.number.isEmpty() ;
+        bool bempty = b.number.isEmpty() ;
+        if (aempty != bempty) return bempty ;
+        return (a.title + a.number).compare(b.title + b.number) < 0 ;
+    }) ;
+
+    bool updated=false ;
+    for (int i=0; i<len; i++) {
+        if (filedata[Phone2Title+i]!=pairs[i].title || filedata[Phone2+i]!=pairs[i].number) {
+            filedata[Phone2Title+i] = pairs[i].title ;
+            filedata[Phone2+i] = pairs[i].number ;
+            updated=true ;
         }
     }
     return updated ;
