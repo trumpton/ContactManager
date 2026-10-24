@@ -78,6 +78,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     dbg("Loading database and calendar") ;
     db.load() ;
     calendar.load() ;
+    logLoadSummary() ;
 
     ui->editDateOfBirth->setFormat("", "dd/MMM/yyyy", true) ;
     //populateDialog(SELECT_OVERVIEW) ;
@@ -155,6 +156,83 @@ void MainWindow::on_initial_focus()
 void MainWindow::abort()
 {
     QApplication::exit() ;
+}
+
+
+// Counts what was loaded, by category, so that large numbers can be traced to
+// their cause.  Only counts are logged (no names).  Written as "LOAD SUMMARY" lines.
+void MainWindow::logLoadSummary()
+{
+    // Contacts
+    int empty=0, deleted=0, deletedlinked=0, hiddenonly=0, hiddenlinked=0, live=0, livelinked=0 ;
+    QHash<QString,int> googleids ;
+
+    for (int i=0; i<db.size(); i++) {
+        Contact &c = db.getContact(i) ;
+        bool isdeleted = c.isSet(Contact::Deleted) ;
+        bool ishidden = c.isSet(Contact::Hidden) ;
+        bool linked = !c.getField(Contact::GoogleRecordId).isEmpty() ;
+
+        if (c.isEmpty()) empty++ ;
+        if (linked) googleids[c.getField(Contact::GoogleRecordId)]++ ;
+
+        if (isdeleted) {
+            deleted++ ;
+            if (linked) deletedlinked++ ;
+        } else if (ishidden) {
+            hiddenonly++ ;
+            if (linked) hiddenlinked++ ;
+        } else {
+            live++ ;
+            if (linked) livelinked++ ;
+        }
+    }
+
+    int sharedlinks=0 ;
+    for (auto it=googleids.constBegin(); it!=googleids.constEnd(); ++it) {
+        if (it.value()>1) sharedlinks += it.value()-1 ;
+    }
+
+    dbg(QString("LOAD SUMMARY contacts: total %1, empty %2, deleted %3 (linked to Google %4), hidden only %5 (linked %6), live %7 (linked %8), extra entries sharing a Google link %9")
+        .arg(db.size()).arg(empty).arg(deleted).arg(deletedlinked).arg(hiddenonly).arg(hiddenlinked)
+        .arg(live).arg(livelinked).arg(sharedlinks)) ;
+
+    // Calendar
+    QDateTime now = QDateTime::currentDateTimeUtc() ;
+    QDateTime windowstart = now.addDays(-APPOINTMENTSTARTWINDOW) ;
+    QDateTime windowend = now.addDays(APPOINTMENTENDWINDOW) ;
+
+    int cdeleted=0, ccancelled=0, clinked=0, cinwindow=0, cbefore=0, cafter=0 ;
+    int cbirthday=0, cinternet=0, ccontact=0, ccontactdeleted=0, ccontactmissing=0 ;
+
+    for (int i=0; i<calendar.size(); i++) {
+        Appointment &a = calendar.getAppointment(i) ;
+        QDateTime when = a.getDate(Appointment::From) ;
+
+        if (a.isSet(Appointment::Deleted)) cdeleted++ ;
+        if (a.getField(Appointment::GoogleStatus).compare("cancelled")==0) ccancelled++ ;
+        if (!a.getField(Appointment::GoogleRecordId).isEmpty()) clinked++ ;
+        if (when < windowstart) cbefore++ ;
+        else if (when > windowend) cafter++ ;
+        else cinwindow++ ;
+        if (a.getField(Appointment::Summary).contains("birthday", Qt::CaseInsensitive)) cbirthday++ ;
+        if (a.isSet(Appointment::InternetOwned)) cinternet++ ;
+
+        QString contactid = a.getField(Appointment::ContactId) ;
+        if (!contactid.isEmpty()) {
+            ccontact++ ;
+            Contact &c = db.getContactById(contactid) ;
+            if (c.isNull()) ccontactmissing++ ;
+            else if (c.isSet(Contact::Deleted)) ccontactdeleted++ ;
+        }
+    }
+
+    dbg(QString("LOAD SUMMARY calendar: total %1, deleted %2, cancelled on Google %3, linked to Google %4, "
+                "in sync window %5, before window %6, after window %7, summary mentions birthday %8, "
+                "read-only (internet) %9, linked to a contact %10 (contact deleted %11, contact missing %12)")
+        .arg(calendar.size()).arg(cdeleted).arg(ccancelled).arg(clinked)
+        .arg(cinwindow).arg(cbefore).arg(cafter).arg(cbirthday)
+        .arg(cinternet).arg(ccontact).arg(ccontactdeleted).arg(ccontactmissing)) ;
 }
 
 

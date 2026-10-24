@@ -167,6 +167,7 @@ private:
     // Transfer data to/from dialog
     void LoadTabs() ;               // Loads / Populates all Tabs
     void SaveTabs() ;               // Saves all Tabs
+    void logLoadSummary() ;         // Logs counts of what was loaded, for diagnosis
 
     void appendHistory(Contact& contact, QString msg) ;
 
