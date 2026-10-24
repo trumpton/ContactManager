@@ -9,9 +9,9 @@
 
 #include "googleaccess.h"
 #include "../Lib/supportfunctions.h"
-#include <QUrl>
 
 #include <QUrl>
+#include <QElapsedTimer>
 #include <QJsonDocument>
 #include <QJsonValueRef>
 #include <QJsonObject>
@@ -32,6 +32,11 @@ bool GoogleAccess::getContacts(ContactDatabase &googlecontacts)
     url = url + "?pageSize=1000" ;
     url = url + "&sortOrder=LAST_NAME_ASCENDING" ;
     url = url + QString("&personFields=") + QString(READPERSONFIELDS) ;
+
+    // TIMING: time spent parsing each contact, and in the lookup by Google ID
+    qint64 parsens=0, lookupns=0 ;
+    QElapsedTimer totaltimer ;
+    totaltimer.start() ;
 
     // Page through the list, following nextPageToken
     QString pagetoken ;
@@ -61,8 +66,16 @@ bool GoogleAccess::getContacts(ContactDatabase &googlecontacts)
 
                 // Add the changes to the contacts list if the parse was
                 // successful, even if the contact was deleted
-                if (parseContact(item, contact)) {
+                QElapsedTimer parsetimer ;
+                parsetimer.start() ;
+                bool parsed = parseContact(item, contact) ;
+                parsens += parsetimer.nsecsElapsed() ;
+
+                if (parsed) {
+                    QElapsedTimer lookuptimer ;
+                    lookuptimer.start() ;
                     Contact& search = googlecontacts.getContactByGoogleId(contact.getField(Contact::GoogleRecordId)) ;
+                    lookupns += lookuptimer.nsecsElapsed() ;
                     if (search.isEmpty()) {
                         // Add new contact to google list
                         Contact& newcontact = googlecontacts.addContact() ;
@@ -81,6 +94,9 @@ bool GoogleAccess::getContacts(ContactDatabase &googlecontacts)
         dbg(QString("TIMING getContacts: page of %1, more pages: %2").arg(items.size()).arg(!pagetoken.isEmpty())) ;
 
     } while (!pagetoken.isEmpty()) ;
+
+    dbg(QString("TIMING getContacts processing: %1 contacts, %2 ms total, %3 ms parsing, %4 ms in Google ID lookups")
+        .arg(googlecontacts.size()).arg(totaltimer.elapsed()).arg(parsens/1000000).arg(lookupns/1000000)) ;
 
     return success ;
 }
