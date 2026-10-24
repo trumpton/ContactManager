@@ -32,6 +32,14 @@ public:
 
     bool load() ;
     bool save() ;
+
+    // Moves a deleted contact's files into the deleted folder
+    bool archiveDeletedFiles(QString filename) ;
+
+    // Archives deleted contacts that have no Google link.  Deleted contacts that
+    // still have a link are counted in linked: a Google sync removes them from
+    // Google and clears the link.  Returns the number archived.
+    int tidyDeleted(int &linked) ;
     bool reloadJournal(Contact& contact) ;
     bool saveIndex(int j, QString path, QString contactid, QString name, QString phone, QString email, QString address) ;
 

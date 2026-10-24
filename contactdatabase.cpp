@@ -25,6 +25,26 @@ void ContactDatabase::clear()
     selectedcontact=-1 ;
 }
 
+bool ContactDatabase::archiveDeletedFiles(QString filename)
+{
+    QString deletedPath = gContactSavePath + "deleted" + QDir::toNativeSeparators("/") ;
+    QDir path(deletedPath) ;
+    if (!path.exists()) path.mkpath(".") ;
+    QFile::remove(deletedPath + filename + ".contact") ;
+    QFile::remove(deletedPath + filename + ".todolist") ;
+    QFile::remove(deletedPath + filename + ".history") ;
+    QFile::rename(gContactSavePath + filename + ".contact", deletedPath + filename + ".contact") ;
+    QFile::rename(gContactSavePath + filename + ".todolist", deletedPath + filename + ".todolist") ;
+    QFile::rename(gContactSavePath + filename + ".history", deletedPath + filename + ".history") ;
+    QFile::remove(deletedPath + filename + ".zcontact") ;
+    QFile::remove(deletedPath + filename + ".ztodolist") ;
+    QFile::remove(deletedPath + filename + ".zhistory") ;
+    QFile::rename(gContactSavePath + filename + ".zcontact", deletedPath + filename + ".zcontact") ;
+    QFile::rename(gContactSavePath + filename + ".ztodolist", deletedPath + filename + ".ztodolist") ;
+    QFile::rename(gContactSavePath + filename + ".zhistory", deletedPath + filename + ".zhistory") ;
+    return true ;
+}
+
 bool ContactDatabase::load()
 {
     Encryption *enc = gConf->encryption() ;
@@ -66,21 +86,7 @@ bool ContactDatabase::load()
             // Archive Deleted
             di.getHistory().addEntry("Moving entry to deleted folder") ;
             addLog("Moving record " + di.getFormattedName() + " (" + di.getField(Contact::ID) + ") to deleted folder") ;
-            QString deletedPath = gContactSavePath + "deleted" + QDir::toNativeSeparators("/") ;
-            QDir path(deletedPath) ;
-            if (!path.exists()) path.mkpath(".") ;
-            QFile::remove(deletedPath + filename + ".contact") ;
-            QFile::remove(deletedPath + filename + ".todolist") ;
-            QFile::remove(deletedPath + filename + ".history") ;
-            QFile::rename(gContactSavePath + filename + ".contact", deletedPath + filename + ".contact") ;
-            QFile::rename(gContactSavePath + filename + ".todolist", deletedPath + filename + ".todolist") ;
-            QFile::rename(gContactSavePath + filename + ".history", deletedPath + filename + ".history") ;
-            QFile::remove(deletedPath + filename + ".zcontact") ;
-            QFile::remove(deletedPath + filename + ".ztodolist") ;
-            QFile::remove(deletedPath + filename + ".zhistory") ;
-            QFile::rename(gContactSavePath + filename + ".zcontact", deletedPath + filename + ".zcontact") ;
-            QFile::rename(gContactSavePath + filename + ".ztodolist", deletedPath + filename + ".ztodolist") ;
-            QFile::rename(gContactSavePath + filename + ".zhistory", deletedPath + filename + ".zhistory") ;
+            archiveDeletedFiles(filename) ;
 
         } else {
 
@@ -104,6 +110,35 @@ bool ContactDatabase::load()
     }
 
     return true ;
+}
+
+// Archives deleted contacts that have no Google link, and removes them from the list
+int ContactDatabase::tidyDeleted(int &linked)
+{
+    int archived = 0 ;
+    linked = 0 ;
+
+    // Save first, so the files match what is in memory
+    save() ;
+
+    for (int i=contacts.size()-1; i>=0; i--) {
+        Contact &c = contacts[i] ;
+        if (!c.isSet(Contact::Deleted)) continue ;
+
+        if (!c.getField(Contact::GoogleRecordId).isEmpty()) {
+            linked++ ;
+            continue ;
+        }
+
+        c.getHistory().addEntry("Moving entry to deleted folder") ;
+        addLog("Tidy: moving record " + c.getFormattedName() + " (" + c.getField(Contact::ID) + ") to deleted folder") ;
+        archiveDeletedFiles(c.getField(Contact::ID)) ;
+        contacts.removeAt(i) ;
+        archived++ ;
+    }
+
+    selectedcontact = -1 ;
+    return archived ;
 }
 
 // Reload the journal
