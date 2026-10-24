@@ -286,7 +286,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     for (int i=0; i<size8; i++) {
         ui->progressBar->setValue(650 + ( i * 10)/size8 ) ;
         Contact& localcontact = db.getContact(i) ;
-        Contact& googlecontact = googledb.getContactBy(Contact::ID, localcontact.getField(Contact::ID)) ;
+        Contact& googlecontact = googledb.getContactById(localcontact.getField(Contact::ID)) ;
         if ( !googlecontact.isEmpty() && !googlecontact.matches(localcontact, Contact::mcProfile)) {
             ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false, false)) ;
             googlecontact.copyTo(localcontact, Contact::mcProfile) ;
@@ -318,7 +318,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
         if (state<0) return false ;
 
         Contact& localcontact = db.getContact(i) ;
-        Contact& googlecontact = googledb.getContactBy(Contact::ID, localcontact.getField(Contact::ID)) ;
+        Contact& googlecontact = googledb.getContactById(localcontact.getField(Contact::ID)) ;
 
         bool deletedlocaldeletedgoogle =
                 (googlecontact.isNull() || googlecontact.isSet(Contact::Deleted)) &&

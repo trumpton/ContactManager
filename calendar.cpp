@@ -6,6 +6,7 @@
 #include <QDateTime>
 #include <QList>
 #include <QFile>
+#include <QElapsedTimer>
 #include <QTextStream>
 #include <QtCore>
 #include <QDir>
@@ -35,6 +36,9 @@ void Calendar::clear()
 
 bool Calendar::load()
 {
+    QElapsedTimer loadtimer ;
+    loadtimer.start() ;
+
     Encryption *enc = gConf->encryption() ;
     if (!enc) return false;
 
@@ -81,6 +85,7 @@ bool Calendar::load()
     }
 
     sort() ;
+    dbg(QString("TIMING load calendar: %1 entries, %2 ms").arg(appointments.size()).arg(loadtimer.elapsed())) ;
     return true ;
 }
 

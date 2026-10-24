@@ -4,6 +4,7 @@
 #include <QStringList>
 #include <QtAlgorithms>
 #include <QTextStream>
+#include <QElapsedTimer>
 
 #include "../Lib/supportfunctions.h"
 #include "contactdatabase.h"
@@ -47,6 +48,9 @@ bool ContactDatabase::archiveDeletedFiles(QString filename)
 
 bool ContactDatabase::load()
 {
+    QElapsedTimer loadtimer ;
+    loadtimer.start() ;
+
     Encryption *enc = gConf->encryption() ;
     if (!enc) {
         dbg("ContactDatabase::load - call without enc") ;
@@ -109,6 +113,7 @@ bool ContactDatabase::load()
         }
     }
 
+    dbg(QString("TIMING load contacts: %1 entries, %2 ms").arg(contacts.size()).arg(loadtimer.elapsed())) ;
     return true ;
 }
 
@@ -331,13 +336,32 @@ int ContactDatabase::getIndex(Contact &record)
 // the index of the record with the given id, or
 // -1 if the record could not be found
 //
-int ContactDatabase::getIndex(QString searchid)
+// Returns the position of a contact whose field equals value, or -1.
+// The hash index is a shortcut only.  A hit is checked against the list, and a
+// miss falls back to a full search, so a stale index (after a sort, a removal or
+// a change to a field) cannot give a wrong answer.  The guarantee is exact when
+// the value is unique, which it always is for contact and Google IDs.  If two
+// contacts ever share an ID, the result may be either of them, not necessarily
+// the first.
+int ContactDatabase::findIndex(QHash<QString,int> &index, Contact::ContactRecord type, const QString &value)
 {
-    for (int i=0, ne=contacts.size(); i<ne; i++) {
-        QString& recordid = contacts[i].getField(Contact::ID) ;
-        if (searchid.compare(recordid)==0) return i ;
+    int i = index.value(value, -1) ;
+    if (i>=0 && i<contacts.size() && contacts[i].getField(type).compare(value)==0) {
+        return i ;
+    }
+
+    for (int j=0, ne=contacts.size(); j<ne; j++) {
+        if (contacts[j].getField(type).compare(value)==0) {
+            index.insert(value, j) ;
+            return j ;
+        }
     }
     return -1 ;
+}
+
+int ContactDatabase::getIndex(QString searchid)
+{
+    return findIndex(idindex, Contact::ID, searchid) ;
 }
 
 Contact& ContactDatabase::getContactBy(Contact::ContactRecord type, QString& data)
@@ -395,13 +419,7 @@ Contact& ContactDatabase::getContactById(QString& searchid)
 
 Contact& ContactDatabase::getContactByGoogleId(QString& searchid)
 {
-    for (int i=0, sz=size(); i<sz; i++) {
-        Contact &c = contacts[i] ;
-        if (c.getField(Contact::GoogleRecordId).compare(searchid)==0) {
-            return c ;
-        }
-    }
-    return nullitem ;
+    return getContact(findIndex(gidindex, Contact::GoogleRecordId, searchid)) ;
 }
 
 
