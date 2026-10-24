@@ -3,6 +3,7 @@
 
 #include <QString>
 #include <QList>
+#include <QHash>
 
 #include "contact.h"
 #include "../Lib/encryption.h"
@@ -27,6 +28,12 @@ public:
 private:
     QList<Contact> contacts ;
     int selectedcontact ;
+
+    // Shortcuts from a field value to a position in contacts.  They are only
+    // shortcuts: see findIndex()
+    QHash<QString,int> idindex ;
+    QHash<QString,int> gidindex ;
+    int findIndex(QHash<QString,int> &index, Contact::ContactRecord type, const QString &value) ;
 
 public:
 
