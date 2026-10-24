@@ -264,7 +264,7 @@ QString GoogleAccess::ExtractParameter(QString Response, QString Parameter, int 
 
     // Find "parameter" : "xxxx",
     // Or "parameter" : "xxxx"}
-    pattern = "\"" + Parameter + "\" *: *\"(.*?)\"" ;
+    pattern = "\"" + QRegularExpression::escape(Parameter) + "\" *: *\"(.*?)\"" ;
     rx.setPattern(pattern) ;
     rem = rx.match(Response) ;
     if (rem.hasMatch()) extracttokenresult = rem.captured(1) ;

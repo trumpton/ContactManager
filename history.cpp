@@ -32,7 +32,7 @@ bool History::isEmpty()
 int History::find(QString text, int startline)
 {
     Q_UNUSED(startline) ;
-    QRegularExpression re(".*?(" +text.toLower() +").*?") ;
+    QRegularExpression re(".*?(" + QRegularExpression::escape(text.toLower()) + ").*?") ;
     QRegularExpressionMatch rem ;
     QString overview = getOverview(historyAsText).toLower() ;
     rem = re.match(overview) ;

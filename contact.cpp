@@ -317,7 +317,7 @@ int Contact::find(QString text)
     text = text.toLower() ;
     deAccent(text) ;
     text.replace(" ", "") ;
-    QRegularExpression re2(".*(" + text + ").*") ;
+    QRegularExpression re2(".*(" + QRegularExpression::escape(text) + ").*") ;
     QRegularExpressionMatch rem ;
 
     // Search in the overview

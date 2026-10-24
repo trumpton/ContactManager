@@ -4,7 +4,7 @@
 #include <QNetworkAccessManager>
 #include <QEventLoop>
 #include <QNetworkReply>
-#include <QRegExp>
+#include <QRegularExpression>
 #include <QDebug>
 
 SMS::SMS(QString& agent, QString& username, QString& password)
@@ -151,9 +151,10 @@ int SMS::getClockworkBalance()
     if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute)!=200) return -4 ;
 
     QString balance = reply->readAll().toLower().trimmed() ;
-    QRegExp exp("[^0-9]*([0-9]+)[\\.:]([0-9]+)[^0-9]*") ;
-    if (exp.indexIn(balance)>=0) {
-        return exp.cap(1).toInt() * 100 + exp.cap(2).toInt() ;
+    QRegularExpression exp("[^0-9]*([0-9]+)[\\.:]([0-9]+)[^0-9]*") ;
+    QRegularExpressionMatch expmatch = exp.match(balance) ;
+    if (expmatch.hasMatch()) {
+        return expmatch.captured(1).toInt() * 100 + expmatch.captured(2).toInt() ;
     }
 
     // Unable to decode
