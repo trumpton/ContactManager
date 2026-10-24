@@ -105,6 +105,11 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
             upload=true ;
         }
 
+        // A deletion made locally must reach Google, whichever side is the master
+        if (localcontact.isSet(Contact::Deleted) && !localcontact.getField(Contact::GoogleRecordId).isEmpty()) {
+            upload=true ;
+        }
+
         localcontact.setFlag(Contact::ToBeDownloaded, !upload) ;
         localcontact.setFlag(Contact::ToBeUploaded, upload) ;
     }
@@ -318,11 +323,22 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
         bool deletedlocaldeletedgoogle =
                 (googlecontact.isNull() || googlecontact.isSet(Contact::Deleted)) &&
                 (localcontact.isSet(Contact::Hidden) || localcontact.isSet(Contact::Deleted)) ;
-        bool googlematcheslocal = googlecontact.matches(localcontact, Contact::mcDetails|Contact::mcId) ;
+        // The Deleted flag is not part of the comparison, so a local deletion that
+        // Google still has as a live record must not be treated as a match
+        bool localdeleted = localcontact.isSet(Contact::Deleted) ;
+        bool googleremoved = googlecontact.isNull() || googlecontact.isSet(Contact::Deleted) ;
+        bool googlematcheslocal = !(localdeleted && !googleremoved) &&
+                googlecontact.matches(localcontact, Contact::mcDetails|Contact::mcId) ;
 
         if ( deletedlocaldeletedgoogle ) {
 
-            // Deleted everywhere, so nothing is required
+            // Deleted everywhere, so nothing is required.  Google has no live record,
+            // so the link is forgotten; the entry is then archived the next time it loads.
+            // Only done when the download succeeded, otherwise "missing" means "unknown".
+            if (networkok && !localcontact.getField(Contact::GoogleRecordId).isEmpty()) {
+                localcontact.setField(Contact::GoogleRecordId, QString("")) ;
+                localcontact.setField(Contact::GoogleEtag, QString("")) ;
+            }
             localcontact.setFlag(Contact::ToBeUploaded, false) ;
             localcontact.setFlag(Contact::ToBeDownloaded, false) ;
 

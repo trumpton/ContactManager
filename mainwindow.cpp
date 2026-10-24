@@ -515,8 +515,31 @@ void MainWindow::on_action_Google_Sync_triggered()
     frm->doUpdate(google, db, calendar) ;
     delete frm ;
 
+    // Save now, so links cleared by the sync are kept if the app is stopped
+    db.save() ;
+
     // And re-load
     LoadTabs() ;
+}
+
+void MainWindow::on_actionTidy_Deleted_triggered()
+{
+    int linked=0 ;
+
+    if (!warningYesNoDialog(this, "Tidy Deleted Contacts",
+            "Deleted contacts with no Google link will be moved to the deleted folder.\n\n"
+            "Run Google Sync first, so that deleted contacts are removed from Google.\n\nContinue?")) {
+        return ;
+    }
+
+    int archived = db.tidyDeleted(linked) ;
+    populateDialog(SELECT_OVERVIEW) ;
+
+    QString message = QString("Moved %1 deleted contact(s) to the deleted folder.").arg(archived) ;
+    if (linked>0) {
+        message += QString("\n\n%1 deleted contact(s) still have a Google link.  Run Google Sync to remove them from Google.").arg(linked) ;
+    }
+    warningOkDialog(this, "Tidy Deleted Contacts", message) ;
 }
 
 
