@@ -177,7 +177,7 @@ bool Calendar::appointmentIsInRange(int n, qint64 beforedays, qint64 afterdays)
 // Search for string, and return -1 on failure
 int Calendar::find(QString text, bool futureonly)
 {
-    QRegularExpression re(".*(" +text.toLower() +").*") ;
+    QRegularExpression re(".*(" + QRegularExpression::escape(text.toLower()) + ").*") ;
     QRegularExpressionMatch rem ;
     QString overview = getOverview(calendarAsText, "", futureonly).toLower() ;
     rem = re.match(overview) ;
