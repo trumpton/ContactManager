@@ -579,9 +579,13 @@ int Appointment::operator==(const Appointment& rhs) const
 
 int Appointment::operator<(const Appointment &rhs) const
 {
-    // Supporting date search, but push deleted ones to the end
-    if (rhs.isSet(Appointment::Deleted)) {
-        return 1;
+    // Supporting date search, but push deleted ones to the end.
+    // Must be a strict weak ordering for std::sort: live entries come before
+    // deleted ones, and entries of the same kind are then ordered by date.
+    bool lhsdeleted = isSet(Appointment::Deleted) ;
+    bool rhsdeleted = rhs.isSet(Appointment::Deleted) ;
+    if (lhsdeleted != rhsdeleted) {
+        return rhsdeleted ? 1 : 0 ;
     }
 
     QDateTime f1 = getDate(Appointment::From) ;
