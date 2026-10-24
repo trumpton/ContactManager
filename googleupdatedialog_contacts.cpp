@@ -8,6 +8,11 @@
 #include "ui_googleupdatedialog.h"
 #include "configuration.h"
 #include "../Lib/supportfunctions.h"
+#include <QElapsedTimer>
+
+// TIMING: prints how long each sync phase took.  Uses phasetimer, which is
+// declared where the download starts.
+#define PHASE_DONE(name) dbg(QString("TIMING phase done: %1 - %2 ms").arg(name).arg(phasetimer.restart()))
 
 //
 // Process Contact Update
@@ -71,7 +76,10 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     // 2. Download Google Contact List (all)
     //
     ui->progressBar->setValue(550) ;
+    QElapsedTimer phasetimer ;
+    phasetimer.start() ;
     networkok &= google.getContacts(googledb) ;
+    PHASE_DONE("download contacts") ;
     ui->updateStatusReport->append(QString("  Downloaded ") + QString::number(googledb.size()) + QString(" Contacts from Google.")) ;
 
     if (state<0) return false ;
@@ -165,7 +173,11 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
             if (!localcontact.isEmpty()) {
                 // Ensure contact has correct google ID
                 localcontact.setField(Contact::GoogleRecordId, googlecontact.getField(Contact::GoogleRecordId)) ;
-                if (uploadContact(localcontact, google, googlecontact.getField(Contact::GoogleEtag))) {
+                QElapsedTimer uploadtimer ;
+                uploadtimer.start() ;
+                bool uploaded = uploadContact(localcontact, google, googlecontact.getField(Contact::GoogleEtag)) ;
+                dbg(QString("TIMING upload (new local) %1 ms ok=%2").arg(uploadtimer.elapsed()).arg(uploaded)) ;
+                if (uploaded) {
                     ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false,false)) ;
                 } else {
                     ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false,false) + QString(" FAILED")) ;
@@ -183,6 +195,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     // 6. Add Fake entry in Google list for missing  contacts, and identify new local records
     //
     ui->progressBar->setValue(630) ;
+    PHASE_DONE("before identifying local contacts") ;
     ui->updateStatusReport->append(QString("  Identifying local contacts missing on Google:")) ;
     int size3 = db.size() ;
     for (int i=0; i<size3; i++) {
@@ -236,6 +249,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     // 7. Add Fake entry in Local list for missing contacts, and identify new google records
     //
     ui->progressBar->setValue(640) ;
+    PHASE_DONE("identifying local contacts") ;
     ui->updateStatusReport->append(QString("  Identifying Google contacts missing locally:")) ;
     int size4 = googledb.size() ;
     for (int i=0; i<size4; i++) {
@@ -261,6 +275,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     // 8. Update profile
     //
     ui->progressBar->setValue(650) ;
+    PHASE_DONE("identifying google contacts") ;
     ui->updateStatusReport->append(QString("  Storing Google Profile Changes:")) ;
     int size8 = db.size() ;
     for (int i=0; i<size8; i++) {
@@ -280,9 +295,19 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     // 9. Synchronise changes (download first)
     //
     ui->progressBar->setValue(660) ;
+    PHASE_DONE("storing profile changes") ;
     ui->updateStatusReport->append(QString("  Synchronising Changes:")) ;
     int size9 = db.size() ;
+    QElapsedTimer synctimer ;
+    synctimer.start() ;
+    int uploadcount=0 ;
+    qint64 uploadms=0 ;
     for (int i=0; i<size9; i++) {
+
+        if (i % 50 == 0) {
+            dbg(QString("TIMING sync contacts: %1/%2 items, %3 ms, %4 uploads so far (%5 ms uploading), log %6 chars")
+                .arg(i).arg(size9).arg(synctimer.elapsed()).arg(uploadcount).arg(uploadms).arg(getLog().size())) ;
+        }
 
         ui->progressBar->setValue(660 + ( i * 240)/size9 ) ;
         if (state<0) return false ;
@@ -336,7 +361,13 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
                     changes = QString("Uploaded: ") + localcontact.mismatch(googlecontact, Contact::mcDetails|Contact::mcId) + QString(". ");
                     summary = QString("uploaded") ;
                 }
-                if (uploadContact(localcontact, google, googlecontact.getField(Contact::GoogleEtag))) {
+                QElapsedTimer uploadtimer ;
+                uploadtimer.start() ;
+                bool uploaded = uploadContact(localcontact, google, googlecontact.getField(Contact::GoogleEtag)) ;
+                uploadcount++ ;
+                uploadms += uploadtimer.elapsed() ;
+                dbg(QString("TIMING upload #%1 %2 ms ok=%3").arg(uploadcount).arg(uploadtimer.elapsed()).arg(uploaded)) ;
+                if (uploaded) {
                     ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false, false)  + QString(" - Updating Google Contact Details (%1)").arg(summary)) ;
                     localcontact.copyTo(googlecontact, Contact::mcDetails|Contact::mcId|Contact::mcGoogleId) ;
                 } else {
@@ -415,6 +446,9 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     }
 
 
+    PHASE_DONE("synchronising changes") ;
+    dbg(QString("TIMING sync contacts done: %1 uploads, %2 ms uploading, %3 ms in sync loop")
+        .arg(uploadcount).arg(uploadms).arg(synctimer.elapsed())) ;
     ui->progressBar->setValue(1000) ;
     if (networkok) {
         ui->updateStatusReport->append(QString("  Contact Synchronisation: OK")) ;

@@ -7,6 +7,11 @@
 #include "ui_googleupdatedialog.h"
 #include "configuration.h"
 #include "../Lib/supportfunctions.h"
+#include <QElapsedTimer>
+
+// TIMING: prints how long each sync phase took.  Uses phasetimer, which is
+// declared where the download starts.
+#define PHASE_DONE(name) dbg(QString("TIMING phase done: %1 - %2 ms").arg(name).arg(phasetimer.restart()))
 
 bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess& google, class Calendar& cal)
 {
@@ -24,7 +29,10 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
 
     ui->updateStatusReport->append(QString("  Downloading New and Changed Appointments from Google:")) ;
     ui->progressBar->setValue(0) ;
+    QElapsedTimer phasetimer ;
+    phasetimer.start() ;
     networkok &= google.getCalendar(googlecal, APPOINTMENTSTARTWINDOW, APPOINTMENTENDWINDOW) ;
+    PHASE_DONE("download appointments") ;
     int googlesize = googlecal.size() ;
     for (int i=0; i<googlesize; i++) {
         Appointment &googleappt = googlecal.getAppointment(i) ;
@@ -89,6 +97,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     // 4. Add Fake entry in Google list for missing records, and identify new local records
     //
     ui->progressBar->setValue(200) ;
+    PHASE_DONE("before identifying local appointments") ;
     ui->updateStatusReport->append(QString("  Identifying local appointments missing on Google:")) ;
 
     for (int i=0, size=cal.size(); i<size; i++) {
@@ -143,6 +152,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     // 5. Add Fake entry in Local list for missing records, and identify new google records
     //
     ui->progressBar->setValue(250) ;
+    PHASE_DONE("identifying local appointments") ;
     ui->updateStatusReport->append(QString("  Identifying Google appointments missing locally:")) ;
     for (int i=0, size=googlecal.size(); i<size; i++) {
 
@@ -176,9 +186,19 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     //
 
     ui->progressBar->setValue(300) ;
+    PHASE_DONE("identifying google appointments") ;
     ui->updateStatusReport->append(QString("  Synchronising Changes:")) ;
 
+    QElapsedTimer synctimer ;
+    synctimer.start() ;
+    int uploadcount=0 ;
+    qint64 uploadms=0 ;
     for (int i=0, size=cal.size(); i<size; i++) {
+
+        if (i % 50 == 0) {
+            dbg(QString("TIMING sync appointments: %1/%2 items, %3 ms, %4 uploads so far (%5 ms uploading), log %6 chars")
+                .arg(i).arg(size).arg(synctimer.elapsed()).arg(uploadcount).arg(uploadms).arg(getLog().size())) ;
+        }
 
         ui->progressBar->setValue(300 + ( i * 200)/size ) ;
         if (state<0) return false ;
@@ -236,9 +256,19 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
 
                     bool status ;
                     if (localappt.getField(Appointment::GoogleRecordId).isEmpty()) {
+                        QElapsedTimer uploadtimer ;
+                        uploadtimer.start() ;
                         status = google.updateAppointment(localappt, GoogleAccess::Post) ;
+                        uploadcount++ ;
+                        uploadms += uploadtimer.elapsed() ;
+                        dbg(QString("TIMING appointment upload #%1 POST %2 ms ok=%3").arg(uploadcount).arg(uploadtimer.elapsed()).arg(status)) ;
                     } else {
+                        QElapsedTimer uploadtimer ;
+                        uploadtimer.start() ;
                         status = google.updateAppointment(localappt, GoogleAccess::Put) ;
+                        uploadcount++ ;
+                        uploadms += uploadtimer.elapsed() ;
+                        dbg(QString("TIMING appointment upload #%1 PUT %2 ms ok=%3").arg(uploadcount).arg(uploadtimer.elapsed()).arg(status)) ;
                     }
                     networkok &= status ;
 
@@ -267,6 +297,9 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
 
     if (state<0) return false ;
 
+    PHASE_DONE("synchronising appointments") ;
+    dbg(QString("TIMING sync appointments done: %1 uploads, %2 ms uploading, %3 ms in sync loop")
+        .arg(uploadcount).arg(uploadms).arg(synctimer.elapsed())) ;
     if (networkok) {
         ui->updateStatusReport->append(QString("  Appointment Synchronisation: OK")) ;
     } else {

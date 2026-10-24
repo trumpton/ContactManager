@@ -9,6 +9,7 @@
 #include <QNetworkRequest>
 #include <QEventLoop>
 #include <QThread>
+#include <QElapsedTimer>
 
 //*****************************************************************************************************
 
@@ -96,6 +97,10 @@ QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action
 
             QString actionname ;
 
+            // TIMING: request time, from sending it to the reply arriving
+            QElapsedTimer requesttimer ;
+            requesttimer.start() ;
+
             switch (action) {
             case GoogleAccess::Post:
                 reply = manager.post(request, submitdata) ;
@@ -127,6 +132,8 @@ QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action
             eventLoop.exec() ;
             QVariant replycode=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) ;
             errorcode=replycode.toInt() ;
+            // logfile can contain a contact name, so only its first part is printed
+            dbg(QString("TIMING http %1 %2 status=%3 ms=%4").arg(actionname).arg(logfile.section('-',0,0)).arg(errorcode).arg(requesttimer.elapsed())) ;
 
             // TODO: For some reason, google does not update the "updated"
             //       this means that we will keep uploading the same records
@@ -181,6 +188,7 @@ QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action
 
         if (timeoutretry==true) {
             // if there is a timeout error, try again
+            dbg(QString("TIMING http backoff %1 - waiting %2 ms before retry").arg(logfile.section('-',0,0)).arg(800*timeoutscalefactor)) ;
             QThread::msleep(800*timeoutscalefactor) ;
             complete=false ;
 
@@ -251,10 +259,14 @@ QString GoogleAccess::googleGet(QString link, QString logfile)
 
             // get the page
             QObject::connect(&manager, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
+            // TIMING: request time, from sending it to the reply arriving
+            QElapsedTimer requesttimer ;
+            requesttimer.start() ;
             reply = manager.get(request);
             eventLoop.exec() ;
             QVariant replycode=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) ;
             errorcode=replycode.toInt() ;
+            dbg(QString("TIMING http GET %1 status=%2 ms=%3").arg(logfile.section('-',0,0)).arg(errorcode).arg(requesttimer.elapsed())) ;
 
             switch (reply->error()) {
             case QNetworkReply::ConnectionRefusedError:
