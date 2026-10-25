@@ -1098,6 +1098,7 @@ def main(argv):
             print("unknown scenario", code)
             return 2
         run_scenario(code)
+    set_mode(CM_MASTER)          # leave the app on its default master setting
     passed = sum(1 for r in RESULTS if r["ok"])
     print("\n%d of %d scenarios passed" % (passed, len(RESULTS)))
     with open(os.path.join(RUNS, "results.json"), "w") as f:
