@@ -29,16 +29,53 @@
 //
 
 
-bool GoogleUpdateDialog::uploadContact(Contact& contact, GoogleAccess &google, QString etag)
+// The person field groups the upload writes, with the contact fields each one holds.  Only the groups
+// where the app's value differs from Google's are written, so that Google keeps every other group as it
+// is, including fields the app does not hold, such as a second URL.  userDefined is always written, as
+// it holds the app's ID and upload marker.
+static QString changedPersonFields(Contact &local, Contact &google)
+{
+    struct PersonGroup {
+        const char *name ;
+        QList<Contact::ContactRecord> fields ;
+    } ;
+    const QList<PersonGroup> groups = {
+        { "names",          { Contact::Surname, Contact::Names } },
+        { "emailAddresses", { Contact::Email, Contact::Email2, Contact::Email3, Contact::Email4, Contact::Email3Title, Contact::Email4Title } },
+        { "phoneNumbers",   { Contact::Phone, Contact::Work, Contact::Mobile, Contact::Phone2, Contact::Phone3, Contact::Phone4,
+                              Contact::Phone2Title, Contact::Phone3Title, Contact::Phone4Title } },
+        { "sipAddresses",   { Contact::Voip } },
+        { "organizations",  { Contact::Organisation } },
+        { "addresses",      { Contact::Address, Contact::Address2 } },
+        { "urls",           { Contact::Webaddress } },
+        { "birthdays",      { Contact::Birthday } },
+        { "biographies",    { Contact::Comments } },
+    } ;
+
+    QStringList changed ;
+    for (const PersonGroup &group : groups) {
+        for (Contact::ContactRecord field : group.fields) {
+            if (local.getField(field) != google.getField(field)) {
+                changed << group.name ;
+                break ;
+            }
+        }
+    }
+    changed << "userDefined" ;
+    return changed.join(",") ;
+}
+
+bool GoogleUpdateDialog::uploadContact(Contact& contact, GoogleAccess &google, Contact& googlecontact)
 {
     bool success=false ;
 
     QString& googleid = contact.getField(Contact::GoogleRecordId) ;
+    QString etag = googlecontact.getField(Contact::GoogleEtag) ;
 
     if (googleid.isEmpty() || etag.isEmpty()) {
         success = google.updateContact(contact, GoogleAccess::Post) ;
     } else {
-        success = google.updateContact(contact, GoogleAccess::Patch, etag) ;
+        success = google.updateContact(contact, GoogleAccess::Patch, etag, changedPersonFields(contact, googlecontact)) ;
     }
 
     // Update Groups
@@ -217,7 +254,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
                 localcontact.setField(Contact::GoogleRecordId, googlecontact.getField(Contact::GoogleRecordId)) ;
                 QElapsedTimer uploadtimer ;
                 uploadtimer.start() ;
-                bool uploaded = uploadContact(localcontact, google, googlecontact.getField(Contact::GoogleEtag)) ;
+                bool uploaded = uploadContact(localcontact, google, googlecontact) ;
                 dbg(QString("TIMING upload (new local) %1 ms ok=%2").arg(uploadtimer.elapsed()).arg(uploaded)) ;
                 if (uploaded) {
                     ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false,false)) ;
@@ -319,10 +356,10 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
             ui->updateStatusReport->append(QString("    ") + googlecontact.getFormattedName(false,false)) ;
             Contact newlocal ;
             newlocal.setField(Contact::ID, googlecontact.getField(Contact::ID)) ;
-            // Download (save) Google details
+            // Download (save) Google details.  Not uploaded: a contact made on Google has no ID stored there,
+            // but its ID is derived from its resource name (see parseContact), so no upload is needed, and an
+            // upload would rewrite fields this app does not hold, such as URLs
             newlocal.setFlag(Contact::ToBeDownloaded, true) ;
-            // Re-upload to affix ID if it was not already available on Google
-            if (!googlecontact.isSet(Contact::Uploaded)) newlocal.setFlag(Contact::ToBeUploaded, true) ;
             db.addContact(newlocal) ;
         }
     }
@@ -438,7 +475,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
                 }
                 QElapsedTimer uploadtimer ;
                 uploadtimer.start() ;
-                bool uploaded = uploadContact(localcontact, google, googlecontact.getField(Contact::GoogleEtag)) ;
+                bool uploaded = uploadContact(localcontact, google, googlecontact) ;
                 uploadcount++ ;
                 uploadms += uploadtimer.elapsed() ;
                 dbg(QString("TIMING upload #%1 %2 ms ok=%3").arg(uploadcount).arg(uploadtimer.elapsed()).arg(uploaded)) ;
