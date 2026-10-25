@@ -5,6 +5,7 @@
 #include <QTextStream>
 #include "todo.h"
 #include "configuration.h"
+#include "safesave.h"
 #include "../Lib/supportfunctions.h"
 
 
@@ -49,7 +50,6 @@ bool Todo::createNew(QString idname)
     return true ;
 }
 
-// TODO: Make this save a "safe save", i.e. save, check, rename
 bool Todo::save(QString path)
 {
     Encryption *enc = gConf->encryption() ;
@@ -77,16 +77,14 @@ bool Todo::save(QString path)
 
         if (gConf->encryptedEnabled()) {
             // Save Encrypted
-            if (!enc->save(path + idName + ".ztodolist", data)) {
+            if (!safeSaveEncrypted(enc, path + idName + ".ztodolist", data)) {
                 return false ;
             }
         } else {
             // Save Plaintext
-            QFile file(path + idName + ".todolist");
-            if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-                return false;
-            file.write(data) ;
-            file.close() ;
+            if (!safeSavePlain(path + idName + ".todolist", data)) {
+                return false ;
+            }
         }
 
         dirty = false ;
