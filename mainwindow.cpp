@@ -547,10 +547,6 @@ void MainWindow::SaveTabs()
 
 void MainWindow::on_actionSave_triggered()
 {
-    // TODO: If the contact is a new one, at the moment, it has to be re-opened
-    // once saved.  There is something open does that this does not - something to
-    // do with enabling menus?
-
     msg("Saving Contact ...") ;
     SaveTabs() ;
     LoadOverviewTab() ;
