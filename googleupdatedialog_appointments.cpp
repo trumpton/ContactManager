@@ -13,7 +13,7 @@
 // declared where the download starts.
 #define PHASE_DONE(name) dbg(QString("TIMING phase done: %1 - %2 ms").arg(name).arg(phasetimer.restart()))
 
-bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess& google, class Calendar& cal)
+bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess& google, class ContactDatabase& db, class Calendar& cal)
 {
     Q_UNUSED(lastsync) ;
 
@@ -33,6 +33,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     phasetimer.start() ;
     networkok &= google.getCalendar(googlecal, APPOINTMENTSTARTWINDOW, APPOINTMENTENDWINDOW) ;
     PHASE_DONE("download appointments") ;
+    googlecal.dumpEntries("google", db) ;
     int googlesize = googlecal.size() ;
     for (int i=0; i<googlesize; i++) {
         Appointment &googleappt = googlecal.getAppointment(i) ;

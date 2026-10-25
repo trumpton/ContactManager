@@ -1,6 +1,7 @@
 #include "calendar.h"
 #include "appointment.h"
 #include "configuration.h"
+#include "contactdatabase.h"
 #include "../Lib/supportfunctions.h"
 
 #include <QDateTime>
@@ -115,6 +116,84 @@ bool Calendar::save()
     }
 
     return success ;
+}
+
+//=====================================================================================================
+//
+// Public: Calendar - dumpEntries
+//
+//  Writes the contents of every entry to the debug output, one line each, followed by a
+//  summary line.  Only written when debug=yes is set in the [google] section of the ini file.
+//  The lines hold personal details, so check them before sharing.
+//
+//  source - where the entries came from ("local" or "google"), shown on each line
+//  db     - used to show whether the linked contact is live, hidden, deleted or missing
+//
+
+void Calendar::dumpEntries(QString source, ContactDatabase &db)
+{
+    if (!gConf->debugGoogleEnabled()) return ;
+
+    // Keep line breaks out of the output, so each entry is one line
+    auto oneLine = [](QString s) { return s.replace("\r", " ").replace("\n", " / ") ; } ;
+
+    int total = appointments.size() ;
+    int internet=0, birthdays=0, nocontact=0, livecontact=0, hiddencontact=0, deletedcontact=0, missingcontact=0 ;
+
+    for (int i=0; i<total; i++) {
+        Appointment &appt = appointments[i] ;
+
+        QString contactid = appt.getField(Appointment::ContactId) ;
+        QString contactstate = "none" ;
+        if (contactid.isEmpty()) {
+            nocontact++ ;
+        } else {
+            Contact &c = db.getContactById(contactid) ;
+            if (c.isNull()) {
+                contactstate = "missing" ;
+                missingcontact++ ;
+            } else if (c.isSet(Contact::Deleted)) {
+                contactstate = "deleted" ;
+                deletedcontact++ ;
+            } else if (c.isSet(Contact::Hidden)) {
+                contactstate = "hidden" ;
+                hiddencontact++ ;
+            } else {
+                contactstate = "live" ;
+                livecontact++ ;
+            }
+        }
+
+        // Read-only entries (InternetOwned) come from a Google calendar that is not
+        // this user's, such as public holidays or subscribed calendars
+        bool isinternet = appt.isSet(Appointment::InternetOwned) ;
+        bool isbirthday = appt.getField(Appointment::Summary).contains("birthday", Qt::CaseInsensitive) ;
+        if (isinternet) internet++ ;
+        if (isbirthday) birthdays++ ;
+
+        dbg(QString("CALENDAR %1 | from %2 | to %3 | internet %4 | birthday %5 | deleted %6 | google status %7 | contact %8 | for %9 | summary %10 | location %11 | description %12 | id %13 | google id %14 | created %15 | updated %16")
+            .arg(source)
+            .arg(appt.getField(Appointment::From))
+            .arg(appt.getField(Appointment::To))
+            .arg(isinternet ? "yes" : "no")
+            .arg(isbirthday ? "yes" : "no")
+            .arg(appt.isSet(Appointment::Deleted) ? "yes" : "no")
+            .arg(appt.getField(Appointment::GoogleStatus))
+            .arg(contactstate)
+            .arg(appt.getField(Appointment::For))
+            .arg(oneLine(appt.getField(Appointment::Summary)))
+            .arg(oneLine(appt.getField(Appointment::Location)))
+            .arg(oneLine(appt.getField(Appointment::Description)))
+            .arg(appt.getField(Appointment::ID))
+            .arg(appt.getField(Appointment::GoogleRecordId))
+            .arg(appt.getField(Appointment::Created))
+            .arg(appt.getField(Appointment::Updated))) ;
+    }
+
+    dbg(QString("CALENDAR %1 SUMMARY: %2 entries, internet (read-only) %3, birthday in summary %4, "
+                "contact none %5, live %6, hidden %7, deleted %8, missing %9")
+        .arg(source).arg(total).arg(internet).arg(birthdays)
+        .arg(nocontact).arg(livecontact).arg(hiddencontact).arg(deletedcontact).arg(missingcontact)) ;
 }
 
 Appointment &Calendar::getAppointmentBy(enum Appointment::AppointmentRecord type, QString id)

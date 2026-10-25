@@ -60,7 +60,7 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
         ui->updateStatusReport->append(QString("\nSYNCHRONISING CALENDAR")) ;
         ui->updateStatusReport->append(QString("Last Calendar Synchronisation Date: ") + calendarsyncdatestr ) ;
 
-        calsuccess = processCalendarUpdate(calendarsyncdate, google, cal) ;
+        calsuccess = processCalendarUpdate(calendarsyncdate, google, db, cal) ;
         if (!calsuccess) {
             ui->updateStatusReport->append(QString("CALENDAR SYNCHRONISATION FAILED: ") + google.getNetworkError()) ;
         } else {

@@ -21,6 +21,8 @@ enum CalendarSearchType {
     calendarSearchNext = 4
 };
 
+class ContactDatabase ;
+
 class Calendar
 {
 private:
@@ -49,6 +51,7 @@ public:
 
     bool load() ;
     bool save() ;
+    void dumpEntries(QString source, class ContactDatabase &db) ;
     int find(QString text, bool futureonly=false) ;
 
     bool appointmentIsInFuture(int n) ;
