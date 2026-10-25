@@ -447,7 +447,11 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
                     localcontact.copyTo(googlecontact, Contact::mcDetails|Contact::mcId|Contact::mcGoogleId) ;
                     localcontact.setFlag(Contact::MergePending, false) ;
                 } else {
-                    ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false, false)  + QString(" - FAILED Updating Google Contact Details: ") + google.getNetworkError()) ;
+                    // The reason is the network error if there was one, otherwise the last log entry, which says
+                    // what did not match (for example, after Google returned the contact)
+                    QStringList recent = QString(getLog()).split("\n", Qt::SkipEmptyParts) ;
+                    QString reason = google.getNetworkError().isEmpty() ? (recent.isEmpty() ? QString() : recent.last().trimmed()) : google.getNetworkError() ;
+                    ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false, false)  + QString(" - FAILED Updating Google Contact Details: ") + reason) ;
                     networkok = false ;
                 }
 
