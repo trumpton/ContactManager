@@ -128,23 +128,25 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
         //     "value": "EMAILADDRESS",
         //     "type": "Email/Other",
         // }],
+        // Email and Other are fixed labels.  Email3 and Email4 use their own labels.
         QJsonArray a_emails ;
-
-        if (!contact.getField(Contact::Email).isEmpty()) {
-            QJsonObject o_email1 ;
-            o_email1.insert("type", "Email") ;
-            o_email1.insert("value", contact.getField(Contact::Email)) ;
-            QJsonObject metadata ;
-            metadata.insert("primary", true) ;
-            o_email1.insert("metadata", metadata) ;
-            a_emails.append(o_email1) ;
-        }
-
-        if (!contact.getField(Contact::Email2).isEmpty()) {
-            QJsonObject o_email2 ;
-            o_email2.insert("type", "Other") ;
-            o_email2.insert("value", contact.getField(Contact::Email2)) ;
-            a_emails.append(o_email2) ;
+        Contact::ContactRecord emailfields[4] = { Contact::Email, Contact::Email2, Contact::Email3, Contact::Email4 } ;
+        Contact::ContactRecord labelfields[2] = { Contact::Email3Title, Contact::Email4Title } ;
+        QString fixedlabels[2] = { "Email", "Other" } ;
+        for (int i=0; i<4; i++) {
+            QString address = contact.getField(emailfields[i]) ;
+            if (address.isEmpty()) continue ;
+            QJsonObject o_email ;
+            o_email.insert("value", address) ;
+            QString label = (i<2) ? fixedlabels[i] : contact.getField(labelfields[i-2]) ;
+            if (label.isEmpty()) label = "Other" ;
+            o_email.insert("type", label) ;
+            if (i==0) {
+                QJsonObject metadata ;
+                metadata.insert("primary", true) ;
+                o_email.insert("metadata", metadata) ;
+            }
+            a_emails.append(o_email) ;
         }
         if (a_emails.size()>0) {
             entry.insert("emailAddresses", a_emails) ;
