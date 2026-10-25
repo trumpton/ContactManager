@@ -319,10 +319,17 @@ bool GoogleAccess::parseContact(QJsonObject &item, Contact &contact)
         }
     }
 
-    // Email: up to four addresses, in the order Google gives them (the order they were uploaded
-    // in).  The first two are Email and Other.  The third and fourth take their label from their type.
-    int nextemail = 0 ;
+    // Email: four slots.  Email holds the home address and Email2 the other address, each taken from
+    // its Google type.  Email3 and Email4 hold anything else (work, mobile, custom labels, or a second
+    // home or other address), labelled with their type, and default to "Other" with no label.  A
+    // slot is never filled with an address of the wrong type, so a work address is not copied into
+    // Email.  Anything that does not fit is kept in Comments.
     QStringList extraemails ;
+    bool homefilled = false ;
+    bool otherfilled = false ;
+    int nexttitled = 0 ;
+    Contact::ContactRecord titledAddress[2] = { Contact::Email3, Contact::Email4 } ;
+    Contact::ContactRecord titledLabel[2] = { Contact::Email3Title, Contact::Email4Title } ;
     QJsonArray emailaddresses = item["emailAddresses"].toArray() ;
     foreach (const QJsonValue& emailitem, emailaddresses) {
 
@@ -335,21 +342,34 @@ bool GoogleAccess::parseContact(QJsonObject &item, Contact &contact)
             if (contact.getField(Contact::ProfileEMail).isEmpty())
                 contact.setField(Contact::ProfileEMail, address) ;
 
-        } else if (isMetadataFromContacts(emailitem) && !address.isEmpty() && nextemail<4) {
-
-            Contact::ContactRecord sAddress[4] = { Contact::Email, Contact::Email2, Contact::Email3, Contact::Email4 } ;
-            contact.setField(sAddress[nextemail], address) ;
-
-            if (nextemail>=2) {
-                QString label = emailaddress["type"].toString() ;
-                if (label.isEmpty() || label.compare("custom", Qt::CaseInsensitive)==0) label = emailaddress["formattedType"].toString() ;
-                if (label.isEmpty()) label = "Other" ;
-                label = label.left(1).toUpper() + label.mid(1) ;
-                contact.setField((nextemail==2) ? Contact::Email3Title : Contact::Email4Title, label) ;
-            }
-            nextemail++ ;
         } else if (isMetadataFromContacts(emailitem) && !address.isEmpty()) {
-            extraemails << address ;
+
+            // A custom label comes back as type "custom", with the label as its formatted type
+            QString type = emailaddress["type"].toString().trimmed() ;
+            if (type.isEmpty() || type.compare("custom", Qt::CaseInsensitive)==0) type = emailaddress["formattedType"].toString().trimmed() ;
+            QString lower = type.toLower() ;
+
+            // "Email" is the label this app used for the primary address before types were mapped
+            if ((lower=="home" || lower=="email") && !homefilled) {
+                contact.setField(Contact::Email, address) ;
+                homefilled = true ;
+                continue ;
+            }
+            if ((lower=="other" || lower.isEmpty()) && !otherfilled) {
+                contact.setField(Contact::Email2, address) ;
+                otherfilled = true ;
+                continue ;
+            }
+
+            if (nexttitled<2) {
+                QString label = type.isEmpty() ? QString("Other") : type ;
+                label = label.left(1).toUpper() + label.mid(1) ;
+                contact.setField(titledAddress[nexttitled], address) ;
+                contact.setField(titledLabel[nexttitled], label) ;
+                nexttitled++ ;
+            } else {
+                extraemails << address ;
+            }
         }
     }
 
