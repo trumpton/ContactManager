@@ -521,6 +521,39 @@ bool Contact::sortPhoneNumbers()
     return updated ;
 }
 
+bool Contact::compactEmails()
+{
+    // Google holds the email addresses in order, with no gaps, and returns them in that order.  An
+    // address after an empty slot is moved up into the gap, with its label.  Email3 and Email4 keep
+    // a label, which defaults to "Other" as it does on upload.  Returns true if anything moved.
+    const ContactRecord addressfields[4] = { Email, Email2, Email3, Email4 } ;
+    const ContactRecord labelfields[4] = { Email, Email, Email3Title, Email4Title } ;
+
+    QStringList addresses ;
+    QStringList labels ;
+    for (int i=0; i<4; i++) {
+        if (filedata[addressfields[i]].isEmpty()) continue ;
+        addresses << filedata[addressfields[i]] ;
+        labels << filedata[labelfields[i]] ;
+    }
+
+    bool updated=false ;
+    for (int i=0; i<4; i++) {
+        QString address = (i<addresses.size()) ? addresses[i] : QString() ;
+        QString label = (i<addresses.size()) ? labels[i] : QString() ;
+        if (i>=2 && !address.isEmpty() && label.isEmpty()) label = "Other" ;
+        if (filedata[addressfields[i]]!=address) {
+            filedata[addressfields[i]] = address ;
+            updated=true ;
+        }
+        if (i>=2 && filedata[labelfields[i]]!=label) {
+            filedata[labelfields[i]] = label ;
+            updated=true ;
+        }
+    }
+    return updated ;
+}
+
 void Contact::setField(enum Contact::ContactRecord field, QString data)
 {
     if (isnull) {

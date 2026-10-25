@@ -124,6 +124,9 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
             entry.insert("names", a_names) ;
         }
 
+        // Close any gap between the addresses first, so that the contact matches what Google returns
+        if (contact.compactEmails()) contact.markAsDirty() ;
+
         // "emailAddresses": [{
         //     "value": "EMAILADDRESS",
         //     "type": "Email/Other",
