@@ -65,6 +65,8 @@ SOURCES += main.cpp\
     about.cpp \
     calendar.cpp \
     appointment.cpp \
+    transfer.cpp \
+    transferfile.cpp \
     appointmentform.cpp \
     configuration.cpp \
     googleaccess.cpp \
@@ -126,6 +128,8 @@ HEADERS  += mainwindow.h \
     about.h \
     calendar.h \
     appointment.h \
+    transfer.h \
+    transferfile.h \
     appointmentform.h \
     configuration.h \
     googleaccess.h \
