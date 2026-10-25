@@ -45,11 +45,10 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
     int birthdays = cal.tidyBirthdays(false) ;
     ui->updateStatusReport->append(QString("Moved %1 stored birthday entries to the deleted folder.").arg(birthdays)) ;
 
-    Contact& selectedcontact = db.getSelected() ;
     int blanks = 0 ;
     for (int i=0; i<db.size(); i++) {
         Contact& localcontact = db.getContact(i) ;
-        if (&localcontact==&selectedcontact || localcontact.isSet(Contact::Hidden) || localcontact.isSet(Contact::Deleted)) continue ;
+        if (localcontact.isSet(Contact::Hidden) || localcontact.isSet(Contact::Deleted)) continue ;
         if (!localcontact.getField(Contact::GoogleRecordId).isEmpty() || !localcontact.isBlank()) continue ;
         localcontact.setFlag(Contact::Deleted, true) ;
         blanks++ ;
