@@ -97,6 +97,12 @@ bool Appointment::isTemp()
     return istemp ;
 }
 
+// Birthdays are shown from the contacts list, so a birthday entry is one whose summary says so
+bool Appointment::isBirthday()
+{
+    return getField(Appointment::Summary).contains("birthday", Qt::CaseInsensitive) ;
+}
+
 void Appointment::markAsSaved()
 {
     isdirty=false ;

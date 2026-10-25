@@ -1069,6 +1069,7 @@ p, li { white-space: pre-wrap; }
     <addaction name="menu_Export"/>
     <addaction name="action_Google_Sync"/>
     <addaction name="actionTidy_Deleted"/>
+    <addaction name="actionTidy_Birthdays"/>
     <addaction name="separator"/>
     <addaction name="actionExit"/>
     <addaction name="separator"/>
@@ -1278,6 +1279,11 @@ p, li { white-space: pre-wrap; }
   <action name="actionTidy_Deleted">
    <property name="text">
     <string>&amp;Tidy Deleted Contacts</string>
+   </property>
+  </action>
+  <action name="actionTidy_Birthdays">
+   <property name="text">
+    <string>Tidy &amp;Birthdays</string>
    </property>
   </action>
   <action name="action_Google_Sync">

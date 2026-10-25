@@ -623,6 +623,28 @@ void MainWindow::on_actionTidy_Deleted_triggered()
 
 
 
+void MainWindow::on_actionTidy_Birthdays_triggered()
+{
+    int count = calendar.tidyBirthdays(true) ;
+
+    if (count==0) {
+        warningOkDialog(this, "Tidy Birthdays", "There are no stored birthday entries to tidy.") ;
+        return ;
+    }
+
+    if (!warningYesNoDialog(this, "Tidy Birthdays",
+            QString("%1 stored birthday entries will be moved to the deleted folder.\n\n"
+                    "Birthdays are shown from your contacts, so nothing is lost.\n\nContinue?").arg(count))) {
+        return ;
+    }
+
+    int moved = calendar.tidyBirthdays(false) ;
+    calendar.save() ;
+    LoadTabs() ;
+
+    warningOkDialog(this, "Tidy Birthdays", QString("Moved %1 birthday entries to the deleted folder.").arg(moved)) ;
+}
+
 void MainWindow::on_actionExportContacts_triggered()
 {
     QFileDialog fd ;

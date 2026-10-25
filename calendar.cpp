@@ -476,6 +476,44 @@ void Calendar::purgeBirthdays()
     }
 }
 
+//=====================================================================================================
+//
+// Public: Calendar - tidyBirthdays
+//
+//  Moves the stored birthday entries to the deleted folder.  Birthdays are shown from the
+//  contacts list, so these stored copies are not needed.  This covers copies of Google's
+//  birthday entries, and the placeholders the sync made for them.  Nothing is deleted, so the
+//  files can be moved back from the deleted folder.
+//
+//  dryrun - when true, only counts the entries that would be moved
+//
+//  Returns the number of entries moved (or that would be moved)
+//
+
+int Calendar::tidyBirthdays(bool dryrun)
+{
+    int count=0 ;
+
+    // Work backwards, so that removing an entry does not shift the ones still to check
+    for (int i=appointments.size()-1; i>=0; i--) {
+        Appointment &appt = appointments[i] ;
+
+        bool placeholder = (appt.getField(Appointment::Summary).compare("--! Undefined !--")==0) ;
+
+        // Entries linked to a contact are kept, as they were entered by hand
+        if ((appt.isBirthday() || placeholder) && appt.getField(Appointment::ContactId).isEmpty()) {
+            count++ ;
+            if (!dryrun) {
+                QString filename = appt.getField(Appointment::ID) + ".appointment" ;
+                backupFile(gCalendarSavePath, filename) ;
+                appointments.removeAt(i) ;
+            }
+        }
+    }
+
+    return count ;
+}
+
 void Calendar::addBirthday(QString who, QString whoid, QString when)
 {
     QStringList de = when.split("-") ;
