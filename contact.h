@@ -34,6 +34,9 @@ public:
         GoogleEtag,
         Uploaded,
         ToBeUploaded, ToBeDownloaded,
+        MergePending,
+        Email3, Email4, Email3Title, Email4Title,
+        MergedInto,
         NumberOfRecords
     };
 
@@ -97,6 +100,12 @@ private:
         { Uploaded,         true, false, false, false, false, false, false, false, "wasuploaded"},       // True if record has been uploaded to Google
         { ToBeUploaded,     true, false, false, false, false, false, false, false, "tobeuploaded"},   // Flag to track if google upload required
         { ToBeDownloaded,   true, false, false, false, false, false, false, false, "tobedownloaded"}, // Flag to track if google download required
+        { MergePending,     true, false, false, false, false, false,  true, false, "mergepending"},  // Set when merged: details must reach Google, kept across restarts
+        { Email3,          false,  true,  true, false,  true, false,  true, false, "email3"},         // Third email address (labelled)
+        { Email4,          false,  true,  true, false,  true, false,  true, false, "email4"},         // Fourth email address (labelled)
+        { Email3Title,     false,  true,  true, false,  true, false,  true, false, "email3title"},    // Label of email3
+        { Email4Title,     false,  true,  true, false,  true, false,  true, false, "email4title"},    // Label of email4
+        { MergedInto,      false, false, false, false, false, false,  true, false, "mergedinto"},    // ID of the entry this one was merged into
     };
 
 private:
@@ -143,6 +152,7 @@ public:
     bool isNull() ;
 
     bool isEmpty() ;
+    bool isBlank() ;
     bool isDirty() ;
 
     // Set following new, until load or first save
@@ -183,6 +193,7 @@ public:
     QDateTime& getDate(enum ContactRecord field) ;
 
     bool sortPhoneNumbers() ;
+    bool compactEmails() ;
 
     QString& getGoogleRecordId() ;
     QString &getFormattedName(bool includeorganisation=true, bool surnamefirst=true) ;

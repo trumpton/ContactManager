@@ -32,7 +32,7 @@ bool History::isEmpty()
 int History::find(QString text, int startline)
 {
     Q_UNUSED(startline) ;
-    QRegularExpression re(".*?(" +text.toLower() +").*?") ;
+    QRegularExpression re(".*?(" + QRegularExpression::escape(text.toLower()) + ").*?") ;
     QRegularExpressionMatch rem ;
     QString overview = getOverview(historyAsText).toLower() ;
     rem = re.match(overview) ;
@@ -145,8 +145,9 @@ QString History::getOverview(enum HistoryOverviewType overviewtype)
         QString hist = getHistory() ;
         QStringList journallines = hist.replace("[\n]+", "\n").split("\n") ;
 
-        // TODO: check this match string for move from 5.15 to 6.24
-        QRegularExpression re("(\\d{1,2}[-\\s]+\\w{3,10}[-\\s]+\\d{2,4})[\\s-:]+(.*)$") ;
+        // The '-' is last in the character class: "[\\s-:]" is a range in
+        // QRegularExpression (PCRE) and makes the whole pattern invalid
+        QRegularExpression re("(\\d{1,2}[-\\s]+\\w{3,10}[-\\s]+\\d{2,4})[\\s:-]+(.*)$") ;
         QRegularExpressionMatch rem ;
 
         for (int i=0; i<journallines.size() && (overviewtype==historyAsHTML ||

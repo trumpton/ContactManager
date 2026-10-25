@@ -33,7 +33,7 @@ int Todo::find(QString text, int startline)
 {
     Q_UNUSED(startline) ;
     QString overview = getText().toLower() ;
-    QRegularExpression re(".*(" +text.toLower() +").*") ;
+    QRegularExpression re(".*(" + QRegularExpression::escape(text.toLower()) + ").*") ;
     QRegularExpressionMatch rem = re.match(overview) ;
     if (rem.hasMatch()) return 1;
     else  return -1 ;

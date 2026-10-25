@@ -8,6 +8,7 @@
 #include <QDebug>
 #include "history.h"
 #include "../Lib/supportfunctions.h"
+#include <algorithm>
 
 // Debug Trap
 //#define TRAPID "d8d7df66-36b2-44d2-91c2-6f6835bd5e78"
@@ -107,6 +108,34 @@ bool Contact::isNull()
 bool Contact::isEmpty()
 {
     return isempty && history.isEmpty() && todo.isEmpty() ;
+}
+
+// History lines written by the sync and the tidy steps, rather than by the user.  Lines
+// are "dd-MMM-yyyy: text."
+static bool isSystemHistoryLine(const QString &line)
+{
+    int sep = line.indexOf(": ") ;
+    QString text = (sep<0) ? line : line.mid(sep+2) ;
+    return text.startsWith("Uploaded") || text.startsWith("Downloaded") ||
+            text.startsWith("Deleted") || text.startsWith("Hidden") ||
+            text.startsWith("Moving entry") || text.startsWith("Marking empty") ||
+            text.startsWith("Merged") ;
+}
+
+// A blank contact has nothing entered: it is still called 'Unnamed Contact', with no
+// details, no to-do items, and no history written by the user
+bool Contact::isBlank()
+{
+    Contact blank ;
+    if (getFormattedName(false,false).compare("Unnamed Contact")!=0) return false ;
+    if (!matches(blank, Contact::mcDetails)) return false ;
+    if (!todo.isEmpty()) return false ;
+
+    QStringList lines = QString(history.getHistory()).split("\n", Qt::SkipEmptyParts) ;
+    foreach (const QString &line, lines) {
+        if (!isSystemHistoryLine(line)) return false ;
+    }
+    return true ;
 }
 
 bool Contact::isDirty()
@@ -316,7 +345,7 @@ int Contact::find(QString text)
     text = text.toLower() ;
     deAccent(text) ;
     text.replace(" ", "") ;
-    QRegularExpression re2(".*(" + text + ").*") ;
+    QRegularExpression re2(".*(" + QRegularExpression::escape(text) + ").*") ;
     QRegularExpressionMatch rem ;
 
     // Search in the overview
@@ -460,28 +489,66 @@ QString& Contact::getField(enum Contact::ContactRecord field)
 
 bool Contact::sortPhoneNumbers()
 {
-    bool updated=false;
-    if (!filedata[Phone2].isEmpty() || !filedata[Phone3].isEmpty() || !filedata[Phone4].isEmpty()) {
-        int len = Phone4Title - Phone2Title + 1 ;
-        for (int i=0;i<len; i++) {
-            for (int j=0; j<(len-i-1);j++) {
-                int j1t = j + Phone2Title ;
-                int j1 = j + Phone2 ;
-                int j2t = j + Phone2Title + 1 ;
-                int j2 = j + Phone2 + 1 ;
+    // Phone2..Phone4 are held as (title, number) pairs.  Pairs with a number
+    // come first, ordered by title+number; empty slots go last.
+    struct PhonePair {
+        QString title ;
+        QString number ;
+    } ;
 
-                QString s1 = filedata[j1t]+filedata[j1] ;
-                QString s2 = filedata[j2t]+filedata[j2] ;
-                if (!s2.isEmpty() && s1.compare(s2)>0) {
-                    QString t1t = filedata[j1t] ;
-                    QString t1 = filedata[j1] ;
-                    filedata[j1t] = filedata[j2t] ;
-                    filedata[j1] = filedata[j2] ;
-                    filedata[j2t] = t1t ;
-                    filedata[j2] = t1 ;
-                    updated=true ;
-                }
-            }
+    int len = Phone4Title - Phone2Title + 1 ;
+
+    QList<PhonePair> pairs ;
+    for (int i=0; i<len; i++) {
+        pairs.append(PhonePair{ filedata[Phone2Title+i], filedata[Phone2+i] }) ;
+    }
+
+    std::stable_sort(pairs.begin(), pairs.end(), [](const PhonePair &a, const PhonePair &b) {
+        bool aempty = a.number.isEmpty() ;
+        bool bempty = b.number.isEmpty() ;
+        if (aempty != bempty) return bempty ;
+        return (a.title + a.number).compare(b.title + b.number) < 0 ;
+    }) ;
+
+    bool updated=false ;
+    for (int i=0; i<len; i++) {
+        if (filedata[Phone2Title+i]!=pairs[i].title || filedata[Phone2+i]!=pairs[i].number) {
+            filedata[Phone2Title+i] = pairs[i].title ;
+            filedata[Phone2+i] = pairs[i].number ;
+            updated=true ;
+        }
+    }
+    return updated ;
+}
+
+bool Contact::compactEmails()
+{
+    // Google holds the email addresses in order, with no gaps, and returns them in that order.  An
+    // address after an empty slot is moved up into the gap, with its label.  Email3 and Email4 keep
+    // a label, which defaults to "Other" as it does on upload.  Returns true if anything moved.
+    const ContactRecord addressfields[4] = { Email, Email2, Email3, Email4 } ;
+    const ContactRecord labelfields[4] = { Email, Email, Email3Title, Email4Title } ;
+
+    QStringList addresses ;
+    QStringList labels ;
+    for (int i=0; i<4; i++) {
+        if (filedata[addressfields[i]].isEmpty()) continue ;
+        addresses << filedata[addressfields[i]] ;
+        labels << filedata[labelfields[i]] ;
+    }
+
+    bool updated=false ;
+    for (int i=0; i<4; i++) {
+        QString address = (i<addresses.size()) ? addresses[i] : QString() ;
+        QString label = (i<addresses.size()) ? labels[i] : QString() ;
+        if (i>=2 && !address.isEmpty() && label.isEmpty()) label = "Other" ;
+        if (filedata[addressfields[i]]!=address) {
+            filedata[addressfields[i]] = address ;
+            updated=true ;
+        }
+        if (i>=2 && filedata[labelfields[i]]!=label) {
+            filedata[labelfields[i]] = label ;
+            updated=true ;
         }
     }
     return updated ;
@@ -660,13 +727,24 @@ QString& Contact::getFormattedName(bool includeorganisation, bool surnamefirst)
     if (filedata[Names] == "" && filedata[Surname] == "" && filedata[Organisation] != "") {
         formattedNameResponse = filedata[Organisation] ;
     } else if (filedata[Names] == "" && filedata[Surname] == "") {
-        formattedNameResponse = filedata[Email] ;
-        if (formattedNameResponse.isEmpty()) formattedNameResponse = filedata[Email2] ;
-        if (formattedNameResponse.isEmpty()) formattedNameResponse = "Unnamed Contact" ;
+        // No name: show the first detail held, in this order, or "Unnamed Contact" if there is none
+        Contact::ContactRecord fallback[] = { Email, Email2, Email3, Email4,
+                                              Phone, Work, Mobile, Phone2, Phone3, Phone4,
+                                              Address, Address2, Webaddress } ;
+        formattedNameResponse = "Unnamed Contact" ;
+        for (unsigned int n=0; n<sizeof(fallback)/sizeof(fallback[0]); n++) {
+            QString detail = filedata[fallback[n]].trimmed() ;
+            if (!detail.isEmpty()) {
+                formattedNameResponse = detail.replace("\n", ", ") ;
+                break ;
+            }
+        }
     } else if (filedata[Surname] == "" && (filedata[Organisation] == "" || !includeorganisation)) {
         formattedNameResponse = filedata[Names] ;
     } else if (filedata[Surname] == "" && (filedata[Organisation] != "" && includeorganisation)) {
         formattedNameResponse = filedata[Names] + " (" + filedata[Organisation] + ")" ;
+    } else if (filedata[Names] == "") {
+        formattedNameResponse = filedata[Surname] ;
     } else {
         if (surnamefirst) formattedNameResponse = filedata[Surname] + ", " + filedata[Names] ;
         else formattedNameResponse = filedata[Names] + " " + filedata[Surname] ;
@@ -721,6 +799,8 @@ QString& Contact::getOverview(enum ContactOverviewType overviewtype)
     if (!getField(ProfilePhone).isEmpty()) response += titlestart + "Phone: " + titleend + getField(ProfilePhone) + lineend ;
     if (!getField(Email).isEmpty()) response += titlestart + " Primary Email:  " + titleend + getField(Email) + lineend ;
     if (!getField(Email2).isEmpty()) response += titlestart + "Second Email:  " + titleend + getField(Email2) + lineend ;
+    if (!getField(Email3).isEmpty()) response += titlestart + getField(Email3Title) + " Email:  " + titleend + getField(Email3) + lineend ;
+    if (!getField(Email4).isEmpty()) response += titlestart + getField(Email4Title) + " Email:  " + titleend + getField(Email4) + lineend ;
     if (!getField(ProfileEMail).isEmpty()) response += titlestart + " Profile Email:  " + titleend + getField(ProfileEMail) + lineend ;
     if (!getField(Webaddress).isEmpty()) response += titlestart + "Web Site:  " + titleend + getField(Webaddress) + lineend ;
     if (!getField(Organisation).isEmpty()) response += titlestart + "Organisation: " + titleend + getField(Organisation) + lineend ;
@@ -862,8 +942,15 @@ int Contact::operator==(const Contact &rhs) const
 
 int Contact::operator<(const Contact &rhs) const
 {
-    if (rhs.filedata[Contact::Hidden].compare("true")==0 ||
-            rhs.filedata[Contact::Deleted].compare("true")==0) return false;
+    // Must be a strict weak ordering for std::sort: hidden and deleted
+    // contacts sort after live ones, and within each group by sortstring.
+    bool lhsout = filedata[Contact::Hidden].compare("true")==0 ||
+                  filedata[Contact::Deleted].compare("true")==0 ;
+    bool rhsout = rhs.filedata[Contact::Hidden].compare("true")==0 ||
+                  rhs.filedata[Contact::Deleted].compare("true")==0 ;
+    if (lhsout != rhsout) {
+        return rhsout ? 1 : 0 ;
+    }
     return (sortstring.compare(rhs.sortstring)<0) ;
 }
 

@@ -19,6 +19,12 @@ public:
     ~GoogleUpdateDialog();
     int doUpdate(GoogleAccess &confgoogle, class ContactDatabase &confdb, class Calendar& cal) ;
 
+    // Progress for other long operations (such as merging duplicates): the bar, and a log of what was done
+    void showProgress(QString title) ;
+    void reportProgress(int percent, QString line) ;
+    bool isAborted() ;
+    void finishProgress(QString summary) ;
+
 
 private slots:
     void on_pushButton_clicked();
@@ -26,6 +32,9 @@ private slots:
 private:
     Ui::GoogleUpdateDialog *ui;
     int state ;
+
+    // Sets the progress bar, and lets the window process events so that it keeps responding
+    void setProgress(int value) ;
 
     // Sync the Contact Group (upload to google, "download" from google)
     bool updateSingleGoogleContactGroup(GoogleAccess &google, Contact::ContactRecord rec, ContactDatabase &db, ContactDatabase &googledb) ;
@@ -38,7 +47,7 @@ private:
     bool uploadContact(Contact& contact, GoogleAccess& google, QString etag = QString("")) ;
 
     // Update the calendar
-    bool processCalendarUpdate(QDateTime &lastsyncdate, GoogleAccess& google, class Calendar& cal) ;
+    bool processCalendarUpdate(QDateTime &lastsyncdate, GoogleAccess& google, class ContactDatabase& db, class Calendar& cal) ;
 
     // Support functions or the processCalendarUpdate
     bool calendarFetchChangedGoogleRecords(QProgressBar *bar, GoogleAccess& google, QDateTime &lastsync, Calendar& googlecalendar) ;
