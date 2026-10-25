@@ -319,10 +319,10 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
             ui->updateStatusReport->append(QString("    ") + googlecontact.getFormattedName(false,false)) ;
             Contact newlocal ;
             newlocal.setField(Contact::ID, googlecontact.getField(Contact::ID)) ;
-            // Download (save) Google details
+            // Download (save) Google details.  Not uploaded: a contact made on Google has no ID stored there,
+            // but its ID is derived from its resource name (see parseContact), so no upload is needed, and an
+            // upload would rewrite fields this app does not hold, such as URLs
             newlocal.setFlag(Contact::ToBeDownloaded, true) ;
-            // Re-upload to affix ID if it was not already available on Google
-            if (!googlecontact.isSet(Contact::Uploaded)) newlocal.setFlag(Contact::ToBeUploaded, true) ;
             db.addContact(newlocal) ;
         }
     }
