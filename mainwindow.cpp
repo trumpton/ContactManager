@@ -654,12 +654,10 @@ void MainWindow::on_actionMergeDuplicates_triggered()
                 } else {
                     message += "These details differ:\n    " + conflicts.join("\n    ") + "\n\n" ;
                 }
-                message += QString("Suggested: keep \"%1\".  Where a detail differs, the newer value is kept and the older one is noted in Comments.\n\n"
-                                   "Press Tab to reach Merge, or Tab again for Skip.  Enter skips.")
+                message += QString("Suggested: keep \"%1\".  Where a detail differs, the newer value is kept and the older one is noted in Comments.\n\nMerge them?")
                         .arg(keep.getFormattedName(false, true)) ;
 
-                MergeConfirmDialog dialog(this, "Merge Duplicate Contacts", message) ;
-                if (dialog.exec()!=QDialog::Accepted) {
+                if (!warningYesNoDialog(this, "Merge Duplicate Contacts", message, "Merge", QChar('y'), "Skip", QChar('n'))) {
                     declined++ ;
                     continue ;
                 }
