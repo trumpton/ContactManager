@@ -118,7 +118,8 @@ static bool isSystemHistoryLine(const QString &line)
     QString text = (sep<0) ? line : line.mid(sep+2) ;
     return text.startsWith("Uploaded") || text.startsWith("Downloaded") ||
             text.startsWith("Deleted") || text.startsWith("Hidden") ||
-            text.startsWith("Moving entry") || text.startsWith("Marking empty") ;
+            text.startsWith("Moving entry") || text.startsWith("Marking empty") ||
+            text.startsWith("Merged") ;
 }
 
 // A blank contact has nothing entered: it is still called 'Unnamed Contact', with no
