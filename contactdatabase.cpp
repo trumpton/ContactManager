@@ -256,14 +256,43 @@ static bool sharesIdentifier(Contact &a, Contact &b)
     return false ;
 }
 
-// Names must match: the first name must be given on both, and the surnames must be the same
-// (ignoring case, punctuation and accents).  A shared address or phone number does not make two
-// entries candidates, so a husband and wife at one address are never offered.
-static bool namesMatch(Contact &a, Contact &b)
+// The first name must be given on both, and must be the same (ignoring case, punctuation and accents)
+static bool firstNamesMatch(Contact &a, Contact &b)
 {
     QString firstname = nameKey(a.getField(Contact::Names)) ;
-    if (firstname.isEmpty() || firstname != nameKey(b.getField(Contact::Names))) return false ;
-    return nameKey(a.getField(Contact::Surname)) == nameKey(b.getField(Contact::Surname)) ;
+    return !firstname.isEmpty() && firstname == nameKey(b.getField(Contact::Names)) ;
+}
+
+// Names must match: the first name and the surname (ignoring case, punctuation and accents).  A shared
+// address or phone number does not make two entries candidates, so a husband and wife at one address
+// are never offered.
+static bool namesMatch(Contact &a, Contact &b)
+{
+    return firstNamesMatch(a, b) && nameKey(a.getField(Contact::Surname)) == nameKey(b.getField(Contact::Surname)) ;
+}
+
+// The day and month of a birthday, as "mm-dd", so that a birthday with or without a year matches.
+// Birthdays are stored as "yyyy-mm-dd" or "-mm-dd".
+static QString birthdayKey(Contact &c)
+{
+    QString birthday = c.getField(Contact::Birthday).trimmed() ;
+    return birthday.size()>=5 ? birthday.right(5) : QString() ;
+}
+
+static bool birthdaysMatch(Contact &a, Contact &b)
+{
+    QString birthday = birthdayKey(a) ;
+    return !birthday.isEmpty() && birthday == birthdayKey(b) ;
+}
+
+// True if the two contacts share a phone number or an email address (but not an address)
+static bool sharesPhoneOrEmail(Contact &a, Contact &b)
+{
+    QStringList pa = phoneKeys(a), pb = phoneKeys(b) ;
+    QStringList ea = emailKeys(a), eb = emailKeys(b) ;
+    for (const QString &k : pa) if (pb.contains(k)) return true ;
+    for (const QString &k : ea) if (eb.contains(k)) return true ;
+    return false ;
 }
 
 // Note a value that could not be kept in its field, so that the information is not lost
@@ -278,7 +307,11 @@ static void noteInComments(Contact &merged, const QString &label, const QString 
 // Two entries can be considered for merging when they have the same name, or share a phone number or email
 bool ContactDatabase::isMergeCandidate(Contact &a, Contact &b)
 {
-    return namesMatch(a, b) ;
+    if (namesMatch(a, b)) return true ;
+
+    // A change of surname, for example after marriage: the first name and birthday must match,
+    // and so must a phone number or email address.  The surname then shows as a difference.
+    return firstNamesMatch(a, b) && birthdaysMatch(a, b) && sharesPhoneOrEmail(a, b) ;
 }
 
 // Merged without asking only when the names match and the entries share a phone number or email, or
@@ -310,6 +343,15 @@ void ContactDatabase::planMerge(Contact &keep, Contact &remove, Contact &merged,
         Contact::ContactRecord f = singles[n] ;
         QString a = keep.getField(f) ;
         QString b = remove.getField(f) ;
+
+        // Birthdays on the same day and month match when one has no year (stored as "-mm-dd").
+        // The one with the year is kept.  Two different years are still a conflict.
+        if (f==Contact::Birthday && !a.trimmed().isEmpty() && !b.trimmed().isEmpty() &&
+                birthdaysMatch(keep, remove) && (a.trimmed().startsWith('-') || b.trimmed().startsWith('-'))) {
+            if (a.trimmed().startsWith('-')) merged.setField(f, b) ;
+            continue ;
+        }
+
         if (a.trimmed().isEmpty()) {
             merged.setField(f, b) ;
         } else if (!b.trimmed().isEmpty() && !sameValue(f, a, b)) {
