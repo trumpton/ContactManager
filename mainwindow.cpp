@@ -979,17 +979,19 @@ void MainWindow::on_actionOpen_triggered()
     QString thisid=db.getSelected().getField(Contact::ID) ;
 
     list.setTitle("Contact Manager Open", "Load Contact");
-    list.addEntry("-- Add Contact --", SELECT_ADDENTRY) ;
     for (int i=0, sz=db.size(); i<sz; i++) {
         Contact& c=db.getContact(i) ;
         if (!c.isSet(Contact::Deleted) && !c.isSet(Contact::Hidden)) {
             QString name = c.getFormattedName() ;
             QString data = c.getField(Contact::ID) ;
-            // A phone number starting with '+' would sort above the "--" entries, so it is listed as 00
+            // Listed as 00 rather than +, so that typing 0 jumps to it: the list has no key for +
             if (name.startsWith('+')) name.replace(0, 1, "00") ;
             list.addEntry(name, data) ;
         }
     }
+
+    // Added after the sorted contacts, at the top, so that it stays first
+    list.addEntry("-- Add Contact --", SELECT_ADDENTRY, 0) ;
 
     list.selectData(thisid) ;
     if (list.index()<=0) list.setIndex(1) ;
