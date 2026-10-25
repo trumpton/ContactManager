@@ -90,6 +90,12 @@ public:
     void planMerge(Contact &keep, Contact &remove, Contact &merged, QList<MergeConflict> &conflicts) ;
     void applyMerge(Contact &keep, Contact &remove, Contact &merged) ;
 
+    // An unnamed entry has no first name or surname.  tidyUnnamed deletes a blank one that is not on
+    // Google, and copies the email address into the surname of one whose only detail is that address.
+    // The others are listed in left, with what they hold.
+    bool isUnnamed(Contact &c) ;
+    void tidyUnnamed(int &emptied, int &renamed, QStringList &left) ;
+
     int getIndex(Contact& record) ;
     int getIndex(QString id) ;
 
