@@ -141,6 +141,7 @@ public:
     bool isEmpty() ;
     bool isDirty() ;
     bool isTemp() ;
+    bool isBirthday() ;
 
     bool load(QString path, QString idname) ;
     void createNew() ;

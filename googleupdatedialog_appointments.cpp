@@ -160,7 +160,9 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
         Appointment& googleappt = googlecal.getAppointment(i) ;
         Appointment& localappt = cal.getAppointmentBy(Appointment::ID, googleappt.getField(Appointment::ID)) ;
 
-        if (localappt.isNull() && !googleappt.isSet(Appointment::Deleted)) {
+        // Google birthdays are not stored: they are shown from the contacts list.  Storing
+        // them made a new copy on every sync, as their IDs are not kept by Google.
+        if (localappt.isNull() && !googleappt.isSet(Appointment::Deleted) && !googleappt.isBirthday()) {
             Appointment newlocal ;
             newlocal.setField(Appointment::ID, googleappt.getField(Appointment::ID)) ;
             newlocal.setField(Appointment::From, googleappt.getField(Appointment::From)) ;

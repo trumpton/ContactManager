@@ -80,6 +80,7 @@ public:
     Appointment& getSelected() ;
 
     void purgeBirthdays() ;
+    int tidyBirthdays(bool dryrun) ;
     void addBirthday(QString who, QString whoid, QString when) ;
 
 
