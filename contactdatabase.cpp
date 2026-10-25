@@ -279,8 +279,14 @@ static QString birthdayKey(Contact &c)
     return birthday.size()>=5 ? birthday.right(5) : QString() ;
 }
 
+// Birthdays match on the day and month, and on the year when both have one.  Two different years
+// are different birthdays.
 static bool birthdaysMatch(Contact &a, Contact &b)
 {
+    QString x = a.getField(Contact::Birthday).trimmed() ;
+    QString y = b.getField(Contact::Birthday).trimmed() ;
+    if (x.isEmpty() || y.isEmpty()) return false ;
+    if (x.size()==10 && y.size()==10 && x != y) return false ;
     QString birthday = birthdayKey(a) ;
     return !birthday.isEmpty() && birthday == birthdayKey(b) ;
 }
