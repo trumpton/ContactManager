@@ -22,7 +22,6 @@
 #include "../Lib/supportfunctions.h"
 #include "../Lib/encryption.h"
 #include "advancedfind.h"
-#include "mergeconfirmdialog.h"
 
 #include "logform.h"
 
