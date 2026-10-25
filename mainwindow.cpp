@@ -8,9 +8,13 @@
 
 #include <QProcess>
 #include <QMessageBox>
+#include <QCheckBox>
+#include <QPushButton>
 #include <QShortcut>
 
 #include "mainwindow.h"
+#include "transfer.h"
+#include "transferfile.h"
 #include "sendsmsform.h"
 #include "../Lib/itemselect.h"
 #include "../Lib/alertsound.h"
@@ -829,41 +833,129 @@ void MainWindow::on_actionTidyContacts_triggered()
     progress.finishProgress(summary.join("\n")) ;
 }
 
-void MainWindow::on_actionExportContacts_triggered()
+// Saves the records to a file chosen by the user, as XML or as CSV
+static void exportToFile(QWidget *parent, const QList<TransferRecord> &records, QString title)
 {
-    QFileDialog fd ;
-    QString dir=QDir::homePath() ;
-    play(Query) ;
-    QString fileName = fd.getSaveFileName(this, tr("Contacts List File"),
-                               dir,
-                               tr("Text Files (*.txt)"));
+    QString selected ;
+    QString fileName = QFileDialog::getSaveFileName(parent, title, QDir::homePath(),
+                                                    "XML Files (*.xml);;CSV Files (*.csv)", &selected) ;
+    if (fileName.isEmpty()) return ;
 
-    QFile file(fileName);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        // TODO: Report file open error
+    // The extension decides the format.  Without one, the filter chosen does.
+    bool asXml = selected.startsWith("XML") ;
+    if (fileName.endsWith(".xml", Qt::CaseInsensitive)) asXml = true ;
+    else if (fileName.endsWith(".csv", Qt::CaseInsensitive)) asXml = false ;
+    else fileName += asXml ? ".xml" : ".csv" ;
+
+    QString error = writeTransferFile(fileName, records, asXml) ;
+    if (!error.isEmpty()) {
+        warningOkDialog(parent, title, error, true) ;
         return ;
     }
+    warningOkDialog(parent, title, QString("%1 records were exported to %2.").arg(records.size()).arg(fileName)) ;
+}
 
-    // TODO: update working directory from fd.
-
-    QTextStream out(&file);
-    out << "Contacts Database\n\n" ;
-
-    msg("Exporting ....") ;
+void MainWindow::on_actionExportContacts_triggered()
+{
     db.sort() ;
-    for (int i=0; i<db.size(); i++) {
-        Contact& c = db.getContact(i) ;
-        if (!c.isSet(Contact::Deleted) && !c.isSet(Contact::Hidden)) {
-            out << c.getOverview(Contact::contactAsText) << "--------------------------------\n";
-        }
-    }
-    file.close() ;
-    msg("Exporting complete.") ;
+    exportToFile(this, contactTransferRecords(db), "Export Contacts") ;
 }
 
 void MainWindow::on_actionExportAppointments_triggered()
 {
+    calendar.sort() ;
+    exportToFile(this, appointmentTransferRecords(calendar), "Export Appointments") ;
+}
 
+// Asks whether an existing record is to be overwritten.  Returns true to overwrite.  'dontask' is set when
+// "Don't ask again" is ticked and a button is pressed.
+static bool askOverwrite(QWidget *parent, const QString &description, bool &dontask)
+{
+    QMessageBox box(parent) ;
+    box.setWindowTitle("Import") ;
+    box.setIcon(QMessageBox::Question) ;
+    box.setText(QString("%1 already exists.").arg(description)) ;
+    box.setInformativeText("Overwrite it with the imported details?") ;
+    QPushButton *overwrite = box.addButton("Overwrite", QMessageBox::AcceptRole) ;
+    QPushButton *skip = box.addButton("Skip", QMessageBox::RejectRole) ;
+    box.setDefaultButton(skip) ;
+    QCheckBox *again = new QCheckBox("Don't ask again for the rest of this import", &box) ;
+    box.setCheckBox(again) ;
+
+    box.exec() ;
+    dontask = again->isChecked() && box.clickedButton()!=nullptr ;
+    return box.clickedButton()==overwrite ;
+}
+
+void MainWindow::on_actionImport_triggered()
+{
+    QString fileName = QFileDialog::getOpenFileName(this, "Import", QDir::homePath(), "Export Files (*.xml *.csv)") ;
+    if (fileName.isEmpty()) return ;
+
+    QList<TransferRecord> records ;
+    QString error = readTransferFile(fileName, records) ;
+    if (!error.isEmpty()) {
+        warningOkDialog(this, "Import", error, true) ;
+        return ;
+    }
+    if (records.isEmpty()) {
+        warningOkDialog(this, "Import", "The file has no records to import.") ;
+        return ;
+    }
+
+    SaveTabs() ;
+    db.selectContact(SELECT_OVERVIEW) ;
+
+    int added=0, overwritten=0, skipped=0, unknown=0 ;
+
+    // Set by "Don't ask again": 0 asks about each existing record, 1 overwrites them all, -1 skips them all
+    int policy = 0 ;
+
+    for (const TransferRecord &rec : records) {
+        bool iscontact = (rec.kind==QLatin1String("contact")) ;
+        bool isappointment = (rec.kind==QLatin1String("appointment")) ;
+        if (!iscontact && !isappointment) {
+            unknown++ ;
+            continue ;
+        }
+
+        bool exists = iscontact ? contactExists(db, rec) : appointmentExists(calendar, rec) ;
+        if (exists) {
+            bool dooverwrite ;
+            if (policy!=0) {
+                dooverwrite = (policy==1) ;
+            } else {
+                bool dontask = false ;
+                dooverwrite = askOverwrite(this, transferDescription(rec), dontask) ;
+                if (dontask) policy = dooverwrite ? 1 : -1 ;
+            }
+
+            if (!dooverwrite) {
+                skipped++ ;
+                continue ;
+            }
+            if (iscontact) importContact(db, rec, true) ;
+            else importAppointment(calendar, rec, true) ;
+            overwritten++ ;
+            continue ;
+        }
+
+        if (iscontact) importContact(db, rec, false) ;
+        else importAppointment(calendar, rec, false) ;
+        added++ ;
+    }
+
+    db.save() ;
+    calendar.save() ;
+    populateDialog(SELECT_OVERVIEW) ;
+
+    QStringList summary ;
+    summary << QString("Added %1 records.").arg(added) ;
+    summary << QString("Overwritten %1 existing records.").arg(overwritten) ;
+    summary << QString("Skipped %1 existing records.").arg(skipped) ;
+    if (unknown>0) summary << QString("%1 records were not contacts or appointments, and were not imported.").arg(unknown) ;
+    summary << "Run Google Sync to send new and changed contacts to Google." ;
+    warningOkDialog(this, "Import", summary.join("\n")) ;
 }
 
 void MainWindow::on_actionShow_Log_triggered()

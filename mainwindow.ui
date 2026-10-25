@@ -1127,6 +1127,7 @@ p, li { white-space: pre-wrap; }
     <addaction name="actionSave"/>
     <addaction name="separator"/>
     <addaction name="menu_Export"/>
+    <addaction name="actionImport"/>
     <addaction name="action_Google_Sync"/>
     <addaction name="actionTidyContacts"/>
     <addaction name="separator"/>
@@ -1377,6 +1378,11 @@ p, li { white-space: pre-wrap; }
   <action name="actionExportAppointments">
    <property name="text">
     <string>&amp;Appointments</string>
+   </property>
+  </action>
+  <action name="actionImport">
+   <property name="text">
+    <string>&amp;Import...</string>
    </property>
   </action>
   <action name="actionShow_Log">
