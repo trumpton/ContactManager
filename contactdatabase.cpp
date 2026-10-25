@@ -156,10 +156,38 @@ int ContactDatabase::tidyDeleted(int &linked)
 //  Phone numbers and email addresses use the spare slots instead, so both are kept.
 //
 
-// Compare two strings, ignoring case and spaces at the ends
+// Text for comparing values: lower case, without accents, and without the spaces at the ends
+static QString comparable(const QString &text)
+{
+    QString result = text.trimmed().toLower() ;
+    deAccent(result) ;
+    return result ;
+}
+
+// Compare two values, ignoring case, accents and spaces at the ends
 static bool sameText(const QString &a, const QString &b)
 {
-    return a.trimmed().compare(b.trimmed(), Qt::CaseInsensitive)==0 ;
+    return comparable(a) == comparable(b) ;
+}
+
+// A name for matching: letters and digits only, lower case, without accents.  So "O'Brien" and
+// "Obrien", or "José" and "Jose", give the same name.
+static QString nameKey(const QString &name)
+{
+    QString lower = name.toLower() ;
+    deAccent(lower) ;
+    QString key ;
+    for (int i=0; i<lower.size(); i++) {
+        if (lower.at(i).isLetterOrNumber()) key += lower.at(i) ;
+    }
+    return key ;
+}
+
+// Compare two values, using the name rule for names and the ordinary rule for everything else
+static bool sameValue(Contact::ContactRecord field, const QString &a, const QString &b)
+{
+    if (field==Contact::Names || field==Contact::Surname) return nameKey(a) == nameKey(b) ;
+    return sameText(a, b) ;
 }
 
 // The last nine digits of a phone number, so that the +44 and 0 forms of one number match
@@ -228,9 +256,14 @@ static bool sharesIdentifier(Contact &a, Contact &b)
     return false ;
 }
 
-static QString fullName(Contact &c)
+// Names must match: the first name must be given on both, and the surnames must be the same
+// (ignoring case, punctuation and accents).  A shared address or phone number does not make two
+// entries candidates, so a husband and wife at one address are never offered.
+static bool namesMatch(Contact &a, Contact &b)
 {
-    return (c.getField(Contact::Names).trimmed() + " " + c.getField(Contact::Surname).trimmed()).trimmed() ;
+    QString firstname = nameKey(a.getField(Contact::Names)) ;
+    if (firstname.isEmpty() || firstname != nameKey(b.getField(Contact::Names))) return false ;
+    return nameKey(a.getField(Contact::Surname)) == nameKey(b.getField(Contact::Surname)) ;
 }
 
 // Note a value that could not be kept in its field, so that the information is not lost
@@ -245,17 +278,14 @@ static void noteInComments(Contact &merged, const QString &label, const QString 
 // Two entries can be considered for merging when they have the same name, or share a phone number or email
 bool ContactDatabase::isMergeCandidate(Contact &a, Contact &b)
 {
-    QString namea = fullName(a) ;
-    bool samename = !namea.isEmpty() && sameText(namea, fullName(b)) ;
-    return samename || sharesIdentifier(a, b) ;
+    return namesMatch(a, b) ;
 }
 
 // Merged without asking only when the names match and the entries share a phone number or email, or
 // when neither has either (so they are the same entry, with nothing to tell them apart)
 bool ContactDatabase::isSafeToAutoMerge(Contact &a, Contact &b)
 {
-    QString namea = fullName(a) ;
-    if (namea.isEmpty() || !sameText(namea, fullName(b))) return false ;
+    if (!namesMatch(a, b)) return false ;
     return sharesIdentifier(a, b) || (!hasIdentifier(a) && !hasIdentifier(b)) ;
 }
 
@@ -282,7 +312,7 @@ void ContactDatabase::planMerge(Contact &keep, Contact &remove, Contact &merged,
         QString b = remove.getField(f) ;
         if (a.trimmed().isEmpty()) {
             merged.setField(f, b) ;
-        } else if (!b.trimmed().isEmpty() && !sameText(a, b)) {
+        } else if (!b.trimmed().isEmpty() && !sameValue(f, a, b)) {
             QString label = QString(keep.contactRecordName(f)) ;
             conflicts << QString("%1: '%2' or '%3'").arg(label, a.trimmed(), b.trimmed()) ;
             merged.setField(f, removenewer ? b : a) ;
