@@ -84,6 +84,7 @@ private slots:
     void on_actionFind_triggered();
     void on_actionFindNext_triggered();
     void on_action_Google_Sync_triggered();
+    void on_actionTidyContacts_triggered();
     void on_actionPayment_triggered();
     void on_actionIncome_triggered() ;
     void on_actionTransactionReport_triggered() ;
@@ -91,6 +92,7 @@ private slots:
     void on_listCalendar_activated(const QModelIndex &index);
     void on_actionExportContacts_triggered();
     void on_actionExportAppointments_triggered();
+    void on_actionImport_triggered();
     void on_actionShow_Log_triggered();
     void on_tabBar_currentChanged(int index);
     void on_action_Email_Contact_triggered();
@@ -166,6 +168,7 @@ private:
     // Transfer data to/from dialog
     void LoadTabs() ;               // Loads / Populates all Tabs
     void SaveTabs() ;               // Saves all Tabs
+    void logLoadSummary() ;         // Logs counts of what was loaded, for diagnosis
 
     void appendHistory(Contact& contact, QString msg) ;
 

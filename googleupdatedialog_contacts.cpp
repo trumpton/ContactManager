@@ -8,6 +8,11 @@
 #include "ui_googleupdatedialog.h"
 #include "configuration.h"
 #include "../Lib/supportfunctions.h"
+#include <QElapsedTimer>
+
+// TIMING: prints how long each sync phase took.  Uses phasetimer, which is
+// declared where the download starts.
+#define PHASE_DONE(name) dbg(QString("TIMING phase done: %1 - %2 ms").arg(name).arg(phasetimer.restart()))
 
 //
 // Process Contact Update
@@ -56,7 +61,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     //
     // 1. Fetch IDs
     //
-    ui->progressBar->setValue(500) ;
+    setProgress(500) ;
     ui->updateStatusReport->append(QString("  Fetching Group IDs:")) ;
     if (!google.getGroupIds()) {
         ui->updateStatusReport->append(QString("    Creating Missing Groups.")) ;
@@ -70,9 +75,40 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     //
     // 2. Download Google Contact List (all)
     //
-    ui->progressBar->setValue(550) ;
+    setProgress(550) ;
+    QElapsedTimer phasetimer ;
+    phasetimer.start() ;
     networkok &= google.getContacts(googledb) ;
+    PHASE_DONE("download contacts") ;
     ui->updateStatusReport->append(QString("  Downloaded ") + QString::number(googledb.size()) + QString(" Contacts from Google.")) ;
+
+    // ------------------------------------------------------------------------------------
+    //
+    // 2b. Blank contacts that are on Google.  If this side has priority (local master, or
+    //     updated last), Google's copy is removed too.  Otherwise Google's details are
+    //     downloaded in the steps below, so nothing is lost.
+    //
+    int blankremoved=0 ;
+    for (int i=0; i<db.size(); i++) {
+        Contact& localcontact = db.getContact(i) ;
+        if (localcontact.isSet(Contact::Deleted)) continue ;
+        if (localcontact.getField(Contact::GoogleRecordId).isEmpty() || !localcontact.isBlank()) continue ;
+
+        Contact& googlecontact = googledb.getContactById(localcontact.getField(Contact::ID)) ;
+
+        // Copy the dates first: getDate() returns a shared object
+        QDateTime localupdated = localcontact.getDate(Contact::Updated) ;
+        QDateTime googleupdated = googlecontact.getDate(Contact::Updated) ;
+        bool localpriority = !gConf->googleMaster() || (localupdated > googleupdated) ;
+
+        if (googlecontact.isNull() || googlecontact.isBlank() || localpriority) {
+            localcontact.setFlag(Contact::Deleted, true) ;
+            blankremoved++ ;
+        }
+    }
+    if (blankremoved>0) {
+        ui->updateStatusReport->append(QString("  Removing %1 empty contact(s) from Google.").arg(blankremoved)) ;
+    }
 
     if (state<0) return false ;
 
@@ -80,7 +116,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     //
     // 3. Set the default upload / download
     //
-    ui->progressBar->setValue(600) ;
+    setProgress(600) ;
     bool googlemaster = gConf->googleMaster() ;
 
     for (int i=0; i<db.size(); i++) {
@@ -97,6 +133,20 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
             upload=true ;
         }
 
+        // A merged entry must reach Google, or the next download would put back its old details
+        if (localcontact.isSet(Contact::MergePending)) upload=true ;
+
+        // A deletion made locally must reach Google, whichever side is the master
+        if (localcontact.isSet(Contact::Deleted) && !localcontact.getField(Contact::GoogleRecordId).isEmpty()) {
+            upload=true ;
+
+            // A merged-away entry is removed from Google only once the entry it was merged into has reached
+            // Google, so that the merged details are never lost
+            QString keptid = localcontact.getField(Contact::MergedInto) ;
+            Contact &kept = db.getContactById(keptid) ;
+            if (!keptid.isEmpty() && !kept.isNull() && kept.isSet(Contact::MergePending)) upload=false ;
+        }
+
         localcontact.setFlag(Contact::ToBeDownloaded, !upload) ;
         localcontact.setFlag(Contact::ToBeUploaded, upload) ;
     }
@@ -107,11 +157,11 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     //
     // 4. Fix broken ID links
     //
-    ui->progressBar->setValue(610) ;
+    setProgress(610) ;
     ui->updateStatusReport->append(QString("  Repairing Broken Local Google Record IDs:")) ;
     int size5=googledb.size() ;
     for (int i=0; i<size5; i++) {
-        ui->progressBar->setValue(610 + ( i * 10)/size5 ) ;
+        setProgress(610 + ( i * 10)/size5 ) ;
         Contact& googlecontact = googledb.getContact(i) ;
         Contact& localcontact = db.getContactById(googlecontact.getField(Contact::ID)) ;
         if (!localcontact.isNull() && !googlecontact.isSet(Contact::Deleted) &&
@@ -127,12 +177,12 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     //
     // 5. Handle merges
     //
-    ui->progressBar->setValue(620) ;
+    setProgress(620) ;
     ui->updateStatusReport->append(QString("  Processing Merged Contacts:")) ;
     int size7 = googledb.size() ;
     for (int i=0; i<size7; i++) {
 
-        ui->progressBar->setValue(620 + ( i * 10)/size7 ) ;
+        setProgress(620 + ( i * 10)/size7 ) ;
 
         Contact& googlecontact = googledb.getContact(i) ;
         Contact& localcontact = db.getContactById(googlecontact.getField(Contact::ID)) ;
@@ -165,7 +215,11 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
             if (!localcontact.isEmpty()) {
                 // Ensure contact has correct google ID
                 localcontact.setField(Contact::GoogleRecordId, googlecontact.getField(Contact::GoogleRecordId)) ;
-                if (uploadContact(localcontact, google, googlecontact.getField(Contact::GoogleEtag))) {
+                QElapsedTimer uploadtimer ;
+                uploadtimer.start() ;
+                bool uploaded = uploadContact(localcontact, google, googlecontact.getField(Contact::GoogleEtag)) ;
+                dbg(QString("TIMING upload (new local) %1 ms ok=%2").arg(uploadtimer.elapsed()).arg(uploaded)) ;
+                if (uploaded) {
                     ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false,false)) ;
                 } else {
                     ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false,false) + QString(" FAILED")) ;
@@ -182,13 +236,24 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     //
     // 6. Add Fake entry in Google list for missing  contacts, and identify new local records
     //
-    ui->progressBar->setValue(630) ;
+    setProgress(630) ;
+    PHASE_DONE("before identifying local contacts") ;
     ui->updateStatusReport->append(QString("  Identifying local contacts missing on Google:")) ;
     int size3 = db.size() ;
+
+    // TIMING: where the time in this loop goes
+    qint64 lookupns=0, addns=0 ;
+    QElapsedTimer looptimer ;
+    looptimer.start() ;
+
     for (int i=0; i<size3; i++) {
-        ui->progressBar->setValue(630 + ( i * 10)/size3 ) ;
+        setProgress(630 + ( i * 10)/size3 ) ;
         Contact& localcontact = db.getContact(i) ;
+
+        QElapsedTimer lookuptimer ;
+        lookuptimer.start() ;
         Contact& googlecontact = googledb.getContactById(localcontact.getField(Contact::ID)) ;
+        lookupns += lookuptimer.nsecsElapsed() ;
 
         if (googlecontact.isNull()) {
 
@@ -196,7 +261,11 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
             Contact deletedcontact ;
             deletedcontact.setField(Contact::ID, localcontact.getField(Contact::ID)) ;
             deletedcontact.setFlag(Contact::Deleted, true) ;
+
+            QElapsedTimer addtimer ;
+            addtimer.start() ;
             googledb.addContact(deletedcontact) ;
+            addns += addtimer.nsecsElapsed() ;
 
             if (localcontact.isSet(Contact::Hidden) || localcontact.isSet(Contact::Deleted)) {
 
@@ -235,11 +304,15 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     //
     // 7. Add Fake entry in Local list for missing contacts, and identify new google records
     //
-    ui->progressBar->setValue(640) ;
+    setProgress(640) ;
+    dbg(QString("TIMING identify local contacts: %1 entries, loop %2 ms, Google ID lookups %3 ms, adding fake Google entries %4 ms (other work %5 ms)")
+        .arg(size3).arg(looptimer.elapsed()).arg(lookupns/1000000).arg(addns/1000000)
+        .arg(looptimer.elapsed() - lookupns/1000000 - addns/1000000)) ;
+    PHASE_DONE("identifying local contacts") ;
     ui->updateStatusReport->append(QString("  Identifying Google contacts missing locally:")) ;
     int size4 = googledb.size() ;
     for (int i=0; i<size4; i++) {
-        ui->progressBar->setValue(640 + ( i * 10)/size4 ) ;
+        setProgress(640 + ( i * 10)/size4 ) ;
         Contact& googlecontact = googledb.getContact(i) ;
         Contact& localcontact = db.getContactById(googlecontact.getField(Contact::ID)) ;
         if (localcontact.isNull() && !googlecontact.isSet(Contact::Deleted)) {
@@ -260,13 +333,14 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     //
     // 8. Update profile
     //
-    ui->progressBar->setValue(650) ;
+    setProgress(650) ;
+    PHASE_DONE("identifying google contacts") ;
     ui->updateStatusReport->append(QString("  Storing Google Profile Changes:")) ;
     int size8 = db.size() ;
     for (int i=0; i<size8; i++) {
-        ui->progressBar->setValue(650 + ( i * 10)/size8 ) ;
+        setProgress(650 + ( i * 10)/size8 ) ;
         Contact& localcontact = db.getContact(i) ;
-        Contact& googlecontact = googledb.getContactBy(Contact::ID, localcontact.getField(Contact::ID)) ;
+        Contact& googlecontact = googledb.getContactById(localcontact.getField(Contact::ID)) ;
         if ( !googlecontact.isEmpty() && !googlecontact.matches(localcontact, Contact::mcProfile)) {
             ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false, false)) ;
             googlecontact.copyTo(localcontact, Contact::mcProfile) ;
@@ -279,25 +353,51 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     //
     // 9. Synchronise changes (download first)
     //
-    ui->progressBar->setValue(660) ;
+    setProgress(660) ;
+    PHASE_DONE("storing profile changes") ;
     ui->updateStatusReport->append(QString("  Synchronising Changes:")) ;
     int size9 = db.size() ;
+    QElapsedTimer synctimer ;
+    synctimer.start() ;
+    int uploadcount=0 ;
+    qint64 uploadms=0 ;
     for (int i=0; i<size9; i++) {
 
-        ui->progressBar->setValue(660 + ( i * 240)/size9 ) ;
+        if (i % 50 == 0) {
+            dbg(QString("TIMING sync contacts: %1/%2 items, %3 ms, %4 uploads so far (%5 ms uploading), log %6 chars")
+                .arg(i).arg(size9).arg(synctimer.elapsed()).arg(uploadcount).arg(uploadms).arg(getLog().size())) ;
+        }
+
+        setProgress(660 + ( i * 240)/size9 ) ;
         if (state<0) return false ;
 
         Contact& localcontact = db.getContact(i) ;
-        Contact& googlecontact = googledb.getContactBy(Contact::ID, localcontact.getField(Contact::ID)) ;
+        Contact& googlecontact = googledb.getContactById(localcontact.getField(Contact::ID)) ;
 
         bool deletedlocaldeletedgoogle =
                 (googlecontact.isNull() || googlecontact.isSet(Contact::Deleted)) &&
                 (localcontact.isSet(Contact::Hidden) || localcontact.isSet(Contact::Deleted)) ;
-        bool googlematcheslocal = googlecontact.matches(localcontact, Contact::mcDetails|Contact::mcId) ;
+        // The Deleted flag is not part of the comparison, so a local deletion that
+        // Google still has as a live record must not be treated as a match
+        bool localdeleted = localcontact.isSet(Contact::Deleted) ;
+        bool googleremoved = googlecontact.isNull() || googlecontact.isSet(Contact::Deleted) ;
+        bool googlematcheslocal = !(localdeleted && !googleremoved) &&
+                googlecontact.matches(localcontact, Contact::mcDetails|Contact::mcId) ;
+
+        // A merged entry that already matches Google needs no upload
+        if (googlematcheslocal && localcontact.isSet(Contact::MergePending)) {
+            localcontact.setFlag(Contact::MergePending, false) ;
+        }
 
         if ( deletedlocaldeletedgoogle ) {
 
-            // Deleted everywhere, so nothing is required
+            // Deleted everywhere, so nothing is required.  Google has no live record,
+            // so the link is forgotten; the entry is then archived the next time it loads.
+            // Only done when the download succeeded, otherwise "missing" means "unknown".
+            if (networkok && !localcontact.getField(Contact::GoogleRecordId).isEmpty()) {
+                localcontact.setField(Contact::GoogleRecordId, QString("")) ;
+                localcontact.setField(Contact::GoogleEtag, QString("")) ;
+            }
             localcontact.setFlag(Contact::ToBeUploaded, false) ;
             localcontact.setFlag(Contact::ToBeDownloaded, false) ;
 
@@ -336,16 +436,27 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
                     changes = QString("Uploaded: ") + localcontact.mismatch(googlecontact, Contact::mcDetails|Contact::mcId) + QString(". ");
                     summary = QString("uploaded") ;
                 }
-                if (uploadContact(localcontact, google, googlecontact.getField(Contact::GoogleEtag))) {
+                QElapsedTimer uploadtimer ;
+                uploadtimer.start() ;
+                bool uploaded = uploadContact(localcontact, google, googlecontact.getField(Contact::GoogleEtag)) ;
+                uploadcount++ ;
+                uploadms += uploadtimer.elapsed() ;
+                dbg(QString("TIMING upload #%1 %2 ms ok=%3").arg(uploadcount).arg(uploadtimer.elapsed()).arg(uploaded)) ;
+                if (uploaded) {
                     ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false, false)  + QString(" - Updating Google Contact Details (%1)").arg(summary)) ;
                     localcontact.copyTo(googlecontact, Contact::mcDetails|Contact::mcId|Contact::mcGoogleId) ;
+                    localcontact.setFlag(Contact::MergePending, false) ;
                 } else {
-                    ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false, false)  + QString(" - FAILED Updating Google Contact Details")) ;
+                    // The reason is the network error if there was one, otherwise the last log entry, which says
+                    // what did not match (for example, after Google returned the contact)
+                    QStringList recent = QString(getLog()).split("\n", Qt::SkipEmptyParts) ;
+                    QString reason = google.getNetworkError().isEmpty() ? (recent.isEmpty() ? QString() : recent.last().trimmed()) : google.getNetworkError() ;
+                    ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false, false)  + QString(" - FAILED Updating Google Contact Details: ") + reason) ;
                     networkok = false ;
                 }
 
                 // If the record has been successfully removed from Google, forget the local details
-                if (networkok && (localcontact.isSet(Contact::Deleted) || localcontact.isSet(Contact::Hidden))) {
+                if (uploaded && (localcontact.isSet(Contact::Deleted) || localcontact.isSet(Contact::Hidden))) {
                     localcontact.setField(Contact::GoogleRecordId, QString("")) ;
                     localcontact.setField(Contact::GoogleEtag, QString("")) ;
                     localcontact.setFlag(Contact::ToBeUploaded, false) ;
@@ -363,28 +474,28 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     if (state<0) return false ;
 
     // 10. Synchronise Groups
-    ui->progressBar->setValue(900) ;
+    setProgress(900) ;
 
     if (networkok) {
         // Upload record groups
         if (networkok) { networkok = updateSingleGoogleContactGroup(google, Contact::GroupBusiness, db, googledb) ; }
-        ui->progressBar->setValue(918) ;
+        setProgress(918) ;
         if (state<0) return false ;
 
         if (networkok) { networkok = updateSingleGoogleContactGroup(google, Contact::GroupClient, db, googledb) ; }
-        ui->progressBar->setValue(936) ;
+        setProgress(936) ;
         if (state<0) return false ;
 
         if (networkok) { networkok = updateSingleGoogleContactGroup(google, Contact::GroupFamily, db, googledb) ; }
-        ui->progressBar->setValue(954) ;
+        setProgress(954) ;
         if (state<0) return false ;
 
         if (networkok) { networkok = updateSingleGoogleContactGroup(google, Contact::GroupFriend, db, googledb) ; }
-        ui->progressBar->setValue(972) ;
+        setProgress(972) ;
         if (state<0) return false ;
 
         if (networkok) { networkok = updateSingleGoogleContactGroup(google, Contact::GroupOther, db, googledb) ; }
-        ui->progressBar->setValue(990) ;
+        setProgress(990) ;
         if (state<0) return false ;
 
     }
@@ -393,29 +504,32 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     if (networkok) {
         // Download record groups
         updateSingleLocalContactGroup(google, Contact::GroupBusiness, db, googledb) ;
-        ui->progressBar->setValue(992) ;
+        setProgress(992) ;
         if (state<0) return false ;
 
         updateSingleLocalContactGroup(google, Contact::GroupClient, db, googledb) ;
-        ui->progressBar->setValue(994) ;
+        setProgress(994) ;
         if (state<0) return false ;
 
         updateSingleLocalContactGroup(google, Contact::GroupFamily, db, googledb) ;
-        ui->progressBar->setValue(996) ;
+        setProgress(996) ;
         if (state<0) return false ;
 
         updateSingleLocalContactGroup(google, Contact::GroupFriend, db, googledb) ;
-        ui->progressBar->setValue(998) ;
+        setProgress(998) ;
         if (state<0) return false ;
 
         updateSingleLocalContactGroup(google, Contact::GroupOther, db, googledb) ;
-        ui->progressBar->setValue(1000) ;
+        setProgress(1000) ;
         if (state<0) return false ;
 
     }
 
 
-    ui->progressBar->setValue(1000) ;
+    PHASE_DONE("synchronising changes") ;
+    dbg(QString("TIMING sync contacts done: %1 uploads, %2 ms uploading, %3 ms in sync loop")
+        .arg(uploadcount).arg(uploadms).arg(synctimer.elapsed())) ;
+    setProgress(1000) ;
     if (networkok) {
         ui->updateStatusReport->append(QString("  Contact Synchronisation: OK")) ;
     } else {

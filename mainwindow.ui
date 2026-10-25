@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>1138</width>
-    <height>531</height>
+    <height>640</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -445,6 +445,66 @@ p, li { white-space: pre-wrap; }
                 <widget class="SafeLineEdit" name="editEmail2">
                  <property name="accessibleName">
                   <string>Email 2</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_email3">
+               <item>
+                <widget class="SafeLineEdit" name="editEmail3Title">
+                 <property name="minimumSize">
+                  <size>
+                   <width>100</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>100</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="accessibleName">
+                  <string>Label for email 3</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="SafeLineEdit" name="editEmail3">
+                 <property name="accessibleName">
+                  <string>Email 3</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_email4">
+               <item>
+                <widget class="SafeLineEdit" name="editEmail4Title">
+                 <property name="minimumSize">
+                  <size>
+                   <width>100</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>100</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="accessibleName">
+                  <string>Label for email 4</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="SafeLineEdit" name="editEmail4">
+                 <property name="accessibleName">
+                  <string>Email 4</string>
                  </property>
                 </widget>
                </item>
@@ -1067,7 +1127,9 @@ p, li { white-space: pre-wrap; }
     <addaction name="actionSave"/>
     <addaction name="separator"/>
     <addaction name="menu_Export"/>
+    <addaction name="actionImport"/>
     <addaction name="action_Google_Sync"/>
+    <addaction name="actionTidyContacts"/>
     <addaction name="separator"/>
     <addaction name="actionExit"/>
     <addaction name="separator"/>
@@ -1274,6 +1336,11 @@ p, li { white-space: pre-wrap; }
     <string>F3</string>
    </property>
   </action>
+  <action name="actionTidyContacts">
+   <property name="text">
+    <string>&amp;Tidy Contacts</string>
+   </property>
+  </action>
   <action name="action_Google_Sync">
    <property name="text">
     <string>&amp;Google Sync</string>
@@ -1311,6 +1378,11 @@ p, li { white-space: pre-wrap; }
   <action name="actionExportAppointments">
    <property name="text">
     <string>&amp;Appointments</string>
+   </property>
+  </action>
+  <action name="actionImport">
+   <property name="text">
+    <string>&amp;Import...</string>
    </property>
   </action>
   <action name="actionShow_Log">
@@ -1543,6 +1615,10 @@ p, li { white-space: pre-wrap; }
   <tabstop>checkHidden</tabstop>
   <tabstop>editEmail</tabstop>
   <tabstop>editEmail2</tabstop>
+  <tabstop>editEmail3Title</tabstop>
+  <tabstop>editEmail3</tabstop>
+  <tabstop>editEmail4Title</tabstop>
+  <tabstop>editEmail4</tabstop>
   <tabstop>editWebAddress</tabstop>
   <tabstop>editAddress</tabstop>
   <tabstop>editAddress2</tabstop>

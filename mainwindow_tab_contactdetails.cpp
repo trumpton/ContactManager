@@ -138,6 +138,10 @@ void MainWindow::LoadContactTab()
     ui->editFirstName->setText(dr.getField(Contact::Names)) ;
     ui->editEmail->setText(dr.getField(Contact::Email)) ;
     ui->editEmail2->setText(dr.getField(Contact::Email2)) ;
+    ui->editEmail3->setText(dr.getField(Contact::Email3)) ;
+    ui->editEmail3Title->setText(dr.getField(Contact::Email3Title).isEmpty() ? QString("Other") : dr.getField(Contact::Email3Title)) ;
+    ui->editEmail4->setText(dr.getField(Contact::Email4)) ;
+    ui->editEmail4Title->setText(dr.getField(Contact::Email4Title).isEmpty() ? QString("Other") : dr.getField(Contact::Email4Title)) ;
     ui->editWebAddress->setText(dr.getField(Contact::Webaddress)) ;
     ui->editBusiness->setText(dr.getField(Contact::Organisation)) ;
     ui->editHome->setText(dr.getField(Contact::Phone)) ;
@@ -235,6 +239,10 @@ bool MainWindow::SaveContactTab()
     newdr.setField(Contact::Mobile, ui->editMobile->text()) ;
     newdr.setField(Contact::Email, ui->editEmail->text()) ;
     newdr.setField(Contact::Email2, ui->editEmail2->text()) ;
+    newdr.setField(Contact::Email3, ui->editEmail3->text()) ;
+    newdr.setField(Contact::Email3Title, ui->editEmail3->text().isEmpty() ? QString("") : ui->editEmail3Title->text()) ;
+    newdr.setField(Contact::Email4, ui->editEmail4->text()) ;
+    newdr.setField(Contact::Email4Title, ui->editEmail4->text().isEmpty() ? QString("") : ui->editEmail4Title->text()) ;
     newdr.setField(Contact::Webaddress, ui->editWebAddress->text()) ;
     newdr.setField(Contact::Birthday, dateTimeToXsDate(ui->editDateOfBirth->getDateTime()));
     newdr.setField(Contact::Comments, ui->editComment->toPlainText() );

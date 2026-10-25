@@ -1,4 +1,5 @@
 #include "googleupdatedialog.h"
+#include <QCoreApplication>
 #include "ui_googleupdatedialog.h"
 #include "configuration.h"
 #include "../Lib/supportfunctions.h"
@@ -27,7 +28,7 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
     state = 1 ; // Processing
 
     ui->progressBar->setRange(0, 1000);
-    ui->progressBar->setValue(0) ;
+    setProgress(0) ;
 
     setModal(true) ;
 
@@ -37,6 +38,23 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
     show() ;
 
     ui->pushButton->setFocus() ;
+
+    // Start of the sync.  Birthdays come from the contacts list, so the stored copies are
+    // moved to the deleted folder.  A blank contact never uploaded has nothing on Google, so
+    // it is marked deleted now and moved at the end.  Blank contacts already on Google are
+    // handled in the contact sync, once Google's copy has been downloaded.
+    int birthdays = cal.tidyBirthdays(false) ;
+    ui->updateStatusReport->append(QString("Moved %1 stored birthday entries to the deleted folder.").arg(birthdays)) ;
+
+    int blanks = 0 ;
+    for (int i=0; i<db.size(); i++) {
+        Contact& localcontact = db.getContact(i) ;
+        if (localcontact.isSet(Contact::Deleted)) continue ;
+        if (!localcontact.getField(Contact::GoogleRecordId).isEmpty() || !localcontact.isBlank()) continue ;
+        localcontact.setFlag(Contact::Deleted, true) ;
+        blanks++ ;
+    }
+    ui->updateStatusReport->append(QString("Marked %1 empty contact(s) for removal.").arg(blanks)) ;
 
     // Set the OAUTH2 Refresh Token
     QString refreshtoken = gConf->getGoogleOauth2RefreshToken() ;
@@ -60,7 +78,7 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
         ui->updateStatusReport->append(QString("\nSYNCHRONISING CALENDAR")) ;
         ui->updateStatusReport->append(QString("Last Calendar Synchronisation Date: ") + calendarsyncdatestr ) ;
 
-        calsuccess = processCalendarUpdate(calendarsyncdate, google, cal) ;
+        calsuccess = processCalendarUpdate(calendarsyncdate, google, db, cal) ;
         if (!calsuccess) {
             ui->updateStatusReport->append(QString("CALENDAR SYNCHRONISATION FAILED: ") + google.getNetworkError()) ;
         } else {
@@ -83,7 +101,7 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
 
     }
 
-    ui->progressBar->setValue(500) ;
+    setProgress(500) ;
 
     bool consuccess = true ;
 
@@ -114,7 +132,18 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
     }
 
     ui->updateStatusReport->append(QString("")) ;
-    ui->progressBar->setValue(1000) ;
+    // Last step: move deleted contacts with no Google link to the deleted folder.  A deleted
+    // contact still linked to Google has not yet been confirmed as removed there, so it stays.
+    if (state>=0) {
+        int linked=0 ;
+        int archived = db.tidyDeleted(linked) ;
+        ui->updateStatusReport->append(QString("Moved %1 deleted contact(s) to the deleted folder.").arg(archived)) ;
+        if (linked>0) {
+            ui->updateStatusReport->append(QString("%1 deleted contact(s) still have a Google link; run Google Sync again.").arg(linked)) ;
+        }
+    }
+
+    setProgress(1000) ;
     play(Query) ;
 
     if (state<0) {
@@ -160,4 +189,52 @@ void GoogleUpdateDialog::on_pushButton_clicked()
         accept() ;
         break ;
     }
+}
+
+//=====================================================================================================
+//
+// Progress: the bar and the log, shared by the sync and by other long operations
+//
+
+void GoogleUpdateDialog::setProgress(int value)
+{
+    ui->progressBar->setValue(value) ;
+    QCoreApplication::processEvents() ;
+}
+
+void GoogleUpdateDialog::showProgress(QString title)
+{
+    state = 1 ;
+    setWindowTitle(title) ;
+    ui->progressBar->setRange(0, 100) ;
+    ui->progressBar->setValue(0) ;
+    setModal(true) ;
+    ui->pushButton->setAccessibleName("Abort") ;
+    ui->pushButton->setText("Abort") ;
+    show() ;
+    ui->pushButton->setFocus() ;
+}
+
+void GoogleUpdateDialog::reportProgress(int percent, QString line)
+{
+    ui->progressBar->setValue(percent) ;
+    if (!line.isEmpty()) ui->updateStatusReport->append(line) ;
+    QCoreApplication::processEvents() ;
+}
+
+bool GoogleUpdateDialog::isAborted()
+{
+    return state<0 ;
+}
+
+// Writes the summary to the log, and waits for Close
+void GoogleUpdateDialog::finishProgress(QString summary)
+{
+    ui->updateStatusReport->append(summary) ;
+    ui->progressBar->setValue(100) ;
+    state = 2 ;
+    ui->pushButton->setAccessibleName("Close") ;
+    ui->pushButton->setText("Close") ;
+    ui->pushButton->setFocus() ;
+    exec() ;
 }

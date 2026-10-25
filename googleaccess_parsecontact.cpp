@@ -319,43 +319,39 @@ bool GoogleAccess::parseContact(QJsonObject &item, Contact &contact)
         }
     }
 
-    // Email
-    // Email2
-    QString email1, email2, email3 ;
+    // Email: up to four addresses, in the order Google gives them (the order they were uploaded
+    // in).  The first two are Email and Other.  The third and fourth take their label from their type.
+    int nextemail = 0 ;
+    QStringList extraemails ;
     QJsonArray emailaddresses = item["emailAddresses"].toArray() ;
     foreach (const QJsonValue& emailitem, emailaddresses) {
 
-        if (emailitem.isObject()) {
+        if (!emailitem.isObject()) continue ;
 
-            QJsonObject emailaddress = emailitem.toObject() ;
-            QString type = emailaddress["type"].toString().toLower() ;
-            QString address = emailaddress["value"].toString() ;
+        QJsonObject emailaddress = emailitem.toObject() ;
+        QString address = emailaddress["value"].toString().trimmed() ;
 
-            if (isMetadataFromProfile(emailitem)) {
-                if (contact.getField(Contact::ProfileEMail).isEmpty())
-                    contact.setField(Contact::ProfileEMail, address) ;
+        if (isMetadataFromProfile(emailitem)) {
+            if (contact.getField(Contact::ProfileEMail).isEmpty())
+                contact.setField(Contact::ProfileEMail, address) ;
 
-            } else if (isMetadataFromContacts(emailitem)) {
-                if (type.compare("email")==0 || type.compare("primary")==0 || type.compare("work")==0 || type.compare("home")==0) {
-                    if (email1.isEmpty()) {
-                        email1 = address ;
-                    } else {
-                        email3 = address ;
-                    }
-                } else if (email2.isEmpty()) email2 = address ;
-                else email3 = address ;
+        } else if (isMetadataFromContacts(emailitem) && !address.isEmpty() && nextemail<4) {
+
+            Contact::ContactRecord sAddress[4] = { Contact::Email, Contact::Email2, Contact::Email3, Contact::Email4 } ;
+            contact.setField(sAddress[nextemail], address) ;
+
+            if (nextemail>=2) {
+                QString label = emailaddress["type"].toString() ;
+                if (label.isEmpty() || label.compare("custom", Qt::CaseInsensitive)==0) label = emailaddress["formattedType"].toString() ;
+                if (label.isEmpty()) label = "Other" ;
+                label = label.left(1).toUpper() + label.mid(1) ;
+                contact.setField((nextemail==2) ? Contact::Email3Title : Contact::Email4Title, label) ;
             }
+            nextemail++ ;
+        } else if (isMetadataFromContacts(emailitem) && !address.isEmpty()) {
+            extraemails << address ;
         }
     }
-
-    // Just in case there are two addresses, and the first isn't email/primary/work/home
-    // Or there are two addresses, both of type email/primary/work/home
-    if (email1.isEmpty()) email1 = email3 ;
-    if (email2.isEmpty()) email2 = email3 ;
-
-    // And Store
-    if (!email1.isEmpty()) contact.setField(Contact::Email,email1) ;
-    if (!email2.isEmpty()) contact.setField(Contact::Email2,email2) ;
 
 
     // SIP Addresses
@@ -381,6 +377,13 @@ bool GoogleAccess::parseContact(QJsonObject &item, Contact &contact)
         if (isMetadataFromContacts(notes[0])) {
             contact.setField(Contact::Comments, notes[0].toObject()["value"].toString()) ;
         }
+    }
+
+    // Only four email addresses are held.  Any others are kept in Comments, so that nothing is lost.
+    foreach (const QString &extra, extraemails) {
+        QString note = QString("Also on Google: %1").arg(extra) ;
+        QString comments = contact.getField(Contact::Comments) ;
+        if (!comments.contains(note)) contact.setField(Contact::Comments, comments.isEmpty() ? note : comments + "\n" + note) ;
     }
 
 

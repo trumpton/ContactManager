@@ -1,11 +1,13 @@
 #include "calendar.h"
 #include "appointment.h"
 #include "configuration.h"
+#include "contactdatabase.h"
 #include "../Lib/supportfunctions.h"
 
 #include <QDateTime>
 #include <QList>
 #include <QFile>
+#include <QElapsedTimer>
 #include <QTextStream>
 #include <QtCore>
 #include <QDir>
@@ -35,6 +37,9 @@ void Calendar::clear()
 
 bool Calendar::load()
 {
+    QElapsedTimer loadtimer ;
+    loadtimer.start() ;
+
     Encryption *enc = gConf->encryption() ;
     if (!enc) return false;
 
@@ -81,6 +86,7 @@ bool Calendar::load()
     }
 
     sort() ;
+    dbg(QString("TIMING load calendar: %1 entries, %2 ms").arg(appointments.size()).arg(loadtimer.elapsed())) ;
     return true ;
 }
 
@@ -112,11 +118,92 @@ bool Calendar::save()
     return success ;
 }
 
+//=====================================================================================================
+//
+// Public: Calendar - dumpEntries
+//
+//  Writes the contents of every entry to the debug output, one line each, followed by a
+//  summary line.  Only written when debug=yes is set in the [google] section of the ini file.
+//  The lines hold personal details, so check them before sharing.
+//
+//  source - where the entries came from ("local" or "google"), shown on each line
+//  db     - used to show whether the linked contact is live, hidden, deleted or missing
+//
+
+void Calendar::dumpEntries(QString source, ContactDatabase &db)
+{
+    if (!gConf->debugGoogleEnabled()) return ;
+
+    // Keep line breaks out of the output, so each entry is one line
+    auto oneLine = [](QString s) { return s.replace("\r", " ").replace("\n", " / ") ; } ;
+
+    int total = appointments.size() ;
+    int internet=0, birthdays=0, nocontact=0, livecontact=0, hiddencontact=0, deletedcontact=0, missingcontact=0 ;
+
+    for (int i=0; i<total; i++) {
+        Appointment &appt = appointments[i] ;
+
+        QString contactid = appt.getField(Appointment::ContactId) ;
+        QString contactstate = "none" ;
+        if (contactid.isEmpty()) {
+            nocontact++ ;
+        } else {
+            Contact &c = db.getContactById(contactid) ;
+            if (c.isNull()) {
+                contactstate = "missing" ;
+                missingcontact++ ;
+            } else if (c.isSet(Contact::Deleted)) {
+                contactstate = "deleted" ;
+                deletedcontact++ ;
+            } else if (c.isSet(Contact::Hidden)) {
+                contactstate = "hidden" ;
+                hiddencontact++ ;
+            } else {
+                contactstate = "live" ;
+                livecontact++ ;
+            }
+        }
+
+        // Read-only entries (InternetOwned) come from a Google calendar that is not
+        // this user's, such as public holidays or subscribed calendars
+        bool isinternet = appt.isSet(Appointment::InternetOwned) ;
+        bool isbirthday = appt.getField(Appointment::Summary).contains("birthday", Qt::CaseInsensitive) ;
+        if (isinternet) internet++ ;
+        if (isbirthday) birthdays++ ;
+
+        dbg(QString("CALENDAR %1 | from %2 | to %3 | internet %4 | birthday %5 | deleted %6 | google status %7 | contact %8 | for %9 | summary %10 | location %11 | description %12 | id %13 | google id %14 | created %15 | updated %16")
+            .arg(source)
+            .arg(appt.getField(Appointment::From))
+            .arg(appt.getField(Appointment::To))
+            .arg(isinternet ? "yes" : "no")
+            .arg(isbirthday ? "yes" : "no")
+            .arg(appt.isSet(Appointment::Deleted) ? "yes" : "no")
+            .arg(appt.getField(Appointment::GoogleStatus))
+            .arg(contactstate)
+            .arg(appt.getField(Appointment::For))
+            .arg(oneLine(appt.getField(Appointment::Summary)))
+            .arg(oneLine(appt.getField(Appointment::Location)))
+            .arg(oneLine(appt.getField(Appointment::Description)))
+            .arg(appt.getField(Appointment::ID))
+            .arg(appt.getField(Appointment::GoogleRecordId))
+            .arg(appt.getField(Appointment::Created))
+            .arg(appt.getField(Appointment::Updated))) ;
+    }
+
+    dbg(QString("CALENDAR %1 SUMMARY: %2 entries, internet (read-only) %3, birthday in summary %4, "
+                "contact none %5, live %6, hidden %7, deleted %8, missing %9")
+        .arg(source).arg(total).arg(internet).arg(birthdays)
+        .arg(nocontact).arg(livecontact).arg(hiddencontact).arg(deletedcontact).arg(missingcontact)) ;
+}
+
 Appointment &Calendar::getAppointmentBy(enum Appointment::AppointmentRecord type, QString id)
 {
-    for (int i=0, sz=size(); i<sz; i++) {
-        if (getAppointment(i).getField(type).compare(id)==0) {
-            return getAppointment(i) ;
+    // Read the list directly.  Going through getAppointment(int) builds a
+    // temporary Appointment on every call, which made this search very slow
+    // on large calendars (and addAppointment() calls it for every download).
+    for (int i=0, sz=appointments.size(); i<sz; i++) {
+        if (appointments[i].getField(type).compare(id)==0) {
+            return appointments[i] ;
         }
     }
     return getNull() ;
@@ -177,7 +264,7 @@ bool Calendar::appointmentIsInRange(int n, qint64 beforedays, qint64 afterdays)
 // Search for string, and return -1 on failure
 int Calendar::find(QString text, bool futureonly)
 {
-    QRegularExpression re(".*(" +text.toLower() +").*") ;
+    QRegularExpression re(".*(" + QRegularExpression::escape(text.toLower()) + ").*") ;
     QRegularExpressionMatch rem ;
     QString overview = getOverview(calendarAsText, "", futureonly).toLower() ;
     rem = re.match(overview) ;
@@ -192,21 +279,21 @@ Appointment &Calendar::getAppointment(enum CalendarSearchType method, int starti
     Appointment *nearestappointment = &getNull() ;
     Appointment *lastappointment = &getNull() ;
     Appointment *nextappointment = &getNull() ;
-    Appointment testappointment ;
-
     if (startindex < 0 || startindex >= appointments.size()) {
       return getNull() ;
     }
 
-    QDateTime now = QDateTime::currentDateTimeUtc() ;
-    QDateTime ago = now.addSecs(-900) ;
-
-    testappointment.setDate(Appointment::From, ago) ;
-    testappointment.setDate(Appointment::To, now) ;
-
     if (method == calendarSearchExact) {
         startappointment = (Appointment *)&appointments.at(startindex) ;
     } else {
+
+        // The test window is only needed by the searches, so it is built here
+        Appointment testappointment ;
+        QDateTime now = QDateTime::currentDateTimeUtc() ;
+        QDateTime ago = now.addSecs(-900) ;
+
+        testappointment.setDate(Appointment::From, ago) ;
+        testappointment.setDate(Appointment::To, now) ;
 
         int n = appointments.size() ;
 
@@ -387,6 +474,66 @@ void Calendar::purgeBirthdays()
             ++it;
         }
     }
+}
+
+//=====================================================================================================
+//
+// Public: Calendar - tidyBirthdays
+//
+//  Moves the stored birthday entries to the deleted folder.  Birthdays are shown from the
+//  contacts list, so these stored copies are not needed.  This covers copies of Google's
+//  birthday entries, and the placeholders the sync made for them.  Nothing is deleted, so the
+//  files can be moved back from the deleted folder.
+//
+//  dryrun - when true, only counts the entries that would be moved
+//
+//  Returns the number of entries moved (or that would be moved)
+//
+
+int Calendar::tidyBirthdays(bool dryrun)
+{
+    int count=0 ;
+
+    // Work backwards, so that removing an entry does not shift the ones still to check
+    for (int i=appointments.size()-1; i>=0; i--) {
+        Appointment &appt = appointments[i] ;
+
+        bool placeholder = (appt.getField(Appointment::Summary).compare("--! Undefined !--")==0) ;
+
+        // Entries linked to a contact are kept, as they were entered by hand
+        if ((appt.isBirthday() || placeholder) && appt.getField(Appointment::ContactId).isEmpty()) {
+            count++ ;
+            if (!dryrun) {
+                QString filename = appt.getField(Appointment::ID) + ".appointment" ;
+                backupFile(gCalendarSavePath, filename) ;
+                appointments.removeAt(i) ;
+            }
+        }
+    }
+
+    return count ;
+}
+
+//=====================================================================================================
+//
+// Public: Calendar - repointContact
+//
+//  Moves the appointments for one contact to another, when two contacts are merged.
+//  Returns the number of appointments moved.
+//
+
+int Calendar::repointContact(QString fromid, QString toid)
+{
+    int count=0 ;
+    for (int i=0; i<appointments.size(); i++) {
+        Appointment &appt = appointments[i] ;
+        if (appt.getField(Appointment::ContactId).compare(fromid)==0) {
+            appt.setField(Appointment::ContactId, toid) ;
+            appt.markAsDirty() ;
+            count++ ;
+        }
+    }
+    return count ;
 }
 
 void Calendar::addBirthday(QString who, QString whoid, QString when)

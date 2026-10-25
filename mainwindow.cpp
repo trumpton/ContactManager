@@ -11,6 +11,8 @@
 #include <QShortcut>
 
 #include "mainwindow.h"
+#include "transfer.h"
+#include "transferfile.h"
 #include "sendsmsform.h"
 #include "../Lib/itemselect.h"
 #include "../Lib/alertsound.h"
@@ -78,6 +80,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     dbg("Loading database and calendar") ;
     db.load() ;
     calendar.load() ;
+    logLoadSummary() ;
+    calendar.dumpEntries("local", db) ;
 
     ui->editDateOfBirth->setFormat("", "dd/MMM/yyyy", true) ;
     //populateDialog(SELECT_OVERVIEW) ;
@@ -155,6 +159,83 @@ void MainWindow::on_initial_focus()
 void MainWindow::abort()
 {
     QApplication::exit() ;
+}
+
+
+// Counts what was loaded, by category, so that large numbers can be traced to
+// their cause.  Only counts are logged (no names).  Written as "LOAD SUMMARY" lines.
+void MainWindow::logLoadSummary()
+{
+    // Contacts
+    int empty=0, deleted=0, deletedlinked=0, hiddenonly=0, hiddenlinked=0, live=0, livelinked=0 ;
+    QHash<QString,int> googleids ;
+
+    for (int i=0; i<db.size(); i++) {
+        Contact &c = db.getContact(i) ;
+        bool isdeleted = c.isSet(Contact::Deleted) ;
+        bool ishidden = c.isSet(Contact::Hidden) ;
+        bool linked = !c.getField(Contact::GoogleRecordId).isEmpty() ;
+
+        if (c.isEmpty()) empty++ ;
+        if (linked) googleids[c.getField(Contact::GoogleRecordId)]++ ;
+
+        if (isdeleted) {
+            deleted++ ;
+            if (linked) deletedlinked++ ;
+        } else if (ishidden) {
+            hiddenonly++ ;
+            if (linked) hiddenlinked++ ;
+        } else {
+            live++ ;
+            if (linked) livelinked++ ;
+        }
+    }
+
+    int sharedlinks=0 ;
+    for (auto it=googleids.constBegin(); it!=googleids.constEnd(); ++it) {
+        if (it.value()>1) sharedlinks += it.value()-1 ;
+    }
+
+    dbg(QString("LOAD SUMMARY contacts: total %1, empty %2, deleted %3 (linked to Google %4), hidden only %5 (linked %6), live %7 (linked %8), extra entries sharing a Google link %9")
+        .arg(db.size()).arg(empty).arg(deleted).arg(deletedlinked).arg(hiddenonly).arg(hiddenlinked)
+        .arg(live).arg(livelinked).arg(sharedlinks)) ;
+
+    // Calendar
+    QDateTime now = QDateTime::currentDateTimeUtc() ;
+    QDateTime windowstart = now.addDays(-APPOINTMENTSTARTWINDOW) ;
+    QDateTime windowend = now.addDays(APPOINTMENTENDWINDOW) ;
+
+    int cdeleted=0, ccancelled=0, clinked=0, cinwindow=0, cbefore=0, cafter=0 ;
+    int cbirthday=0, cinternet=0, ccontact=0, ccontactdeleted=0, ccontactmissing=0 ;
+
+    for (int i=0; i<calendar.size(); i++) {
+        Appointment &a = calendar.getAppointment(i) ;
+        QDateTime when = a.getDate(Appointment::From) ;
+
+        if (a.isSet(Appointment::Deleted)) cdeleted++ ;
+        if (a.getField(Appointment::GoogleStatus).compare("cancelled")==0) ccancelled++ ;
+        if (!a.getField(Appointment::GoogleRecordId).isEmpty()) clinked++ ;
+        if (when < windowstart) cbefore++ ;
+        else if (when > windowend) cafter++ ;
+        else cinwindow++ ;
+        if (a.getField(Appointment::Summary).contains("birthday", Qt::CaseInsensitive)) cbirthday++ ;
+        if (a.isSet(Appointment::InternetOwned)) cinternet++ ;
+
+        QString contactid = a.getField(Appointment::ContactId) ;
+        if (!contactid.isEmpty()) {
+            ccontact++ ;
+            Contact &c = db.getContactById(contactid) ;
+            if (c.isNull()) ccontactmissing++ ;
+            else if (c.isSet(Contact::Deleted)) ccontactdeleted++ ;
+        }
+    }
+
+    dbg(QString("LOAD SUMMARY calendar: total %1, deleted %2, cancelled on Google %3, linked to Google %4, "
+                "in sync window %5, before window %6, after window %7, summary mentions birthday %8, "
+                "read-only (internet) %9, linked to a contact %10 (contact deleted %11, contact missing %12)")
+        .arg(calendar.size()).arg(cdeleted).arg(ccancelled).arg(clinked)
+        .arg(cinwindow).arg(cbefore).arg(cafter).arg(cbirthday)
+        .arg(cinternet).arg(ccontact).arg(ccontactdeleted).arg(ccontactmissing)) ;
 }
 
 
@@ -510,52 +591,371 @@ void MainWindow::on_action_Google_Sync_triggered()
     // Save tabs before sync
     SaveTabs() ;
 
+    // A blank contact on screen is removed by the sync, so stop showing it first
+    if (!db.getSelected().isNull() && db.getSelected().isBlank()) {
+        db.selectContact(SELECT_OVERVIEW) ;
+    }
+
     frm = new GoogleUpdateDialog(this) ;
     play(Ok) ;
     frm->doUpdate(google, db, calendar) ;
     delete frm ;
 
-    // And re-load
-    LoadTabs() ;
+    // Save now, so links cleared by the sync are kept if the app is stopped
+    db.save() ;
+
+    // And re-load.  If the selected contact was removed by the sync, show the overview
+    if (db.getSelected().isNull()) {
+        populateDialog(SELECT_OVERVIEW) ;
+    } else {
+        LoadTabs() ;
+    }
 }
 
 
 
-void MainWindow::on_actionExportContacts_triggered()
+void MainWindow::on_actionTidyContacts_triggered()
 {
-    QFileDialog fd ;
-    QString dir=QDir::homePath() ;
-    play(Query) ;
-    QString fileName = fd.getSaveFileName(this, tr("Contacts List File"),
-                               dir,
-                               tr("Text Files (*.txt)"));
+    // Save what is on screen, and stop showing a contact that may be merged away
+    SaveTabs() ;
+    db.selectContact(SELECT_OVERVIEW) ;
 
-    QFile file(fileName);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        // TODO: Report file open error
+    // Progress is shown in a window with a log, which also carries the summary at the end
+    GoogleUpdateDialog progress(this) ;
+    progress.showProgress("Tidy Contacts") ;
+
+    // Repeated history lines go first, in every contact
+    int historylines=0, historycontacts=0 ;
+    historylines = db.tidyHistories(historycontacts) ;
+    if (historycontacts>0) {
+        progress.reportProgress(0, QString("Removed %1 repeated history lines from %2 contacts").arg(historylines).arg(historycontacts)) ;
+        db.save() ;
+    }
+
+    // Unnamed entries: blank ones are deleted, and one whose only detail is an email address takes it as
+    // its surname.  The others are left, and listed at the end.
+    int emptied=0, renamed=0 ;
+    QStringList unnamedleft ;
+    db.tidyUnnamed(emptied, renamed, unnamedleft) ;
+    if (emptied>0 || renamed>0) db.save() ;
+
+    // Lists the merged entry, one detail per line.  Each value is marked with the entry it came from, (1) or (2).
+    auto describe = [](Contact &merged, Contact &first, Contact &second) {
+        QStringList lines ;
+
+        // The entry (1 or 2) that holds this value in one of the fields, or blank if neither does
+        auto origin = [&](QString value, QList<Contact::ContactRecord> fields) -> QString {
+            QString v = value.trimmed() ;
+            if (v.isEmpty()) return QString() ;
+            foreach (Contact::ContactRecord f, fields) if (first.getField(f).trimmed()==v) return "1" ;
+            foreach (Contact::ContactRecord f, fields) if (second.getField(f).trimmed()==v) return "2" ;
+            return QString() ;
+        } ;
+
+        // A line for a value.  Continuation lines are indented to line up under the value.
+        auto add = [&](QString label, QString value, QString from) {
+            QString v = value.trimmed() ;
+            if (v.isEmpty()) return ;
+            QString indent(4 + label.size() + 2, ' ') ;
+            lines << "    " + label + ": " + v.replace("\n", "\n" + indent) + (from.isEmpty() ? QString() : QString(" (%1)").arg(from)) ;
+        } ;
+
+        QList<Contact::ContactRecord> emails = { Contact::Email, Contact::Email2, Contact::Email3, Contact::Email4 } ;
+        QList<Contact::ContactRecord> phones = { Contact::Phone, Contact::Work, Contact::Mobile,
+                                                 Contact::Phone2, Contact::Phone3, Contact::Phone4 } ;
+
+        // A value with a label of its own: the title, when it has one
+        auto field = [&](QString label, Contact::ContactRecord f, QList<Contact::ContactRecord> fields) {
+            add(label, merged.getField(f), origin(merged.getField(f), fields)) ;
+        } ;
+        auto titled = [&](QString label, Contact::ContactRecord f, Contact::ContactRecord titlefield, QList<Contact::ContactRecord> fields) {
+            QString title = merged.getField(titlefield).trimmed() ;
+            field(title.isEmpty() ? label : title, f, fields) ;
+        } ;
+
+        add("Name", QString(merged.getFormattedName(false, true)), origin(merged.getField(Contact::Surname), { Contact::Surname })) ;
+        field("Organisation", Contact::Organisation, { Contact::Organisation }) ;
+        field("Address", Contact::Address, { Contact::Address }) ;
+        field("Address 2", Contact::Address2, { Contact::Address2 }) ;
+        field("Birthday", Contact::Birthday, { Contact::Birthday }) ;
+        field("Email", Contact::Email, emails) ;
+        field("Other", Contact::Email2, emails) ;
+        titled("Email 3", Contact::Email3, Contact::Email3Title, emails) ;
+        titled("Email 4", Contact::Email4, Contact::Email4Title, emails) ;
+        field("Phone", Contact::Phone, phones) ;
+        field("Work", Contact::Work, phones) ;
+        field("Mobile", Contact::Mobile, phones) ;
+        titled("Phone 2", Contact::Phone2, Contact::Phone2Title, phones) ;
+        titled("Phone 3", Contact::Phone3, Contact::Phone3Title, phones) ;
+        titled("Phone 4", Contact::Phone4, Contact::Phone4Title, phones) ;
+
+        QStringList commentsfrom ;
+        if (!first.getField(Contact::Comments).trimmed().isEmpty()) commentsfrom << "1" ;
+        if (!second.getField(Contact::Comments).trimmed().isEmpty()) commentsfrom << "2" ;
+        add("Comments", merged.getField(Contact::Comments), commentsfrom.join(", ")) ;
+
+        return lines ;
+    } ;
+
+    int automatic=0, confirmed=0, declined=0, repeated=0 ;
+
+    // Set by "Do this for all future matches": 0 asks about each match, 1 merges them all, -1 skips them all
+    int policy = 0 ;
+    QStringList changedlines, skippedlines ;   // reported again at the end
+    int total = db.size() ;
+    bool stopped = false ;
+
+    for (int i=0; i<total && !stopped; i++) {
+
+        Contact &first = db.getContact(i) ;
+        if (first.isSet(Contact::Deleted) || db.isUnnamed(first)) continue ;
+
+        int percent = (i*100)/total ;
+        progress.reportProgress(percent, QString("Checking %1").arg(QString(first.getFormattedName(false, true)))) ;
+
+        for (int j=i+1; j<total; j++) {
+
+            if (progress.isAborted()) { stopped=true ; break ; }
+            if (first.isSet(Contact::Deleted)) break ;      // merged away by an earlier pair
+
+            Contact &second = db.getContact(j) ;
+            if (second.isSet(Contact::Deleted) || db.isUnnamed(second)) continue ;
+            if (!db.isMergeCandidate(first, second)) continue ;
+
+            // Keep the visible entry, then the one linked to Google.  If neither differs, keep the older one.
+            bool firstlinked = !first.getField(Contact::GoogleRecordId).isEmpty() ;
+            bool secondlinked = !second.getField(Contact::GoogleRecordId).isEmpty() ;
+            QDateTime firstcreated = first.getDate(Contact::Created) ;
+            QDateTime secondcreated = second.getDate(Contact::Created) ;
+            bool firsthidden = first.isSet(Contact::Hidden) ;
+            bool secondhidden = second.isSet(Contact::Hidden) ;
+            bool keepfirst ;
+            if (firsthidden != secondhidden) keepfirst = !firsthidden ;
+            else if (firstlinked != secondlinked) keepfirst = firstlinked ;
+            else keepfirst = !(secondcreated < firstcreated) ;
+
+            Contact &keep = keepfirst ? first : second ;
+            Contact &remove = keepfirst ? second : first ;
+
+            Contact merged ;
+            QList<MergeConflict> conflicts ;
+            db.planMerge(keep, remove, merged, conflicts) ;
+
+            QString namefirst = QString(first.getFormattedName(false, true)) ;
+            QString namesecond = QString(second.getFormattedName(false, true)) ;
+            QString pair = QString("%1 and %2").arg(namefirst, namesecond) ;
+
+            if (conflicts.isEmpty() && db.isSafeToAutoMerge(first, second)) {
+                automatic++ ;
+                progress.reportProgress(percent, QString("Merged automatically: %1").arg(pair)) ;
+            } else {
+                bool domerge = (policy==1) ;
+                if (policy==0) {
+                    // The entries are numbered (1) and (2) in the order they are listed, with hidden ones marked
+                    auto entry = [](QString name, bool hidden, int number) {
+                        return QString("    %1 (%2%3)").arg(name).arg(number).arg(hidden ? ", hidden" : "") ;
+                    } ;
+                    QStringList sections ;
+                    sections << "These entries may be the same person:\n" + entry(namefirst, firsthidden, 1) + "\n" + entry(namesecond, secondhidden, 2) ;
+
+                    // The values that differ, from each entry.  A value with no free slot is said to go to Comments.
+                    int keepindex = keepfirst ? 1 : 2 ;
+                    if (conflicts.isEmpty()) {
+                        sections << "No details conflict, but they do not share a name, phone number, email address or address, so they may be different people." ;
+                    } else {
+                        QStringList lines ;
+                        foreach (const MergeConflict &c, conflicts) {
+                            if (c.overflow) {
+                                bool fromkept = !c.keptvalue.isEmpty() ;
+                                QString value = fromkept ? c.keptvalue : c.removedvalue ;
+                                int index = fromkept ? keepindex : 3-keepindex ;
+                                lines << QString("    %1(%2): %3, which has no free slot, so it goes to Comments").arg(c.field).arg(index).arg(value.trimmed().replace("\n", ", ")) ;
+                                continue ;
+                            }
+                            QString firstvalue = keepfirst ? c.keptvalue : c.removedvalue ;
+                            QString secondvalue = keepfirst ? c.removedvalue : c.keptvalue ;
+                            if (!firstvalue.trimmed().isEmpty()) lines << QString("    %1(1): %2").arg(c.field, firstvalue.trimmed().replace("\n", ", ")) ;
+                            if (!secondvalue.trimmed().isEmpty()) lines << QString("    %1(2): %2").arg(c.field, secondvalue.trimmed().replace("\n", ", ")) ;
+                        }
+                        sections << "These details differ:\n" + lines.join("\n") ;
+                    }
+
+                    sections << "If merged, the entry will be:\n" + describe(merged, first, second).join("\n") ;
+                    sections << "Merge them?" ;
+                    bool dontask = false ;
+                    domerge = warningYesNoDialog(this, "Tidy Contacts", sections.join("\n\n"), "Merge", QChar('y'), "Skip", QChar('n'),
+                                                 "Do this for all future matches", false, dontask) ;
+                    if (dontask) policy = domerge ? 1 : -1 ;
+                } else {
+                    repeated++ ;
+                }
+
+                if (!domerge) {
+                    declined++ ;
+                    skippedlines << pair ;
+                    progress.reportProgress(percent, QString("Not merged (you chose Skip): %1").arg(pair)) ;
+                    continue ;
+                }
+                confirmed++ ;
+                progress.reportProgress(percent, QString("Merged after you confirmed: %1").arg(pair)) ;
+            }
+
+            // Calendar entries for the removed contact follow the kept one
+            QString removedid = remove.getField(Contact::ID) ;
+            QString keptid = keep.getField(Contact::ID) ;
+            db.applyMerge(keep, remove, merged) ;
+            calendar.repointContact(removedid, keptid) ;
+            QString keptname = keepfirst ? namefirst : namesecond ;
+            QString removedname = keepfirst ? namesecond : namefirst ;
+            changedlines << QString("kept and updated: %1 (merged in: %2, now removed)").arg(keptname, removedname) ;
+        }
+    }
+
+    if (automatic==0 && confirmed==0 && declined==0 && historylines==0 && emptied==0 && renamed==0 && unnamedleft.isEmpty()) {
+        progress.finishProgress(stopped ? "Stopped at your request." : "No duplicate contacts, repeated history lines or unnamed entries were found.") ;
         return ;
     }
 
-    // TODO: update working directory from fd.
+    // Removed entries that are not on Google go to the deleted folder now.  The others follow at the next sync.
+    int linked=0 ;
+    int archived = db.tidyDeleted(linked) ;
+    calendar.save() ;
+    populateDialog(SELECT_OVERVIEW) ;
 
-    QTextStream out(&file);
-    out << "Contacts Database\n\n" ;
-
-    msg("Exporting ....") ;
-    db.sort() ;
-    for (int i=0; i<db.size(); i++) {
-        Contact& c = db.getContact(i) ;
-        if (!c.isSet(Contact::Deleted) && !c.isSet(Contact::Hidden)) {
-            out << c.getOverview(Contact::contactAsText) << "--------------------------------\n";
-        }
+    QStringList summary ;
+    summary << QString("Removed %1 repeated history lines from %2 contacts.").arg(historylines).arg(historycontacts) ;
+    summary << QString("Unnamed entries: %1 empty entries deleted, %2 given their email address as surname.").arg(emptied).arg(renamed) ;
+    if (!unnamedleft.isEmpty()) {
+        summary << QString("Unnamed entries left alone (%1):").arg(unnamedleft.size()) ;
+        foreach (const QString &line, unnamedleft) summary << "    " + line ;
     }
-    file.close() ;
-    msg("Exporting complete.") ;
+    summary << QString("Summary: merged %1 automatically and %2 after you confirmed; %3 not merged (you chose Skip).")
+               .arg(automatic).arg(confirmed).arg(declined) ;
+    if (repeated>0) summary << QString("%1 of the confirmed or skipped matches were decided by \"Do this for all future matches\".").arg(repeated) ;
+    summary << QString("Moved %1 removed entries to the deleted folder.").arg(archived) ;
+    if (linked>0) summary << QString("%1 removed entries are still on Google.").arg(linked) ;
+    summary << "Run Google Sync to send the merged details, and to remove the others from Google." ;
+    if (stopped) summary << "Stopped at your request, so the remaining contacts were not checked." ;
+
+    summary << QString("Records changed by this merge (%1):").arg(changedlines.size()) ;
+    foreach (const QString &line, changedlines) summary << "    " + line ;
+    summary << QString("Skipped at your choice (%1):").arg(skippedlines.size()) ;
+    foreach (const QString &line, skippedlines) summary << "    " + line ;
+    progress.finishProgress(summary.join("\n")) ;
+}
+
+// Saves the records to a file chosen by the user, as XML or as CSV
+static void exportToFile(QWidget *parent, const QList<TransferRecord> &records, QString title)
+{
+    QString selected ;
+    QString fileName = QFileDialog::getSaveFileName(parent, title, QDir::homePath(),
+                                                    "XML Files (*.xml);;CSV Files (*.csv)", &selected) ;
+    if (fileName.isEmpty()) return ;
+
+    // The extension decides the format.  Without one, the filter chosen does.
+    bool asXml = selected.startsWith("XML") ;
+    if (fileName.endsWith(".xml", Qt::CaseInsensitive)) asXml = true ;
+    else if (fileName.endsWith(".csv", Qt::CaseInsensitive)) asXml = false ;
+    else fileName += asXml ? ".xml" : ".csv" ;
+
+    QString error = writeTransferFile(fileName, records, asXml) ;
+    if (!error.isEmpty()) {
+        warningOkDialog(parent, title, error, true) ;
+        return ;
+    }
+    warningOkDialog(parent, title, QString("%1 records were exported to %2.").arg(records.size()).arg(fileName)) ;
+}
+
+void MainWindow::on_actionExportContacts_triggered()
+{
+    db.sort() ;
+    exportToFile(this, contactTransferRecords(db), "Export Contacts") ;
 }
 
 void MainWindow::on_actionExportAppointments_triggered()
 {
+    calendar.sort() ;
+    exportToFile(this, appointmentTransferRecords(calendar), "Export Appointments") ;
+}
 
+// Asks whether an existing record is to be overwritten.  Returns true to overwrite.  'dontask' is set when
+// "Do this for all future matches" is ticked.
+static bool askOverwrite(QWidget *parent, const QString &description, bool &dontask)
+{
+    QString message = description + " already exists.\n\nOverwrite it with the imported details?" ;
+    return warningYesNoDialog(parent, "Import", message, "Overwrite", QChar('y'), "Skip", QChar('n'),
+                              "Do this for all future matches", false, dontask) ;
+}
+
+void MainWindow::on_actionImport_triggered()
+{
+    QString fileName = QFileDialog::getOpenFileName(this, "Import", QDir::homePath(), "Export Files (*.xml *.csv)") ;
+    if (fileName.isEmpty()) return ;
+
+    QList<TransferRecord> records ;
+    QString error = readTransferFile(fileName, records) ;
+    if (!error.isEmpty()) {
+        warningOkDialog(this, "Import", error, true) ;
+        return ;
+    }
+    if (records.isEmpty()) {
+        warningOkDialog(this, "Import", "The file has no records to import.") ;
+        return ;
+    }
+
+    SaveTabs() ;
+    db.selectContact(SELECT_OVERVIEW) ;
+
+    int added=0, overwritten=0, skipped=0, unknown=0 ;
+
+    // Set by "Don't ask again": 0 asks about each existing record, 1 overwrites them all, -1 skips them all
+    int policy = 0 ;
+
+    for (const TransferRecord &rec : records) {
+        bool iscontact = (rec.kind==QLatin1String("contact")) ;
+        bool isappointment = (rec.kind==QLatin1String("appointment")) ;
+        if (!iscontact && !isappointment) {
+            unknown++ ;
+            continue ;
+        }
+
+        bool exists = iscontact ? contactExists(db, rec) : appointmentExists(calendar, rec) ;
+        if (exists) {
+            bool dooverwrite ;
+            if (policy!=0) {
+                dooverwrite = (policy==1) ;
+            } else {
+                bool dontask = false ;
+                dooverwrite = askOverwrite(this, transferDescription(rec), dontask) ;
+                if (dontask) policy = dooverwrite ? 1 : -1 ;
+            }
+
+            if (!dooverwrite) {
+                skipped++ ;
+                continue ;
+            }
+            if (iscontact) importContact(db, rec, true) ;
+            else importAppointment(calendar, rec, true) ;
+            overwritten++ ;
+            continue ;
+        }
+
+        if (iscontact) importContact(db, rec, false) ;
+        else importAppointment(calendar, rec, false) ;
+        added++ ;
+    }
+
+    db.save() ;
+    calendar.save() ;
+    populateDialog(SELECT_OVERVIEW) ;
+
+    QStringList summary ;
+    summary << QString("Added %1 records.").arg(added) ;
+    summary << QString("Overwritten %1 existing records.").arg(overwritten) ;
+    summary << QString("Skipped %1 existing records.").arg(skipped) ;
+    if (unknown>0) summary << QString("%1 records were not contacts or appointments, and were not imported.").arg(unknown) ;
+    summary << "Run Google Sync to send new and changed contacts to Google." ;
+    warningOkDialog(this, "Import", summary.join("\n")) ;
 }
 
 void MainWindow::on_actionShow_Log_triggered()
@@ -579,7 +979,6 @@ void MainWindow::on_actionOpen_triggered()
     QString thisid=db.getSelected().getField(Contact::ID) ;
 
     list.setTitle("Contact Manager Open", "Load Contact");
-    list.addEntry("-- Add Contact --", SELECT_ADDENTRY) ;
     for (int i=0, sz=db.size(); i<sz; i++) {
         Contact& c=db.getContact(i) ;
         if (!c.isSet(Contact::Deleted) && !c.isSet(Contact::Hidden)) {
@@ -588,6 +987,9 @@ void MainWindow::on_actionOpen_triggered()
             list.addEntry(name, data) ;
         }
     }
+
+    // Added after the sorted contacts, at the top, so that it stays first
+    list.addEntry("-- Add Contact --", SELECT_ADDENTRY, 0) ;
 
     list.selectData(thisid) ;
     if (list.index()<=0) list.setIndex(1) ;

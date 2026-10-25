@@ -265,7 +265,7 @@ bool MainWindow::searchContactRecordSet(QString searchtext, Contact &contact, Co
     }
 
     QString srch = searchtext.toLower().replace(" ","") ;
-    QRegularExpression re1(".*(" + srch + ").*") ;
+    QRegularExpression re1(".*(" + QRegularExpression::escape(srch) + ").*") ;
     QRegularExpressionMatch rem1 ;
     for (int i=0; i<8; i++) {
         if (r[i]!=Contact::NumberOfRecords) {
