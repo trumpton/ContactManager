@@ -59,6 +59,7 @@ INCLUDE += $$PWD
 
 SOURCES += main.cpp\
     mainwindow.cpp \
+    mergeconfirmdialog.cpp \
     history.cpp \
     contact.cpp \
     search.cpp \
@@ -118,6 +119,7 @@ SOURCES += main.cpp\
     accessiblestringlistmodel.cpp
 
 HEADERS  += mainwindow.h \
+    mergeconfirmdialog.h \
     account-googleaccess.h \
     account-googleaccess.h \
     history.h \
