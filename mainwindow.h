@@ -84,7 +84,7 @@ private slots:
     void on_actionFind_triggered();
     void on_actionFindNext_triggered();
     void on_action_Google_Sync_triggered();
-    void on_actionMergeDuplicates_triggered();
+    void on_actionTidyContacts_triggered();
     void on_actionPayment_triggered();
     void on_actionIncome_triggered() ;
     void on_actionTransactionReport_triggered() ;

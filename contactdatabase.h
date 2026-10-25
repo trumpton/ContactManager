@@ -10,6 +10,16 @@
 
 //using namespace std;
 
+// A detail that differs between the two entries being merged.  The value from the kept entry and the
+// value from the removed entry are given, and blank where that entry has none.  When a value has no free
+// slot, overflow is set and the value goes to Comments.
+struct MergeConflict {
+    QString field ;
+    QString keptvalue ;
+    QString removedvalue ;
+    bool overflow ;
+} ;
+
 class ContactDatabase
 {
 
@@ -47,6 +57,10 @@ public:
     // still have a link are counted in linked: a Google sync removes them from
     // Google and clears the link.  Returns the number archived.
     int tidyDeleted(int &linked) ;
+
+    // Removes history lines that repeat an earlier line exactly (same date and text), in every contact.
+    // Returns the number of lines removed, and sets changedcontacts to the number of contacts changed.
+    int tidyHistories(int &changedcontacts) ;
     bool reloadJournal(Contact& contact) ;
     bool saveIndex(int j, QString path, QString contactid, QString name, QString phone, QString email, QString address) ;
 
@@ -73,7 +87,7 @@ public:
     // Merging duplicates (works on copies until the merge is accepted)
     bool isMergeCandidate(Contact &a, Contact &b) ;
     bool isSafeToAutoMerge(Contact &a, Contact &b) ;
-    void planMerge(Contact &keep, Contact &remove, Contact &merged, QStringList &conflicts) ;
+    void planMerge(Contact &keep, Contact &remove, Contact &merged, QList<MergeConflict> &conflicts) ;
     void applyMerge(Contact &keep, Contact &remove, Contact &merged) ;
 
     int getIndex(Contact& record) ;

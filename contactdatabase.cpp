@@ -152,7 +152,8 @@ int ContactDatabase::tidyDeleted(int &linked)
 // Merging duplicate contacts
 //
 //  Two entries are merged without asking only when they agree.  Where a field that holds one value
-//  differs, the newer value is kept and the older one is noted in Comments, so nothing is lost.
+//  differs, the visible entry wins over a hidden one, otherwise the newer value is kept.  The value that is
+//  not kept is recorded in the history.
 //  Phone numbers and email addresses use the spare slots instead, so both are kept.
 //
 
@@ -330,20 +331,52 @@ bool ContactDatabase::isSafeToAutoMerge(Contact &a, Contact &b)
     return sharesIdentifier(a, b) || (!hasIdentifier(a) && !hasIdentifier(b)) ;
 }
 
+// Removes repeated history lines from every contact.  A line is a repeat when an identical line (same date
+// and text) is already in that contact's history.  The first copy is kept.
+int ContactDatabase::tidyHistories(int &changedcontacts)
+{
+    int removed = 0 ;
+    changedcontacts = 0 ;
+
+    for (int i=0; i<contacts.size(); i++) {
+        Contact &c = contacts[i] ;
+        QStringList lines = c.getHistory().getHistory().split("\n", Qt::SkipEmptyParts) ;
+        QStringList unique ;
+        for (const QString &line : lines) {
+            if (!unique.contains(line)) unique << line ;
+        }
+        if (unique.size()==lines.size()) continue ;
+
+        removed += lines.size() - unique.size() ;
+        changedcontacts++ ;
+        c.getHistory().updateHistory(unique.join("\n") + "\n") ;
+    }
+    return removed ;
+}
+
 // Works out the merged entry in 'merged', which starts as a copy of 'keep'.  'conflicts' lists the
-// details that could not all be kept, each with a note of what happened to it.  Nothing is changed in
-// 'keep' or 'remove'.
-void ContactDatabase::planMerge(Contact &keep, Contact &remove, Contact &merged, QStringList &conflicts)
+// details that differ, with the value from each entry.  Nothing is changed in 'keep' or 'remove'.
+void ContactDatabase::planMerge(Contact &keep, Contact &remove, Contact &merged, QList<MergeConflict> &conflicts)
 {
     conflicts.clear() ;
     merged = keep ;
+
+    // Lines for the history of the merged entry: values that were replaced, and are not kept
+    QStringList droppedlines ;
+    QString today = QDateTime::currentDateTime().toString("dd-MMM-yyyy: ") ;
 
     // Copy the dates first, as getDate() returns a shared object
     QDateTime keepdate = keep.getDate(Contact::Updated) ;
     QDateTime removedate = remove.getDate(Contact::Updated) ;
     bool removenewer = (removedate > keepdate) ;
 
-    // Fields that hold one value.  Where both differ, the newer value is kept and the other is noted.
+    // Where one entry is hidden and the other is not, the visible one wins.  Otherwise the newer one wins.
+    bool keephidden = keep.isSet(Contact::Hidden) ;
+    bool removehidden = remove.isSet(Contact::Hidden) ;
+    bool removewins = (keephidden!=removehidden) ? keephidden : removenewer ;
+
+    // Fields that hold one value.  Where both differ, the winning value is kept, and the other is recorded
+    // in the history.
     Contact::ContactRecord singles[] = { Contact::Surname, Contact::Names, Contact::Organisation,
                                          Contact::Address, Contact::Address2, Contact::Webaddress,
                                          Contact::Birthday } ;
@@ -364,11 +397,11 @@ void ContactDatabase::planMerge(Contact &keep, Contact &remove, Contact &merged,
             merged.setField(f, b) ;
         } else if (!b.trimmed().isEmpty() && !sameValue(f, a, b)) {
             QString label = QString(keep.contactRecordName(f)) ;
-            QString winner = removenewer ? b : a ;
-            QString loser = removenewer ? a : b ;
-            conflicts << QString("%1: will be '%2', and '%3' goes to Comments").arg(label, winner.trimmed(), loser.trimmed()) ;
+            QString winner = removewins ? b : a ;
+            QString loser = removewins ? a : b ;
+            conflicts << MergeConflict{ label, a.trimmed(), b.trimmed(), false } ;
             merged.setField(f, winner) ;
-            noteInComments(merged, label, loser) ;
+            droppedlines << today + QString("Merged: %1 '%2' not kept, '%3' kept").arg(label, loser.trimmed(), winner.trimmed()) + "." ;
         }
     }
 
@@ -379,7 +412,7 @@ void ContactDatabase::planMerge(Contact &keep, Contact &remove, Contact &merged,
         merged.setFlag(flags[n], keep.isSet(flags[n]) || remove.isSet(flags[n])) ;
     }
 
-    // Comments are joined, as they have no single value
+    // Comments are appended, not replaced, unless the two are the same
     QString ca = merged.getField(Contact::Comments).trimmed() ;
     QString cb = remove.getField(Contact::Comments).trimmed() ;
     if (!cb.isEmpty() && !sameText(ca, cb)) {
@@ -391,13 +424,14 @@ void ContactDatabase::planMerge(Contact &keep, Contact &remove, Contact &merged,
     struct Number {
         QString title ;
         QString number ;
+        bool fromremoved ;
     } ;
     QList<Number> spare ;
     QStringList seen = phoneKeys(keep) ;
     for (int i=0; i<3; i++) {
         QString number = keep.getField((Contact::ContactRecord)(Contact::Phone2+i)) ;
         if (!number.trimmed().isEmpty()) {
-            spare << Number{ keep.getField((Contact::ContactRecord)(Contact::Phone2Title+i)), number } ;
+            spare << Number{ keep.getField((Contact::ContactRecord)(Contact::Phone2Title+i)), number, false } ;
         }
     }
 
@@ -411,7 +445,7 @@ void ContactDatabase::planMerge(Contact &keep, Contact &remove, Contact &merged,
         if (merged.getField(f).trimmed().isEmpty()) {
             merged.setField(f, number) ;
         } else {
-            spare << Number{ QString(), number } ;
+            spare << Number{ QString(), number, true } ;
         }
     }
     for (int i=0; i<3; i++) {
@@ -419,7 +453,7 @@ void ContactDatabase::planMerge(Contact &keep, Contact &remove, Contact &merged,
         QString key = phoneKey(number) ;
         if (number.trimmed().isEmpty() || (!key.isEmpty() && seen.contains(key))) continue ;
         if (!key.isEmpty()) seen << key ;
-        spare << Number{ remove.getField((Contact::ContactRecord)(Contact::Phone2Title+i)), number } ;
+        spare << Number{ remove.getField((Contact::ContactRecord)(Contact::Phone2Title+i)), number, true } ;
     }
 
     for (int i=0; i<spare.size(); i++) {
@@ -427,7 +461,9 @@ void ContactDatabase::planMerge(Contact &keep, Contact &remove, Contact &merged,
             merged.setField((Contact::ContactRecord)(Contact::Phone2+i), spare[i].number) ;
             merged.setField((Contact::ContactRecord)(Contact::Phone2Title+i), spare[i].title) ;
         } else {
-            conflicts << QString("Phone number '%1' has no free slot").arg(spare[i].number) ;
+            conflicts << MergeConflict{ "phone",
+                spare[i].fromremoved ? QString() : spare[i].number,
+                spare[i].fromremoved ? spare[i].number : QString(), true } ;
             noteInComments(merged, "phone", spare[i].number) ;
         }
     }
@@ -465,7 +501,7 @@ void ContactDatabase::planMerge(Contact &keep, Contact &remove, Contact &merged,
         }
 
         if (slot<0) {
-            conflicts << QString("Email address '%1' has no free slot, so it goes to Comments").arg(address) ;
+            conflicts << MergeConflict{ "email", QString(), address, true } ;
             noteInComments(merged, "email", address) ;
         } else {
             addresses[slot] = address ;
@@ -477,9 +513,11 @@ void ContactDatabase::planMerge(Contact &keep, Contact &remove, Contact &merged,
         if (i>=2) merged.setField(titlefields[i], addresses[i].isEmpty() ? QString("") : titles[i]) ;
     }
 
-    // History: both lists, without repeats, newest first.  Lines with no readable date go last.
+    // History: both lists, the lines for replaced values, without repeats, newest first.  Lines with
+    // no readable date go last.
     QStringList all = keep.getHistory().getHistory().split("\n", Qt::SkipEmptyParts) ;
     all << remove.getHistory().getHistory().split("\n", Qt::SkipEmptyParts) ;
+    all << droppedlines ;
     QStringList unique ;
     for (const QString &line : all) {
         if (!unique.contains(line)) unique << line ;

@@ -1128,7 +1128,7 @@ p, li { white-space: pre-wrap; }
     <addaction name="separator"/>
     <addaction name="menu_Export"/>
     <addaction name="action_Google_Sync"/>
-    <addaction name="actionMergeDuplicates"/>
+    <addaction name="actionTidyContacts"/>
     <addaction name="separator"/>
     <addaction name="actionExit"/>
     <addaction name="separator"/>
@@ -1335,9 +1335,9 @@ p, li { white-space: pre-wrap; }
     <string>F3</string>
    </property>
   </action>
-  <action name="actionMergeDuplicates">
+  <action name="actionTidyContacts">
    <property name="text">
-    <string>&amp;Merge Duplicate Contacts</string>
+    <string>&amp;Tidy Contacts</string>
    </property>
   </action>
   <action name="action_Google_Sync">
