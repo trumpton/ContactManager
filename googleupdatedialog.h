@@ -38,7 +38,7 @@ private:
     bool uploadContact(Contact& contact, GoogleAccess& google, QString etag = QString("")) ;
 
     // Update the calendar
-    bool processCalendarUpdate(QDateTime &lastsyncdate, GoogleAccess& google, class Calendar& cal) ;
+    bool processCalendarUpdate(QDateTime &lastsyncdate, GoogleAccess& google, class ContactDatabase& db, class Calendar& cal) ;
 
     // Support functions or the processCalendarUpdate
     bool calendarFetchChangedGoogleRecords(QProgressBar *bar, GoogleAccess& google, QDateTime &lastsync, Calendar& googlecalendar) ;

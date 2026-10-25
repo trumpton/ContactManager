@@ -79,6 +79,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     db.load() ;
     calendar.load() ;
     logLoadSummary() ;
+    calendar.dumpEntries("local", db) ;
 
     ui->editDateOfBirth->setFormat("", "dd/MMM/yyyy", true) ;
     //populateDialog(SELECT_OVERVIEW) ;
