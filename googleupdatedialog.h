@@ -44,7 +44,7 @@ private:
     bool processContactUpdate(QDateTime& lastsyncdate, GoogleAccess& google, ContactDatabase &db) ;
 
     // Upload contact to Google
-    bool uploadContact(Contact& contact, GoogleAccess& google, QString etag = QString("")) ;
+    bool uploadContact(Contact& contact, GoogleAccess& google, Contact& googlecontact) ;
 
     // Update the calendar
     bool processCalendarUpdate(QDateTime &lastsyncdate, GoogleAccess& google, class ContactDatabase& db, class Calendar& cal) ;
