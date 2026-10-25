@@ -7,6 +7,7 @@
 #include <QTextDecoder>
 #include <QDebug>
 #include "history.h"
+#include "safesave.h"
 #include "../Lib/supportfunctions.h"
 #include <algorithm>
 
@@ -394,7 +395,6 @@ int Contact::find(QString text)
     return -1 ;
 }
 
-// TODO: Make this save a "safe save", i.e. save, check, rename
 bool Contact::save(QString path)
 {
     Encryption *enc = gConf->encryption() ;
@@ -427,19 +427,16 @@ bool Contact::save(QString path)
 
         if (gConf->encryptedEnabled()) {
             dbg(QString("Saving {%1} as zcontact").arg(filedata[ID])) ;
-            if (!enc->save(path + filedata[ID] + ".zcontact", data)) {
+            if (!safeSaveEncrypted(enc, path + filedata[ID] + ".zcontact", data)) {
                 dbg("failed") ;
                 success = false ;
             }
         } else {
             dbg(QString("Saving {%1} as contact").arg(filedata[ID])) ;
-            QFile file(path + filedata[ID] + ".contact");
-            if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            if (!safeSavePlain(path + filedata[ID] + ".contact", data)) {
                 dbg("failed") ;
                 success = false;
             }
-            success &= (file.write(data) == data.length()) ;
-            file.close() ;
         }
 
         isnew = false ;

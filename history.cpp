@@ -6,6 +6,7 @@
 #include <QRegularExpression>
 #include "history.h"
 #include "configuration.h"
+#include "safesave.h"
 #include "../Lib/supportfunctions.h"
 
 
@@ -50,7 +51,6 @@ bool History::createNew(QString idname)
     return true ;
 }
 
-// TODO: Make this save a "safe save", i.e. save, check, rename
 bool History::save(QString path)
 {
     Encryption *enc = gConf->encryption() ;
@@ -78,14 +78,11 @@ bool History::save(QString path)
 
          if (gConf->encryptedEnabled()) {
              // Save encrypted
-             dirty = !enc->save(path + idName + ".zhistory", data) ;
+             dirty = !safeSaveEncrypted(enc, path + idName + ".zhistory", data) ;
          } else {
              // Save Plaintext
-             QFile file(path + idName + ".history");
-             if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-                 return false;
-             file.write(data) ;
-             file.close() ;
+             if (!safeSavePlain(path + idName + ".history", data))
+                 return false ;
          }
 
     }
