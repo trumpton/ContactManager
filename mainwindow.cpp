@@ -8,8 +8,6 @@
 
 #include <QProcess>
 #include <QMessageBox>
-#include <QCheckBox>
-#include <QPushButton>
 #include <QShortcut>
 
 #include "mainwindow.h"
@@ -699,7 +697,10 @@ void MainWindow::on_actionTidyContacts_triggered()
         return lines ;
     } ;
 
-    int automatic=0, confirmed=0, declined=0 ;
+    int automatic=0, confirmed=0, declined=0, repeated=0 ;
+
+    // Set by "Do this for all future matches": 0 asks about each match, 1 merges them all, -1 skips them all
+    int policy = 0 ;
     QStringList changedlines, skippedlines ;   // reported again at the end
     int total = db.size() ;
     bool stopped = false ;
@@ -748,39 +749,48 @@ void MainWindow::on_actionTidyContacts_triggered()
                 automatic++ ;
                 progress.reportProgress(percent, QString("Merged automatically: %1").arg(pair)) ;
             } else {
-                // The entries are numbered (1) and (2) in the order they are listed, with hidden ones marked
-                auto entry = [](QString name, bool hidden, int number) {
-                    return QString("    %1 (%2%3)").arg(name).arg(number).arg(hidden ? ", hidden" : "") ;
-                } ;
-                QStringList sections ;
-                sections << "These entries may be the same person:\n" + entry(namefirst, firsthidden, 1) + "\n" + entry(namesecond, secondhidden, 2) ;
+                bool domerge = (policy==1) ;
+                if (policy==0) {
+                    // The entries are numbered (1) and (2) in the order they are listed, with hidden ones marked
+                    auto entry = [](QString name, bool hidden, int number) {
+                        return QString("    %1 (%2%3)").arg(name).arg(number).arg(hidden ? ", hidden" : "") ;
+                    } ;
+                    QStringList sections ;
+                    sections << "These entries may be the same person:\n" + entry(namefirst, firsthidden, 1) + "\n" + entry(namesecond, secondhidden, 2) ;
 
-                // The values that differ, from each entry.  A value with no free slot is said to go to Comments.
-                int keepindex = keepfirst ? 1 : 2 ;
-                if (conflicts.isEmpty()) {
-                    sections << "No details conflict, but they do not share a name, phone number, email address or address, so they may be different people." ;
-                } else {
-                    QStringList lines ;
-                    foreach (const MergeConflict &c, conflicts) {
-                        if (c.overflow) {
-                            bool fromkept = !c.keptvalue.isEmpty() ;
-                            QString value = fromkept ? c.keptvalue : c.removedvalue ;
-                            int index = fromkept ? keepindex : 3-keepindex ;
-                            lines << QString("    %1(%2): %3, which has no free slot, so it goes to Comments").arg(c.field).arg(index).arg(value.trimmed().replace("\n", ", ")) ;
-                            continue ;
+                    // The values that differ, from each entry.  A value with no free slot is said to go to Comments.
+                    int keepindex = keepfirst ? 1 : 2 ;
+                    if (conflicts.isEmpty()) {
+                        sections << "No details conflict, but they do not share a name, phone number, email address or address, so they may be different people." ;
+                    } else {
+                        QStringList lines ;
+                        foreach (const MergeConflict &c, conflicts) {
+                            if (c.overflow) {
+                                bool fromkept = !c.keptvalue.isEmpty() ;
+                                QString value = fromkept ? c.keptvalue : c.removedvalue ;
+                                int index = fromkept ? keepindex : 3-keepindex ;
+                                lines << QString("    %1(%2): %3, which has no free slot, so it goes to Comments").arg(c.field).arg(index).arg(value.trimmed().replace("\n", ", ")) ;
+                                continue ;
+                            }
+                            QString firstvalue = keepfirst ? c.keptvalue : c.removedvalue ;
+                            QString secondvalue = keepfirst ? c.removedvalue : c.keptvalue ;
+                            if (!firstvalue.trimmed().isEmpty()) lines << QString("    %1(1): %2").arg(c.field, firstvalue.trimmed().replace("\n", ", ")) ;
+                            if (!secondvalue.trimmed().isEmpty()) lines << QString("    %1(2): %2").arg(c.field, secondvalue.trimmed().replace("\n", ", ")) ;
                         }
-                        QString firstvalue = keepfirst ? c.keptvalue : c.removedvalue ;
-                        QString secondvalue = keepfirst ? c.removedvalue : c.keptvalue ;
-                        if (!firstvalue.trimmed().isEmpty()) lines << QString("    %1(1): %2").arg(c.field, firstvalue.trimmed().replace("\n", ", ")) ;
-                        if (!secondvalue.trimmed().isEmpty()) lines << QString("    %1(2): %2").arg(c.field, secondvalue.trimmed().replace("\n", ", ")) ;
+                        sections << "These details differ:\n" + lines.join("\n") ;
                     }
-                    sections << "These details differ:\n" + lines.join("\n") ;
+
+                    sections << "If merged, the entry will be:\n" + describe(merged, first, second).join("\n") ;
+                    sections << "Merge them?" ;
+                    bool dontask = false ;
+                    domerge = warningYesNoDialog(this, "Tidy Contacts", sections.join("\n\n"), "Merge", QChar('y'), "Skip", QChar('n'),
+                                                 "Do this for all future matches", false, dontask) ;
+                    if (dontask) policy = domerge ? 1 : -1 ;
+                } else {
+                    repeated++ ;
                 }
 
-                sections << "If merged, the entry will be:\n" + describe(merged, first, second).join("\n") ;
-                sections << "Merge them?" ;
-
-                if (!warningYesNoDialog(this, "Tidy Contacts", sections.join("\n\n"), "Merge", QChar('y'), "Skip", QChar('n'))) {
+                if (!domerge) {
                     declined++ ;
                     skippedlines << pair ;
                     progress.reportProgress(percent, QString("Not merged (you chose Skip): %1").arg(pair)) ;
@@ -821,6 +831,7 @@ void MainWindow::on_actionTidyContacts_triggered()
     }
     summary << QString("Summary: merged %1 automatically and %2 after you confirmed; %3 not merged (you chose Skip).")
                .arg(automatic).arg(confirmed).arg(declined) ;
+    if (repeated>0) summary << QString("%1 of the confirmed or skipped matches were decided by \"Do this for all future matches\".").arg(repeated) ;
     summary << QString("Moved %1 removed entries to the deleted folder.").arg(archived) ;
     if (linked>0) summary << QString("%1 removed entries are still on Google.").arg(linked) ;
     summary << "Run Google Sync to send the merged details, and to remove the others from Google." ;
@@ -868,23 +879,12 @@ void MainWindow::on_actionExportAppointments_triggered()
 }
 
 // Asks whether an existing record is to be overwritten.  Returns true to overwrite.  'dontask' is set when
-// "Don't ask again" is ticked and a button is pressed.
+// "Do this for all future matches" is ticked.
 static bool askOverwrite(QWidget *parent, const QString &description, bool &dontask)
 {
-    QMessageBox box(parent) ;
-    box.setWindowTitle("Import") ;
-    box.setIcon(QMessageBox::Question) ;
-    box.setText(QString("%1 already exists.").arg(description)) ;
-    box.setInformativeText("Overwrite it with the imported details?") ;
-    QPushButton *overwrite = box.addButton("Overwrite", QMessageBox::AcceptRole) ;
-    QPushButton *skip = box.addButton("Skip", QMessageBox::RejectRole) ;
-    box.setDefaultButton(skip) ;
-    QCheckBox *again = new QCheckBox("Don't ask again for the rest of this import", &box) ;
-    box.setCheckBox(again) ;
-
-    box.exec() ;
-    dontask = again->isChecked() && box.clickedButton()!=nullptr ;
-    return box.clickedButton()==overwrite ;
+    QString message = description + " already exists.\n\nOverwrite it with the imported details?" ;
+    return warningYesNoDialog(parent, "Import", message, "Overwrite", QChar('y'), "Skip", QChar('n'),
+                              "Do this for all future matches", false, dontask) ;
 }
 
 void MainWindow::on_actionImport_triggered()
