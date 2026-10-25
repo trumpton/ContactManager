@@ -117,7 +117,8 @@ SOURCES += main.cpp\
     googleaccess_getcontact.cpp \
     advancedfind.cpp \
     mainwindow_test.cpp \
-    accessiblestringlistmodel.cpp
+    accessiblestringlistmodel.cpp \
+    safesave.cpp
 
 HEADERS  += mainwindow.h \
     account-googleaccess.h \
@@ -158,7 +159,8 @@ HEADERS  += mainwindow.h \
     ../Lib/encryption.h \
     ../Lib/aes.h \
     advancedfind.h \
-    accessiblestringlistmodel.h
+    accessiblestringlistmodel.h \
+    safesave.h
 
 FORMS    += mainwindow.ui \
     search.ui \
