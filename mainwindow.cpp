@@ -984,8 +984,6 @@ void MainWindow::on_actionOpen_triggered()
         if (!c.isSet(Contact::Deleted) && !c.isSet(Contact::Hidden)) {
             QString name = c.getFormattedName() ;
             QString data = c.getField(Contact::ID) ;
-            // Listed as 00 rather than +, so that typing 0 jumps to it: the list has no key for +
-            if (name.startsWith('+')) name.replace(0, 1, "00") ;
             list.addEntry(name, data) ;
         }
     }
