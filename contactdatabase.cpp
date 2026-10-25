@@ -205,12 +205,26 @@ static bool hasIdentifier(Contact &c)
     return !phoneKeys(c).isEmpty() || !emailKeys(c).isEmpty() ;
 }
 
+// Keys for the addresses on a contact, ignoring case and extra spaces
+static QStringList addressKeys(Contact &c)
+{
+    QStringList keys ;
+    QString first = c.getField(Contact::Address).simplified().toLower() ;
+    QString second = c.getField(Contact::Address2).simplified().toLower() ;
+    if (!first.isEmpty()) keys << first ;
+    if (!second.isEmpty()) keys << second ;
+    return keys ;
+}
+
+// True if the two contacts share a phone number, an email address or an address
 static bool sharesIdentifier(Contact &a, Contact &b)
 {
     QStringList pa = phoneKeys(a), pb = phoneKeys(b) ;
     QStringList ea = emailKeys(a), eb = emailKeys(b) ;
+    QStringList aa = addressKeys(a), ab = addressKeys(b) ;
     for (const QString &k : pa) if (pb.contains(k)) return true ;
     for (const QString &k : ea) if (eb.contains(k)) return true ;
+    for (const QString &k : aa) if (ab.contains(k)) return true ;
     return false ;
 }
 
