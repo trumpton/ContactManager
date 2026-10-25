@@ -173,7 +173,7 @@ public:
     QString& getId() ;
     QString& getContactId() ;
 
-    QString& asText(QString name="", QString start="", QString mid="", QString end="") ;
+    QString& asText(QString name="", QString start="", QString mid="", QString end="", bool accessible=false) ;
     QString& asAccessibleText(QString name="") ;
     QString& shortText() ;
     QString& asHTML(QString name="") ;
