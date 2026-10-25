@@ -350,15 +350,20 @@ void Appointment::createNew()
 
 QString& Appointment::asAccessibleText(QString name)
 {
-    asAccessibleTextResponse = asText(name) ;
+    asAccessibleTextResponse = asText(name, "", "", "", true) ;
     return asAccessibleTextResponse ;
 }
 
-QString& Appointment::asText(QString name, QString start, QString mid, QString end)
+// The accessible version leaves out the year for dates in the current year, which keeps the
+// text a screen reader reads for each calendar entry short
+QString& Appointment::asText(QString name, QString start, QString mid, QString end, bool accessible)
 {
     Q_UNUSED(mid) ;
     QDateTime from = getDate(Appointment::From) ;
     QDateTime to = getDate(Appointment::To) ;
+    int thisyear = QDate::currentDate().year() ;
+    QString fromformat = (accessible && from.date().year()==thisyear) ? "dd MMM " : "dd MMM yyyy " ;
+    QString tostampformat = (accessible && to.date().year()==thisyear) ? "dd MMM hh:mm" : "dd MMM yyyy hh:mm" ;
 
     if (getField(Appointment::From).isEmpty()) {
 
@@ -367,7 +372,7 @@ QString& Appointment::asText(QString name, QString start, QString mid, QString e
     } else {
 
         asTextResponse = start ;
-        asTextResponse += from.toString("dd MMM yyyy ") ;
+        asTextResponse += from.toString(fromformat) ;
 
         if (from == to) {
 
@@ -387,7 +392,7 @@ QString& Appointment::asText(QString name, QString start, QString mid, QString e
             asTextResponse+= from.toLocalTime().toString("hh:mm") + " - " + to.toLocalTime().toString("hh:mm") ;
         } else {
             // Appointment crossing two days
-            asTextResponse += from.toLocalTime().toString("hh:mm") + " - " + to.toLocalTime().toString("dd MMM yyyy hh:mm") ;
+            asTextResponse += from.toLocalTime().toString("hh:mm") + " - " + to.toLocalTime().toString(tostampformat) ;
         }
 
         asTextResponse += ": " ;
