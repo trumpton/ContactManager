@@ -86,6 +86,23 @@ Keep the access token private. It lasts about an hour, and the agent should fetc
 
 If the human reports an error at step 3, check the client type first (it must be "TVs and Limited Input devices"), then that the test account is listed as a test user.
 
+## 4a. The app's settings file
+
+The app reads `~/TrumptonApps/ContactManager.ini` (or `~/ContactManager/ContactManager.ini`). Without it, the
+app's settings reader returns the text `ERROR` for every setting, and the phone code then uses that text as the
+dialling codes. Numbers come out as `error202020202`. This was found by the bench (scenarios M02, M06, X04).
+
+For the bench, create the file with the phone codes blank, so numbers are stored as typed:
+
+```ini
+[phone]
+localcode=
+countrycode=
+```
+
+The sample in `Samples/ContactManager.ini` sets real codes (`localcode=01234`, `countrycode=0044`). With those, the
+app rewrites phone numbers when it stores them, so use them only to test that rewriting on purpose.
+
 ## 5. Running the app headlessly
 
 ```bash

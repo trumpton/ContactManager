@@ -267,17 +267,22 @@ PHONE_KEYS = ("phone", "work", "mobile", "phone2", "phone3", "phone4")
 EMAIL_KEYS = ("email", "email2", "email3", "email4")
 
 
+def digits(s):
+    """A phone number as its digits (and a leading +), so spaces, dashes and brackets do not count."""
+    return "".join(ch for ch in (s or "") if ch.isdigit() or ch == "+")
+
+
 def canon_app(c):
     """A live local contact as comparable values: emails, phones and notes, formatting ignored."""
     return {"emails": sorted(norm(c[k]) for k in EMAIL_KEYS if c.get(k)),
-            "phones": sorted(norm(c[k]) for k in PHONE_KEYS if c.get(k)),
+            "phones": sorted(digits(c[k]) for k in PHONE_KEYS if c.get(k)),
             "notes": norm(c.get("comments", ""))}
 
 
 def canon_google(p):
     info = contact_info(p)
     return {"emails": sorted(norm(v) for v, _ in info["emails"]),
-            "phones": sorted(norm(v) for v, _ in info["phones"]),
+            "phones": sorted(digits(v) for v, _ in info["phones"]),
             "notes": norm(" ".join(info["biographies"]))}
 
 
@@ -677,6 +682,10 @@ def a13():
 def run_scenario(code):
     title, fn = SCENARIOS[code]
     cleanup()
+    # Sessions carry local data between runs, so each scenario starts from none
+    for name in os.listdir(RUNS):
+        if name.startswith("session-"):
+            shutil.rmtree(os.path.join(RUNS, name), ignore_errors=True)
     started = time.time()
     try:
         checks = fn()
@@ -1091,6 +1100,7 @@ def main(argv):
     if argv[0] != "run":
         print(__doc__)
         return 2
+    os.makedirs(RUNS, exist_ok=True)
     codes = argv[1:] or list(SCENARIOS)
     print("results in", RUNS)
     for code in codes:
