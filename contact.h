@@ -143,6 +143,7 @@ public:
     bool isNull() ;
 
     bool isEmpty() ;
+    bool isBlank() ;
     bool isDirty() ;
 
     // Set following new, until load or first save

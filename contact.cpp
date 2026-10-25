@@ -110,6 +110,16 @@ bool Contact::isEmpty()
     return isempty && history.isEmpty() && todo.isEmpty() ;
 }
 
+// A blank contact has nothing entered: it is still called 'Unnamed Contact', with no
+// details, history or to-do items
+bool Contact::isBlank()
+{
+    Contact blank ;
+    return getFormattedName(false,false).compare("Unnamed Contact")==0 &&
+            matches(blank, Contact::mcDetails) &&
+            history.isEmpty() && todo.isEmpty() ;
+}
+
 bool Contact::isDirty()
 {
     return isdirty || history.isdirty() || todo.isdirty() ;

@@ -38,6 +38,24 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
 
     ui->pushButton->setFocus() ;
 
+    // Start of the sync.  Birthdays come from the contacts list, so the stored copies are
+    // moved to the deleted folder.  A blank contact never uploaded has nothing on Google, so
+    // it is marked deleted now and moved at the end.  Blank contacts already on Google are
+    // handled in the contact sync, once Google's copy has been downloaded.
+    int birthdays = cal.tidyBirthdays(false) ;
+    ui->updateStatusReport->append(QString("Moved %1 stored birthday entries to the deleted folder.").arg(birthdays)) ;
+
+    Contact& selectedcontact = db.getSelected() ;
+    int blanks = 0 ;
+    for (int i=0; i<db.size(); i++) {
+        Contact& localcontact = db.getContact(i) ;
+        if (&localcontact==&selectedcontact || localcontact.isSet(Contact::Hidden) || localcontact.isSet(Contact::Deleted)) continue ;
+        if (!localcontact.getField(Contact::GoogleRecordId).isEmpty() || !localcontact.isBlank()) continue ;
+        localcontact.setFlag(Contact::Deleted, true) ;
+        blanks++ ;
+    }
+    ui->updateStatusReport->append(QString("Marked %1 empty contact(s) for removal.").arg(blanks)) ;
+
     // Set the OAUTH2 Refresh Token
     QString refreshtoken = gConf->getGoogleOauth2RefreshToken() ;
     google.setupRToken(refreshtoken) ;
@@ -114,6 +132,17 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
     }
 
     ui->updateStatusReport->append(QString("")) ;
+    // Last step: move deleted contacts with no Google link to the deleted folder.  A deleted
+    // contact still linked to Google has not yet been confirmed as removed there, so it stays.
+    if (state>=0) {
+        int linked=0 ;
+        int archived = db.tidyDeleted(linked) ;
+        ui->updateStatusReport->append(QString("Moved %1 deleted contact(s) to the deleted folder.").arg(archived)) ;
+        if (linked>0) {
+            ui->updateStatusReport->append(QString("%1 deleted contact(s) still have a Google link; run Google Sync again.").arg(linked)) ;
+        }
+    }
+
     ui->progressBar->setValue(1000) ;
     play(Query) ;
 
