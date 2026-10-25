@@ -630,6 +630,13 @@ void MainWindow::on_actionTidyContacts_triggered()
         db.save() ;
     }
 
+    // Unnamed entries: blank ones are deleted, and one whose only detail is an email address takes it as
+    // its surname.  The others are left, and listed at the end.
+    int emptied=0, renamed=0 ;
+    QStringList unnamedleft ;
+    db.tidyUnnamed(emptied, renamed, unnamedleft) ;
+    if (emptied>0 || renamed>0) db.save() ;
+
     // Lists the merged entry, one detail per line.  Each value is marked with the entry it came from, (1) or (2).
     auto describe = [](Contact &merged, Contact &first, Contact &second) {
         QStringList lines ;
@@ -696,7 +703,7 @@ void MainWindow::on_actionTidyContacts_triggered()
     for (int i=0; i<total && !stopped; i++) {
 
         Contact &first = db.getContact(i) ;
-        if (first.isSet(Contact::Deleted)) continue ;
+        if (first.isSet(Contact::Deleted) || db.isUnnamed(first)) continue ;
 
         int percent = (i*100)/total ;
         progress.reportProgress(percent, QString("Checking %1").arg(QString(first.getFormattedName(false, true)))) ;
@@ -707,7 +714,7 @@ void MainWindow::on_actionTidyContacts_triggered()
             if (first.isSet(Contact::Deleted)) break ;      // merged away by an earlier pair
 
             Contact &second = db.getContact(j) ;
-            if (second.isSet(Contact::Deleted)) continue ;
+            if (second.isSet(Contact::Deleted) || db.isUnnamed(second)) continue ;
             if (!db.isMergeCandidate(first, second)) continue ;
 
             // Keep the visible entry, then the one linked to Google.  If neither differs, keep the older one.
@@ -790,8 +797,8 @@ void MainWindow::on_actionTidyContacts_triggered()
         }
     }
 
-    if (automatic==0 && confirmed==0 && declined==0 && historylines==0) {
-        progress.finishProgress(stopped ? "Stopped at your request." : "No duplicate contacts or repeated history lines were found.") ;
+    if (automatic==0 && confirmed==0 && declined==0 && historylines==0 && emptied==0 && renamed==0 && unnamedleft.isEmpty()) {
+        progress.finishProgress(stopped ? "Stopped at your request." : "No duplicate contacts, repeated history lines or unnamed entries were found.") ;
         return ;
     }
 
@@ -803,6 +810,11 @@ void MainWindow::on_actionTidyContacts_triggered()
 
     QStringList summary ;
     summary << QString("Removed %1 repeated history lines from %2 contacts.").arg(historylines).arg(historycontacts) ;
+    summary << QString("Unnamed entries: %1 empty entries deleted, %2 given their email address as surname.").arg(emptied).arg(renamed) ;
+    if (!unnamedleft.isEmpty()) {
+        summary << QString("Unnamed entries left alone (%1):").arg(unnamedleft.size()) ;
+        foreach (const QString &line, unnamedleft) summary << "    " + line ;
+    }
     summary << QString("Summary: merged %1 automatically and %2 after you confirmed; %3 not merged (you chose Skip).")
                .arg(automatic).arg(confirmed).arg(declined) ;
     summary << QString("Moved %1 removed entries to the deleted folder.").arg(archived) ;

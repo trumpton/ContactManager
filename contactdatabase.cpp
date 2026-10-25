@@ -314,8 +314,85 @@ static void noteInComments(Contact &merged, const QString &label, const QString 
 }
 
 // Two entries can be considered for merging when they have the same name, or share a phone number or email
+// An unnamed entry has no names to match on.  Two of them would otherwise match each other, so they are
+// never offered for merging.
+bool ContactDatabase::isUnnamed(Contact &c)
+{
+    // Not the formatted name, which shows the email address when there is no name
+    return c.getField(Contact::Names).trimmed().isEmpty() && c.getField(Contact::Surname).trimmed().isEmpty() ;
+}
+
+// Lists what an entry holds, as field names only, so that the list can be read without showing the details
+static QStringList heldDetails(Contact &c)
+{
+    struct Item { Contact::ContactRecord field ; const char *label ; } ;
+    const Item items[] = {
+        { Contact::Organisation, "organisation" }, { Contact::Address, "address" }, { Contact::Address2, "address 2" },
+        { Contact::Phone, "phone" }, { Contact::Work, "work phone" }, { Contact::Mobile, "mobile" },
+        { Contact::Phone2, "phone 2" }, { Contact::Phone3, "phone 3" }, { Contact::Phone4, "phone 4" },
+        { Contact::Email, "email" }, { Contact::Email2, "other email" }, { Contact::Email3, "email 3" },
+        { Contact::Email4, "email 4" }, { Contact::Webaddress, "website" }, { Contact::Birthday, "birthday" },
+        { Contact::Comments, "comments" } } ;
+
+    QStringList held ;
+    for (unsigned int n=0; n<sizeof(items)/sizeof(items[0]); n++) {
+        if (!c.getField(items[n].field).trimmed().isEmpty()) held << items[n].label ;
+    }
+    if (!c.getTodo().isEmpty()) held << "to-do" ;
+    return held ;
+}
+
+void ContactDatabase::tidyUnnamed(int &emptied, int &renamed, QStringList &left)
+{
+    emptied = 0 ;
+    renamed = 0 ;
+    left.clear() ;
+
+    Contact::ContactRecord emailfields[4] = { Contact::Email, Contact::Email2, Contact::Email3, Contact::Email4 } ;
+    Contact::ContactRecord titlefields[2] = { Contact::Email3Title, Contact::Email4Title } ;
+
+    for (int i=0; i<contacts.size(); i++) {
+        Contact &c = contacts[i] ;
+        if (c.isSet(Contact::Deleted) || !isUnnamed(c)) continue ;
+
+        // A blank entry that is still on Google is left: the next Google Sync clears it there, once
+        // Google's copy has been checked.
+        if (c.isBlank()) {
+            if (!c.getField(Contact::GoogleRecordId).isEmpty()) {
+                left << "empty, still on Google: cleared at the next Google Sync" ;
+                continue ;
+            }
+            c.setFlag(Contact::Deleted, true) ;
+            c.getHistory().addEntry("Marking empty record as 'deleted'") ;
+            emptied++ ;
+            continue ;
+        }
+
+        // Exactly one email address, and nothing else: the address becomes the surname
+        int count = 0 ;
+        QString address ;
+        for (int n=0; n<4; n++) {
+            QString value = c.getField(emailfields[n]).trimmed() ;
+            if (!value.isEmpty()) { count++ ; address = value ; }
+        }
+        Contact probe = c ;
+        for (int n=0; n<4; n++) probe.setField(emailfields[n], "") ;
+        for (int n=0; n<2; n++) probe.setField(titlefields[n], "") ;
+        if (count==1 && probe.isBlank()) {
+            c.setField(Contact::Surname, address) ;
+            c.getHistory().addEntry("Surname set from its email address") ;
+            renamed++ ;
+            continue ;
+        }
+
+        QStringList held = heldDetails(c) ;
+        left << QString("has %1").arg(held.isEmpty() ? QString("no details, but a history") : held.join(", ")) ;
+    }
+}
+
 bool ContactDatabase::isMergeCandidate(Contact &a, Contact &b)
 {
+    if (isUnnamed(a) || isUnnamed(b)) return false ;
     if (namesMatch(a, b)) return true ;
 
     // A change of surname, for example after marriage: the first name and birthday must match,

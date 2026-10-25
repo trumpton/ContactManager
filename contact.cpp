@@ -734,6 +734,8 @@ QString& Contact::getFormattedName(bool includeorganisation, bool surnamefirst)
         formattedNameResponse = filedata[Names] ;
     } else if (filedata[Surname] == "" && (filedata[Organisation] != "" && includeorganisation)) {
         formattedNameResponse = filedata[Names] + " (" + filedata[Organisation] + ")" ;
+    } else if (filedata[Names] == "") {
+        formattedNameResponse = filedata[Surname] ;
     } else {
         if (surnamefirst) formattedNameResponse = filedata[Surname] + ", " + filedata[Names] ;
         else formattedNameResponse = filedata[Names] + " " + filedata[Surname] ;
