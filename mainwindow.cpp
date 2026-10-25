@@ -985,6 +985,8 @@ void MainWindow::on_actionOpen_triggered()
         if (!c.isSet(Contact::Deleted) && !c.isSet(Contact::Hidden)) {
             QString name = c.getFormattedName() ;
             QString data = c.getField(Contact::ID) ;
+            // A phone number starting with '+' would sort above the "--" entries, so it is listed as 00
+            if (name.startsWith('+')) name.replace(0, 1, "00") ;
             list.addEntry(name, data) ;
         }
     }
