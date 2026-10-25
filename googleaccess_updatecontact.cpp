@@ -124,18 +124,16 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
             entry.insert("names", a_names) ;
         }
 
-        // Close any gap between the addresses first, so that the contact matches what Google returns
-        if (contact.compactEmails()) contact.markAsDirty() ;
-
         // "emailAddresses": [{
         //     "value": "EMAILADDRESS",
-        //     "type": "Email/Other",
+        //     "type": "home/other",
         // }],
-        // Email and Other are fixed labels.  Email3 and Email4 use their own labels.
+        // home and other are fixed types, which parseContact maps back to Email and Email2.
+        // Email3 and Email4 use their own labels.
         QJsonArray a_emails ;
         Contact::ContactRecord emailfields[4] = { Contact::Email, Contact::Email2, Contact::Email3, Contact::Email4 } ;
         Contact::ContactRecord labelfields[2] = { Contact::Email3Title, Contact::Email4Title } ;
-        QString fixedlabels[2] = { "Email", "Other" } ;
+        QString fixedlabels[2] = { "home", "other" } ;
         for (int i=0; i<4; i++) {
             QString address = contact.getField(emailfields[i]) ;
             if (address.isEmpty()) continue ;
