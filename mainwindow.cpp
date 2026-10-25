@@ -601,49 +601,7 @@ void MainWindow::on_action_Google_Sync_triggered()
     LoadTabs() ;
 }
 
-void MainWindow::on_actionTidy_Deleted_triggered()
-{
-    int linked=0 ;
 
-    if (!warningYesNoDialog(this, "Tidy Deleted Contacts",
-            "Deleted contacts with no Google link will be moved to the deleted folder.\n\n"
-            "Run Google Sync first, so that deleted contacts are removed from Google.\n\nContinue?")) {
-        return ;
-    }
-
-    int archived = db.tidyDeleted(linked) ;
-    populateDialog(SELECT_OVERVIEW) ;
-
-    QString message = QString("Moved %1 deleted contact(s) to the deleted folder.").arg(archived) ;
-    if (linked>0) {
-        message += QString("\n\n%1 deleted contact(s) still have a Google link.  Run Google Sync to remove them from Google.").arg(linked) ;
-    }
-    warningOkDialog(this, "Tidy Deleted Contacts", message) ;
-}
-
-
-
-void MainWindow::on_actionTidy_Birthdays_triggered()
-{
-    int count = calendar.tidyBirthdays(true) ;
-
-    if (count==0) {
-        warningOkDialog(this, "Tidy Birthdays", "There are no stored birthday entries to tidy.") ;
-        return ;
-    }
-
-    if (!warningYesNoDialog(this, "Tidy Birthdays",
-            QString("%1 stored birthday entries will be moved to the deleted folder.\n\n"
-                    "Birthdays are shown from your contacts, so nothing is lost.\n\nContinue?").arg(count))) {
-        return ;
-    }
-
-    int moved = calendar.tidyBirthdays(false) ;
-    calendar.save() ;
-    LoadTabs() ;
-
-    warningOkDialog(this, "Tidy Birthdays", QString("Moved %1 birthday entries to the deleted folder.").arg(moved)) ;
-}
 
 void MainWindow::on_actionExportContacts_triggered()
 {
