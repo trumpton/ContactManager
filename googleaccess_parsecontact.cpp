@@ -322,6 +322,7 @@ bool GoogleAccess::parseContact(QJsonObject &item, Contact &contact)
     // Email: up to four addresses, in the order Google gives them (the order they were uploaded
     // in).  The first two are Email and Other.  The third and fourth take their label from their type.
     int nextemail = 0 ;
+    QStringList extraemails ;
     QJsonArray emailaddresses = item["emailAddresses"].toArray() ;
     foreach (const QJsonValue& emailitem, emailaddresses) {
 
@@ -347,6 +348,8 @@ bool GoogleAccess::parseContact(QJsonObject &item, Contact &contact)
                 contact.setField((nextemail==2) ? Contact::Email3Title : Contact::Email4Title, label) ;
             }
             nextemail++ ;
+        } else if (isMetadataFromContacts(emailitem) && !address.isEmpty()) {
+            extraemails << address ;
         }
     }
 
@@ -374,6 +377,13 @@ bool GoogleAccess::parseContact(QJsonObject &item, Contact &contact)
         if (isMetadataFromContacts(notes[0])) {
             contact.setField(Contact::Comments, notes[0].toObject()["value"].toString()) ;
         }
+    }
+
+    // Only four email addresses are held.  Any others are kept in Comments, so that nothing is lost.
+    foreach (const QString &extra, extraemails) {
+        QString note = QString("Also on Google: %1").arg(extra) ;
+        QString comments = contact.getField(Contact::Comments) ;
+        if (!comments.contains(note)) contact.setField(Contact::Comments, comments.isEmpty() ? note : comments + "\n" + note) ;
     }
 
 
