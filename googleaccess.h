@@ -148,7 +148,7 @@ public:
     bool getContacts(ContactDatabase &googlecontacts) ;
 
     // Update contact on Google Server
-    bool updateContact(Contact &contact, googleAction action, QString etag = QString("")) ;
+    bool updateContact(Contact &contact, googleAction action, QString etag = QString(""), QString personfields = QString(WRITEPERSONFIELDS)) ;
 
     // Update a group on Google with all contact changes
     bool updateSingleGoogleContactGroup(Contact::ContactRecord rec, ContactDatabase &db, ContactDatabase &googledb) ;

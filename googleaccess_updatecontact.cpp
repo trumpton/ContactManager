@@ -36,7 +36,7 @@
 #define DEBUGTRAPID "f9acd413-4f83-47e7-a62e-f653d59c6044"
 
 
-bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString etag)
+bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString etag, QString personfields)
 {
     QString googlerecordid = contact.getField(Contact::GoogleRecordId) ;
     QString url ;
@@ -351,7 +351,7 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
             QString jsontext = doc.toJson() ;
 
             // createnew = POST, Update = PUT
-            jsonresponse = googlePutPostDelete(url.replace("{{PFD}}", WRITEPERSONFIELDS), action, jsontext, QString("updateContact-PutPostPatch-")+contact.getFormattedName(false,false).replace(" ","")) ;
+            jsonresponse = googlePutPostDelete(url.replace("{{PFD}}", personfields), action, jsontext, QString("updateContact-PutPostPatch-")+contact.getFormattedName(false,false).replace(" ","")) ;
             if (getNetworkError().isEmpty()) {
                 addLog("    Put/Post/Patch OK") ;
             } else {

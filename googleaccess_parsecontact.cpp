@@ -11,9 +11,13 @@
 #include <QJsonValueRef>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QUuid>
 
 // Trap ID For Testing Breakpoint
 #define DEBUGTRAPID "f9acd413-4f83-47e7-a62e-f653d59c6044"
+
+// Namespace for the local IDs made from Google contact resource names (see parseContact)
+static const QUuid googleContactIdNamespace("3e8b5a17-6c2d-4f90-a1b4-7d9e2c58f0a3") ;
 
 
 bool GoogleAccess::parseContact(QString &json, QString &tag, Contact &contact)
@@ -80,6 +84,7 @@ QString GoogleAccess::getMetadataField(QJsonValue object, bool primary)
 bool GoogleAccess::parseContact(QJsonObject &item, Contact &contact)
 {
     QString contactmanagerid ;
+    bool hasid = false ;
 
     // Google ETag, Account and Id
     contact.setField(Contact::GoogleRecordId, item["resourceName"].toString()) ;
@@ -119,12 +124,23 @@ bool GoogleAccess::parseContact(QJsonObject &item, Contact &contact)
             QJsonObject obj = extendeditem.toObject() ;
             QString name = obj["key"].toString() ;
             QString value = obj["value"].toString() ;
-            if (name.compare("id")==0) contact.setField(Contact::ID,value) ;
+            if (name.compare("id")==0 && !value.isEmpty()) {
+                contact.setField(Contact::ID,value) ;
+                hasid = true ;
+            }
             if (name.compare("textme")==0) contact.setField(Contact::TextMe,value) ;
             if (name.compare("emailme")==0) contact.setField(Contact::EmailMe,value) ;
             if (name.compare("hidden")==0) contact.setField(Contact::Hidden,value) ;
             if (name.compare("uploaded")==0) contact.setField(Contact::Uploaded, value) ;
         }
+    }
+
+    // A contact the app has not uploaded has no id property, so the ID it was given is a new random one
+    // each time it is downloaded. Derive a stable ID from the Google resource name instead, so the same
+    // contact keeps the same local ID from one sync to the next
+    QString resourcename = item["resourceName"].toString() ;
+    if (!hasid && !resourcename.isEmpty()) {
+        contact.setField(Contact::ID, QUuid::createUuidV5(googleContactIdNamespace, resourcename.toUtf8()).toString(QUuid::WithoutBraces)) ;
     }
 
 #ifdef DEBUGTRAPID
