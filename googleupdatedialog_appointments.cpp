@@ -68,8 +68,10 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
             localappt.setFlag(Appointment::ToBeDownloaded, false) ;
             localappt.setFlag(Appointment::ToBeUploaded, false) ;
         } else {
-            localappt.setFlag(Appointment::ToBeDownloaded, !upload) ;
-            localappt.setFlag(Appointment::ToBeUploaded, upload) ;
+            // Read-only entries (from another Google calendar) are only ever downloaded
+            bool uploadentry = upload && !localappt.isSet(Appointment::InternetOwned) ;
+            localappt.setFlag(Appointment::ToBeDownloaded, !uploadentry) ;
+            localappt.setFlag(Appointment::ToBeUploaded, uploadentry) ;
         }
     }
 
@@ -170,10 +172,11 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
             newlocal.setField(Appointment::Summary, QString("--! Undefined !--")) ;
 
             newlocal.setFlag(Appointment::ToBeDownloaded, true) ;
+            newlocal.setFlag(Appointment::InternetOwned, googleappt.isSet(Appointment::InternetOwned)) ;
 
             // Only re-upload if appointment has not already been uploaded before
-            // (perhaps by another instance of contact manager)
-            if (!googleappt.isSet(Appointment::Uploaded)) {
+            // (perhaps by another instance of contact manager), and never a read-only entry
+            if (!googleappt.isSet(Appointment::Uploaded) && !googleappt.isSet(Appointment::InternetOwned)) {
                 newlocal.setFlag(Appointment::ToBeUploaded, true) ;
             }
             cal.addAppointment(newlocal) ;

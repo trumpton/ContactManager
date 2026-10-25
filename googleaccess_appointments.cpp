@@ -241,8 +241,9 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
     if (appt.isSet(Appointment::Deleted))
         action = GoogleAccess::Delete ;
 
-    // Prevent read-only Google entries being changed (should never happen as entry is readonly)
-    if (action!=GoogleAccess::Post && appt.isSet(Appointment::InternetOwned))
+    // Read-only Google entries are never sent to Google, not even as a POST: a POST would create
+    // a new copy of the entry on every sync
+    if (appt.isSet(Appointment::InternetOwned))
         return true ;
 
     // Get account
