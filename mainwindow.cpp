@@ -612,7 +612,7 @@ void MainWindow::on_action_Google_Sync_triggered()
 
 
 
-void MainWindow::on_actionMergeDuplicates_triggered()
+void MainWindow::on_actionTidyContacts_triggered()
 {
     // Save what is on screen, and stop showing a contact that may be merged away
     SaveTabs() ;
@@ -620,30 +620,71 @@ void MainWindow::on_actionMergeDuplicates_triggered()
 
     // Progress is shown in a window with a log, which also carries the summary at the end
     GoogleUpdateDialog progress(this) ;
-    progress.showProgress("Merge Duplicate Contacts") ;
+    progress.showProgress("Tidy Contacts") ;
 
-    // Describes the entry as it will be, one detail per line
-    auto describe = [](Contact &c) {
+    // Repeated history lines go first, in every contact
+    int historylines=0, historycontacts=0 ;
+    historylines = db.tidyHistories(historycontacts) ;
+    if (historycontacts>0) {
+        progress.reportProgress(0, QString("Removed %1 repeated history lines from %2 contacts").arg(historylines).arg(historycontacts)) ;
+        db.save() ;
+    }
+
+    // Lists the merged entry, one detail per line.  Each value is marked with the entry it came from, (1) or (2).
+    auto describe = [](Contact &merged, Contact &first, Contact &second) {
         QStringList lines ;
-        auto add = [&](QString label, QString value) {
-            if (!value.trimmed().isEmpty()) lines << "    " + label + ": " + QString(value.trimmed()).replace("\n", ", ") ;
+
+        // The entry (1 or 2) that holds this value in one of the fields, or blank if neither does
+        auto origin = [&](QString value, QList<Contact::ContactRecord> fields) -> QString {
+            QString v = value.trimmed() ;
+            if (v.isEmpty()) return QString() ;
+            foreach (Contact::ContactRecord f, fields) if (first.getField(f).trimmed()==v) return "1" ;
+            foreach (Contact::ContactRecord f, fields) if (second.getField(f).trimmed()==v) return "2" ;
+            return QString() ;
         } ;
-        add("Name", QString(c.getFormattedName(false, true))) ;
-        add("Organisation", c.getField(Contact::Organisation)) ;
-        add("Address", c.getField(Contact::Address)) ;
-        add("Address 2", c.getField(Contact::Address2)) ;
-        add("Birthday", c.getField(Contact::Birthday)) ;
-        add("Email", c.getField(Contact::Email)) ;
-        add("Other email", c.getField(Contact::Email2)) ;
-        add(c.getField(Contact::Email3Title).isEmpty() ? QString("Email 3") : c.getField(Contact::Email3Title), c.getField(Contact::Email3)) ;
-        add(c.getField(Contact::Email4Title).isEmpty() ? QString("Email 4") : c.getField(Contact::Email4Title), c.getField(Contact::Email4)) ;
-        add("Phone", c.getField(Contact::Phone)) ;
-        add("Work", c.getField(Contact::Work)) ;
-        add("Mobile", c.getField(Contact::Mobile)) ;
-        add(c.getField(Contact::Phone2Title).isEmpty() ? QString("Phone 2") : c.getField(Contact::Phone2Title), c.getField(Contact::Phone2)) ;
-        add(c.getField(Contact::Phone3Title).isEmpty() ? QString("Phone 3") : c.getField(Contact::Phone3Title), c.getField(Contact::Phone3)) ;
-        add(c.getField(Contact::Phone4Title).isEmpty() ? QString("Phone 4") : c.getField(Contact::Phone4Title), c.getField(Contact::Phone4)) ;
-        add("Comments", c.getField(Contact::Comments)) ;
+
+        // A line for a value.  Continuation lines are indented to line up under the value.
+        auto add = [&](QString label, QString value, QString from) {
+            QString v = value.trimmed() ;
+            if (v.isEmpty()) return ;
+            QString indent(4 + label.size() + 2, ' ') ;
+            lines << "    " + label + ": " + v.replace("\n", "\n" + indent) + (from.isEmpty() ? QString() : QString(" (%1)").arg(from)) ;
+        } ;
+
+        QList<Contact::ContactRecord> emails = { Contact::Email, Contact::Email2, Contact::Email3, Contact::Email4 } ;
+        QList<Contact::ContactRecord> phones = { Contact::Phone, Contact::Work, Contact::Mobile,
+                                                 Contact::Phone2, Contact::Phone3, Contact::Phone4 } ;
+
+        // A value with a label of its own: the title, when it has one
+        auto field = [&](QString label, Contact::ContactRecord f, QList<Contact::ContactRecord> fields) {
+            add(label, merged.getField(f), origin(merged.getField(f), fields)) ;
+        } ;
+        auto titled = [&](QString label, Contact::ContactRecord f, Contact::ContactRecord titlefield, QList<Contact::ContactRecord> fields) {
+            QString title = merged.getField(titlefield).trimmed() ;
+            field(title.isEmpty() ? label : title, f, fields) ;
+        } ;
+
+        add("Name", QString(merged.getFormattedName(false, true)), origin(merged.getField(Contact::Surname), { Contact::Surname })) ;
+        field("Organisation", Contact::Organisation, { Contact::Organisation }) ;
+        field("Address", Contact::Address, { Contact::Address }) ;
+        field("Address 2", Contact::Address2, { Contact::Address2 }) ;
+        field("Birthday", Contact::Birthday, { Contact::Birthday }) ;
+        field("Email", Contact::Email, emails) ;
+        field("Other", Contact::Email2, emails) ;
+        titled("Email 3", Contact::Email3, Contact::Email3Title, emails) ;
+        titled("Email 4", Contact::Email4, Contact::Email4Title, emails) ;
+        field("Phone", Contact::Phone, phones) ;
+        field("Work", Contact::Work, phones) ;
+        field("Mobile", Contact::Mobile, phones) ;
+        titled("Phone 2", Contact::Phone2, Contact::Phone2Title, phones) ;
+        titled("Phone 3", Contact::Phone3, Contact::Phone3Title, phones) ;
+        titled("Phone 4", Contact::Phone4, Contact::Phone4Title, phones) ;
+
+        QStringList commentsfrom ;
+        if (!first.getField(Contact::Comments).trimmed().isEmpty()) commentsfrom << "1" ;
+        if (!second.getField(Contact::Comments).trimmed().isEmpty()) commentsfrom << "2" ;
+        add("Comments", merged.getField(Contact::Comments), commentsfrom.join(", ")) ;
+
         return lines ;
     } ;
 
@@ -669,12 +710,11 @@ void MainWindow::on_actionMergeDuplicates_triggered()
             if (second.isSet(Contact::Deleted)) continue ;
             if (!db.isMergeCandidate(first, second)) continue ;
 
-            // Keep the entry linked to Google.  If both or neither are linked, keep the older one.
+            // Keep the visible entry, then the one linked to Google.  If neither differs, keep the older one.
             bool firstlinked = !first.getField(Contact::GoogleRecordId).isEmpty() ;
             bool secondlinked = !second.getField(Contact::GoogleRecordId).isEmpty() ;
             QDateTime firstcreated = first.getDate(Contact::Created) ;
             QDateTime secondcreated = second.getDate(Contact::Created) ;
-            // Keep the visible entry, then the one linked to Google.  If neither differs, keep the older one.
             bool firsthidden = first.isSet(Contact::Hidden) ;
             bool secondhidden = second.isSet(Contact::Hidden) ;
             bool keepfirst ;
@@ -686,7 +726,7 @@ void MainWindow::on_actionMergeDuplicates_triggered()
             Contact &remove = keepfirst ? second : first ;
 
             Contact merged ;
-            QStringList conflicts ;
+            QList<MergeConflict> conflicts ;
             db.planMerge(keep, remove, merged, conflicts) ;
 
             QString namefirst = QString(first.getFormattedName(false, true)) ;
@@ -697,16 +737,39 @@ void MainWindow::on_actionMergeDuplicates_triggered()
                 automatic++ ;
                 progress.reportProgress(percent, QString("Merged automatically: %1").arg(pair)) ;
             } else {
-                QString message = QString("These entries may be the same person:\n\n    %1\n    %2\n\n").arg(namefirst, namesecond) ;
-                if (conflicts.isEmpty()) {
-                    message += "No details conflict, but they do not share a name, phone number, email address or address, so they may be different people.\n\n" ;
-                } else {
-                    message += "These details differ:\n    " + conflicts.join("\n    ") + "\n\n" ;
-                }
-                message += "If merged, the entry will be:\n" + describe(merged).join("\n") + "\n\n" ;
-                message += "Merge them?" ;
+                // The entries are numbered (1) and (2) in the order they are listed, with hidden ones marked
+                auto entry = [](QString name, bool hidden, int number) {
+                    return QString("    %1 (%2%3)").arg(name).arg(number).arg(hidden ? ", hidden" : "") ;
+                } ;
+                QStringList sections ;
+                sections << "These entries may be the same person:\n" + entry(namefirst, firsthidden, 1) + "\n" + entry(namesecond, secondhidden, 2) ;
 
-                if (!warningYesNoDialog(this, "Merge Duplicate Contacts", message, "Merge", QChar('y'), "Skip", QChar('n'))) {
+                // The values that differ, from each entry.  A value with no free slot is said to go to Comments.
+                int keepindex = keepfirst ? 1 : 2 ;
+                if (conflicts.isEmpty()) {
+                    sections << "No details conflict, but they do not share a name, phone number, email address or address, so they may be different people." ;
+                } else {
+                    QStringList lines ;
+                    foreach (const MergeConflict &c, conflicts) {
+                        if (c.overflow) {
+                            bool fromkept = !c.keptvalue.isEmpty() ;
+                            QString value = fromkept ? c.keptvalue : c.removedvalue ;
+                            int index = fromkept ? keepindex : 3-keepindex ;
+                            lines << QString("    %1(%2): %3, which has no free slot, so it goes to Comments").arg(c.field).arg(index).arg(value.trimmed().replace("\n", ", ")) ;
+                            continue ;
+                        }
+                        QString firstvalue = keepfirst ? c.keptvalue : c.removedvalue ;
+                        QString secondvalue = keepfirst ? c.removedvalue : c.keptvalue ;
+                        if (!firstvalue.trimmed().isEmpty()) lines << QString("    %1(1): %2").arg(c.field, firstvalue.trimmed().replace("\n", ", ")) ;
+                        if (!secondvalue.trimmed().isEmpty()) lines << QString("    %1(2): %2").arg(c.field, secondvalue.trimmed().replace("\n", ", ")) ;
+                    }
+                    sections << "These details differ:\n" + lines.join("\n") ;
+                }
+
+                sections << "If merged, the entry will be:\n" + describe(merged, first, second).join("\n") ;
+                sections << "Merge them?" ;
+
+                if (!warningYesNoDialog(this, "Tidy Contacts", sections.join("\n\n"), "Merge", QChar('y'), "Skip", QChar('n'))) {
                     declined++ ;
                     skippedlines << pair ;
                     progress.reportProgress(percent, QString("Not merged (you chose Skip): %1").arg(pair)) ;
@@ -727,8 +790,8 @@ void MainWindow::on_actionMergeDuplicates_triggered()
         }
     }
 
-    if (automatic==0 && confirmed==0 && declined==0) {
-        progress.finishProgress(stopped ? "Stopped at your request." : "No duplicate contacts were found.") ;
+    if (automatic==0 && confirmed==0 && declined==0 && historylines==0) {
+        progress.finishProgress(stopped ? "Stopped at your request." : "No duplicate contacts or repeated history lines were found.") ;
         return ;
     }
 
@@ -739,6 +802,7 @@ void MainWindow::on_actionMergeDuplicates_triggered()
     populateDialog(SELECT_OVERVIEW) ;
 
     QStringList summary ;
+    summary << QString("Removed %1 repeated history lines from %2 contacts.").arg(historylines).arg(historycontacts) ;
     summary << QString("Summary: merged %1 automatically and %2 after you confirmed; %3 not merged (you chose Skip).")
                .arg(automatic).arg(confirmed).arg(declined) ;
     summary << QString("Moved %1 removed entries to the deleted folder.").arg(archived) ;
