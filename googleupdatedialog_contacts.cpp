@@ -139,6 +139,12 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
         // A deletion made locally must reach Google, whichever side is the master
         if (localcontact.isSet(Contact::Deleted) && !localcontact.getField(Contact::GoogleRecordId).isEmpty()) {
             upload=true ;
+
+            // A merged-away entry is removed from Google only once the entry it was merged into has reached
+            // Google, so that the merged details are never lost
+            QString keptid = localcontact.getField(Contact::MergedInto) ;
+            Contact &kept = db.getContactById(keptid) ;
+            if (!keptid.isEmpty() && !kept.isNull() && kept.isSet(Contact::MergePending)) upload=false ;
         }
 
         localcontact.setFlag(Contact::ToBeDownloaded, !upload) ;
@@ -441,12 +447,12 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
                     localcontact.copyTo(googlecontact, Contact::mcDetails|Contact::mcId|Contact::mcGoogleId) ;
                     localcontact.setFlag(Contact::MergePending, false) ;
                 } else {
-                    ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false, false)  + QString(" - FAILED Updating Google Contact Details")) ;
+                    ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false, false)  + QString(" - FAILED Updating Google Contact Details: ") + google.getNetworkError()) ;
                     networkok = false ;
                 }
 
                 // If the record has been successfully removed from Google, forget the local details
-                if (networkok && (localcontact.isSet(Contact::Deleted) || localcontact.isSet(Contact::Hidden))) {
+                if (uploaded && (localcontact.isSet(Contact::Deleted) || localcontact.isSet(Contact::Hidden))) {
                     localcontact.setField(Contact::GoogleRecordId, QString("")) ;
                     localcontact.setField(Contact::GoogleEtag, QString("")) ;
                     localcontact.setFlag(Contact::ToBeUploaded, false) ;

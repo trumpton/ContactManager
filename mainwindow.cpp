@@ -648,6 +648,7 @@ void MainWindow::on_actionMergeDuplicates_triggered()
     } ;
 
     int automatic=0, confirmed=0, declined=0 ;
+    QStringList changedlines, skippedlines ;   // reported again at the end
     int total = db.size() ;
     bool stopped = false ;
 
@@ -673,7 +674,13 @@ void MainWindow::on_actionMergeDuplicates_triggered()
             bool secondlinked = !second.getField(Contact::GoogleRecordId).isEmpty() ;
             QDateTime firstcreated = first.getDate(Contact::Created) ;
             QDateTime secondcreated = second.getDate(Contact::Created) ;
-            bool keepfirst = (firstlinked != secondlinked) ? firstlinked : !(secondcreated < firstcreated) ;
+            // Keep the visible entry, then the one linked to Google.  If neither differs, keep the older one.
+            bool firsthidden = first.isSet(Contact::Hidden) ;
+            bool secondhidden = second.isSet(Contact::Hidden) ;
+            bool keepfirst ;
+            if (firsthidden != secondhidden) keepfirst = !firsthidden ;
+            else if (firstlinked != secondlinked) keepfirst = firstlinked ;
+            else keepfirst = !(secondcreated < firstcreated) ;
 
             Contact &keep = keepfirst ? first : second ;
             Contact &remove = keepfirst ? second : first ;
@@ -701,6 +708,7 @@ void MainWindow::on_actionMergeDuplicates_triggered()
 
                 if (!warningYesNoDialog(this, "Merge Duplicate Contacts", message, "Merge", QChar('y'), "Skip", QChar('n'))) {
                     declined++ ;
+                    skippedlines << pair ;
                     progress.reportProgress(percent, QString("Not merged (you chose Skip): %1").arg(pair)) ;
                     continue ;
                 }
@@ -713,6 +721,9 @@ void MainWindow::on_actionMergeDuplicates_triggered()
             QString keptid = keep.getField(Contact::ID) ;
             db.applyMerge(keep, remove, merged) ;
             calendar.repointContact(removedid, keptid) ;
+            QString keptname = keepfirst ? namefirst : namesecond ;
+            QString removedname = keepfirst ? namesecond : namefirst ;
+            changedlines << QString("kept and updated: %1 (merged in: %2, now removed)").arg(keptname, removedname) ;
         }
     }
 
@@ -734,6 +745,11 @@ void MainWindow::on_actionMergeDuplicates_triggered()
     if (linked>0) summary << QString("%1 removed entries are still on Google.").arg(linked) ;
     summary << "Run Google Sync to send the merged details, and to remove the others from Google." ;
     if (stopped) summary << "Stopped at your request, so the remaining contacts were not checked." ;
+
+    summary << QString("Records changed by this merge (%1):").arg(changedlines.size()) ;
+    foreach (const QString &line, changedlines) summary << "    " + line ;
+    summary << QString("Skipped at your choice (%1):").arg(skippedlines.size()) ;
+    foreach (const QString &line, skippedlines) summary << "    " + line ;
     progress.finishProgress(summary.join("\n")) ;
 }
 

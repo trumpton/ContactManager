@@ -456,13 +456,12 @@ void ContactDatabase::planMerge(Contact &keep, Contact &remove, Contact &merged,
         emailseen << emailKey(address) ;
 
         QString label = (i<2) ? fixedlabels[i] : remove.getField(titlefields[i]).trimmed() ;
+        // Try its own slot first.  An address with a fixed label may use either fixed slot before the
+        // labelled ones.  A labelled address may use its own slot, then the free labelled slots.
+        int candidates[4] = { i, (i<2) ? 1-i : 2, (i<2) ? 2 : 3, 3 } ;
         int slot = -1 ;
-        if (addresses[i].isEmpty()) {
-            slot = i ;
-        } else {
-            for (int k=2; k<4 && slot<0; k++) {
-                if (addresses[k].isEmpty()) slot = k ;
-            }
+        for (int c=0; c<4 && slot<0; c++) {
+            if (addresses[candidates[c]].isEmpty()) slot = candidates[c] ;
         }
 
         if (slot<0) {
@@ -534,6 +533,7 @@ void ContactDatabase::applyMerge(Contact &keep, Contact &remove, Contact &merged
 
     remove.getHistory().addEntry("Merged into another entry") ;
     remove.setFlag(Contact::Deleted, true) ;
+    remove.setField(Contact::MergedInto, keep.getField(Contact::ID)) ;
     if (linkmoved) {
         remove.setField(Contact::GoogleRecordId, "") ;
         remove.setField(Contact::GoogleEtag, "") ;
