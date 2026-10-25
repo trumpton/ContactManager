@@ -727,9 +727,18 @@ QString& Contact::getFormattedName(bool includeorganisation, bool surnamefirst)
     if (filedata[Names] == "" && filedata[Surname] == "" && filedata[Organisation] != "") {
         formattedNameResponse = filedata[Organisation] ;
     } else if (filedata[Names] == "" && filedata[Surname] == "") {
-        formattedNameResponse = filedata[Email] ;
-        if (formattedNameResponse.isEmpty()) formattedNameResponse = filedata[Email2] ;
-        if (formattedNameResponse.isEmpty()) formattedNameResponse = "Unnamed Contact" ;
+        // No name: show the first detail held, in this order, or "Unnamed Contact" if there is none
+        Contact::ContactRecord fallback[] = { Email, Email2, Email3, Email4,
+                                              Phone, Work, Mobile, Phone2, Phone3, Phone4,
+                                              Address, Address2, Webaddress } ;
+        formattedNameResponse = "Unnamed Contact" ;
+        for (unsigned int n=0; n<sizeof(fallback)/sizeof(fallback[0]); n++) {
+            QString detail = filedata[fallback[n]].trimmed() ;
+            if (!detail.isEmpty()) {
+                formattedNameResponse = detail.replace("\n", ", ") ;
+                break ;
+            }
+        }
     } else if (filedata[Surname] == "" && (filedata[Organisation] == "" || !includeorganisation)) {
         formattedNameResponse = filedata[Names] ;
     } else if (filedata[Surname] == "" && (filedata[Organisation] != "" && includeorganisation)) {
