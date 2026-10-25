@@ -193,7 +193,6 @@ public:
     QDateTime& getDate(enum ContactRecord field) ;
 
     bool sortPhoneNumbers() ;
-    bool compactEmails() ;
 
     QString& getGoogleRecordId() ;
     QString &getFormattedName(bool includeorganisation=true, bool surnamefirst=true) ;
