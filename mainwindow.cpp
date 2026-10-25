@@ -589,6 +589,11 @@ void MainWindow::on_action_Google_Sync_triggered()
     // Save tabs before sync
     SaveTabs() ;
 
+    // A blank contact on screen is removed by the sync, so stop showing it first
+    if (!db.getSelected().isNull() && db.getSelected().isBlank()) {
+        db.selectContact(SELECT_OVERVIEW) ;
+    }
+
     frm = new GoogleUpdateDialog(this) ;
     play(Ok) ;
     frm->doUpdate(google, db, calendar) ;
@@ -597,8 +602,12 @@ void MainWindow::on_action_Google_Sync_triggered()
     // Save now, so links cleared by the sync are kept if the app is stopped
     db.save() ;
 
-    // And re-load
-    LoadTabs() ;
+    // And re-load.  If the selected contact was removed by the sync, show the overview
+    if (db.getSelected().isNull()) {
+        populateDialog(SELECT_OVERVIEW) ;
+    } else {
+        LoadTabs() ;
+    }
 }
 
 

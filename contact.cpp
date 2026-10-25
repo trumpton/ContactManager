@@ -110,14 +110,31 @@ bool Contact::isEmpty()
     return isempty && history.isEmpty() && todo.isEmpty() ;
 }
 
+// History lines written by the sync and the tidy steps, rather than by the user.  Lines
+// are "dd-MMM-yyyy: text."
+static bool isSystemHistoryLine(const QString &line)
+{
+    int sep = line.indexOf(": ") ;
+    QString text = (sep<0) ? line : line.mid(sep+2) ;
+    return text.startsWith("Uploaded") || text.startsWith("Downloaded") ||
+            text.startsWith("Deleted") || text.startsWith("Hidden") ||
+            text.startsWith("Moving entry") || text.startsWith("Marking empty") ;
+}
+
 // A blank contact has nothing entered: it is still called 'Unnamed Contact', with no
-// details, history or to-do items
+// details, no to-do items, and no history written by the user
 bool Contact::isBlank()
 {
     Contact blank ;
-    return getFormattedName(false,false).compare("Unnamed Contact")==0 &&
-            matches(blank, Contact::mcDetails) &&
-            history.isEmpty() && todo.isEmpty() ;
+    if (getFormattedName(false,false).compare("Unnamed Contact")!=0) return false ;
+    if (!matches(blank, Contact::mcDetails)) return false ;
+    if (!todo.isEmpty()) return false ;
+
+    QStringList lines = QString(history.getHistory()).split("\n", Qt::SkipEmptyParts) ;
+    foreach (const QString &line, lines) {
+        if (!isSystemHistoryLine(line)) return false ;
+    }
+    return true ;
 }
 
 bool Contact::isDirty()
