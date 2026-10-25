@@ -1,4 +1,5 @@
 #include "googleupdatedialog.h"
+#include <QCoreApplication>
 #include "ui_googleupdatedialog.h"
 #include "configuration.h"
 #include "../Lib/supportfunctions.h"
@@ -27,7 +28,7 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
     state = 1 ; // Processing
 
     ui->progressBar->setRange(0, 1000);
-    ui->progressBar->setValue(0) ;
+    setProgress(0) ;
 
     setModal(true) ;
 
@@ -100,7 +101,7 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
 
     }
 
-    ui->progressBar->setValue(500) ;
+    setProgress(500) ;
 
     bool consuccess = true ;
 
@@ -142,7 +143,7 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
         }
     }
 
-    ui->progressBar->setValue(1000) ;
+    setProgress(1000) ;
     play(Query) ;
 
     if (state<0) {
@@ -188,4 +189,52 @@ void GoogleUpdateDialog::on_pushButton_clicked()
         accept() ;
         break ;
     }
+}
+
+//=====================================================================================================
+//
+// Progress: the bar and the log, shared by the sync and by other long operations
+//
+
+void GoogleUpdateDialog::setProgress(int value)
+{
+    ui->progressBar->setValue(value) ;
+    QCoreApplication::processEvents() ;
+}
+
+void GoogleUpdateDialog::showProgress(QString title)
+{
+    state = 1 ;
+    setWindowTitle(title) ;
+    ui->progressBar->setRange(0, 100) ;
+    ui->progressBar->setValue(0) ;
+    setModal(true) ;
+    ui->pushButton->setAccessibleName("Abort") ;
+    ui->pushButton->setText("Abort") ;
+    show() ;
+    ui->pushButton->setFocus() ;
+}
+
+void GoogleUpdateDialog::reportProgress(int percent, QString line)
+{
+    ui->progressBar->setValue(percent) ;
+    if (!line.isEmpty()) ui->updateStatusReport->append(line) ;
+    QCoreApplication::processEvents() ;
+}
+
+bool GoogleUpdateDialog::isAborted()
+{
+    return state<0 ;
+}
+
+// Writes the summary to the log, and waits for Close
+void GoogleUpdateDialog::finishProgress(QString summary)
+{
+    ui->updateStatusReport->append(summary) ;
+    ui->progressBar->setValue(100) ;
+    state = 2 ;
+    ui->pushButton->setAccessibleName("Close") ;
+    ui->pushButton->setText("Close") ;
+    ui->pushButton->setFocus() ;
+    exec() ;
 }

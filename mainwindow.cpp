@@ -618,16 +618,54 @@ void MainWindow::on_actionMergeDuplicates_triggered()
     SaveTabs() ;
     db.selectContact(SELECT_OVERVIEW) ;
 
+    // Progress is shown in a window with a log, which also carries the summary at the end
+    GoogleUpdateDialog progress(this) ;
+    progress.showProgress("Merge Duplicate Contacts") ;
+
+    // Describes the entry as it will be, one detail per line
+    auto describe = [](Contact &c) {
+        QStringList lines ;
+        auto add = [&](QString label, QString value) {
+            if (!value.trimmed().isEmpty()) lines << "    " + label + ": " + QString(value.trimmed()).replace("\n", ", ") ;
+        } ;
+        add("Name", QString(c.getFormattedName(false, true))) ;
+        add("Organisation", c.getField(Contact::Organisation)) ;
+        add("Address", c.getField(Contact::Address)) ;
+        add("Address 2", c.getField(Contact::Address2)) ;
+        add("Birthday", c.getField(Contact::Birthday)) ;
+        add("Email", c.getField(Contact::Email)) ;
+        add("Other email", c.getField(Contact::Email2)) ;
+        add(c.getField(Contact::Email3Title).isEmpty() ? QString("Email 3") : c.getField(Contact::Email3Title), c.getField(Contact::Email3)) ;
+        add(c.getField(Contact::Email4Title).isEmpty() ? QString("Email 4") : c.getField(Contact::Email4Title), c.getField(Contact::Email4)) ;
+        add("Phone", c.getField(Contact::Phone)) ;
+        add("Work", c.getField(Contact::Work)) ;
+        add("Mobile", c.getField(Contact::Mobile)) ;
+        add(c.getField(Contact::Phone2Title).isEmpty() ? QString("Phone 2") : c.getField(Contact::Phone2Title), c.getField(Contact::Phone2)) ;
+        add(c.getField(Contact::Phone3Title).isEmpty() ? QString("Phone 3") : c.getField(Contact::Phone3Title), c.getField(Contact::Phone3)) ;
+        add(c.getField(Contact::Phone4Title).isEmpty() ? QString("Phone 4") : c.getField(Contact::Phone4Title), c.getField(Contact::Phone4)) ;
+        add("Comments", c.getField(Contact::Comments)) ;
+        return lines ;
+    } ;
+
     int automatic=0, confirmed=0, declined=0 ;
+    int total = db.size() ;
+    bool stopped = false ;
 
-    for (int i=0; i<db.size(); i++) {
-        for (int j=i+1; j<db.size(); j++) {
+    for (int i=0; i<total && !stopped; i++) {
 
-            Contact &first = db.getContact(i) ;
+        Contact &first = db.getContact(i) ;
+        if (first.isSet(Contact::Deleted)) continue ;
+
+        int percent = (i*100)/total ;
+        progress.reportProgress(percent, QString("Checking %1").arg(QString(first.getFormattedName(false, true)))) ;
+
+        for (int j=i+1; j<total; j++) {
+
+            if (progress.isAborted()) { stopped=true ; break ; }
             if (first.isSet(Contact::Deleted)) break ;      // merged away by an earlier pair
 
             Contact &second = db.getContact(j) ;
-            if (second.isSet(Contact::Deleted) || first.isSet(Contact::Hidden) || second.isSet(Contact::Hidden)) continue ;
+            if (second.isSet(Contact::Deleted)) continue ;
             if (!db.isMergeCandidate(first, second)) continue ;
 
             // Keep the entry linked to Google.  If both or neither are linked, keep the older one.
@@ -644,24 +682,30 @@ void MainWindow::on_actionMergeDuplicates_triggered()
             QStringList conflicts ;
             db.planMerge(keep, remove, merged, conflicts) ;
 
+            QString namefirst = QString(first.getFormattedName(false, true)) ;
+            QString namesecond = QString(second.getFormattedName(false, true)) ;
+            QString pair = QString("%1 and %2").arg(namefirst, namesecond) ;
+
             if (conflicts.isEmpty() && db.isSafeToAutoMerge(first, second)) {
                 automatic++ ;
+                progress.reportProgress(percent, QString("Merged automatically: %1").arg(pair)) ;
             } else {
-                QString message = QString("These entries may be the same person:\n\n    %1\n    %2\n\n")
-                        .arg(first.getFormattedName(false, true), second.getFormattedName(false, true)) ;
+                QString message = QString("These entries may be the same person:\n\n    %1\n    %2\n\n").arg(namefirst, namesecond) ;
                 if (conflicts.isEmpty()) {
-                    message += "No details conflict, but they do not share a phone number or email address, so they may be different people.\n\n" ;
+                    message += "No details conflict, but they do not share a name, phone number, email address or address, so they may be different people.\n\n" ;
                 } else {
                     message += "These details differ:\n    " + conflicts.join("\n    ") + "\n\n" ;
                 }
-                message += QString("Suggested: keep \"%1\".  Where a detail differs, the newer value is kept and the older one is noted in Comments.\n\nMerge them?")
-                        .arg(keep.getFormattedName(false, true)) ;
+                message += "If merged, the entry will be:\n" + describe(merged).join("\n") + "\n\n" ;
+                message += "Merge them?" ;
 
                 if (!warningYesNoDialog(this, "Merge Duplicate Contacts", message, "Merge", QChar('y'), "Skip", QChar('n'))) {
                     declined++ ;
+                    progress.reportProgress(percent, QString("Not merged (you chose Skip): %1").arg(pair)) ;
                     continue ;
                 }
                 confirmed++ ;
+                progress.reportProgress(percent, QString("Merged after you confirmed: %1").arg(pair)) ;
             }
 
             // Calendar entries for the removed contact follow the kept one
@@ -673,7 +717,7 @@ void MainWindow::on_actionMergeDuplicates_triggered()
     }
 
     if (automatic==0 && confirmed==0 && declined==0) {
-        warningOkDialog(this, "Merge Duplicate Contacts", "No duplicate contacts were found.") ;
+        progress.finishProgress(stopped ? "Stopped at your request." : "No duplicate contacts were found.") ;
         return ;
     }
 
@@ -683,14 +727,14 @@ void MainWindow::on_actionMergeDuplicates_triggered()
     calendar.save() ;
     populateDialog(SELECT_OVERVIEW) ;
 
-    QString summary = QString("Merged %1 automatically and %2 after you confirmed.  %3 not merged.\n\n"
-                              "Moved %4 removed entries to the deleted folder.")
-            .arg(automatic).arg(confirmed).arg(declined).arg(archived) ;
-    if (linked>0) {
-        summary += QString("\n\n%1 removed entries are still on Google.").arg(linked) ;
-    }
-    summary += "\n\nRun Google Sync to send the merged details, and to remove the others from Google." ;
-    warningOkDialog(this, "Merge Duplicate Contacts", summary) ;
+    QStringList summary ;
+    summary << QString("Summary: merged %1 automatically and %2 after you confirmed; %3 not merged (you chose Skip).")
+               .arg(automatic).arg(confirmed).arg(declined) ;
+    summary << QString("Moved %1 removed entries to the deleted folder.").arg(archived) ;
+    if (linked>0) summary << QString("%1 removed entries are still on Google.").arg(linked) ;
+    summary << "Run Google Sync to send the merged details, and to remove the others from Google." ;
+    if (stopped) summary << "Stopped at your request, so the remaining contacts were not checked." ;
+    progress.finishProgress(summary.join("\n")) ;
 }
 
 void MainWindow::on_actionExportContacts_triggered()

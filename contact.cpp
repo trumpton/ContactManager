@@ -755,6 +755,8 @@ QString& Contact::getOverview(enum ContactOverviewType overviewtype)
     if (!getField(ProfilePhone).isEmpty()) response += titlestart + "Phone: " + titleend + getField(ProfilePhone) + lineend ;
     if (!getField(Email).isEmpty()) response += titlestart + " Primary Email:  " + titleend + getField(Email) + lineend ;
     if (!getField(Email2).isEmpty()) response += titlestart + "Second Email:  " + titleend + getField(Email2) + lineend ;
+    if (!getField(Email3).isEmpty()) response += titlestart + getField(Email3Title) + " Email:  " + titleend + getField(Email3) + lineend ;
+    if (!getField(Email4).isEmpty()) response += titlestart + getField(Email4Title) + " Email:  " + titleend + getField(Email4) + lineend ;
     if (!getField(ProfileEMail).isEmpty()) response += titlestart + " Profile Email:  " + titleend + getField(ProfileEMail) + lineend ;
     if (!getField(Webaddress).isEmpty()) response += titlestart + "Web Site:  " + titleend + getField(Webaddress) + lineend ;
     if (!getField(Organisation).isEmpty()) response += titlestart + "Organisation: " + titleend + getField(Organisation) + lineend ;

@@ -35,6 +35,7 @@ public:
         Uploaded,
         ToBeUploaded, ToBeDownloaded,
         MergePending,
+        Email3, Email4, Email3Title, Email4Title,
         NumberOfRecords
     };
 
@@ -99,6 +100,10 @@ private:
         { ToBeUploaded,     true, false, false, false, false, false, false, false, "tobeuploaded"},   // Flag to track if google upload required
         { ToBeDownloaded,   true, false, false, false, false, false, false, false, "tobedownloaded"}, // Flag to track if google download required
         { MergePending,     true, false, false, false, false, false,  true, false, "mergepending"},  // Set when merged: details must reach Google, kept across restarts
+        { Email3,          false,  true,  true, false,  true, false,  true, false, "email3"},         // Third email address (labelled)
+        { Email4,          false,  true,  true, false,  true, false,  true, false, "email4"},         // Fourth email address (labelled)
+        { Email3Title,     false,  true,  true, false,  true, false,  true, false, "email3title"},    // Label of email3
+        { Email4Title,     false,  true,  true, false,  true, false,  true, false, "email4title"},    // Label of email4
     };
 
 private:

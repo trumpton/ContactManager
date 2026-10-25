@@ -28,7 +28,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     //
 
     ui->updateStatusReport->append(QString("  Downloading New and Changed Appointments from Google:")) ;
-    ui->progressBar->setValue(0) ;
+    setProgress(0) ;
     QElapsedTimer phasetimer ;
     phasetimer.start() ;
     networkok &= google.getCalendar(googlecal, APPOINTMENTSTARTWINDOW, APPOINTMENTENDWINDOW) ;
@@ -47,7 +47,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     //
     // 2. Set the default upload / download
     //
-    ui->progressBar->setValue(100) ;
+    setProgress(100) ;
     bool googlemaster = gConf->googleMaster() ;
 
     for (int i=0; i<cal.size(); i++) {
@@ -79,7 +79,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     //
     // 3. Fix broken ID links
     //
-    ui->progressBar->setValue(150) ;
+    setProgress(150) ;
     ui->updateStatusReport->append(QString("  Repairing Broken Local Google Record IDs:")) ;
     for (int i=0, size=googlecal.size(); i<size; i++) {
         Appointment& googleappt = googlecal.getAppointment(i) ;
@@ -97,7 +97,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     //
     // 4. Add Fake entry in Google list for missing records, and identify new local records
     //
-    ui->progressBar->setValue(200) ;
+    setProgress(200) ;
     PHASE_DONE("before identifying local appointments") ;
     ui->updateStatusReport->append(QString("  Identifying local appointments missing on Google:")) ;
 
@@ -152,7 +152,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     //
     // 5. Add Fake entry in Local list for missing records, and identify new google records
     //
-    ui->progressBar->setValue(250) ;
+    setProgress(250) ;
     PHASE_DONE("identifying local appointments") ;
     ui->updateStatusReport->append(QString("  Identifying Google appointments missing locally:")) ;
     for (int i=0, size=googlecal.size(); i<size; i++) {
@@ -188,7 +188,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     // 6. Synchronise changes (download first)
     //
 
-    ui->progressBar->setValue(300) ;
+    setProgress(300) ;
     PHASE_DONE("identifying google appointments") ;
     ui->updateStatusReport->append(QString("  Synchronising Changes:")) ;
 
@@ -203,7 +203,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                 .arg(i).arg(size).arg(synctimer.elapsed()).arg(uploadcount).arg(uploadms).arg(getLog().size())) ;
         }
 
-        ui->progressBar->setValue(300 + ( i * 200)/size ) ;
+        setProgress(300 + ( i * 200)/size ) ;
         if (state<0) return false ;
 
         Appointment& localappt = cal.getAppointment(i) ;
@@ -309,6 +309,6 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
         ui->updateStatusReport->append(QString("  Appointment Synchronisation: FAILED - Please resync")) ;
     }
 
-    ui->progressBar->setValue(500) ;
+    setProgress(500) ;
     return networkok ;
 }
