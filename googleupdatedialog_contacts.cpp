@@ -133,6 +133,9 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
             upload=true ;
         }
 
+        // A merged entry must reach Google, or the next download would put back its old details
+        if (localcontact.isSet(Contact::MergePending)) upload=true ;
+
         // A deletion made locally must reach Google, whichever side is the master
         if (localcontact.isSet(Contact::Deleted) && !localcontact.getField(Contact::GoogleRecordId).isEmpty()) {
             upload=true ;
@@ -375,6 +378,11 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
         bool googlematcheslocal = !(localdeleted && !googleremoved) &&
                 googlecontact.matches(localcontact, Contact::mcDetails|Contact::mcId) ;
 
+        // A merged entry that already matches Google needs no upload
+        if (googlematcheslocal && localcontact.isSet(Contact::MergePending)) {
+            localcontact.setFlag(Contact::MergePending, false) ;
+        }
+
         if ( deletedlocaldeletedgoogle ) {
 
             // Deleted everywhere, so nothing is required.  Google has no live record,
@@ -431,6 +439,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
                 if (uploaded) {
                     ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false, false)  + QString(" - Updating Google Contact Details (%1)").arg(summary)) ;
                     localcontact.copyTo(googlecontact, Contact::mcDetails|Contact::mcId|Contact::mcGoogleId) ;
+                    localcontact.setFlag(Contact::MergePending, false) ;
                 } else {
                     ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false, false)  + QString(" - FAILED Updating Google Contact Details")) ;
                     networkok = false ;

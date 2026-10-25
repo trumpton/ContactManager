@@ -34,6 +34,7 @@ public:
         GoogleEtag,
         Uploaded,
         ToBeUploaded, ToBeDownloaded,
+        MergePending,
         NumberOfRecords
     };
 
@@ -97,6 +98,7 @@ private:
         { Uploaded,         true, false, false, false, false, false, false, false, "wasuploaded"},       // True if record has been uploaded to Google
         { ToBeUploaded,     true, false, false, false, false, false, false, false, "tobeuploaded"},   // Flag to track if google upload required
         { ToBeDownloaded,   true, false, false, false, false, false, false, false, "tobedownloaded"}, // Flag to track if google download required
+        { MergePending,     true, false, false, false, false, false,  true, false, "mergepending"},  // Set when merged: details must reach Google, kept across restarts
     };
 
 private:

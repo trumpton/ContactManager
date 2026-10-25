@@ -70,6 +70,12 @@ public:
     Contact& getContactById(QString& searchid) ;
     Contact& getContactByGoogleId(QString& searchid) ;
 
+    // Merging duplicates (works on copies until the merge is accepted)
+    bool isMergeCandidate(Contact &a, Contact &b) ;
+    bool isSafeToAutoMerge(Contact &a, Contact &b) ;
+    void planMerge(Contact &keep, Contact &remove, Contact &merged, QStringList &conflicts) ;
+    void applyMerge(Contact &keep, Contact &remove, Contact &merged) ;
+
     int getIndex(Contact& record) ;
     int getIndex(QString id) ;
 

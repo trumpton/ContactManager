@@ -612,6 +612,87 @@ void MainWindow::on_action_Google_Sync_triggered()
 
 
 
+void MainWindow::on_actionMergeDuplicates_triggered()
+{
+    // Save what is on screen, and stop showing a contact that may be merged away
+    SaveTabs() ;
+    db.selectContact(SELECT_OVERVIEW) ;
+
+    int automatic=0, confirmed=0, declined=0 ;
+
+    for (int i=0; i<db.size(); i++) {
+        for (int j=i+1; j<db.size(); j++) {
+
+            Contact &first = db.getContact(i) ;
+            if (first.isSet(Contact::Deleted)) break ;      // merged away by an earlier pair
+
+            Contact &second = db.getContact(j) ;
+            if (second.isSet(Contact::Deleted) || first.isSet(Contact::Hidden) || second.isSet(Contact::Hidden)) continue ;
+            if (!db.isMergeCandidate(first, second)) continue ;
+
+            // Keep the entry linked to Google.  If both or neither are linked, keep the older one.
+            bool firstlinked = !first.getField(Contact::GoogleRecordId).isEmpty() ;
+            bool secondlinked = !second.getField(Contact::GoogleRecordId).isEmpty() ;
+            QDateTime firstcreated = first.getDate(Contact::Created) ;
+            QDateTime secondcreated = second.getDate(Contact::Created) ;
+            bool keepfirst = (firstlinked != secondlinked) ? firstlinked : !(secondcreated < firstcreated) ;
+
+            Contact &keep = keepfirst ? first : second ;
+            Contact &remove = keepfirst ? second : first ;
+
+            Contact merged ;
+            QStringList conflicts ;
+            db.planMerge(keep, remove, merged, conflicts) ;
+
+            if (conflicts.isEmpty() && db.isSafeToAutoMerge(first, second)) {
+                automatic++ ;
+            } else {
+                QString message = QString("These entries may be the same person:\n\n    %1\n    %2\n\n")
+                        .arg(first.getFormattedName(false, true), second.getFormattedName(false, true)) ;
+                if (conflicts.isEmpty()) {
+                    message += "No details conflict, but they do not share a phone number or email address, so they may be different people.\n\n" ;
+                } else {
+                    message += "These details differ:\n    " + conflicts.join("\n    ") + "\n\n" ;
+                }
+                message += QString("Suggested: keep \"%1\".  Where a detail differs, the newer value is kept and the older one is noted in Comments.\n\nMerge them?")
+                        .arg(keep.getFormattedName(false, true)) ;
+
+                if (!warningYesNoDialog(this, "Merge Duplicate Contacts", message)) {
+                    declined++ ;
+                    continue ;
+                }
+                confirmed++ ;
+            }
+
+            // Calendar entries for the removed contact follow the kept one
+            QString removedid = remove.getField(Contact::ID) ;
+            QString keptid = keep.getField(Contact::ID) ;
+            db.applyMerge(keep, remove, merged) ;
+            calendar.repointContact(removedid, keptid) ;
+        }
+    }
+
+    if (automatic==0 && confirmed==0 && declined==0) {
+        warningOkDialog(this, "Merge Duplicate Contacts", "No duplicate contacts were found.") ;
+        return ;
+    }
+
+    // Removed entries that are not on Google go to the deleted folder now.  The others follow at the next sync.
+    int linked=0 ;
+    int archived = db.tidyDeleted(linked) ;
+    calendar.save() ;
+    populateDialog(SELECT_OVERVIEW) ;
+
+    QString summary = QString("Merged %1 automatically and %2 after you confirmed.  %3 not merged.\n\n"
+                              "Moved %4 removed entries to the deleted folder.")
+            .arg(automatic).arg(confirmed).arg(declined).arg(archived) ;
+    if (linked>0) {
+        summary += QString("\n\n%1 removed entries are still on Google.").arg(linked) ;
+    }
+    summary += "\n\nRun Google Sync to send the merged details, and to remove the others from Google." ;
+    warningOkDialog(this, "Merge Duplicate Contacts", summary) ;
+}
+
 void MainWindow::on_actionExportContacts_triggered()
 {
     QFileDialog fd ;

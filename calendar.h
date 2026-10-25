@@ -81,6 +81,7 @@ public:
 
     void purgeBirthdays() ;
     int tidyBirthdays(bool dryrun) ;
+    int repointContact(QString fromid, QString toid) ;
     void addBirthday(QString who, QString whoid, QString when) ;
 
 

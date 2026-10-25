@@ -514,6 +514,28 @@ int Calendar::tidyBirthdays(bool dryrun)
     return count ;
 }
 
+//=====================================================================================================
+//
+// Public: Calendar - repointContact
+//
+//  Moves the appointments for one contact to another, when two contacts are merged.
+//  Returns the number of appointments moved.
+//
+
+int Calendar::repointContact(QString fromid, QString toid)
+{
+    int count=0 ;
+    for (int i=0; i<appointments.size(); i++) {
+        Appointment &appt = appointments[i] ;
+        if (appt.getField(Appointment::ContactId).compare(fromid)==0) {
+            appt.setField(Appointment::ContactId, toid) ;
+            appt.markAsDirty() ;
+            count++ ;
+        }
+    }
+    return count ;
+}
+
 void Calendar::addBirthday(QString who, QString whoid, QString when)
 {
     QStringList de = when.split("-") ;
