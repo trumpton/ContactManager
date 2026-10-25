@@ -8,6 +8,10 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QUrl>
+#include <QUuid>
+
+// Namespace for the local IDs made from Google event IDs (see parseAppointment)
+static const QUuid googleEventIdNamespace("6c0f3a52-9b1e-4d7a-8f2e-5a1c7d9e3b40") ;
 
 //=====================================================================================================
 //
@@ -184,6 +188,13 @@ bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QStrin
     // convert to % format for storage (just like contact)
     QString googleicaluid = item["iCalUID"].toString().replace("\n","") ;
     QString googleid = item["id"].toString().replace("\n","") ;
+
+    // An event the app did not upload has no private ID, so the ID set above is a new random one
+    // each time the event is downloaded. Derive a stable ID from the Google event ID instead, so the
+    // same event keeps the same local ID from one sync to the next
+    if (id.isEmpty() && !googleid.isEmpty()) {
+        appt.setField(Appointment::ID, QUuid::createUuidV5(googleEventIdNamespace, googleid.toUtf8()).toString(QUuid::WithoutBraces)) ;
+    }
 
     qint64 sequence = item["sequence"].toInt()  ;
     account = account.replace("@", "%40") ;
