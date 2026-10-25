@@ -91,7 +91,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     int blankremoved=0 ;
     for (int i=0; i<db.size(); i++) {
         Contact& localcontact = db.getContact(i) ;
-        if (localcontact.isSet(Contact::Hidden) || localcontact.isSet(Contact::Deleted)) continue ;
+        if (localcontact.isSet(Contact::Deleted)) continue ;
         if (localcontact.getField(Contact::GoogleRecordId).isEmpty() || !localcontact.isBlank()) continue ;
 
         Contact& googlecontact = googledb.getContactById(localcontact.getField(Contact::ID)) ;
