@@ -122,7 +122,8 @@ int main(int argc, char *argv[])
         QWidget *m = QApplication::activeModalWidget() ;
         if (!m) return ;
 
-        if (m == lastmodal) {
+        // A long sync keeps its progress dialog open for a long time, so only other dialogs can be stuck
+        if (m->objectName() != "GoogleUpdateDialog" && m == lastmodal) {
             if (++clicksonthis > 40) {
                 note("giving up: dialog did not close: " + m->windowTitle()) ;
                 QApplication::quit() ;

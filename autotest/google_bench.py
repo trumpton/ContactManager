@@ -219,12 +219,18 @@ def cleanup():
 # Running the app
 
 class Run:
-    def __init__(self, name, ops):
+    def __init__(self, name, ops, session=None):
         self.name = name
         self.dir = os.path.join(RUNS, name)
-        # The app keeps its local data in its working directory, so every run starts from an empty folder
         shutil.rmtree(self.dir, ignore_errors=True)
         os.makedirs(self.dir)
+        # The app keeps its local data in its working directory.  A session shares one working directory
+        # across runs, so the local data carries from one run to the next (used to switch master setting).
+        if session:
+            self.workdir = os.path.join(RUNS, "session-" + session)
+            os.makedirs(self.workdir, exist_ok=True)
+        else:
+            self.workdir = self.dir
         self.ops = ops
         self.dump = None
         with open(os.path.join(self.dir, "ops.json"), "w") as f:
@@ -237,7 +243,7 @@ class Run:
         env = dict(os.environ, CM_TEST_SECRET=secret, QT_QPA_PLATFORM="offscreen")
         subprocess.run([DRIVER, self.dir, os.path.join(self.dir, "ops.json")], env=env,
                        stdout=open(os.path.join(self.dir, "stdout.log"), "w"), stderr=subprocess.STDOUT,
-                       timeout=900, check=False, cwd=self.dir)
+                       timeout=900, check=False, cwd=self.workdir)
         path = os.path.join(self.dir, "dump.json")
         if os.path.exists(path):
             with open(path) as f:
@@ -257,12 +263,65 @@ class Run:
         return open(path).read() if os.path.exists(path) else ""
 
 
+PHONE_KEYS = ("phone", "work", "mobile", "phone2", "phone3", "phone4")
+EMAIL_KEYS = ("email", "email2", "email3", "email4")
+
+
+def canon_app(c):
+    """A live local contact as comparable values: emails, phones and notes, formatting ignored."""
+    return {"emails": sorted(norm(c[k]) for k in EMAIL_KEYS if c.get(k)),
+            "phones": sorted(norm(c[k]) for k in PHONE_KEYS if c.get(k)),
+            "notes": norm(c.get("comments", ""))}
+
+
+def canon_google(p):
+    info = contact_info(p)
+    return {"emails": sorted(norm(v) for v, _ in info["emails"]),
+            "phones": sorted(norm(v) for v, _ in info["phones"]),
+            "notes": norm(" ".join(info["biographies"]))}
+
+
+def app_live_contacts(dump, tag):
+    return [c for c in dump["contacts"] if c.get("names") == "Bench" and c.get("surname") == tag
+            and c.get("deleted") != "true"]
+
+
+def google_contacts_tagged(tag):
+    return [p for p in bench_contacts() if contact_info(p)["tag"] == tag]
+
+
+def same_contact(dump, tag):
+    """Exactly one live app contact and one Google contact for tag, with the same values."""
+    app = app_live_contacts(dump, tag)
+    goog = google_contacts_tagged(tag)
+    if len(app) != 1 or len(goog) != 1:
+        return Check("one contact each side for %s" % tag, False,
+                     "app %d, Google %d" % (len(app), len(goog)))
+    a, g = canon_app(app[0]), canon_google(goog[0])
+    return Check("app and Google agree for %s" % tag, a == g,
+                 "" if a == g else "app %s / Google %s" % (a, g))
+
+
 def local_contacts(dump, tag=None):
     return [c for c in dump["contacts"] if c.get("names") == "Bench" and (tag is None or c.get("surname") == tag)]
 
 
 def local_events(dump, prefix):
     return [a for a in dump["appointments"] if a["summary"].startswith(prefix) and not a["deleted"]]
+
+
+def set_mode(master):
+    """Set the app's master setting: 0 = ContactManager master (local), 1 = Google master.
+    The app reads the setting when it starts, so this applies to the next run."""
+    with open(CONF) as f:
+        text = f.read()
+    line = "databasemaster=%d" % master
+    if re.search(r"^databasemaster=", text, re.M):
+        text = re.sub(r"^databasemaster=.*$", line, text, flags=re.M)
+    else:
+        text = text.replace("[General]\n", "[General]\n" + line + "\n", 1)
+    with open(CONF, "w") as f:
+        f.write(text)
 
 
 # ----------------------------------------------------------------------------------------------
@@ -632,6 +691,379 @@ def run_scenario(code):
         if not c.ok:
             print("     - %s %s" % (c.label, ("(" + c.detail + ")") if c.detail else ""))
     cleanup()
+
+
+# --- master setting: switching between ContactManager master and Google master ----------------
+# Each run starts the app with the setting as it is when the run starts.  Runs in one session share a
+# working folder, so local data carries across a switch.  Mode 0 is ContactManager master, 1 is Google master.
+
+CM_MASTER, GOOGLE_MASTER = 0, 1
+
+
+@scenario("M01", "ContactManager master adds a contact; Google master syncs it: no duplicate")
+def m01():
+    set_mode(CM_MASTER)
+    Run("M01a", [add_contact_op("M01", email="m01@test.invalid", phone="0101 010101"), sync(), dump()],
+        session="M01").execute()
+    set_mode(GOOGLE_MASTER)
+    run = Run("M01b", [sync(), dump()], session="M01").execute()
+    return [same_contact(run.dump, "M01"),
+            Check("no extra copy on Google", len(google_contacts_tagged("M01")) == 1)]
+
+
+@scenario("M02", "Google master downloads; ContactManager master edits; Google master re-syncs: one copy")
+def m02():
+    create_contact("M02", emails=[("m02@test.invalid", "work")], phones=[("0202 020202", "mobile")],
+                   biographies=["Note M02"])
+    set_mode(GOOGLE_MASTER)
+    Run("M02a", [sync(), dump()], session="M02").execute()
+    set_mode(CM_MASTER)
+    Run("M02b", [{"op": "edit_contact", "match": {"names": "Bench", "surname": "M02"},
+                  "fields": {"surname": "M02 edited"}}, sync(), dump()], session="M02").execute()
+    set_mode(GOOGLE_MASTER)
+    run = Run("M02c", [sync(), dump()], session="M02").execute()
+    return [Check("one Google copy after the edit", len(google_contacts_tagged("M02 edited")) == 1),
+            Check("no copy under the old name", len(google_contacts_tagged("M02")) == 0),
+            same_contact(run.dump, "M02 edited")]
+
+
+@scenario("M03", "Deleted in ContactManager master: Google master does not bring it back")
+def m03():
+    create_contact("M03", emails=[("m03@test.invalid", "work")])
+    set_mode(CM_MASTER)
+    Run("M03a", [sync(), {"op": "delete_contact", "match": {"names": "Bench", "surname": "M03"}}, sync(), dump()],
+        session="M03").execute()
+    set_mode(GOOGLE_MASTER)
+    run = Run("M03b", [sync(), dump()], session="M03").execute()
+    live = app_live_contacts(run.dump, "M03")
+    return [Check("no M03 on Google", len(google_contacts_tagged("M03")) == 0),
+            Check("no live M03 in the app", len(live) == 0, "live: %d" % len(live))]
+
+
+@scenario("M04", "Deleted on Google in Google master: ContactManager master does not bring it back")
+def m04():
+    resource = create_contact("M04", emails=[("m04@test.invalid", "work")])
+    set_mode(GOOGLE_MASTER)
+    Run("M04a", [sync(), gchange("delete-contact", resource), sync(), dump()], session="M04").execute()
+    set_mode(CM_MASTER)
+    run = Run("M04b", [sync(), dump()], session="M04").execute()
+    return [Check("no M04 on Google", len(google_contacts_tagged("M04")) == 0,
+                  "on Google: %d" % len(google_contacts_tagged("M04"))),
+            Check("no live M04 in the app", len(app_live_contacts(run.dump, "M04")) == 0)]
+
+
+@scenario("M05", "Appointment: ContactManager master adds, Google master edits, ContactManager master picks it up")
+def m05():
+    set_mode(CM_MASTER)
+    Run("M05a", [{"op": "add_appointment", "fields": {"summary": "BENCH M05", "location": "Room A",
+                                                       "from": DAY % (20, "09:00"), "to": DAY % (20, "10:00")}},
+                 sync(), dump()], session="M05").execute()
+    events = [e for e in bench_events() if e["summary"] == "BENCH M05"]
+    if len(events) != 1:
+        return [Check("one event on Google after the first sync", False, "found %d" % len(events))]
+    eid = events[0]["id"]
+    set_mode(GOOGLE_MASTER)
+    Run("M05b", [sync(), gchange("patch-event", eid, "Room G"), sync(), dump()], session="M05").execute()
+    set_mode(CM_MASTER)
+    run = Run("M05c", [sync(), dump()], session="M05").execute()
+    events = [e for e in bench_events() if e["summary"] == "BENCH M05"]
+    local = local_events(run.dump, "BENCH M05")
+    return [Check("one event on Google throughout", len(events) == 1, "found %d" % len(events)),
+            Check("Google keeps the Google-side location", len(events) == 1 and events[0].get("location") == "Room G",
+                  "location: %s" % [e.get("location") for e in events]),
+            Check("app holds one entry with that location", len(local) == 1 and local[0]["location"] == "Room G",
+                  "app: %s" % [a["location"] for a in local])]
+
+
+@scenario("M06", "Repeated switching with edits: values and notes survive, no duplicates")
+def m06():
+    create_contact("M06", emails=[("m06w@test.invalid", "work"), ("m06h@test.invalid", "home")],
+                   phones=[("0606 060606", "mobile"), ("0707 070707", "work")],
+                   biographies=["Line one\nLine two, ünïcode"])
+    steps = [(GOOGLE_MASTER, []),
+             (CM_MASTER, [{"op": "edit_contact", "match": {"names": "Bench", "surname": "M06"},
+                           "fields": {"surname": "M06 b"}}]),
+             (GOOGLE_MASTER, []),
+             (CM_MASTER, [{"op": "edit_contact", "match": {"names": "Bench", "surname": "M06 b"},
+                           "fields": {"comments": "Note M06 changed\nÉtage"}}]),
+             (GOOGLE_MASTER, []),
+             (CM_MASTER, [])]
+    run = None
+    for i, (mode, extra) in enumerate(steps):
+        set_mode(mode)
+        run = Run("M06-%d" % i, extra + [sync(), dump()], session="M06").execute()
+    return [Check("one Google copy", len(google_contacts_tagged("M06 b")) == 1,
+                  "copies: %d" % len(google_contacts_tagged("M06 b"))),
+            same_contact(run.dump, "M06 b")]
+
+
+@scenario("M07", "Google master: a local-only edit is not sent, and Google's values stay")
+def m07():
+    create_contact("M07", emails=[("m07@test.invalid", "work")])
+    set_mode(GOOGLE_MASTER)
+    Run("M07a", [sync(), {"op": "edit_contact", "match": {"names": "Bench", "surname": "M07"},
+                          "fields": {"comments": "Local only note M07"}}, sync(), dump()],
+        session="M07").execute()
+    goog = google_contacts_tagged("M07")
+    notes = " ".join(contact_info(goog[0])["biographies"]) if goog else ""
+    return [Check("one Google copy", len(goog) == 1, "copies: %d" % len(goog)),
+            Check("Google master did not send the local-only note", "Local only note M07" not in notes,
+                  "notes on Google: %r" % notes)]
+
+
+@scenario("M08", "ContactManager master: a change made on Google is kept, not overwritten")
+def m08():
+    resource = create_contact("M08", emails=[("m08@test.invalid", "work")])
+    set_mode(CM_MASTER)
+    run = Run("M08", [sync(), gchange("edit-contact", resource, "M08 from Google"), sync(), dump()],
+              session="M08").execute()
+    goog = google_contacts_tagged("M08 from Google")
+    return [Check("Google keeps its change (not overwritten by the app)", len(goog) == 1,
+                  "tags on Google: %s" % [contact_info(p)["tag"] for p in google_contacts_tagged("M08")]),
+            Check("one copy", len(bench_contacts()) == 1)]
+
+
+# --- corner cases ---------------------------------------------------------------------------
+
+def create_contact_body(body):
+    return api("POST", PEOPLE + "/people:createContact?personFields=" + PERSON_FIELDS, body)["resourceName"]
+
+
+def create_event_body(body):
+    return api("POST", CALENDAR + "/events", body)["id"]
+
+
+def google_person(resource):
+    return api("GET", PEOPLE + "/" + resource + "?personFields=" + PERSON_FIELDS)
+
+
+@scenario("X01", "Blank and whitespace-only name fields: no crash, no duplicate")
+def x01():
+    run = Run("X01", [{"op": "add_contact", "fields": {"names": "Bench", "surname": "   "}},
+                      {"op": "add_contact", "fields": {"names": "  ", "email": "x01@test.invalid"}},
+                      sync(), dump()]).execute()
+    emails = [p for p in bench_contacts()
+              if any(e.get("value") == "x01@test.invalid" for e in p.get("emailAddresses", []))]
+    return [Check("the run completed", run.dump is not None),
+            Check("no more than one Google copy of the email contact", len(emails) <= 1, "found %d" % len(emails))]
+
+
+@scenario("X02", "Very long comment (6000 characters) round-trips intact")
+def x02():
+    long_text = ("Lorem ipsum dolor sit amet, consectetur. " * 150)[:6000]
+    create_contact("X02", biographies=[long_text])
+    run = Run("X02", [sync(), dump()]).execute()
+    goog = google_contacts_tagged("X02")
+    notes = norm(" ".join(contact_info(goog[0])["biographies"])) if goog else ""
+    local = app_live_contacts(run.dump, "X02")
+    return [Check("Google copy exists", len(goog) == 1),
+            Check("Google text unchanged", notes == norm(long_text), "length %d" % len(notes)),
+            Check("app holds the full text", bool(local) and norm(local[0].get("comments", "")) == norm(long_text),
+                  "length %d" % len(norm(local[0].get("comments", ""))) if local else "no contact")]
+
+
+@scenario("X03", "Quotes, backslashes, ampersands, angle brackets, emoji and right-to-left text round-trip")
+def x03():
+    name = 'O\'Neil & "Co" <b>\\ é中文 \U0001F600 שלום'
+    run = Run("X03", [{"op": "add_contact", "fields": {"names": "Bench", "surname": name,
+                                                       "comments": 'a "quoted" \\ & <tag>'}},
+                      sync(), dump()]).execute()
+    goog = google_contacts_tagged(name)
+    local = app_live_contacts(run.dump, name)
+    return [Check("Google holds the name exactly", len(goog) == 1, "copies: %d" % len(goog)),
+            Check("app holds the name exactly", len(local) == 1)]
+
+
+@scenario("X04", "Phone number formats (international, brackets, extensions) keep their digits")
+def x04():
+    phones = [("+44 (0)20 7946 0000", "work"), ("07700-900123", "mobile"), ("+1 555 0100 ext 5", "home")]
+    create_contact("X04", phones=phones)
+    run = Run("X04", [sync(), dump()]).execute()
+    goog = google_contacts_tagged("X04")
+    digits = lambda s: "".join(ch for ch in s if ch.isdigit())
+    gvals = sorted(digits(v) for v, _ in contact_info(goog[0])["phones"]) if goog else []
+    want = sorted(digits(v) for v, _ in phones)
+    return [Check("Google digits unchanged", gvals == want, "got %s" % gvals),
+            Check("app holds all three numbers",
+                  len(app_live_contacts(run.dump, "X04")) == 1 and
+                  sorted(digits(app_live_contacts(run.dump, "X04")[0].get(k, "")) for k in PHONE_KEYS
+                         if app_live_contacts(run.dump, "X04")[0].get(k)) == want)]
+
+
+@scenario("X05", "Same email on two different contacts: both kept, not merged")
+def x05():
+    create_contact("X05A", emails=[("x05@test.invalid", "work")])
+    run = Run("X05", [add_contact_op("X05B", email="x05@test.invalid"), sync(), dump()]).execute()
+    return [Check("Google keeps both", len(google_contacts_tagged("X05A")) == 1 and len(google_contacts_tagged("X05B")) == 1),
+            Check("app keeps both", len(app_live_contacts(run.dump, "X05A")) == 1 and len(app_live_contacts(run.dump, "X05B")) == 1)]
+
+
+@scenario("X06", "Six emails on Google: the app holds four, and the rest go to Comments")
+def x06():
+    emails = [("x06-%d@test.invalid" % i, "work" if i % 2 else "other") for i in range(6)]
+    create_contact("X06", emails=emails)
+    run = Run("X06", [sync(), dump("d1.json"), sync(), dump("d2.json")]).execute()
+    d1 = run.dump_file("d1.json")
+    local = app_live_contacts(d1, "X06")
+    held = sum(1 for k in EMAIL_KEYS if local and local[0].get(k))
+    goog = google_contacts_tagged("X06")
+    gcount = len(contact_info(goog[0])["emails"]) if goog else 0
+    return [Check("app holds four emails", held == 4, "held %d" % held),
+            Check("the other two are kept in Comments", bool(local) and "x06-4@" in local[0].get("comments", "")
+                  and "x06-5@" in local[0].get("comments", "")),
+            Check("Google still holds all six emails after a second sync", gcount == 6, "Google holds %d" % gcount)]
+
+
+@scenario("X07", "Birthdays: leap day and no-year birthday are not changed by the sync")
+def x07():
+    resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "X07"}],
+                                    "birthdays": [{"date": {"year": 1980, "month": 2, "day": 29}},
+                                                  {"date": {"month": 12, "day": 25}}]})
+    before = google_person(resource)["etag"]
+    Run("X07", [sync(), sync(), dump()]).execute()
+    after = google_person(resource)
+    return [Check("Google not written by the syncs", before == after["etag"])]
+
+
+@scenario("X08", "Multi-line address round-trips with formatting ignored")
+def x08():
+    addr = "12 High Street\n  London\n\tSW1A 1AA"
+    create_contact("X08", addresses=[addr])
+    run = Run("X08", [sync(), dump()]).execute()
+    goog = google_contacts_tagged("X08")
+    gaddr = [norm(a) for a in contact_info(goog[0])["addresses"]] if goog else []
+    local = app_live_contacts(run.dump, "X08")
+    return [Check("Google address unchanged (formatting ignored)", gaddr == [norm(addr)], "got %s" % gaddr),
+            Check("app holds the address", bool(local) and norm(local[0].get("address", "")) == norm(addr))]
+
+
+@scenario("X09", "Hidden, then shown again: the contact is back on Google")
+def x09():
+    create_contact("X09", emails=[("x09@test.invalid", "work")])
+    run = Run("X09", [sync(),
+                      {"op": "hide_contact", "match": {"names": "Bench", "surname": "X09"}}, sync(),
+                      {"op": "edit_contact", "match": {"names": "Bench", "surname": "X09"},
+                       "fields": {"hidden": "false"}}, sync(), dump()]).execute()
+    return [Check("Google copy back after unhiding", len(google_contacts_tagged("X09")) == 1,
+                  "copies: %d" % len(google_contacts_tagged("X09"))),
+            Check("app shows it as not hidden", len([c for c in app_live_contacts(run.dump, "X09")
+                                                     if c.get("hidden") != "true"]) == 1)]
+
+
+@scenario("X10", "Edit then delete between syncs: the stale edit is not uploaded")
+def x10():
+    create_contact("X10", emails=[("x10@test.invalid", "work")])
+    run = Run("X10", [sync(),
+                      {"op": "edit_contact", "match": {"names": "Bench", "surname": "X10"},
+                       "fields": {"surname": "X10 stale edit"}},
+                      {"op": "delete_contact", "match": {"names": "Bench", "surname": "X10 stale edit"}},
+                      sync(), dump()]).execute()
+    return [Check("Google no longer holds X10 in any form", len(google_contacts_tagged("X10")) == 0
+                  and len(google_contacts_tagged("X10 stale edit")) == 0)]
+
+
+@scenario("X11", "All-day event on Google: read without crashing, not rewritten")
+def x11():
+    eid = create_event_body({"summary": "BENCH X11 all day", "start": {"date": "2026-11-21"},
+                             "end": {"date": "2026-11-22"}})
+    before = get_event(eid)["etag"]
+    run = Run("X11", [sync(), sync(), dump()]).execute()
+    after = get_event(eid)["etag"]
+    return [Check("Google event not rewritten", before == after),
+            Check("app holds one entry", len(local_events(run.dump, "BENCH X11")) == 1)]
+
+
+@scenario("X12", "Event crossing midnight with a timezone offset keeps the same instant")
+def x12():
+    create_event("BENCH X12", "2026-11-22T23:30:00+01:00", "2026-11-23T01:00:00+01:00")
+    run = Run("X12", [sync(), dump("d1.json"), sync(), dump("d2.json")]).execute()
+    a = local_events(run.dump_file("d1.json"), "BENCH X12")
+    b = local_events(run.dump_file("d2.json"), "BENCH X12")
+    return [Check("one entry after two syncs", len(a) == 1 and len(b) == 1),
+            Check("same local ID after two syncs", len(a) == 1 and len(b) == 1 and a[0]["id"] == b[0]["id"])]
+
+
+@scenario("X13", "Local appointment with no end time: uploaded or refused, but no crash and no duplicate")
+def x13():
+    run = Run("X13", [{"op": "add_appointment", "fields": {"summary": "BENCH X13", "from": DAY % (23, "09:00")}},
+                      sync(), sync(), dump()]).execute()
+    events = [e for e in bench_events() if e["summary"] == "BENCH X13"]
+    return [Check("the run completed", run.dump is not None),
+            Check("no more than one Google copy", len(events) <= 1, "found %d" % len(events))]
+
+
+@scenario("X14", "Unicode summary and multi-line description round-trip")
+def x14():
+    summary = "Café meeting – \U0001F4C5"
+    desc = "Line one\nLine two é\n\nLine four"
+    create_event_body({"summary": summary, "description": desc,
+                       "start": {"dateTime": DAY % (24, "09:00")}, "end": {"dateTime": DAY % (24, "10:00")}})
+    run = Run("X14", [sync(), dump()]).execute()
+    local = [a for a in run.dump["appointments"] if a["summary"] == summary]
+    goog = [e for e in api("GET", CALENDAR + "/events?maxResults=2500")["items"] if e.get("summary") == summary]
+    return [Check("Google summary unchanged", len(goog) == 1),
+            Check("description intact in the app", bool(local) and norm(local[0]["description"]) == norm(desc))]
+
+
+@scenario("X15", "Event outside the sync window is not duplicated across syncs")
+def x15():
+    create_event("BENCH X15", "2019-03-01T09:00:00Z", "2019-03-01T10:00:00Z")
+    run = Run("X15", [sync(), sync(), dump()]).execute()
+    return [Check("Google holds one", len([e for e in bench_events() if e["summary"] == "BENCH X15"]) == 1),
+            Check("app holds no more than one", len(local_events(run.dump, "BENCH X15")) <= 1)]
+
+
+@scenario("X16", "Appointment deleted on both sides before sync: no error, nothing left")
+def x16():
+    eid = create_event("BENCH X16", DAY % (25, "09:00"), DAY % (25, "10:00"))
+    run = Run("X16", [sync(), {"op": "delete_appointment", "match": {"summary": "BENCH X16"}},
+                      gchange("delete-event", eid), sync(), dump()]).execute()
+    return [Check("Google holds none", not [e for e in bench_events() if e["summary"] == "BENCH X16"]),
+            Check("app holds no live copy", len(local_events(run.dump, "BENCH X16")) == 0)]
+
+
+@scenario("X17", "Conflict: location changed in the app and on Google; ContactManager master sync")
+def x17():
+    eid = create_event("BENCH X17", DAY % (26, "09:00"), DAY % (26, "10:00"), location="Start")
+    set_mode(CM_MASTER)
+    run = Run("X17", [sync(), {"op": "edit_appointment", "match": {"summary": "BENCH X17"},
+                               "fields": {"location": "From app"}},
+                      gchange("patch-event", eid, "From Google"), sync(), dump()], session="X17").execute()
+    events = [e for e in bench_events() if e["summary"] == "BENCH X17"]
+    return [Check("one event on Google", len(events) == 1, "found %d" % len(events)),
+            Check("record which side won (app expected under ContactManager master)",
+                  len(events) == 1 and events[0].get("location") == "From app",
+                  "Google location: %s" % [e.get("location") for e in events])]
+
+
+@scenario("X18", "Five back-to-back syncs with no change: no writes after the first")
+def x18():
+    resource = create_contact("X18", emails=[("x18@test.invalid", "work")])
+    Run("X18a", [sync()]).execute()
+    etag = google_person(resource)["etag"]
+    Run("X18b", [sync(), sync(), sync(), sync(), sync()]).execute()
+    return [Check("etag unchanged", google_person(resource)["etag"] == etag)]
+
+
+@scenario("X19", "Twenty contacts made in ContactManager master, then edits on Google under Google master")
+def x19():
+    ops = [add_contact_op("X19-%02d" % i, email="x19-%02d@test.invalid" % i) for i in range(20)]
+    set_mode(CM_MASTER)
+    Run("X19a", ops + [sync()], session="X19").execute()
+    set_mode(GOOGLE_MASTER)
+    edits = [gchange("edit-contact", p["resourceName"], "X19-%02d edited" % i)
+             for i, p in enumerate(sorted(google_contacts_tagged("X19-00") + bench_contacts(),
+                                          key=lambda p: contact_info(p)["tag"])[:0])]
+    tagged = sorted(bench_contacts(), key=lambda p: contact_info(p)["tag"])
+    edits = [gchange("edit-contact", p["resourceName"], contact_info(p)["tag"] + " edited")
+             for p in tagged[:5]]
+    run = Run("X19b", edits + [sync(), dump()], session="X19").execute()
+    set_mode(CM_MASTER)
+    run = Run("X19c", [sync(), dump()], session="X19").execute()
+    goog = bench_contacts()
+    return [Check("20 contacts on Google, no duplicates", len(goog) == 20, "found %d" % len(goog)),
+            Check("five edits from Google survive the switch back",
+                  len([p for p in goog if contact_info(p)["tag"].endswith(" edited")]) == 5)]
 
 
 def gchange_main(argv):
