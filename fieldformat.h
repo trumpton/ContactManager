@@ -7,7 +7,7 @@
 namespace FieldFormat {
 
     // The longest label, in characters
-    const int MaxLabelLength = 30 ;
+    const int MaxLabelLength = 20 ;
 
     // Takes a label off the end or start of an entry: "01234 567890 (Home)", "01234 567890 - Home" or "Home: 01234 567890".
     // Returns true only when both the value and the label are found, and then value and label hold them.

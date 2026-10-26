@@ -250,11 +250,36 @@ MainWindow::~MainWindow()
     ui->tabBar->setTabEnabled(CONTACTDETAILSTABPOS, false);
 
     // Free up memory
-    if (gConf) delete gConf ; gConf=NULL ;
-    if (timer) delete timer ; timer=NULL ;
-    if (ui) delete ui; ui=NULL ;
-    if (enc) delete enc ; enc=NULL ;
-    if (find) delete find ; find=NULL ;
+    if (gConf) {
+        delete gConf ;
+        gConf=NULL ;
+    }
+    if (timer) {
+        delete timer ;
+        timer=NULL ;
+    }
+    if (ui) {
+        delete ui ;
+        ui=NULL ;
+    }
+    if (enc) {
+        delete enc ;
+        enc=NULL ;
+    }
+    if (find) {
+        delete find ;
+        find=NULL ;
+    }
+}
+
+// A refused entry keeps the window open, so the typed text is not lost
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    if (!ValidateTitledEntries()) {
+        event->ignore() ;
+        return ;
+    }
+    QMainWindow::closeEvent(event) ;
 }
 
 void MainWindow::refreshPasswordMenu()
@@ -402,7 +427,7 @@ void MainWindow::populateDialog(QString id, bool switchtooverview)
     QString oldid = dro.getField(Contact::ID) ;
 
     // A badly formatted email or phone entry keeps the form on this contact, with focus on that entry
-    if (!ValidateTitledEntries(dro)) return ;
+    if (!ValidateTitledEntries()) return ;
 
     // Save current contact & disable the editing tab
     SaveTabs() ;
@@ -590,8 +615,8 @@ void MainWindow::on_action_Google_Sync_triggered()
 {
     class GoogleUpdateDialog *frm ;
 
-    // Save tabs before sync
-    SaveTabs() ;
+    // Save tabs before sync.  A refused entry stops the sync, so a bad entry is not sent to Google.
+    if (!SaveTabs()) return ;
 
     // A blank contact on screen is removed by the sync, so stop showing it first
     if (!db.getSelected().isNull() && db.getSelected().isBlank()) {
@@ -618,8 +643,8 @@ void MainWindow::on_action_Google_Sync_triggered()
 
 void MainWindow::on_actionTidyContacts_triggered()
 {
-    // Save what is on screen, and stop showing a contact that may be merged away
-    SaveTabs() ;
+    // Save what is on screen, and stop showing a contact that may be merged away.  A refused entry stops the tidy.
+    if (!SaveTabs()) return ;
     db.selectContact(SELECT_OVERVIEW) ;
 
     // Progress is shown in a window with a log, which also carries the summary at the end
@@ -906,7 +931,7 @@ void MainWindow::on_actionImport_triggered()
         return ;
     }
 
-    SaveTabs() ;
+    if (!SaveTabs()) return ;
     db.selectContact(SELECT_OVERVIEW) ;
 
     int added=0, overwritten=0, skipped=0, unknown=0 ;

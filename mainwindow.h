@@ -169,6 +169,7 @@ private:
     // Transfer data to/from dialog
     void LoadTabs() ;               // Loads / Populates all Tabs
     bool SaveTabs() ;               // Saves all Tabs.  Returns false when the contact details were refused
+    void closeEvent(QCloseEvent *event) override ;   // Keeps the window open while an entry is refused
     void logLoadSummary() ;         // Logs counts of what was loaded, for diagnosis
 
     void appendHistory(Contact& contact, QString msg) ;
@@ -181,7 +182,7 @@ private:
     bool eventFilter(QObject *watched, QEvent *event) override ;
     void tidyTitledEntries() ;                  // Puts right the email and phone entries that can be, when the form is loaded
     void tidyTitledEntry(QLineEdit *entry) ;    // Puts right one email or phone entry, when focus leaves it
-    bool ValidateTitledEntries(Contact &dr) ;   // Checks the changed email and phone entries when saving
+    bool ValidateTitledEntries() ;              // Checks every email and phone entry when saving
     bool SaveContactTab() ;     // Transfer Contact Tab -> Database Item Contact Data
     void LoadCalendarTab() ;  // Transfer Global Calendar to Calendar Tab
     void SaveCalendarTab() ;    // Save the Calendar if Needed

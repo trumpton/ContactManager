@@ -99,7 +99,7 @@ bool GoogleAccess::parseContact(QJsonObject &item, Contact &contact)
     // Metadata Google Last Updated Field
     QDateTime latestdate ;
     QJsonArray sourcesarray = metadata["sources"].toArray() ;
-    foreach (const QJsonValue& sourceitem, sourcesarray) {
+    for (const QJsonValue& sourceitem : sourcesarray) {
         if (sourceitem.isObject()) {
             // Format: 2018-05-02T17:33:00.491001Z
             QString timestr = sourceitem.toObject()["updateTime"].toString() ;
