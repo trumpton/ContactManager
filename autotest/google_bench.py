@@ -951,13 +951,16 @@ def x06():
 
 @scenario("X07", "Birthdays: leap day and no-year birthday are not changed by the sync")
 def x07():
-    resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "X07"}],
-                                    "birthdays": [{"date": {"year": 1980, "month": 2, "day": 29}},
-                                                  {"date": {"month": 12, "day": 25}}]})
-    before = google_person(resource)["etag"]
+    # Google allows one birthday per contact, so the leap day and the no-year birthday are separate contacts
+    leap = create_contact_body({"names": [{"givenName": "Bench", "familyName": "X07 leap"}],
+                                "birthdays": [{"date": {"year": 1980, "month": 2, "day": 29}}]})
+    noyear = create_contact_body({"names": [{"givenName": "Bench", "familyName": "X07 no year"}],
+                                  "birthdays": [{"date": {"month": 12, "day": 25}}]})
+    before = {r: google_person(r)["etag"] for r in (leap, noyear)}
     Run("X07", [sync(), sync(), dump()]).execute()
-    after = google_person(resource)
-    return [Check("Google not written by the syncs", before == after["etag"])]
+    after = {r: google_person(r)["etag"] for r in (leap, noyear)}
+    return [Check("Google not written by the syncs (leap day)", before[leap] == after[leap]),
+            Check("Google not written by the syncs (no year)", before[noyear] == after[noyear])]
 
 
 @scenario("X08", "Multi-line address round-trips with formatting ignored")
@@ -1086,9 +1089,6 @@ def x19():
     set_mode(CM_MASTER)
     Run("X19a", ops + [sync()], session="X19").execute()
     set_mode(GOOGLE_MASTER)
-    edits = [gchange("edit-contact", p["resourceName"], "X19-%02d edited" % i)
-             for i, p in enumerate(sorted(google_contacts_tagged("X19-00") + bench_contacts(),
-                                          key=lambda p: contact_info(p)["tag"])[:0])]
     tagged = sorted(bench_contacts(), key=lambda p: contact_info(p)["tag"])
     edits = [gchange("edit-contact", p["resourceName"], contact_info(p)["tag"] + " edited")
              for p in tagged[:5]]
