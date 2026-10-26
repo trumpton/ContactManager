@@ -168,7 +168,7 @@ private:
 
     // Transfer data to/from dialog
     void LoadTabs() ;               // Loads / Populates all Tabs
-    bool SaveTabs() ;               // Saves all Tabs.  Returns false when the contact details were refused
+    bool SaveTabs(bool explicitsave=false) ;   // Saves all Tabs.  Returns false when the contact details were refused.  File > Save checks every entry
     void closeEvent(QCloseEvent *event) override ;   // Keeps the window open while an entry is refused
     void logLoadSummary() ;         // Logs counts of what was loaded, for diagnosis
 
@@ -182,12 +182,12 @@ private:
     bool eventFilter(QObject *watched, QEvent *event) override ;
     void tidyTitledEntries() ;                  // Puts right the email and phone entries that can be, when the form is loaded
     void tidyTitledEntry(QLineEdit *entry) ;    // Puts right one email or phone entry, when focus leaves it
-    bool ValidateTitledEntries(Contact &dr) ;   // Checks the email and phone entries when the form has an edit
+    bool ValidateTitledEntries(Contact &dr, bool always=false) ;   // Checks the email and phone entries when the form has an edit, or always when saved with File > Save
     Contact& formContact() ;                    // The contact the form shows, even when the selection has moved on
     QString formContactId ;                     // The ID of the contact the form was loaded with
     bool FormHasEdits(Contact &dr) ;            // True when the form has an edit that is not already in the contact
     void FormToContact(Contact &newdr) ;        // Copies the contact details on the form into newdr
-    bool SaveContactTab() ;     // Transfer Contact Tab -> Database Item Contact Data
+    bool SaveContactTab(bool explicitsave=false) ;     // Transfer Contact Tab -> Database Item Contact Data
     void LoadCalendarTab() ;  // Transfer Global Calendar to Calendar Tab
     void SaveCalendarTab() ;    // Save the Calendar if Needed
     void LoadEditHistory() ;

@@ -367,6 +367,10 @@ int main(int argc, char *argv[])
             // File > Save, then records what the named form entries show, to check that a refused entry keeps its text
             QString name = op["name"].toString() ;
             w.on_actionSave_triggered() ;
+            // Whether the details tab is showing, and which entry has focus, after the save
+            record(name + "_details", w.ui->tabBar->currentIndex() == CONTACTDETAILSTABPOS) ;
+            QWidget *focus = w.focusWidget() ;
+            record(name + "_focus", focus ? focus->objectName() : QString()) ;
             QMap<QString, QLineEdit*> entries = formEntries(w.ui) ;
             for (const QJsonValue &f : op["fields"].toArray()) {
                 QString field = f.toString() ;
@@ -407,6 +411,22 @@ int main(int argc, char *argv[])
             record(name + "_merged", merged) ;
             record(name + "_left", left) ;
             note(QString("%1: %2 merged automatically, %3 left").arg(name).arg(merged).arg(left)) ;
+
+        } else if (kind == "tidy_full") {
+            // Tidy Contacts, as the menu runs it.  Records the contact left loaded, and how many live contacts have the
+            // surname given, so a scenario can see a merge: the loaded contact must follow it.
+            QString name = op["name"].toString() ;
+            w.on_actionTidyContacts_triggered() ;
+            Contact &loaded = w.db.getSelected() ;
+            record(name + "_selected", loaded.getField(Contact::Surname)) ;
+            QString surname = op["surname"].toString() ;
+            int remaining = 0 ;
+            for (int i = 0; i < w.db.size(); i++) {
+                Contact &c = w.db.getContact(i) ;
+                if (!c.isSet(Contact::Deleted) && c.getField(Contact::Surname) == surname) remaining++ ;
+            }
+            record(name + "_remaining", remaining) ;
+            note(QString("tidy_full %1: %2 loaded, %3 remaining").arg(name).arg(loaded.getField(Contact::Surname)).arg(remaining)) ;
 
         } else if (kind == "tidy_contacts") {
             // The entry tidy step of Tidy Contacts, run on every contact
