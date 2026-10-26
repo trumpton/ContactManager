@@ -475,7 +475,7 @@ int ContactDatabase::tidyEntries(int &changedcontacts, QStringList &unfixed)
 
             FieldFormat::Tidied r = FieldFormat::tidyEntry(text, e.isemail) ;
             if (!r.fixed) {
-                unfixed << QString("%1: %2 entry - %3").arg(name, e.kind, r.problem) ;
+                unfixed << QString("%1: %2 \"%3\" - %4").arg(name, e.kind, text, r.problem) ;
                 continue ;
             }
 
