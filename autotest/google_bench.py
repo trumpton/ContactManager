@@ -1584,7 +1584,7 @@ def f10():
                          {"op": "exit", "name": "f10b"}, dump()], session="F10").execute()
         # Steps 10 to 14: relaunch, open the contact on the Overview, Tidy Contacts, Alt-E,D, Exit
         c = Run("F10c", [{"op": "open_contact", "name": "f10c", "match": {"surname": "F10"}, "details": False},
-                         {"op": "clear_selection"},
+                         {"op": "tidy_full", "name": "f10c", "surname": "F10"},
                          {"op": "tidy_contacts", "name": "f10c"},
                          {"op": "alt_edit", "name": "f10c"},
                          {"op": "exit", "name": "f10c"}, dump()], session="F10").execute()
@@ -1596,8 +1596,9 @@ def f10():
     return [Check("step 4: Alt-E,D opens Contact Details, showing the bad entry",
                   ra.get("f10a_details") is True and ra.get("f10a_email") == bad,
                   "details %r, email %r" % (ra.get("f10a_details"), ra.get("f10a_email"))),
-            Check("step 5: Control-S saves with no prompt about the bad entry", "Contact Details" not in a.log(),
-                  "a Contact Details message was shown"),
+            Check("step 5: Control-S shows the warning, then the details tab with focus on the bad entry",
+                  "Contact Details" in a.log() and ra.get("f10a_details") is True and ra.get("f10a_focus") == "editEmail",
+                  "details %r, focus %r" % (ra.get("f10a_details"), ra.get("f10a_focus"))),
             Check("step 6: Exit closes", ra.get("f10a_exit_accepted") is True,
                   "exit accepted %r" % ra.get("f10a_exit_accepted")),
             Check("step 9: Exit closes after a relaunch", rb.get("f10b_exit_accepted") is True,
