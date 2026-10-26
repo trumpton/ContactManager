@@ -4,7 +4,7 @@
 Runs the app's Google sync headlessly (autotest/bench/bench_driver) against a test Google account, and
 checks the result on both sides: the local dump the driver writes and the account as Google holds it.
 
-Only use a throwaway account.  Everything the bench creates is named "Bench ..." (contacts) or
+Only use a scratch account (see HEADLESS-TEST.md, section 0).  Everything the bench creates is named "Bench ..." (contacts) or
 "BENCH ..." (appointments), and the bench deletes those names before and after each scenario.
 
 Configuration (environment variables, with defaults):
