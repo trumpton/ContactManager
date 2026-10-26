@@ -178,6 +178,7 @@ private:
     void refreshTitledEntries() ;   // Names each email and phone entry by its title
     void changeTitle(QLineEdit *entry) ;
     bool eventFilter(QObject *watched, QEvent *event) override ;
+    bool ValidateTitledEntries(Contact &dr) ;   // Checks and tidies the email and phone entries changed on the form
     bool SaveContactTab() ;     // Transfer Contact Tab -> Database Item Contact Data
     void LoadCalendarTab() ;  // Transfer Global Calendar to Calendar Tab
     void SaveCalendarTab() ;    // Save the Calendar if Needed

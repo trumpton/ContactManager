@@ -1262,6 +1262,29 @@ def p04():
             Check("Google still holds all seven after a second sync", gcount == 7, "Google holds %d" % gcount)]
 
 
+@scenario("D01", "Clearing an email and a phone in the app removes them from Google")
+def d01():
+    resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "D01"}],
+        "emailAddresses": [{"value": "d01a@test.invalid", "type": "home"},
+                           {"value": "d01b@test.invalid", "type": "work"}],
+        "phoneNumbers": [{"value": "+44 20 7946 0501", "type": "home"},
+                         {"value": "+44 20 7946 0502", "type": "work"}]})
+    ops = [sync(),
+           {"op": "edit_contact", "match": {"surname": "D01"},
+            "fields": {"email3": "", "email3title": "", "work": "", "worktitle": ""}},
+           sync(), dump()]
+    run = Run("D01", ops).execute()
+    info = contact_info(google_person(resource))
+    local = app_live_contacts(run.dump, "D01")
+    c = local[0] if local else {}
+    return [Check("the app has no second email", not c.get("email2")),
+            Check("Google no longer holds the second email",
+                  [v for v, _ in info["emails"]] == ["d01a@test.invalid"], "Google emails: %s" % (info["emails"],)),
+            Check("Google no longer holds the work phone",
+                  [digits(v) for v, _ in info["phones"]] == [digits("+44 20 7946 0501")],
+                  "Google phones: %s" % (info["phones"],))]
+
+
 def gchange_main(argv):
     cmd = argv[0]
     if cmd == "edit-contact":

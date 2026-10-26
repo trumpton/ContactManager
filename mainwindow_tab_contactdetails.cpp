@@ -1,5 +1,6 @@
 
 #include "mainwindow.h"
+#include "fieldformat.h"
 #include "../Lib/alertsound.h"
 
 //
@@ -139,21 +140,22 @@ struct TitledEntry {
     QLabel *title ;
     QString kind ;          // "Email" or "Phone", used in the name and the dialog
     int slot ;              // the email or phone slot, for its default label
+    Contact::ContactRecord value ;  // the record the entry is saved to
 } ;
 
 static QList<TitledEntry> titledEntries(Ui::MainWindow *ui)
 {
     return {
-        { ui->editEmail, ui->editEmailTitle, QString("Email"), 0 },
-        { ui->editEmail2, ui->editEmail2Title, QString("Email"), 1 },
-        { ui->editEmail3, ui->editEmail3Title, QString("Email"), 2 },
-        { ui->editEmail4, ui->editEmail4Title, QString("Email"), 3 },
-        { ui->editHome, ui->editPhoneTitle, QString("Phone"), 0 },
-        { ui->editWork, ui->editWorkTitle, QString("Phone"), 1 },
-        { ui->editMobile, ui->editMobileTitle, QString("Phone"), 2 },
-        { ui->edit2, ui->edit2Title, QString("Phone"), 3 },
-        { ui->edit3, ui->edit3Title, QString("Phone"), 4 },
-        { ui->edit4, ui->edit4Title, QString("Phone"), 5 },
+        { ui->editEmail, ui->editEmailTitle, QString("Email"), 0, Contact::Email },
+        { ui->editEmail2, ui->editEmail2Title, QString("Email"), 1, Contact::Email2 },
+        { ui->editEmail3, ui->editEmail3Title, QString("Email"), 2, Contact::Email3 },
+        { ui->editEmail4, ui->editEmail4Title, QString("Email"), 3, Contact::Email4 },
+        { ui->editHome, ui->editPhoneTitle, QString("Phone"), 0, Contact::Phone },
+        { ui->editWork, ui->editWorkTitle, QString("Phone"), 1, Contact::Work },
+        { ui->editMobile, ui->editMobileTitle, QString("Phone"), 2, Contact::Mobile },
+        { ui->edit2, ui->edit2Title, QString("Phone"), 3, Contact::Phone2 },
+        { ui->edit3, ui->edit3Title, QString("Phone"), 4, Contact::Phone3 },
+        { ui->edit4, ui->edit4Title, QString("Phone"), 5, Contact::Phone4 },
     } ;
 }
 
@@ -180,6 +182,53 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
     return QMainWindow::eventFilter(watched, event) ;
 }
 
+// The rules for a title, for the message when one is not allowed
+static QString labelRules()
+{
+    return QString("A title starts with a letter, and may use letters, digits, spaces, hyphens and apostrophes.  "
+                   "It can be up to %1 characters long.").arg(FieldFormat::MaxLabelLength) ;
+}
+
+// Checks the email and phone entries that changed on the form.  A title typed after a number, as in "01234 567890 (Home)",
+// becomes the title of that entry and is taken off the number.  Returns false, after a message, when an entry is not
+// formatted correctly, and focus then goes to that entry.
+bool MainWindow::ValidateTitledEntries(Contact &dr)
+{
+    for (const TitledEntry &t : titledEntries(ui)) {
+        QString text = t.entry->text().trimmed() ;
+        if (text.compare(dr.getField(t.value))==0) continue ;
+
+        QString name = t.title->text() + " " + t.kind ;
+        QString value = text ;
+        QString label ;
+        if (FieldFormat::splitLabel(text, value, label)) {
+            if (!FieldFormat::validLabel(label)) {
+                warningOkDialog(this, "Contact Details", QString("The title \"%1\" for the %2 is not formatted correctly.\n\n%3")
+                                     .arg(label, name, labelRules()), true) ;
+                t.entry->setFocus() ;
+                return false ;
+            }
+        }
+
+        bool ok = value.isEmpty() || ((t.kind=="Email") ? FieldFormat::validEmailAddress(value) : FieldFormat::validPhoneNumber(value)) ;
+        if (!ok) {
+            QString hint = (t.kind=="Email") ? QString("An email address looks like name@domain.com.")
+                : QString("Use digits, spaces, brackets, hyphens and dots, with an optional + at the start.  "
+                          "A title can follow the number, as in 01234 567890 (Home).") ;
+            warningOkDialog(this, "Contact Details", QString("The %1 \"%2\" is not formatted correctly.\n\n%3")
+                                 .arg(name, text, hint), true) ;
+            t.entry->setFocus() ;
+            return false ;
+        }
+
+        t.entry->setText(value) ;
+        if (!label.isEmpty()) t.title->setText(FieldFormat::normaliseLabel(label)) ;
+    }
+
+    refreshTitledEntries() ;
+    return true ;
+}
+
 // Changes the title of one email or phone for this contact.  A blank title gives the default label back.
 void MainWindow::changeTitle(QLineEdit *entry)
 {
@@ -195,7 +244,15 @@ void MainWindow::changeTitle(QLineEdit *entry)
         if (!ok) return ;
 
         title = title.trimmed() ;
-        t.title->setText(title.isEmpty() ? defaultlabel : title) ;
+        if (title.isEmpty()) {
+            title = defaultlabel ;
+        } else if (!FieldFormat::validLabel(title)) {
+            warningOkDialog(this, windowtitle, QString("\"%1\" is not a valid title.\n\n%2").arg(title, labelRules()), true) ;
+            t.entry->setFocus() ;
+            return ;
+        }
+
+        t.title->setText(FieldFormat::normaliseLabel(title)) ;
         refreshTitledEntries() ;
         return ;
     }
@@ -274,6 +331,8 @@ bool MainWindow::SaveContactTab()
 
     if (dr.isNull()) return true ;
 
+    if (!ValidateTitledEntries(dr)) return false ;
+
     Contact newdr ;
     QString log="" ;
     bool wasempty = dr.isEmpty() ;
@@ -303,6 +362,7 @@ bool MainWindow::SaveContactTab()
     newdr.setField(Contact::Email2Title, ui->editEmail2->text().isEmpty() ? QString("") : ui->editEmail2Title->text()) ;
     newdr.setField(Contact::Email3Title, ui->editEmail3->text().isEmpty() ? QString("") : ui->editEmail3Title->text()) ;
     newdr.setField(Contact::Email4Title, ui->editEmail4->text().isEmpty() ? QString("") : ui->editEmail4Title->text()) ;
+    newdr.setField(Contact::Voip, ui->editVoip->text()) ;
     newdr.setField(Contact::Webaddress, ui->editWebAddress->text()) ;
     newdr.setField(Contact::Birthday, dateTimeToXsDate(ui->editDateOfBirth->getDateTime()));
     newdr.setField(Contact::Comments, ui->editComment->toPlainText() );
@@ -315,8 +375,7 @@ bool MainWindow::SaveContactTab()
     newdr.setFlag(Contact::EmailMe, ui->checkEmailMe->checkState()!=Qt::Unchecked) ;
     newdr.setFlag(Contact::TextMe, ui->checkTextMe->checkState()!=Qt::Unchecked) ;
 
-    // If nothing set / changed / updated, return
-    if (!newdr.isDirty()) return true ;
+    // If nothing set / changed / updated, return.  A field that was cleared does not make newdr dirty, so compare with dr.
     if (dr.matches(newdr, Contact::mcDetailsGroup)) return true ;
 
     // Check the textme and emailme fields are right for a client

@@ -1,4 +1,5 @@
 #include "contact.h"
+#include "fieldformat.h"
 #include "configuration.h"
 #include <QUuid>
 #include <QFile>
@@ -546,8 +547,10 @@ void Contact::setField(enum Contact::ContactRecord field, QString data)
     if (field==Contact::Birthday)
         dat = parseDate(dat) ;
 
-    if (field>=Contact::Phone2Title  && field<=Contact::Phone4Title) {
-        dat = dat.left(1).toUpper() + dat.mid(1).toLower() ;
+    if (field==Contact::EmailTitle || field==Contact::Email2Title || field==Contact::Email3Title || field==Contact::Email4Title ||
+        field==Contact::PhoneTitle || field==Contact::WorkTitle || field==Contact::MobileTitle ||
+        field==Contact::Phone2Title || field==Contact::Phone3Title || field==Contact::Phone4Title) {
+        dat = FieldFormat::normaliseLabel(dat) ;
     }
 
     if (field>=0 && field<Contact::NumberOfRecords && dat.compare(filedata[field])!=0) {
