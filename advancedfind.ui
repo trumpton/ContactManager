@@ -149,14 +149,20 @@
           <property name="checked">
            <bool>true</bool>
           </property>
-         </widget>
+                   <property name="accessibleName">
+           <string>Search Category 3 is Yes</string>
+          </property>
+</widget>
         </item>
         <item>
          <widget class="QRadioButton" name="radioButton_Flag1Disabled">
           <property name="text">
            <string>No</string>
           </property>
-         </widget>
+                   <property name="accessibleName">
+           <string>Search Category 3 is No</string>
+          </property>
+</widget>
         </item>
        </layout>
       </widget>
@@ -239,14 +245,20 @@
           <property name="checked">
            <bool>true</bool>
           </property>
-         </widget>
+                   <property name="accessibleName">
+           <string>Search Category 4 is Yes</string>
+          </property>
+</widget>
         </item>
         <item>
          <widget class="QRadioButton" name="radioButton_Flag2Disabled">
           <property name="text">
            <string>No</string>
           </property>
-         </widget>
+                   <property name="accessibleName">
+           <string>Search Category 4 is No</string>
+          </property>
+</widget>
         </item>
        </layout>
       </widget>
