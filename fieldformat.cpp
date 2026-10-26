@@ -1,0 +1,72 @@
+#include "fieldformat.h"
+
+#include <QRegularExpression>
+#include <QStringList>
+
+namespace FieldFormat {
+
+static const QString labelpattern = QStringLiteral("\\p{L}[\\p{L}\\p{N} '\\-]*") ;
+
+bool splitLabel(const QString &text, QString &value, QString &label)
+{
+    static const QRegularExpression bracketed(QStringLiteral("^(.+?)\\s*\\(\\s*(%1)\\s*\\)$").arg(labelpattern)) ;
+    static const QRegularExpression dashed(QStringLiteral("^(.+?)\\s+-\\s*(%1)$").arg(labelpattern)) ;
+    static const QRegularExpression prefixed(QStringLiteral("^(%1)\\s*:\\s*(.+)$").arg(labelpattern)) ;
+
+    QString trimmed = text.trimmed() ;
+    QRegularExpressionMatch m = bracketed.match(trimmed) ;
+    QString v, l ;
+    if (m.hasMatch()) {
+        v = m.captured(1) ;
+        l = m.captured(2) ;
+    } else if ((m = dashed.match(trimmed)).hasMatch()) {
+        v = m.captured(1) ;
+        l = m.captured(2) ;
+    } else if ((m = prefixed.match(trimmed)).hasMatch()) {
+        l = m.captured(1) ;
+        v = m.captured(2) ;
+    } else {
+        return false ;
+    }
+
+    v = v.trimmed() ;
+    l = l.trimmed() ;
+    if (v.isEmpty() || l.isEmpty()) return false ;
+
+    value = v ;
+    label = l ;
+    return true ;
+}
+
+bool validPhoneNumber(const QString &number)
+{
+    static const QRegularExpression allowed(QStringLiteral("^\\+?[0-9 ()\\-.]+$")) ;
+    QString n = number.trimmed() ;
+    if (!allowed.match(n).hasMatch()) return false ;
+
+    int digits = 0 ;
+    for (const QChar c : n) if (c.isDigit()) digits++ ;
+    return digits>0 ;
+}
+
+bool validEmailAddress(const QString &address)
+{
+    static const QRegularExpression email(QStringLiteral("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) ;
+    return email.match(address.trimmed()).hasMatch() ;
+}
+
+bool validLabel(const QString &label)
+{
+    static const QRegularExpression allowed(QStringLiteral("^%1$").arg(labelpattern)) ;
+    QString l = label.trimmed() ;
+    return l.length()<=MaxLabelLength && allowed.match(l).hasMatch() ;
+}
+
+QString normaliseLabel(const QString &label)
+{
+    QStringList words = label.trimmed().split(' ', Qt::SkipEmptyParts) ;
+    for (QString &word : words) word = word.left(1).toUpper() + word.mid(1).toLower() ;
+    return words.join(' ') ;
+}
+
+}

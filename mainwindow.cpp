@@ -400,6 +400,9 @@ void MainWindow::populateDialog(QString id, bool switchtooverview)
     Contact& dro = db.getSelected() ;
     QString oldid = dro.getField(Contact::ID) ;
 
+    // A badly formatted email or phone entry keeps the form on this contact, with focus on that entry
+    if (!ValidateTitledEntries(dro)) return ;
+
     // Save current contact & disable the editing tab
     SaveTabs() ;
 
