@@ -1462,6 +1462,39 @@ def f04():
                   "phones %s, emails %s" % (phones, emails))]
 
 
+@scenario("MG01", "Tidy Contacts merges two entries for one person when they share an address and do not conflict")
+def mg01():
+    ops = [add_contact_op("MG01", email="mg01@test.invalid", phone="+44 20 7946 0601"),
+           add_contact_op("MG01", email="mg01@test.invalid", comments="Note from the second entry"),
+           {"op": "merge_duplicates", "name": "mg01"}, dump()]
+    run = Run("MG01", ops).execute()
+    results = run.dump_file("results.json")
+    live = app_live_contacts(run.dump, "MG01")
+    c = live[0] if live else {}
+    return [Check("the merge ran", results.get("mg01_merged") == 1, "results %s" % results),
+            Check("one live entry is left", len(live) == 1, "live entries %d" % len(live)),
+            Check("the merged entry holds the address, the phone and the note",
+                  c.get("email") == "mg01@test.invalid" and digits(c.get("phone", "")) == digits("+44 20 7946 0601")
+                  and "Note from the second entry" in c.get("comments", ""),
+                  "email %r, phone %r, comments %r" % (c.get("email"), c.get("phone"), c.get("comments"))),
+            Check("the other entry is marked as merged away", sum(1 for x in run.dump["contacts"]
+                  if x.get("surname") == "MG01" and x.get("mergedinto")) == 1, "")]
+
+
+@scenario("MG02", "Tidy Contacts does not merge two entries that share an address but have different names")
+def mg02():
+    ops = [add_contact_op("MG02A", email="mg02@test.invalid", phone="+44 20 7946 0621"),
+           add_contact_op("MG02B", email="mg02@test.invalid", phone="+44 20 7946 0622"),
+           {"op": "merge_duplicates", "name": "mg02"}, dump()]
+    run = Run("MG02", ops).execute()
+    results = run.dump_file("results.json")
+    live = app_live_contacts(run.dump, "MG02A") + app_live_contacts(run.dump, "MG02B")
+    return [Check("nothing was merged", results.get("mg02_merged") == 0, "results %s" % results),
+            Check("both entries are still there", len(live) == 2, "live entries %d" % len(live)),
+            Check("the pair is not offered for a merge, as the names differ", results.get("mg02_left") == 0,
+                  "results %s" % results)]
+
+
 @scenario("E03", "Editor: an older entry with its label in the address is tidied when opened, and saved with the next change")
 def e03():
     resource = form_scenario_contact("E03", address="e03@test.invalid (Work)")
