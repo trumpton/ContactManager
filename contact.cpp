@@ -280,6 +280,7 @@ bool Contact::load(QString path, QString idname)
     QStringList ParsedLine;
     QRegularExpression sep("(\\=)");
     bool oldformat = false ;
+    QString loadedUpdated ;
 
     createNew() ;
 
@@ -347,6 +348,11 @@ bool Contact::load(QString path, QString idname)
                 }
             }
 
+            // The saved timestamp is kept for after the loop: setField stamps the contact with the time it is loaded
+            if (label.compare(contactRecordName(Contact::Updated))==0) {
+                loadedUpdated = entrytext.trimmed() ;
+            }
+
             for (int i=0; i<Contact::NumberOfRecords; i++) {
 
                 if (label.compare(contactRecordName((enum ContactRecord)i))==0) {
@@ -356,6 +362,9 @@ bool Contact::load(QString path, QString idname)
             }
         }
     }
+
+    // Loading is not a change, so the timestamp is the one that was saved (empty for a file that has none)
+    filedata[Contact::Updated] = loadedUpdated ;
 
     // Remove any rogue phone titles, should there be no phone number
     if (getField(Contact::Phone2).isEmpty()) { setField(Contact::Phone2Title, "") ; }
