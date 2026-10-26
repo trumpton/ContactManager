@@ -70,7 +70,7 @@ def access_token():
         data = urllib.parse.urlencode({
             "client_id": _define("CLIENTID"), "client_secret": _define("SECRET"),
             "refresh_token": _refresh_token(), "grant_type": "refresh_token"}).encode()
-        with urllib.request.urlopen("https://oauth2.googleapis.com/token", data) as r:
+        with urllib.request.urlopen("https://oauth2.googleapis.com/token", data, timeout=60) as r:
             _token["value"] = json.load(r)["access_token"]
     return _token["value"]
 
@@ -83,7 +83,7 @@ def api(method, url, body=None):
         req.add_header("Content-Type", "application/json")
     for attempt in range(5):
         try:
-            with urllib.request.urlopen(req) as r:
+            with urllib.request.urlopen(req, timeout=60) as r:
                 text = r.read().decode()
                 return json.loads(text) if text else {}
         except urllib.error.HTTPError as e:
@@ -231,6 +231,8 @@ class Run:
             os.makedirs(self.workdir, exist_ok=True)
         else:
             self.workdir = self.dir
+        self.home = os.path.join(self.workdir, "home")
+        self.fresh = not os.path.exists(self.home)
         self.ops = ops
         self.dump = None
         with open(os.path.join(self.dir, "ops.json"), "w") as f:
@@ -240,7 +242,9 @@ class Run:
         secret = os.environ.get("CM_TEST_SECRET", "")
         if not secret:
             raise SystemExit("set CM_TEST_SECRET to the local test password")
-        env = dict(os.environ, CM_TEST_SECRET=secret, QT_QPA_PLATFORM="offscreen")
+        prepare_home(self.home, self.fresh, MODE["master"])
+        env = dict(os.environ, CM_TEST_SECRET=secret, QT_QPA_PLATFORM="offscreen", HOME=self.home)
+        env.pop("XDG_CONFIG_HOME", None)
         subprocess.run([DRIVER, self.dir, os.path.join(self.dir, "ops.json")], env=env,
                        stdout=open(os.path.join(self.dir, "stdout.log"), "w"), stderr=subprocess.STDOUT,
                        timeout=900, check=False, cwd=self.workdir)
@@ -315,18 +319,40 @@ def local_events(dump, prefix):
     return [a for a in dump["appointments"] if a["summary"].startswith(prefix) and not a["deleted"]]
 
 
+MODE = {"master": 0}
+
+
 def set_mode(master):
     """Set the app's master setting: 0 = ContactManager master (local), 1 = Google master.
-    The app reads the setting when it starts, so this applies to the next run."""
-    with open(CONF) as f:
-        text = f.read()
-    line = "databasemaster=%d" % master
-    if re.search(r"^databasemaster=", text, re.M):
-        text = re.sub(r"^databasemaster=.*$", line, text, flags=re.M)
+    It applies to the next run, which writes it into its own settings file."""
+    MODE["master"] = master
+
+
+def prepare_home(home, fresh, master):
+    """Give a run its own HOME, so its settings, phone settings and local data are its own.
+
+    A fresh home gets the sign-in from the source settings file, the sync switches, and no sync dates, so the
+    first sync is a full one.  A continuing home (a session) keeps its own settings, and only the master
+    setting is changed."""
+    cfg_dir = os.path.join(home, ".config", "trumpton.org.uk")
+    ini_dir = os.path.join(home, "TrumptonApps")
+    os.makedirs(cfg_dir, exist_ok=True)
+    os.makedirs(ini_dir, exist_ok=True)
+    # Phone codes blank, so numbers are stored as typed (see HEADLESS-TEST.md, section 4a)
+    with open(os.path.join(ini_dir, "ContactManager.ini"), "w") as f:
+        f.write("[phone]\nlocalcode=\ncountrycode=\n")
+    cfg = os.path.join(cfg_dir, "ContactManager.conf")
+    if fresh or not os.path.exists(cfg):
+        with open(CONF) as src:
+            keep = [l for l in src.read().splitlines()
+                    if re.match(r"^(googlerefreshtoken|googleusername)=", l)]
+        lines = ["[General]"] + keep + ["calendarsync=yes", "contactsync=yes"]
     else:
-        text = text.replace("[General]\n", "[General]\n" + line + "\n", 1)
-    with open(CONF, "w") as f:
-        f.write(text)
+        with open(cfg) as f:
+            lines = [l for l in f.read().splitlines() if not l.startswith("databasemaster=")]
+    lines.append("databasemaster=%d" % master)
+    with open(cfg, "w") as f:
+        f.write("\n".join(lines) + "\n")
 
 
 # ----------------------------------------------------------------------------------------------
