@@ -1567,7 +1567,51 @@ def f09():
                   "a Contact Details message was shown")]
 
 
-@scenario("E03", "Editor: an older entry with its label in the address is tidied when opened, and saved with the next change")
+@scenario("F10", "#69: the report's steps: a bad entry from Google, Alt-E,D, Ctrl-S, Exit, relaunch, Tidy Contacts, Alt-E,D, Exit")
+def f10():
+    bad = "Bad Field 1: f10@test.invalid - Bad Field 2 (Bad Field 3)"
+    create_contact_body({"names": [{"givenName": "Bench", "familyName": "F10"}],
+        "emailAddresses": [{"value": bad, "type": "Label3"}]})
+    set_mode(GOOGLE_MASTER)
+    try:
+        # Steps 1 to 6: sync, Alt-E,D, Control-S, Exit
+        a = Run("F10a", [sync(), {"op": "open_contact", "name": "f10a", "match": {"surname": "F10"}},
+                         {"op": "menu_save", "name": "f10a", "fields": ["email"]},
+                         {"op": "exit", "name": "f10a"}, dump()], session="F10").execute()
+        # Steps 7 to 9: relaunch, open the contact, Exit
+        b = Run("F10b", [{"op": "open_contact", "name": "f10b", "match": {"surname": "F10"}, "details": False},
+                         {"op": "exit", "name": "f10b"}, dump()], session="F10").execute()
+        # Steps 10 to 14: relaunch, open the contact on the Overview, Tidy Contacts, Alt-E,D, Exit
+        c = Run("F10c", [{"op": "open_contact", "name": "f10c", "match": {"surname": "F10"}, "details": False},
+                         {"op": "clear_selection"},
+                         {"op": "tidy_contacts", "name": "f10c"},
+                         {"op": "alt_edit", "name": "f10c"},
+                         {"op": "exit", "name": "f10c"}, dump()], session="F10").execute()
+    finally:
+        set_mode(CM_MASTER)
+    ra = a.dump_file("results.json")
+    rb = b.dump_file("results.json")
+    rc = c.dump_file("results.json")
+    return [Check("step 4: Alt-E,D opens Contact Details, showing the bad entry",
+                  ra.get("f10a_details") is True and ra.get("f10a_email") == bad,
+                  "details %r, email %r" % (ra.get("f10a_details"), ra.get("f10a_email"))),
+            Check("step 5: Control-S saves with no prompt about the bad entry", "Contact Details" not in a.log(),
+                  "a Contact Details message was shown"),
+            Check("step 6: Exit closes", ra.get("f10a_exit_accepted") is True,
+                  "exit accepted %r" % ra.get("f10a_exit_accepted")),
+            Check("step 9: Exit closes after a relaunch", rb.get("f10b_exit_accepted") is True,
+                  "exit accepted %r" % rb.get("f10b_exit_accepted")),
+            Check("step 12: Tidy Contacts reports the bad entry",
+                  any("f10@test.invalid" in line for line in rc.get("f10c_unfixed", [])),
+                  "unfixed %r" % rc.get("f10c_unfixed")),
+            Check("step 13: Alt-E,D after Tidy Contacts opens Contact Details", rc.get("f10c_details") is True,
+                  "details %r (no contact is selected after Tidy Contacts)" % rc.get("f10c_details")),
+            Check("step 14: Exit closes after Tidy Contacts, with no prompt", rc.get("f10c_exit_accepted") is True
+                  and "Contact Details" not in c.log(),
+                  "exit accepted %r" % rc.get("f10c_exit_accepted"))]
+
+
+@scenario("E03","Editor: an older entry with its label in the address is tidied when opened, and saved with the next change")
 def e03():
     resource = form_scenario_contact("E03", address="e03@test.invalid (Work)")
     ops = [sync(), {"op": "open_contact", "match": {"surname": "E03"}},
