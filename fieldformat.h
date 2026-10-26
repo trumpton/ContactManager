@@ -19,7 +19,7 @@ namespace FieldFormat {
     // One @ with text either side, and a dot in the domain
     bool validEmailAddress(const QString &address) ;
 
-    // Any printable character except = and backslash, up to MaxLabelLength characters
+    // Any printable character except colon, slash, backslash and =, with no tabs or line breaks, up to MaxLabelLength characters
     bool validLabel(const QString &label) ;
 
     // The first letter of each word in capitals, the rest in lower case
