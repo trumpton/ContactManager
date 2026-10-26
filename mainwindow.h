@@ -156,6 +156,7 @@ private:
     QTimer *timer ;
     Encryption *enc ;
     AdvancedFind *find ;
+    bool titledEntriesHeld ;                        // An email or phone entry was refused: the form is not reloaded until it is fixed
 
     QString SMTPSMSErrorMessage ;
 
@@ -167,7 +168,7 @@ private:
 
     // Transfer data to/from dialog
     void LoadTabs() ;               // Loads / Populates all Tabs
-    void SaveTabs() ;               // Saves all Tabs
+    bool SaveTabs() ;               // Saves all Tabs.  Returns false when the contact details were refused
     void logLoadSummary() ;         // Logs counts of what was loaded, for diagnosis
 
     void appendHistory(Contact& contact, QString msg) ;
@@ -180,7 +181,7 @@ private:
     bool eventFilter(QObject *watched, QEvent *event) override ;
     void tidyTitledEntries() ;                  // Puts right the email and phone entries that can be, when the form is loaded
     void tidyTitledEntry(QLineEdit *entry) ;    // Puts right one email or phone entry, when focus leaves it
-    bool ValidateTitledEntries(Contact &dr) ;   // Checks and tidies the email and phone entries changed on the form
+    bool ValidateTitledEntries(Contact &dr) ;   // Checks the changed email and phone entries when saving
     bool SaveContactTab() ;     // Transfer Contact Tab -> Database Item Contact Data
     void LoadCalendarTab() ;  // Transfer Global Calendar to Calendar Tab
     void SaveCalendarTab() ;    // Save the Calendar if Needed

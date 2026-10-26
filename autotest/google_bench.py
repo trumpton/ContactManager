@@ -1318,23 +1318,38 @@ def e01():
             Check("Google holds the address as work", types.get("e01@test.invalid") == "work", "Google types: %s" % types)]
 
 
-@scenario("E02", "Editor: an entry that cannot be put right is refused, focus goes to it, and nothing changes")
+@scenario("E02", "Editor: a save with a bad entry is refused, focus goes to the first, nothing is saved, and the typed text is kept")
 def e02():
     form_scenario_contact("E02", address="e02@test.invalid")
+    bad_email = "Home: e02b@test.invalid - Home (Work)"
+    bad_phone = "+44 20 7946 0401 ext 5"
+    good_voip = "sip:e02@test.invalid"
     ops = [sync(), {"op": "open_contact", "match": {"surname": "E02"}},
-           {"op": "form_set", "fields": {"email": "Home: e02@test.invalid - Home (Work)"}, "tidy": True},
-           {"op": "form_save", "name": "e02"}, dump()]
+           {"op": "form_set", "fields": {"email": bad_email, "phone": bad_phone, "voip": good_voip}, "tidy": True},
+           {"op": "form_save", "name": "e02"},
+           {"op": "menu_save", "name": "e02m", "fields": ["email", "phone", "voip"]},
+           dump(file="d_refused.json"),
+           {"op": "form_set", "fields": {"email": "e02c@test.invalid", "phone": "+44 20 7946 0401"}, "tidy": True},
+           {"op": "form_save", "name": "e02ok"},
+           dump()]
     run = Run("E02", ops).execute()
     results = run.dump_file("results.json")
     local = app_live_contacts(run.dump, "E02")
     c = local[0] if local else {}
-    return [Check("the form was refused", results.get("e02_saved") is False, "results %s" % results),
-            Check("focus is on the offending email", results.get("e02_focus") == "editEmail",
+    held = app_live_contacts(run.dump_file("d_refused.json"), "E02")
+    h = held[0] if held else {}
+    return [Check("the save with a bad entry was refused", results.get("e02_saved") is False, "results %s" % results),
+            Check("focus is on the first bad entry, the email", results.get("e02_focus") == "editEmail",
                   "focus was %r" % results.get("e02_focus")),
             Check("the user was told, with a message from Contact Details", "Contact Details" in run.log()),
-            Check("the stored address and title are unchanged",
-                  c.get("email") == "e02@test.invalid" and c.get("emailtitle") == "Home",
-                  "got %r / %r" % (c.get("email"), c.get("emailtitle")))]
+            Check("the typed email is kept", results.get("e02m_email") == bad_email, "shows %r" % results.get("e02m_email")),
+            Check("the typed phone is kept", results.get("e02m_phone") == bad_phone, "shows %r" % results.get("e02m_phone")),
+            Check("nothing was saved while an entry was wrong",
+                  h.get("voip") != good_voip and h.get("email") == "e02@test.invalid",
+                  "voip %r, email %r" % (h.get("voip"), h.get("email"))),
+            Check("once everything is right, the save stores it all",
+                  results.get("e02ok_saved") is True and c.get("email") == "e02c@test.invalid"
+                  and c.get("emailtitle") == "Home", "results %s, got %r" % (results, c.get("email")))]
 
 
 @scenario("E03", "Editor: an older entry with its label in the address is tidied when opened, and saved with the next change")
