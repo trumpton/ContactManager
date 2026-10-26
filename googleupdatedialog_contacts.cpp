@@ -41,8 +41,8 @@ static QString changedPersonFields(Contact &local, Contact &google)
     } ;
     const QList<PersonGroup> groups = {
         { "names",          { Contact::Surname, Contact::Names } },
-        { "emailAddresses", { Contact::Email, Contact::Email2, Contact::Email3, Contact::Email4, Contact::Email3Title, Contact::Email4Title } },
-        { "phoneNumbers",   { Contact::Phone, Contact::Work, Contact::Mobile, Contact::Phone2, Contact::Phone3, Contact::Phone4,
+        { "emailAddresses", { Contact::Email, Contact::Email2, Contact::Email3, Contact::Email4, Contact::EmailTitle, Contact::Email2Title, Contact::Email3Title, Contact::Email4Title } },
+        { "phoneNumbers",   { Contact::Phone, Contact::Work, Contact::Mobile, Contact::Phone2, Contact::Phone3, Contact::Phone4, Contact::PhoneTitle, Contact::WorkTitle, Contact::MobileTitle,
                               Contact::Phone2Title, Contact::Phone3Title, Contact::Phone4Title } },
         { "sipAddresses",   { Contact::Voip } },
         { "organizations",  { Contact::Organisation } },

@@ -172,7 +172,10 @@
        <property name="tabChangesFocus">
         <bool>true</bool>
        </property>
-      </widget>
+             <property name="accessibleName">
+        <string>Appointment Description</string>
+       </property>
+</widget>
      </item>
     </layout>
    </item>

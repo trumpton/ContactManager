@@ -28,6 +28,7 @@
 #include <QJsonValue>
 #include <QProcess>
 #include <functional>
+#include <cstdlib>
 #include "../Lib/alertsound.h"
 #define private public
 #include "mainwindow.h"
@@ -39,6 +40,16 @@
 
 static QString outdir ;
 static int syncCount = 0 ;
+
+// Values the operations report back to the bench, in results.json in the run directory
+static QJsonObject results ;
+
+static void record(const QString &key, const QJsonValue &value)
+{
+    results.insert(key, value) ;
+    QFile f(outdir + "/results.json") ;
+    if (f.open(QIODevice::WriteOnly)) f.write(QJsonDocument(results).toJson()) ;
+}
 
 static void note(const QString &text)
 {
@@ -85,6 +96,26 @@ static int appointmentRecordFor(const QString &key)
     if (key == "for") return Appointment::For ;
     if (key == "googlerecordid") return Appointment::GoogleRecordId ;
     return -1 ;
+}
+
+// The entries on the contact details form, by contact field name
+static QMap<QString, QLineEdit*> formEntries(Ui::MainWindow *ui)
+{
+    QMap<QString, QLineEdit*> m ;
+    m["names"] = ui->editFirstName ;
+    m["surname"] = ui->editSurname ;
+    m["voip"] = ui->editVoip ;
+    m["email"] = ui->editEmail ;
+    m["email2"] = ui->editEmail2 ;
+    m["email3"] = ui->editEmail3 ;
+    m["email4"] = ui->editEmail4 ;
+    m["phone"] = ui->editHome ;
+    m["work"] = ui->editWork ;
+    m["mobile"] = ui->editMobile ;
+    m["phone2"] = ui->edit2 ;
+    m["phone3"] = ui->edit3 ;
+    m["phone4"] = ui->edit4 ;
+    return m ;
 }
 
 static void applyContactFields(Contact &c, const QJsonObject &fields)
@@ -186,7 +217,15 @@ int main(int argc, char *argv[])
     step = [&]() {
         if (next >= ops.size()) {
             note("operations finished") ;
-            QTimer::singleShot(500, &a, &QApplication::quit) ;
+            QTimer::singleShot(500, &a, [&]() {
+                // A refused entry is still held on the form.  Exit now, as the results are already written, rather
+                // than saving the form again while the window is destroyed.
+                if (w.titledEntriesHeld) {
+                    note("exiting with a refused entry on the form") ;
+                    std::_Exit(0) ;
+                }
+                QApplication::quit() ;
+            }) ;
             return ;
         }
         QJsonObject op = ops[next++].toObject() ;
@@ -258,6 +297,76 @@ int main(int argc, char *argv[])
             for (const QJsonValue &v : op["args"].toArray()) args << v.toString() ;
             int code = QProcess::execute(op["program"].toString(), args) ;
             note(QString("exec exit %1").arg(code)) ;
+
+        } else if (kind == "open_contact") {
+            // Opens the contact on the contact details form, as selecting it in the list does
+            QJsonObject match = op["match"].toObject() ;
+            QString id ;
+            int hit = 0 ;
+            for (int i = 0; i < w.db.size(); i++) {
+                Contact &c = w.db.getContact(i) ;
+                bool same = !match.isEmpty() ;
+                for (auto it = match.begin(); it != match.end(); ++it) {
+                    int rec = contactRecordFor(it.key()) ;
+                    if (rec < 0 || c.getField((Contact::ContactRecord)rec) != it.value().toString()) same = false ;
+                }
+                if (!same) continue ;
+                hit++ ;
+                id = c.getField(Contact::ID) ;
+            }
+            if (hit == 1) {
+                w.populateDialog(id, true) ;
+                w.on_actionEnableContactDetailsEdit_triggered() ;      // the form is open for editing, as when a user edits it
+            }
+            note(QString("open_contact matched %1 contact(s)").arg(hit)) ;
+
+        } else if (kind == "form_set") {
+            // Types into the form.  With "tidy" set, each entry is tidied as focus leaves it.
+            QJsonObject fields = op["fields"].toObject() ;
+            QMap<QString, QLineEdit*> entries = formEntries(w.ui) ;
+            for (auto it = fields.begin(); it != fields.end(); ++it) {
+                if (!entries.contains(it.key())) { note("unknown form field: " + it.key()) ; continue ; }
+                entries[it.key()]->setText(it.value().toString()) ;
+            }
+            if (op["tidy"].toBool()) {
+                for (auto it = fields.begin(); it != fields.end(); ++it) {
+                    if (entries.contains(it.key())) w.tidyTitledEntry(entries[it.key()]) ;
+                }
+            }
+
+        } else if (kind == "form_save") {
+            // Saves the form as Control-S does, and records whether it was saved and which entry has focus
+            QString name = op["name"].toString() ;
+            bool saved = w.SaveContactTab() ;
+            QWidget *focus = w.focusWidget() ;     // the window's focus, which holds even when it is not the active window
+            record(name + "_saved", saved) ;
+            record(name + "_focus", focus ? focus->objectName() : QString()) ;
+            note(QString("form save %1: %2").arg(name).arg(saved ? "saved" : "refused")) ;
+
+        } else if (kind == "menu_save") {
+            // File > Save, then records what the named form entries show, to check that a refused entry keeps its text
+            QString name = op["name"].toString() ;
+            w.on_actionSave_triggered() ;
+            QMap<QString, QLineEdit*> entries = formEntries(w.ui) ;
+            for (const QJsonValue &f : op["fields"].toArray()) {
+                QString field = f.toString() ;
+                if (entries.contains(field)) record(name + "_" + field, entries[field]->text()) ;
+            }
+            note("menu save " + name) ;
+
+        } else if (kind == "tidy_contacts") {
+            // The entry tidy step of Tidy Contacts, run on every contact
+            QString name = op["name"].toString().isEmpty() ? QString("tidy") : op["name"].toString() ;
+            int contactsChanged = 0 ;
+            QStringList unfixed ;
+            int changed = w.db.tidyEntries(contactsChanged, unfixed) ;
+            if (changed > 0) w.db.save() ;
+            QJsonArray lines ;
+            for (const QString &line : unfixed) lines.append(line) ;
+            record(name + "_changed", changed) ;
+            record(name + "_contacts", contactsChanged) ;
+            record(name + "_unfixed", lines) ;
+            note(QString("%1: %2 entries put right in %3 contacts, %4 not fixed").arg(name).arg(changed).arg(contactsChanged).arg(unfixed.size())) ;
 
         } else if (kind == "dump") {
             QJsonArray contacts ;
