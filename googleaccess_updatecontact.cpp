@@ -24,6 +24,7 @@
 //
 
 #include "googleaccess.h"
+#include "fieldformat.h"
 #include "../Lib/supportfunctions.h"
 
 #include <QUrl>
@@ -130,10 +131,12 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
         // }],
         // Each email is sent with its label as its Google type.  The standard labels are sent in lower case.
         QJsonArray a_emails ;
+        QStringList sentemails ;
         Contact::ContactRecord emailfields[4] = { Contact::Email, Contact::Email2, Contact::Email3, Contact::Email4 } ;
         for (int i=0; i<4; i++) {
             QString address = contact.getField(emailfields[i]) ;
             if (address.isEmpty()) continue ;
+            sentemails << address ;
             QJsonObject o_email ;
             o_email.insert("value", address) ;
             QString label = contact.emailLabel(i) ;
@@ -145,6 +148,18 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
                 metadata.insert("primary", true) ;
                 o_email.insert("metadata", metadata) ;
             }
+            a_emails.append(o_email) ;
+        }
+
+        // An address that no slot holds is kept in Comments with its Google type.  It is sent back, so Google keeps it.
+        for (const FieldFormat::AlsoOnGoogle &extra : FieldFormat::alsoOnGoogleLines(contact.getField(Contact::Comments))) {
+            if (!extra.value.contains('@') || sentemails.contains(extra.value)) continue ;
+            sentemails << extra.value ;
+            QString type = extra.type.isEmpty() ? QString("other") : extra.type ;
+            if (type.toLower()=="home" || type.toLower()=="work" || type.toLower()=="other") type = type.toLower() ;
+            QJsonObject o_email ;
+            o_email.insert("value", extra.value) ;
+            o_email.insert("type", type) ;
             a_emails.append(o_email) ;
         }
         if (a_emails.size()>0) {
@@ -171,15 +186,29 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
         //     "type": "TYPE"
         // }],
         QJsonArray a_numbers ;
+        QStringList sentnumbers ;
         Contact::ContactRecord phonefields[6] = { Contact::Phone, Contact::Work, Contact::Mobile, Contact::Phone2, Contact::Phone3, Contact::Phone4 } ;
         for (int i=0; i<6; i++) {
             QString phone = contact.getField(phonefields[i]) ;
             if (phone.isEmpty()) continue ;
+            sentnumbers << phone ;
             QJsonObject o_phone ;
             o_phone.insert("value", phone) ;
             QString label = contact.phoneLabel(i) ;
             QString type = label.toLower() ;
             if (type!="home" && type!="work" && type!="mobile" && type!="other") type = label ;
+            o_phone.insert("type", type) ;
+            a_numbers.append(o_phone) ;
+        }
+
+        // A number that no slot holds is kept in Comments with its Google type.  It is sent back, so Google keeps it.
+        for (const FieldFormat::AlsoOnGoogle &extra : FieldFormat::alsoOnGoogleLines(contact.getField(Contact::Comments))) {
+            if (extra.value.contains('@') || sentnumbers.contains(extra.value)) continue ;
+            sentnumbers << extra.value ;
+            QString type = extra.type.isEmpty() ? QString("other") : extra.type ;
+            if (type.toLower()=="home" || type.toLower()=="work" || type.toLower()=="mobile" || type.toLower()=="other") type = type.toLower() ;
+            QJsonObject o_phone ;
+            o_phone.insert("value", extra.value) ;
             o_phone.insert("type", type) ;
             a_numbers.append(o_phone) ;
         }
