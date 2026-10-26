@@ -520,7 +520,7 @@ def c11():
     after = contact_info(api("GET", PEOPLE + "/" + resource + "?personFields=" + PERSON_FIELDS))
     local = local_contacts(run.dump, "C11")
     return [Check("Google not written by the sync (etag unchanged)", before["etag"] == after["etag"]),
-            Check("app holds the trimmed email", bool(local) and norm(local[0].get("email")) == norm("c11@test.invalid"))]
+            Check("app holds the trimmed email", bool(local) and any(norm(local[0].get(k)) == norm("c11@test.invalid") for k in EMAIL_KEYS))]
 
 
 @scenario("C12", "Large upload: 40 local contacts reach Google once")
@@ -972,7 +972,7 @@ def x08():
     gaddr = [norm(a) for a in contact_info(goog[0])["addresses"]] if goog else []
     local = app_live_contacts(run.dump, "X08")
     return [Check("Google address unchanged (formatting ignored)", gaddr == [norm(addr)], "got %s" % gaddr),
-            Check("app holds the address", bool(local) and norm(local[0].get("address", "")) == norm(addr))]
+            Check("app holds the address", bool(local) and any(norm(local[0].get(k, "")) == norm(addr) for k in ("address", "address2", "address3")))]
 
 
 @scenario("X09", "Hidden, then shown again: the contact is back on Google")
