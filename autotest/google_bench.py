@@ -1032,7 +1032,7 @@ def x13():
 
 @scenario("X14", "Unicode summary and multi-line description round-trip")
 def x14():
-    summary = "Café meeting – \U0001F4C5"
+    summary = "BENCH X14 Café meeting – \U0001F4C5"
     desc = "Line one\nLine two é\n\nLine four"
     create_event_body({"summary": summary, "description": desc,
                        "start": {"dateTime": DAY % (24, "09:00")}, "end": {"dateTime": DAY % (24, "10:00")}})
