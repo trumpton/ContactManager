@@ -925,7 +925,7 @@ p, li { white-space: pre-wrap; }
                   </size>
                  </property>
                  <property name="text">
-                  <string>Phone - VOIP</string>
+                  <string>SIP / VOIP</string>
                  </property>
                                  <property name="buddy">
                   <cstring>editVoip</cstring>
@@ -935,7 +935,10 @@ p, li { white-space: pre-wrap; }
                <item>
                 <widget class="SafeLineEdit" name="editVoip">
                  <property name="accessibleName">
-                  <string>VOIP Address</string>
+                  <string>SIP / VOIP Address</string>
+                 </property>
+                 <property name="placeholderText">
+                  <string>sip:name@domain</string>
                  </property>
                 </widget>
                </item>
