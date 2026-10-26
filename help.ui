@@ -136,7 +136,7 @@
   Work:         Work telephone number
   Mobile:       Mobile telephone number
   Other:        The name of another phone number, plus the number  
-  VOIP / Skype: VOIP or Skype address
+  SIP / VOIP:   A SIP address for VOIP or Skype, such as sip:name@domain
 
 &gt;&gt; 4.2.5. BIRTHDAY, COMMENTS AND OPTIONS
   Birthday:     This is the contact's birthday.  You can edit it with the
