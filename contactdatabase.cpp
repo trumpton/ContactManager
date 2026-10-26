@@ -496,57 +496,42 @@ void ContactDatabase::planMerge(Contact &keep, Contact &remove, Contact &merged,
         merged.setField(Contact::Comments, ca.isEmpty() ? cb : ca + "\n\n" + cb) ;
     }
 
-    // Phone numbers.  The primary numbers stay in place, and a new number goes in the first free
-    // primary slot, or else in a spare Phone2..Phone4 slot.  A number already held is not added twice.
-    struct Number {
-        QString title ;
-        QString number ;
-        bool fromremoved ;
-    } ;
-    QList<Number> spare ;
-    QStringList seen = phoneKeys(keep) ;
-    for (int i=0; i<3; i++) {
-        QString number = keep.getField((Contact::ContactRecord)(Contact::Phone2+i)) ;
-        if (!number.trimmed().isEmpty()) {
-            spare << Number{ keep.getField((Contact::ContactRecord)(Contact::Phone2Title+i)), number, false } ;
-        }
-    }
+    // Phone numbers: six slots, each with its label, handled as the email addresses are below.  A number keeps its
+    // slot when the slot is free, otherwise it takes the first free slot with its label.  A number with no slot left
+    // goes to Comments.  A number already held is not added twice.
+    Contact::ContactRecord phonefields[6] = { Contact::Phone, Contact::Work, Contact::Mobile, Contact::Phone2, Contact::Phone3, Contact::Phone4 } ;
+    Contact::ContactRecord phonetitles[6] = { Contact::PhoneTitle, Contact::WorkTitle, Contact::MobileTitle, Contact::Phone2Title, Contact::Phone3Title, Contact::Phone4Title } ;
 
-    Contact::ContactRecord primaries[] = { Contact::Phone, Contact::Work, Contact::Mobile } ;
-    for (unsigned int n=0; n<sizeof(primaries)/sizeof(primaries[0]); n++) {
-        Contact::ContactRecord f = primaries[n] ;
-        QString number = remove.getField(f) ;
-        QString key = phoneKey(number) ;
-        if (number.trimmed().isEmpty() || (!key.isEmpty() && seen.contains(key))) continue ;
-        if (!key.isEmpty()) seen << key ;
-        if (merged.getField(f).trimmed().isEmpty()) {
-            merged.setField(f, number) ;
-        } else {
-            spare << Number{ QString(), number, true } ;
-        }
+    QString numbers[6], numbertitles[6] ;
+    QStringList phoneseen = phoneKeys(keep) ;
+    for (int i=0; i<6; i++) {
+        numbers[i] = keep.getField(phonefields[i]).trimmed() ;
+        numbertitles[i] = numbers[i].isEmpty() ? QString() : keep.phoneLabel(i) ;
     }
-    for (int i=0; i<3; i++) {
-        QString number = remove.getField((Contact::ContactRecord)(Contact::Phone2+i)) ;
+    for (int i=0; i<6; i++) {
+        QString number = remove.getField(phonefields[i]).trimmed() ;
         QString key = phoneKey(number) ;
-        if (number.trimmed().isEmpty() || (!key.isEmpty() && seen.contains(key))) continue ;
-        if (!key.isEmpty()) seen << key ;
-        spare << Number{ remove.getField((Contact::ContactRecord)(Contact::Phone2Title+i)), number, true } ;
-    }
+        if (number.isEmpty() || (!key.isEmpty() && phoneseen.contains(key))) continue ;
+        if (!key.isEmpty()) phoneseen << key ;
 
-    for (int i=0; i<spare.size(); i++) {
-        if (i<3) {
-            merged.setField((Contact::ContactRecord)(Contact::Phone2+i), spare[i].number) ;
-            merged.setField((Contact::ContactRecord)(Contact::Phone2Title+i), spare[i].title) ;
+        QString label = remove.phoneLabel(i) ;
+        // Its own slot if free, otherwise the first free slot
+        int slot = numbers[i].isEmpty() ? i : -1 ;
+        for (int n=0; n<6 && slot<0; n++) {
+            if (numbers[n].isEmpty()) slot = n ;
+        }
+
+        if (slot<0) {
+            conflicts << MergeConflict{ "phone", QString(), number, true } ;
+            noteInComments(merged, "phone", number) ;
         } else {
-            conflicts << MergeConflict{ "phone",
-                spare[i].fromremoved ? QString() : spare[i].number,
-                spare[i].fromremoved ? spare[i].number : QString(), true } ;
-            noteInComments(merged, "phone", spare[i].number) ;
+            numbers[slot] = number ;
+            numbertitles[slot] = label ;
         }
     }
-    for (int i=spare.size(); i<3; i++) {
-        merged.setField((Contact::ContactRecord)(Contact::Phone2+i), "") ;
-        merged.setField((Contact::ContactRecord)(Contact::Phone2Title+i), "") ;
+    for (int i=0; i<6; i++) {
+        merged.setField(phonefields[i], numbers[i]) ;
+        merged.setField(phonetitles[i], numbers[i].isEmpty() ? QString("") : numbertitles[i]) ;
     }
 
     // Email addresses: four slots, each with its label.  Every address is kept.  An address stays in its own slot

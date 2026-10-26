@@ -377,18 +377,15 @@ p, li { white-space: pre-wrap; }
            </widget>
           </item>
           <item>
-           <widget class="QFrame" name="frame_3">
+           <widget class="QGroupBox" name="groupEmail">
             <property name="maximumSize">
              <size>
               <width>16777215</width>
               <height>16777215</height>
              </size>
             </property>
-            <property name="frameShape">
-             <enum>QFrame::StyledPanel</enum>
-            </property>
-            <property name="frameShadow">
-             <enum>QFrame::Raised</enum>
+            <property name="title">
+             <string>E&amp;mail</string>
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_4">
              <item>
@@ -523,6 +520,18 @@ p, li { white-space: pre-wrap; }
                </item>
               </layout>
              </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QFrame" name="frame_web">
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Raised</enum>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_web">
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_10">
                <item>
@@ -651,12 +660,9 @@ p, li { white-space: pre-wrap; }
            <number>0</number>
           </property>
           <item>
-           <widget class="QFrame" name="frame_2">
-            <property name="frameShape">
-             <enum>QFrame::StyledPanel</enum>
-            </property>
-            <property name="frameShadow">
-             <enum>QFrame::Raised</enum>
+           <widget class="QGroupBox" name="groupPhone">
+            <property name="title">
+             <string>&amp;Phone</string>
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_7">
              <property name="leftMargin">
@@ -674,7 +680,7 @@ p, li { white-space: pre-wrap; }
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_17">
                <item>
-                <widget class="QLabel" name="labelHomePhone">
+                <widget class="SafeLineEdit" name="editPhoneTitle">
                  <property name="minimumSize">
                   <size>
                    <width>100</width>
@@ -687,25 +693,10 @@ p, li { white-space: pre-wrap; }
                    <height>16777215</height>
                   </size>
                  </property>
-                 <property name="sizeIncrement">
-                  <size>
-                   <width>0</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                 <property name="text">
-                  <string>&lt;u&gt;P&lt;/u&gt;hone - Home</string>
-                 </property>
-                 <property name="textFormat">
-                  <enum>Qt::RichText</enum>
-                 </property>
-                                 <property name="accessibleName">
+                 <property name="accessibleName">
                   <string>Home Phone Title</string>
                  </property>
-                 <property name="buddy">
-                  <cstring>editHome</cstring>
-                 </property>
-</widget>
+                </widget>
                </item>
                <item>
                 <widget class="SafeLineEdit" name="editHome">
@@ -722,7 +713,7 @@ p, li { white-space: pre-wrap; }
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_18">
                <item>
-                <widget class="QLabel" name="labelWorkPhone">
+                <widget class="SafeLineEdit" name="editWorkTitle">
                  <property name="minimumSize">
                   <size>
                    <width>100</width>
@@ -735,22 +726,10 @@ p, li { white-space: pre-wrap; }
                    <height>16777215</height>
                   </size>
                  </property>
-                 <property name="sizeIncrement">
-                  <size>
-                   <width>0</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                 <property name="text">
-                  <string>Phone - Work</string>
-                 </property>
-                                 <property name="accessibleName">
+                 <property name="accessibleName">
                   <string>Work Phone Title</string>
                  </property>
-                 <property name="buddy">
-                  <cstring>editWork</cstring>
-                 </property>
-</widget>
+                </widget>
                </item>
                <item>
                 <widget class="SafeLineEdit" name="editWork">
@@ -767,7 +746,7 @@ p, li { white-space: pre-wrap; }
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_19">
                <item>
-                <widget class="QLabel" name="labelMobilePhone">
+                <widget class="SafeLineEdit" name="editMobileTitle">
                  <property name="minimumSize">
                   <size>
                    <width>100</width>
@@ -780,22 +759,10 @@ p, li { white-space: pre-wrap; }
                    <height>16777215</height>
                   </size>
                  </property>
-                 <property name="sizeIncrement">
-                  <size>
-                   <width>0</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                 <property name="text">
-                  <string>Phone - Mobile</string>
-                 </property>
-                                 <property name="accessibleName">
+                 <property name="accessibleName">
                   <string>Mobile Phone Title</string>
                  </property>
-                 <property name="buddy">
-                  <cstring>editMobile</cstring>
-                 </property>
-</widget>
+                </widget>
                </item>
                <item>
                 <widget class="SafeLineEdit" name="editMobile">
@@ -1694,8 +1661,11 @@ p, li { white-space: pre-wrap; }
   <tabstop>editWebAddress</tabstop>
   <tabstop>editAddress</tabstop>
   <tabstop>editAddress2</tabstop>
+  <tabstop>editPhoneTitle</tabstop>
   <tabstop>editHome</tabstop>
+  <tabstop>editWorkTitle</tabstop>
   <tabstop>editWork</tabstop>
+  <tabstop>editMobileTitle</tabstop>
   <tabstop>editMobile</tabstop>
   <tabstop>edit2Title</tabstop>
   <tabstop>edit2</tabstop>

@@ -135,6 +135,24 @@ QString Contact::emailLabel(int slot)
     return title.isEmpty() ? QString(legacy[slot]) : title ;
 }
 
+// The label of a phone slot.  Home, work and mobile have always had those labels, and the other phones "Other".
+QString Contact::phoneLabel(int slot)
+{
+    static const ContactRecord titles[6] = { PhoneTitle, WorkTitle, MobileTitle, Phone2Title, Phone3Title, Phone4Title } ;
+    static const char *legacy[6] = { "Home", "Work", "Mobile", "Other", "Other", "Other" } ;
+    if (slot<0 || slot>5) return QString() ;
+    QString title = getField(titles[slot]).trimmed() ;
+    return title.isEmpty() ? QString(legacy[slot]) : title ;
+}
+
+// The label a new phone gets when the user does not choose one
+QString Contact::defaultPhoneLabel(int slot)
+{
+    static const char *defaults[6] = { "Home", "Work", "Mobile", "Other", "Other", "Other" } ;
+    if (slot<0 || slot>5) return QString() ;
+    return QString(defaults[slot]) ;
+}
+
 // The label a new email gets when the user does not choose one
 QString Contact::defaultEmailLabel(int slot)
 {
@@ -343,7 +361,6 @@ bool Contact::load(QString path, QString idname)
     if (getField(Contact::Phone3).isEmpty()) { setField(Contact::Phone3Title, "") ; }
     if (getField(Contact::Phone4).isEmpty()) { setField(Contact::Phone4Title, "") ; }
 
-    sortPhoneNumbers() ;
     todo.load(path, idname) ;
     history.load(path, idname) ;
 
@@ -500,40 +517,6 @@ QString& Contact::getField(enum Contact::ContactRecord field)
 
     if ((field<0 || field>=NumberOfRecords)) return nullstring ;
     else return filedata[field] ;
-}
-
-bool Contact::sortPhoneNumbers()
-{
-    // Phone2..Phone4 are held as (title, number) pairs.  Pairs with a number
-    // come first, ordered by title+number; empty slots go last.
-    struct PhonePair {
-        QString title ;
-        QString number ;
-    } ;
-
-    int len = Phone4Title - Phone2Title + 1 ;
-
-    QList<PhonePair> pairs ;
-    for (int i=0; i<len; i++) {
-        pairs.append(PhonePair{ filedata[Phone2Title+i], filedata[Phone2+i] }) ;
-    }
-
-    std::stable_sort(pairs.begin(), pairs.end(), [](const PhonePair &a, const PhonePair &b) {
-        bool aempty = a.number.isEmpty() ;
-        bool bempty = b.number.isEmpty() ;
-        if (aempty != bempty) return bempty ;
-        return (a.title + a.number).compare(b.title + b.number) < 0 ;
-    }) ;
-
-    bool updated=false ;
-    for (int i=0; i<len; i++) {
-        if (filedata[Phone2Title+i]!=pairs[i].title || filedata[Phone2+i]!=pairs[i].number) {
-            filedata[Phone2Title+i] = pairs[i].title ;
-            filedata[Phone2+i] = pairs[i].number ;
-            updated=true ;
-        }
-    }
-    return updated ;
 }
 
 void Contact::setField(enum Contact::ContactRecord field, QString data)
@@ -769,20 +752,20 @@ QString& Contact::getOverview(enum ContactOverviewType overviewtype)
     QString response ;
 
     if (isSet(Contact::Hidden)) response += titlestart + "Hidden Status: " + titleend + "Hidden" + lineend ;
-    if (!getField(Phone).isEmpty()) response += titlestart + "Phone: " + titleend + getField(Phone) + lineend ;
-    if (!getField(Mobile).isEmpty()) response += titlestart + "Mobile:  " + titleend + getField(Mobile) + lineend ;
-    if (!getField(Work).isEmpty()) response += titlestart + "Work Phone:  " + titleend + getField(Work) + lineend ;
-    QString phone2Title = getField(Phone2Title) + " Phone" ;
-    QString phone3Title = getField(Phone3Title) + " Phone" ;
-    QString phone4Title = getField(Phone4Title) + " Phone" ;
-    if (!getField(Phone2).isEmpty()) response += titlestart + phone2Title + ": " + titleend + getField(Phone2) + lineend ;
-    if (!getField(Phone3).isEmpty()) response += titlestart + phone3Title + ": " + titleend + getField(Phone3) + lineend ;
-    if (!getField(Phone4).isEmpty()) response += titlestart + phone4Title + ": " + titleend + getField(Phone4) + lineend ;
-    if (!getField(ProfilePhone).isEmpty()) response += titlestart + "Phone: " + titleend + getField(ProfilePhone) + lineend ;
+    // Phones and emails are listed by their label, in alphabetical order, with the ties in slot order.  An empty one
+    // is not listed, so it never shows.
+    struct Shown { QString label ; QString value ; } ;
+    const ContactRecord phonefields[6] = { Phone, Work, Mobile, Phone2, Phone3, Phone4 } ;
     const ContactRecord emailfields[4] = { Email, Email2, Email3, Email4 } ;
-    for (int i=0; i<4; i++) {
-        if (!getField(emailfields[i]).isEmpty()) response += titlestart + emailLabel(i) + " Email:  " + titleend + getField(emailfields[i]) + lineend ;
-    }
+    QList<Shown> phones, emails ;
+    for (int i=0; i<6; i++) if (!getField(phonefields[i]).isEmpty()) phones << Shown{ phoneLabel(i), getField(phonefields[i]) } ;
+    for (int i=0; i<4; i++) if (!getField(emailfields[i]).isEmpty()) emails << Shown{ emailLabel(i), getField(emailfields[i]) } ;
+    auto byLabel = [](const Shown &a, const Shown &b) { return QString::compare(a.label, b.label, Qt::CaseInsensitive) < 0 ; } ;
+    std::stable_sort(phones.begin(), phones.end(), byLabel) ;
+    std::stable_sort(emails.begin(), emails.end(), byLabel) ;
+    for (const Shown &p : std::as_const(phones)) response += titlestart + p.label + " Phone:  " + titleend + p.value + lineend ;
+    if (!getField(ProfilePhone).isEmpty()) response += titlestart + "Phone: " + titleend + getField(ProfilePhone) + lineend ;
+    for (const Shown &e : std::as_const(emails)) response += titlestart + e.label + " Email:  " + titleend + e.value + lineend ;
     if (!getField(ProfileEMail).isEmpty()) response += titlestart + " Profile Email:  " + titleend + getField(ProfileEMail) + lineend ;
     if (!getField(Webaddress).isEmpty()) response += titlestart + "Web Site:  " + titleend + getField(Webaddress) + lineend ;
     if (!getField(Organisation).isEmpty()) response += titlestart + "Organisation: " + titleend + getField(Organisation) + lineend ;

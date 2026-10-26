@@ -1177,6 +1177,91 @@ def x20():
                   bool(local) and norm(local[0].get("address", "")) == norm("1 Test Road London"),
                   "address slots: %s" % ({k: v for k, v in (local[0].items() if local else []) if "address" in k},))]
 
+def google_phone_types(resource):
+    """The number -> type (or custom label) Google holds for each phone on a contact."""
+    out = {}
+    for n in google_person(resource).get("phoneNumbers", []):
+        label = n.get("type") or n.get("formattedType") or ""
+        if (n.get("type") or "").lower() == "custom" and n.get("formattedType"):
+            label = n["formattedType"]
+        out[digits(n.get("value") or "")] = label.lower()
+    return out
+
+
+@scenario("P01", "Four phones from Google (home, work, mobile, Pager): each keeps its slot and label, no write")
+def p01():
+    resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "P01"}],
+        "phoneNumbers": [{"value": "+44 20 7946 0101", "type": "home"},
+                         {"value": "+44 20 7946 0102", "type": "work"},
+                         {"value": "+44 20 7946 0103", "type": "mobile"},
+                         {"value": "+44 20 7946 0104", "type": "Pager"}]})
+    before = google_person(resource)["etag"]
+    run = Run("P01", [sync(), dump()]).execute()
+    after = google_person(resource)["etag"]
+    local = app_live_contacts(run.dump, "P01")
+    c = local[0] if local else {}
+    got = tuple(digits(c.get(k, "")) for k in ("phone", "work", "mobile", "phone2"))
+    labels = tuple(c.get(k, "") for k in ("phonetitle", "worktitle", "mobiletitle", "phone2title"))
+    return [Check("Google not written by the sync", before == after),
+            Check("app holds the four numbers in slots Phone, Work, Mobile, Phone2",
+                  got == ("+442079460101", "+442079460102", "+442079460103", "+442079460104"), "got %s" % (got,)),
+            Check("app labels them Home, Work, Mobile, Pager",
+                  labels == ("Home", "Work", "Mobile", "Pager"), "got %s" % (labels,))]
+
+
+@scenario("P02", "A phone label changed in the app is sent to Google as that number's type")
+def p02():
+    create_contact_body({"names": [{"givenName": "Bench", "familyName": "P02"}],
+        "phoneNumbers": [{"value": "+44 20 7946 0201", "type": "home"},
+                         {"value": "+44 20 7946 0202", "type": "other"}]})
+    ops = [sync(),
+           {"op": "edit_contact", "match": {"surname": "P02"}, "fields": {"phone2title": "Fax"}},
+           sync(), dump()]
+    run = Run("P02", ops).execute()
+    goog = google_contacts_tagged("P02")
+    types = google_phone_types(contact_info(goog[0])["resourceName"]) if goog else {}
+    local = app_live_contacts(run.dump, "P02")
+    return [Check("the second number is sent as Fax", types.get(digits("+44 20 7946 0202")) == "fax",
+                  "Google types: %s" % types),
+            Check("the first number keeps its home type", types.get(digits("+44 20 7946 0201")) == "home",
+                  "Google types: %s" % types),
+            Check("the app still holds the label", bool(local) and local[0].get("phone2title") == "Fax")]
+
+
+@scenario("P03", "Phones with no labels set are sent with the labels they always had")
+def p03():
+    run = Run("P03", [add_contact_op("P03", phone="+44 20 7946 0301", work="+44 20 7946 0302",
+                                     mobile="+44 20 7946 0303", phone2="+44 20 7946 0304",
+                                     phone3="+44 20 7946 0305", phone4="+44 20 7946 0306"),
+                      sync(), dump()]).execute()
+    goog = google_contacts_tagged("P03")
+    types = google_phone_types(contact_info(goog[0])["resourceName"]) if goog else {}
+    want = [("+44 20 7946 030%d" % i, t) for i, t in enumerate(("home", "work", "mobile", "other", "other", "other"), 1)]
+    return [Check("one copy on Google", len(goog) == 1),
+            Check("Home, Work, Mobile, Other, Other, Other as Google types",
+                  [types.get(digits(v)) for v, _ in want] == [t for _, t in want], "Google types: %s" % types)]
+
+
+@scenario("P04", "Seven phones on Google: the app holds six, the seventh goes to Comments")
+def p04():
+    phones = [("+44 20 7946 04%02d" % i, t) for i, t in enumerate(
+        ("home", "work", "mobile", "other", "other", "other", "other"), 1)]
+    create_contact_body({"names": [{"givenName": "Bench", "familyName": "P04"}],
+        "phoneNumbers": [{"value": v, "type": t} for v, t in phones]})
+    run = Run("P04", [sync(), dump("d1.json"), sync(), dump("d2.json")]).execute()
+    d1 = run.dump_file("d1.json")
+    local = app_live_contacts(d1, "P04")
+    held = sum(1 for k in PHONE_KEYS if local and local[0].get(k))
+    goog = google_contacts_tagged("P04")
+    gcount = len(contact_info(goog[0])["phones"]) if goog else 0
+    seventh = digits("+44 20 7946 0407")
+    return [Check("app holds six phones", held == 6, "held %d" % held),
+            Check("the seventh number is kept in Comments",
+                  bool(local) and seventh in digits(local[0].get("comments", "")),
+                  "comments: %r" % (local[0].get("comments", "") if local else "")),
+            Check("Google still holds all seven after a second sync", gcount == 7, "Google holds %d" % gcount)]
+
+
 def gchange_main(argv):
     cmd = argv[0]
     if cmd == "edit-contact":

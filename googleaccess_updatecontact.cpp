@@ -171,23 +171,17 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
         //     "type": "TYPE"
         // }],
         QJsonArray a_numbers ;
-        for (int i=Contact::Phone; i<=Contact::Phone4; i++) {
-            QString& phone = contact.getField((Contact::ContactRecord)i) ;
-            if (!phone.isEmpty()) {
-                QJsonObject o_phone ;
-                o_phone.insert("value", phone) ;
-                QString type ;
-                switch (i) {
-                  case Contact::Phone: type="home" ; break ;
-                  case Contact::Work: type="work" ; break ;
-                  case Contact::Mobile: type="mobile" ; break ;
-                  case Contact::Phone2: type=contact.getField(Contact::Phone2Title) ; break ;
-                  case Contact::Phone3: type=contact.getField(Contact::Phone3Title) ; break ;
-                  case Contact::Phone4: type=contact.getField(Contact::Phone4Title) ; break ;
-                }
-                o_phone.insert("type", type) ;
-                a_numbers.append(o_phone) ;
-            }
+        Contact::ContactRecord phonefields[6] = { Contact::Phone, Contact::Work, Contact::Mobile, Contact::Phone2, Contact::Phone3, Contact::Phone4 } ;
+        for (int i=0; i<6; i++) {
+            QString phone = contact.getField(phonefields[i]) ;
+            if (phone.isEmpty()) continue ;
+            QJsonObject o_phone ;
+            o_phone.insert("value", phone) ;
+            QString label = contact.phoneLabel(i) ;
+            QString type = label.toLower() ;
+            if (type!="home" && type!="work" && type!="mobile" && type!="other") type = label ;
+            o_phone.insert("type", type) ;
+            a_numbers.append(o_phone) ;
         }
         if (a_numbers.size()>0) {
             entry.insert("phoneNumbers", a_numbers) ;

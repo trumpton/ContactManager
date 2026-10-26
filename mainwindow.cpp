@@ -664,10 +664,6 @@ void MainWindow::on_actionTidyContacts_triggered()
         auto field = [&](QString label, Contact::ContactRecord f, QList<Contact::ContactRecord> fields) {
             add(label, merged.getField(f), origin(merged.getField(f), fields)) ;
         } ;
-        auto titled = [&](QString label, Contact::ContactRecord f, Contact::ContactRecord titlefield, QList<Contact::ContactRecord> fields) {
-            QString title = merged.getField(titlefield).trimmed() ;
-            field(title.isEmpty() ? label : title, f, fields) ;
-        } ;
 
         add("Name", QString(merged.getFormattedName(false, true)), origin(merged.getField(Contact::Surname), { Contact::Surname })) ;
         field("Organisation", Contact::Organisation, { Contact::Organisation }) ;
@@ -675,12 +671,7 @@ void MainWindow::on_actionTidyContacts_triggered()
         field("Address 2", Contact::Address2, { Contact::Address2 }) ;
         field("Birthday", Contact::Birthday, { Contact::Birthday }) ;
         for (int i=0; i<4; i++) field(merged.emailLabel(i), emails.at(i), emails) ;
-        field("Phone", Contact::Phone, phones) ;
-        field("Work", Contact::Work, phones) ;
-        field("Mobile", Contact::Mobile, phones) ;
-        titled("Phone 2", Contact::Phone2, Contact::Phone2Title, phones) ;
-        titled("Phone 3", Contact::Phone3, Contact::Phone3Title, phones) ;
-        titled("Phone 4", Contact::Phone4, Contact::Phone4Title, phones) ;
+        for (int i=0; i<6; i++) field(merged.phoneLabel(i), phones.at(i), phones) ;
 
         QStringList commentsfrom ;
         if (!first.getField(Contact::Comments).trimmed().isEmpty()) commentsfrom << "1" ;
