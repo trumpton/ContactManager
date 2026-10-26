@@ -304,13 +304,21 @@ static QString entryName(const TitledEntry &t)
 // Checks the email and phone entries when the form has an edit, before the contact is saved, switched, synced, tidied,
 // imported or closed.  A label typed into an entry is tidied first.  If an entry or its title is not right, the first one
 // is shown with focus on it, and the action stops, so nothing is saved and the user returns to editing.  Without an
-// edit nothing is checked, so an entry that was already bad is left quietly for Tidy Contacts to report.  A title is
-// changed with F2.  Returns false when an entry is not right.
-bool MainWindow::ValidateTitledEntries(Contact &dr)
+// edit nothing is checked, so an entry that was already bad is left quietly for Tidy Contacts to report, unless the
+// contact is saved with File > Save, which checks every entry and shows the details tab.  A title is changed with F2.
+// Returns false when an entry is not right.
+bool MainWindow::ValidateTitledEntries(Contact &dr, bool always)
 {
     if (dr.isNull()) return true ;
 
-    if (!FormHasEdits(dr)) {
+    // A refused save with File > Save shows the details tab, with focus on the entry
+    auto showdetails = [&]() {
+        if (!always) return ;
+        ui->tabBar->setTabEnabled(CONTACTDETAILSTABPOS, true) ;
+        ui->tabBar->setCurrentIndex(CONTACTDETAILSTABPOS) ;
+    } ;
+
+    if (!always && !FormHasEdits(dr)) {
         titledEntriesHeld = false ;
         return true ;
     }
@@ -323,6 +331,7 @@ bool MainWindow::ValidateTitledEntries(Contact &dr)
         if (!r.fixed) {
             QString hint = (t.kind=="Email") ? QString("An email address looks like name@domain.com.")
                 : QString("Use digits, spaces, brackets, hyphens and dots, with an optional + at the start.") ;
+            showdetails() ;
             warningOkDialog(this, "Contact Details", QString("Contact: %1\n\nThe %2 is not formatted correctly: %3.\n\n"
                             "%4\n\nIt holds \"%5\".\n\nEdit the contact to correct it.")
                             .arg(dr.getFormattedName(false, false), entryName(t), r.problem, hint, text), true) ;
@@ -337,6 +346,7 @@ bool MainWindow::ValidateTitledEntries(Contact &dr)
         // A title that is not allowed, from Google or older data, is changed with F2 on its entry
         QString title = t.title->text() ;
         if (!title.isEmpty() && !FieldFormat::validLabel(title)) {
+            showdetails() ;
             warningOkDialog(this, "Contact Details", QString("Contact: %1\n\nThe title \"%2\" for %3 is not allowed: %4.\n\n"
                             "Press F2 in that box to change its title.\n\nEdit the contact to correct it.")
                             .arg(dr.getFormattedName(false, false), title, entryName(t), labelRules()), true) ;
@@ -448,7 +458,7 @@ void MainWindow::LoadContactTab()
 }
 
 
-bool MainWindow::SaveContactTab()
+bool MainWindow::SaveContactTab(bool explicitsave)
 {
     dbg("Saving Contact Tab") ;
 
@@ -457,7 +467,7 @@ bool MainWindow::SaveContactTab()
     if (dr.isNull()) return true ;
 
     // An entry that is not right stops the save, and the user returns to editing
-    if (!ValidateTitledEntries(dr)) return false ;
+    if (!ValidateTitledEntries(dr, explicitsave)) return false ;
 
     Contact newdr ;
     QString log="" ;
