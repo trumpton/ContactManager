@@ -1418,6 +1418,50 @@ def f02():
                   "Google holds %s" % emails)]
 
 
+@scenario("F03", "More phones on Google than the app has slots: all of them are still on Google after an upload")
+def f03():
+    phones = [("+44 20 7946 0731", "home"), ("+44 20 7946 0732", "work"), ("+44 20 7946 0733", "mobile"),
+              ("+44 20 7946 0734", "other"), ("+44 20 7946 0735", "other"), ("+44 20 7946 0736", "other"),
+              ("+44 20 7946 0737", "Pager")]
+    resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "F03"}],
+        "phoneNumbers": [{"value": v, "type": t} for v, t in phones]})
+    ops = [sync(), {"op": "edit_contact", "match": {"surname": "F03"}, "fields": {"phonetitle": "Home"}},
+           sync(), dump()]
+    run = Run("F03", ops).execute()
+    local = app_live_contacts(run.dump, "F03")
+    c = local[0] if local else {}
+    held = sorted(digits(v) for v, _ in contact_info(google_person(resource))["phones"])
+    types = google_phone_types(resource)
+    return [Check("the app holds six numbers in its slots", sum(1 for k in PHONE_KEYS if c.get(k)) == 6,
+                  "slots %s" % ({k: c.get(k) for k in PHONE_KEYS},)),
+            Check("the seventh is kept in Comments, with its type", "Also on Google (Pager):" in c.get("comments", ""),
+                  "comments: %r" % c.get("comments", "")),
+            Check("Google still holds all seven numbers", held == sorted(digits(v) for v, _ in phones),
+                  "Google holds %s" % held),
+            Check("Google keeps the seventh number's type", types.get(digits("+44 20 7946 0737")) == "pager",
+                  "Google types: %s" % types)]
+
+
+@scenario("F04", "A save refused for a bad entry stops the next sync, so nothing is sent to Google")
+def f04():
+    bad = "Bad Field 3: f04c@test.invalid - Bad Field 3 (Bad Field 4)"
+    resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "F04"}],
+        "emailAddresses": [{"value": "f04a@test.invalid", "type": "work"}, {"value": bad, "type": "Label3"}]})
+    ops = [sync(), {"op": "open_contact", "match": {"surname": "F04"}},
+           {"op": "form_set", "fields": {"phone": "+44 20 7946 0941"}},
+           {"op": "menu_save", "name": "f04", "fields": ["phone"]},
+           sync(), dump()]
+    run = Run("F04", ops).execute()
+    log = run.log()
+    phones = contact_info(google_person(resource))["phones"]
+    emails = sorted(v for v, _ in contact_info(google_person(resource))["emails"])
+    return [Check("the save was refused", "Contact Details" in log, "no Contact Details message"),
+            Check("the sync after it did not run", "sync 1 finished" in log and "sync 2 finished" not in log,
+                  "driver log has no 'sync 2 finished' line"),
+            Check("nothing reached Google", not phones and emails == sorted(["f04a@test.invalid", bad]),
+                  "phones %s, emails %s" % (phones, emails))]
+
+
 @scenario("E03", "Editor: an older entry with its label in the address is tidied when opened, and saved with the next change")
 def e03():
     resource = form_scenario_contact("E03", address="e03@test.invalid (Work)")

@@ -394,13 +394,13 @@ p, li { white-space: pre-wrap; }
                 <widget class="QLabel" name="editEmailTitle">
                  <property name="minimumSize">
                   <size>
-                   <width>100</width>
+                   <width>150</width>
                    <height>0</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
-                   <width>100</width>
+                   <width>150</width>
                    <height>16777215</height>
                   </size>
                  </property>
@@ -430,13 +430,13 @@ p, li { white-space: pre-wrap; }
                 <widget class="QLabel" name="editEmail2Title">
                  <property name="minimumSize">
                   <size>
-                   <width>100</width>
+                   <width>150</width>
                    <height>0</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
-                   <width>100</width>
+                   <width>150</width>
                    <height>16777215</height>
                   </size>
                  </property>
@@ -466,13 +466,13 @@ p, li { white-space: pre-wrap; }
                 <widget class="QLabel" name="editEmail3Title">
                  <property name="minimumSize">
                   <size>
-                   <width>100</width>
+                   <width>150</width>
                    <height>0</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
-                   <width>100</width>
+                   <width>150</width>
                    <height>16777215</height>
                   </size>
                  </property>
@@ -502,13 +502,13 @@ p, li { white-space: pre-wrap; }
                 <widget class="QLabel" name="editEmail4Title">
                  <property name="minimumSize">
                   <size>
-                   <width>100</width>
+                   <width>150</width>
                    <height>0</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
-                   <width>100</width>
+                   <width>150</width>
                    <height>16777215</height>
                   </size>
                  </property>
@@ -695,13 +695,13 @@ p, li { white-space: pre-wrap; }
                 <widget class="QLabel" name="editPhoneTitle">
                  <property name="minimumSize">
                   <size>
-                   <width>100</width>
+                   <width>150</width>
                    <height>0</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
-                   <width>100</width>
+                   <width>150</width>
                    <height>16777215</height>
                   </size>
                  </property>
@@ -731,13 +731,13 @@ p, li { white-space: pre-wrap; }
                 <widget class="QLabel" name="editWorkTitle">
                  <property name="minimumSize">
                   <size>
-                   <width>100</width>
+                   <width>150</width>
                    <height>0</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
-                   <width>100</width>
+                   <width>150</width>
                    <height>16777215</height>
                   </size>
                  </property>
@@ -767,13 +767,13 @@ p, li { white-space: pre-wrap; }
                 <widget class="QLabel" name="editMobileTitle">
                  <property name="minimumSize">
                   <size>
-                   <width>100</width>
+                   <width>150</width>
                    <height>0</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
-                   <width>100</width>
+                   <width>150</width>
                    <height>16777215</height>
                   </size>
                  </property>
@@ -803,13 +803,13 @@ p, li { white-space: pre-wrap; }
                 <widget class="QLabel" name="edit2Title">
                  <property name="minimumSize">
                   <size>
-                   <width>100</width>
+                   <width>150</width>
                    <height>0</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
-                   <width>100</width>
+                   <width>150</width>
                    <height>16777215</height>
                   </size>
                  </property>
@@ -845,13 +845,13 @@ p, li { white-space: pre-wrap; }
                 <widget class="QLabel" name="edit3Title">
                  <property name="minimumSize">
                   <size>
-                   <width>100</width>
+                   <width>150</width>
                    <height>0</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
-                   <width>100</width>
+                   <width>150</width>
                    <height>16777215</height>
                   </size>
                  </property>
@@ -881,13 +881,13 @@ p, li { white-space: pre-wrap; }
                 <widget class="QLabel" name="edit4Title">
                  <property name="minimumSize">
                   <size>
-                   <width>100</width>
+                   <width>150</width>
                    <height>0</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
-                   <width>100</width>
+                   <width>150</width>
                    <height>16777215</height>
                   </size>
                  </property>

@@ -28,6 +28,7 @@
 #include <QJsonValue>
 #include <QProcess>
 #include <functional>
+#include <cstdlib>
 #include "../Lib/alertsound.h"
 #define private public
 #include "mainwindow.h"
@@ -216,7 +217,15 @@ int main(int argc, char *argv[])
     step = [&]() {
         if (next >= ops.size()) {
             note("operations finished") ;
-            QTimer::singleShot(500, &a, &QApplication::quit) ;
+            QTimer::singleShot(500, &a, [&]() {
+                // A refused entry is still held on the form.  Exit now, as the results are already written, rather
+                // than saving the form again while the window is destroyed.
+                if (w.titledEntriesHeld) {
+                    note("exiting with a refused entry on the form") ;
+                    std::_Exit(0) ;
+                }
+                QApplication::quit() ;
+            }) ;
             return ;
         }
         QJsonObject op = ops[next++].toObject() ;
