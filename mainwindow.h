@@ -179,6 +179,7 @@ private:
     void changeTitle(QLineEdit *entry) ;
     bool eventFilter(QObject *watched, QEvent *event) override ;
     void tidyTitledEntries() ;                  // Puts right the email and phone entries that can be, when the form is loaded
+    void tidyTitledEntry(QLineEdit *entry) ;    // Puts right one email or phone entry, when focus leaves it
     bool ValidateTitledEntries(Contact &dr) ;   // Checks and tidies the email and phone entries changed on the form
     bool SaveContactTab() ;     // Transfer Contact Tab -> Database Item Contact Data
     void LoadCalendarTab() ;  // Transfer Global Calendar to Calendar Tab

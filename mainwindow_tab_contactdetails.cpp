@@ -169,16 +169,15 @@ void MainWindow::refreshTitledEntries()
     for (const TitledEntry &t : titledEntries(ui)) t.entry->setAccessibleName(t.title->text() + " " + t.kind) ;
 }
 
-// F2 in an email or phone entry opens a dialog for that entry's title
+// F2 in an email or phone entry opens a dialog for that entry's title.  When focus leaves an entry it is tidied.
 bool MainWindow::eventFilter(QObject *watched, QEvent *event)
 {
-    if (event->type() == QEvent::KeyPress && static_cast<QKeyEvent *>(event)->key() == Qt::Key_F2) {
-        QLineEdit *entry = qobject_cast<QLineEdit *>(watched) ;
-        if (entry) {
-            changeTitle(entry) ;
-            return true ;
-        }
+    QLineEdit *entry = qobject_cast<QLineEdit *>(watched) ;
+    if (entry && event->type() == QEvent::KeyPress && static_cast<QKeyEvent *>(event)->key() == Qt::Key_F2) {
+        changeTitle(entry) ;
+        return true ;
     }
+    if (entry && event->type() == QEvent::FocusOut) tidyTitledEntry(entry) ;
     return QMainWindow::eventFilter(watched, event) ;
 }
 
@@ -189,20 +188,28 @@ static QString labelRules()
                    "It can be up to %1 characters long.").arg(FieldFormat::MaxLabelLength) ;
 }
 
-// Puts right the email and phone entries that can be: a label typed into an entry becomes its title, and the value is
-// tidied.  Run when the form is loaded, so entries from Google and older entries are shown as they should be.  An entry
-// that cannot be put right is shown as it is.
-void MainWindow::tidyTitledEntries()
+// Puts right one email or phone entry that can be: a label typed into it becomes its title, and the value is tidied.
+// An entry that cannot be put right is left as it is, and the save check reports it.
+void MainWindow::tidyTitledEntry(QLineEdit *entry)
 {
     for (const TitledEntry &t : titledEntries(ui)) {
+        if (t.entry != entry) continue ;
+
         QString text = t.entry->text() ;
         FieldFormat::Tidied r = FieldFormat::tidyEntry(text, t.kind=="Email") ;
-        if (!r.fixed) continue ;
-
-        if (r.value.compare(text)!=0) t.entry->setText(r.value) ;
-        if (!r.label.isEmpty()) t.title->setText(r.label) ;
+        if (r.fixed) {
+            if (r.value.compare(text)!=0) t.entry->setText(r.value) ;
+            if (!r.label.isEmpty()) t.title->setText(r.label) ;
+            refreshTitledEntries() ;
+        }
+        return ;
     }
+}
 
+// Run when the form is loaded, so entries from Google and older entries are shown as they should be
+void MainWindow::tidyTitledEntries()
+{
+    for (const TitledEntry &t : titledEntries(ui)) tidyTitledEntry(t.entry) ;
     refreshTitledEntries() ;
 }
 

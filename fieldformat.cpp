@@ -5,7 +5,8 @@
 
 namespace FieldFormat {
 
-static const QString labelpattern = QStringLiteral("\\p{L}[\\p{L}\\p{N} '\\-]*") ;
+// A label typed after a number or address cannot contain the delimiters (: - and brackets), and must start with a letter
+static const QString labelpattern = QStringLiteral("\\p{L}[^\\x{0}-\\x{1F}=\\\\:()\\-]*") ;
 
 bool splitLabel(const QString &text, QString &value, QString &label)
 {
@@ -55,11 +56,15 @@ bool validEmailAddress(const QString &address)
     return email.match(address.trimmed()).hasMatch() ;
 }
 
+// Any printable character Google accepts as a custom label, except the ones the contact file cannot hold: '=' and '\\'
 bool validLabel(const QString &label)
 {
-    static const QRegularExpression allowed(QStringLiteral("^%1$").arg(labelpattern)) ;
     QString l = label.trimmed() ;
-    return l.length()<=MaxLabelLength && allowed.match(l).hasMatch() ;
+    if (l.isEmpty() || l.length()>MaxLabelLength) return false ;
+    for (const QChar c : l) {
+        if (!c.isPrint() || c==QChar('=') || c==QChar('\\')) return false ;
+    }
+    return true ;
 }
 
 Tidied tidyEntry(const QString &text, bool isEmail)
