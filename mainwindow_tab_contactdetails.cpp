@@ -214,14 +214,16 @@ void MainWindow::tidyTitledEntries()
     refreshTitledEntries() ;
 }
 
-// Checks the email and phone entries that changed on the form, when the contact is saved.  A label typed into an entry
-// is tidied first.  If an entry is not right, the first one is shown with focus on it, and the save stops, so nothing is
-// saved and the user returns to editing.  Returns false when an entry is not right.
+// Checks every email and phone entry on the form, when the contact is saved, so entries from Google or from older data
+// are checked too.  A label typed into an entry is tidied first.  If an entry or its title is not right, the first one is
+// shown with focus on it, and the save stops, so nothing is saved and the user returns to editing.  A title is changed
+// with F2.  Returns false when an entry is not right.
 bool MainWindow::ValidateTitledEntries(Contact &dr)
 {
+    Q_UNUSED(dr) ;
     for (const TitledEntry &t : titledEntries(ui)) {
         QString text = t.entry->text() ;
-        if (text.compare(dr.getField(t.value))==0) continue ;
+        if (text.trimmed().isEmpty()) continue ;
 
         FieldFormat::Tidied r = FieldFormat::tidyEntry(text, t.kind=="Email") ;
         if (!r.fixed) {
@@ -237,6 +239,17 @@ bool MainWindow::ValidateTitledEntries(Contact &dr)
 
         t.entry->setText(r.value) ;
         if (!r.label.isEmpty()) t.title->setText(r.label) ;
+
+        // A title that is not allowed, from Google or older data, is changed with F2 on its entry
+        QString title = t.title->text() ;
+        if (!title.isEmpty() && !FieldFormat::validLabel(title)) {
+            QString name = title + " " + t.kind.toLower() ;
+            warningOkDialog(this, "Contact Details", QString("The title \"%1\" for the %2 is not allowed: %3.\n\n"
+                            "Press F2 in the %2 to change its title.").arg(title, name, labelRules()), true) ;
+            t.entry->setFocus() ;
+            titledEntriesHeld = true ;
+            return false ;
+        }
     }
 
     titledEntriesHeld = false ;

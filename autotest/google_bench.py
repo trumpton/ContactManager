@@ -1352,6 +1352,26 @@ def e02():
                   and c.get("emailtitle") == "Home", "results %s, got %r" % (results, c.get("email")))]
 
 
+@scenario("E06", "Editor: an older bad entry that was never edited still stops a save, and is shown with focus")
+def e06():
+    bad_older = "Home: e06@test.invalid - Home (Work)"
+    ops = [add_contact_op("E06", email=bad_older, phone="+44 20 7946 0601"),
+           {"op": "open_contact", "match": {"surname": "E06"}},
+           {"op": "form_set", "fields": {"phone": "+44 20 7946 0602"}},
+           {"op": "form_save", "name": "e06"},
+           dump(file="d_e06.json")]
+    run = Run("E06", ops).execute()
+    results = run.dump_file("results.json")
+    held = app_live_contacts(run.dump_file("d_e06.json"), "E06")
+    h = held[0] if held else {}
+    return [Check("the save was refused", results.get("e06_saved") is False, "results %s" % results),
+            Check("focus is on the older bad email", results.get("e06_focus") == "editEmail",
+                  "focus was %r" % results.get("e06_focus")),
+            Check("the change to the phone was not saved", digits(h.get("phone", "")) == digits("+44 20 7946 0601"),
+                  "phone %r" % h.get("phone")),
+            Check("the older entry is still held as it was", h.get("email") == bad_older, "email %r" % h.get("email"))]
+
+
 @scenario("E03", "Editor: an older entry with its label in the address is tidied when opened, and saved with the next change")
 def e03():
     resource = form_scenario_contact("E03", address="e03@test.invalid (Work)")
