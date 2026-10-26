@@ -13,6 +13,7 @@
 #include <QApplication>
 #include <QTimer>
 #include <QAction>
+#include <QCloseEvent>
 #include <QDialog>
 #include <QMessageBox>
 #include <QPushButton>
@@ -316,11 +317,28 @@ int main(int argc, char *argv[])
             }
             if (hit == 1) {
                 w.populateDialog(id, true) ;
-                w.on_actionEnableContactDetailsEdit_triggered() ;      // the form is open for editing, as when a user edits it
+                // "details" false selects the contact without opening its details, as a click in the list does
+                if (op["details"].toBool(true)) w.on_actionEnableContactDetailsEdit_triggered() ;      // the form is open for editing, as when a user edits it
             }
             // The contact that is selected after the open, so a scenario can see whether the switch happened
             record(op["name"].toString() + "_selected", w.db.getSelected().getField(Contact::Surname)) ;
             note(QString("open_contact matched %1 contact(s)").arg(hit)) ;
+
+        } else if (kind == "alt_edit") {
+            // Alt-E,D: opens Contact Details for the selected contact.  Records whether the page is showing afterwards.
+            QString name = op["name"].toString() ;
+            w.on_actionEnableContactDetailsEdit_triggered() ;
+            record(name + "_details", w.ui->tabBar->currentIndex() == CONTACTDETAILSTABPOS) ;
+            note("alt_edit " + name) ;
+
+        } else if (kind == "exit") {
+            // File > Exit, or Alt-F4: the window's close event decides whether the window closes.  The event is sent
+            // without hiding the window, so the remaining operations still run.  Records whether it was accepted.
+            QString name = op["name"].toString() ;
+            QCloseEvent ev ;
+            QApplication::sendEvent(&w, &ev) ;
+            record(name + "_exit_accepted", ev.isAccepted()) ;
+            note("exit " + name + (ev.isAccepted() ? ": accepted" : ": refused")) ;
 
         } else if (kind == "form_set") {
             // Types into the form.  With "tidy" set, each entry is tidied as focus leaves it.
