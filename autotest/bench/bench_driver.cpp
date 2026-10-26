@@ -178,6 +178,12 @@ int main(int argc, char *argv[])
                     b->click() ;
                     return ;
                 }
+                // Tidy Contacts and Import end on a summary, which waits for Close
+                if (b->text() == "Close") {
+                    note("progress window closed: " + m->windowTitle()) ;
+                    b->click() ;
+                    return ;
+                }
             }
             return ;
         }
