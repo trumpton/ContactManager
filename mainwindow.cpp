@@ -275,7 +275,7 @@ MainWindow::~MainWindow()
 // A refused entry keeps the window open, so the typed text is not lost
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    if (!ValidateTitledEntries()) {
+    if (!ValidateTitledEntries(formContact())) {
         event->ignore() ;
         return ;
     }
@@ -427,7 +427,7 @@ void MainWindow::populateDialog(QString id, bool switchtooverview)
     QString oldid = dro.getField(Contact::ID) ;
 
     // A badly formatted email or phone entry keeps the form on this contact, with focus on that entry
-    if (!ValidateTitledEntries()) return ;
+    if (!ValidateTitledEntries(formContact())) return ;
 
     // Save current contact & disable the editing tab
     SaveTabs() ;
@@ -558,12 +558,12 @@ void MainWindow::LoadTabs()
     LoadTodo() ;
 }
 
-bool MainWindow::SaveTabs()
+bool MainWindow::SaveTabs(bool explicitsave)
 {
     SaveTodo() ;
     SaveEditHistory() ;
     SaveCalendarTab();
-    bool contactsaved = SaveContactTab() ;
+    bool contactsaved = SaveContactTab(explicitsave) ;
     LoadOverviewTab() ;
     db.save() ;
     calendar.save() ;
@@ -579,7 +579,7 @@ bool MainWindow::SaveTabs()
 void MainWindow::on_actionSave_triggered()
 {
     msg("Saving Contact ...") ;
-    bool saved = SaveTabs() ;
+    bool saved = SaveTabs(true) ;
     LoadOverviewTab() ;
     if (saved) LoadContactTab() ;
     LoadEditHistory() ;
@@ -643,9 +643,9 @@ void MainWindow::on_action_Google_Sync_triggered()
 
 void MainWindow::on_actionTidyContacts_triggered()
 {
-    // Save what is on screen, and stop showing a contact that may be merged away.  A refused entry stops the tidy.
+    // Save what is on screen.  A refused entry stops the tidy.  The contact on screen stays loaded, and follows a merge.
     if (!SaveTabs()) return ;
-    db.selectContact(SELECT_OVERVIEW) ;
+    QString loadedid = db.getSelected().isNull() ? QString(SELECT_OVERVIEW) : db.getSelected().getField(Contact::ID) ;
 
     // Progress is shown in a window with a log, which also carries the summary at the end
     GoogleUpdateDialog progress(this) ;
@@ -827,6 +827,9 @@ void MainWindow::on_actionTidyContacts_triggered()
             QString keptid = keep.getField(Contact::ID) ;
             db.applyMerge(keep, remove, merged) ;
             calendar.repointContact(removedid, keptid) ;
+
+            // The contact on screen follows the merge into the kept contact
+            if (loadedid.compare(removedid)==0) loadedid = keptid ;
             QString keptname = keepfirst ? namefirst : namesecond ;
             QString removedname = keepfirst ? namesecond : namefirst ;
             changedlines << QString("kept and updated: %1 (merged in: %2, now removed)").arg(keptname, removedname) ;
@@ -843,7 +846,15 @@ void MainWindow::on_actionTidyContacts_triggered()
     int linked=0 ;
     int archived = db.tidyDeleted(linked) ;
     calendar.save() ;
-    populateDialog(SELECT_OVERVIEW) ;
+
+    // The contact on screen stays loaded, unless tidying removed it.  The form is reloaded from the database, which the
+    // tidy has changed, and is not saved first, as it still holds the values from before the tidy.
+    Contact &loaded = db.getContactById(loadedid) ;
+    if (loadedid.compare(SELECT_OVERVIEW)!=0 && (loaded.isNull() || loaded.isSet(Contact::Deleted))) loadedid = SELECT_OVERVIEW ;
+    db.selectContact(loadedid) ;
+    LoadTabs() ;
+    int isediting = ui->tabBar->isTabEnabled(CONTACTDETAILSTABPOS) ;
+    refreshMenus(db.getSelected(), isediting, false, false) ;
 
     QStringList summary ;
     summary << QString("Removed %1 repeated history lines from %2 contacts.").arg(historylines).arg(historycontacts) ;
@@ -852,6 +863,9 @@ void MainWindow::on_actionTidyContacts_triggered()
     if (!entriesunfixed.isEmpty()) {
         summary << QString("Email and phone entries not fixed, left as they are (%1):").arg(entriesunfixed.size()) ;
         foreach (const QString &line, entriesunfixed) summary << "    " + line ;
+        summary << (gConf->googleMaster()
+                    ? QString("Correct each one by editing the contact on Google, then run Google Sync.")
+                    : QString("Correct each one by selecting its contact and editing it with Alt-E,D.")) ;
     }
     if (!unnamedleft.isEmpty()) {
         summary << QString("Unnamed entries left alone (%1):").arg(unnamedleft.size()) ;

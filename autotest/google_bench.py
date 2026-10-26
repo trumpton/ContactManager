@@ -1495,7 +1495,125 @@ def mg02():
                   "results %s" % results)]
 
 
-@scenario("E03", "Editor: an older entry with its label in the address is tidied when opened, and saved with the next change")
+@scenario("F05", "#66: an unchanged bad entry does not stop switching to another contact")
+def f05():
+    bad = "Bad Field 1: f05a@test.invalid - Bad Field 2 (Bad Field 3)"
+    create_contact_body({"names": [{"givenName": "Bench", "familyName": "F05A"}],
+        "emailAddresses": [{"value": bad, "type": "Label3"}]})
+    create_contact_body({"names": [{"givenName": "Bench", "familyName": "F05B"}],
+        "emailAddresses": [{"value": "f05b@test.invalid", "type": "home"}]})
+    ops = [sync(), {"op": "open_contact", "name": "f05a", "match": {"surname": "F05A"}},
+           {"op": "open_contact", "name": "f05b", "match": {"surname": "F05B"}}, dump()]
+    run = Run("F05", ops).execute()
+    results = run.dump_file("results.json")
+    return [Check("the second contact is selected", results.get("f05b_selected") == "F05B",
+                  "selected %r" % results.get("f05b_selected")),
+            Check("the first contact opened", results.get("f05a_selected") == "F05A",
+                  "selected %r" % results.get("f05a_selected"))]
+
+
+@scenario("F06", "#66: with a contact holding an unchanged bad entry open, a Google sync still runs")
+def f06():
+    bad = "Bad Field 1: f06a@test.invalid - Bad Field 2 (Bad Field 3)"
+    create_contact_body({"names": [{"givenName": "Bench", "familyName": "F06"}],
+        "emailAddresses": [{"value": bad, "type": "Label3"}]})
+    ops = [sync(), {"op": "open_contact", "name": "f06", "match": {"surname": "F06"}}, sync(), dump()]
+    run = Run("F06", ops).execute()
+    log = run.log()
+    return [Check("the second sync ran", "sync 2 finished" in log, "driver log has no 'sync 2 finished' line")]
+
+
+@scenario("F07", "#66: a contact kept with an unfixable entry is uploaded once, then not again on later syncs")
+def f07():
+    bad = "Bad Field 1: f07a@test.invalid - Bad Field 2 (Bad Field 3)"
+    resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "F07"}],
+        "emailAddresses": [{"value": bad, "type": "Label3"}]})
+    ops = [sync(), {"op": "edit_contact", "match": {"surname": "F07"}, "fields": {"phone": "+44 20 7946 0701"}},
+           sync(), dump()]
+    run = Run("F07", ops, session="F07").execute()
+    after_upload = google_person(resource).get("etag")
+    # The same local data, in the same session: two more syncs with nothing changed
+    Run("F07b", [sync(), sync(), dump()], session="F07").execute()
+    after_more = google_person(resource).get("etag")
+    return [Check("the change reached Google", digits("+44 20 7946 0701") in
+                  [digits(v) for v, _ in contact_info(google_person(resource))["phones"]]),
+            Check("two more syncs with no change leave Google's copy alone", after_upload == after_more,
+                  "etag changed on later syncs")]
+
+
+@scenario("F08", "A contact with a clean address and no titles set: uploaded once, then not again on later syncs")
+def f08():
+    resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "F08"}],
+        "emailAddresses": [{"value": "f08a@test.invalid", "type": "home"}]})
+    Run("F08", [sync(), {"op": "edit_contact", "match": {"surname": "F08"}, "fields": {"phone": "+44 20 7946 0801"}},
+                sync(), dump()], session="F08").execute()
+    after_upload = google_person(resource).get("etag")
+    Run("F08b", [sync(), sync(), dump()], session="F08").execute()
+    after_more = google_person(resource).get("etag")
+    return [Check("two more syncs with no change leave Google's copy alone", after_upload == after_more,
+                  "etag changed on later syncs")]
+
+
+@scenario("F09", "#66: moving the selection on, as Tidy Contacts does, does not check the open contact's entries")
+def f09():
+    bad = "Bad Field 1: f09a@test.invalid - Bad Field 2 (Bad Field 3)"
+    create_contact_body({"names": [{"givenName": "Bench", "familyName": "F09"}],
+        "emailAddresses": [{"value": bad, "type": "Label3"}]})
+    ops = [sync(), {"op": "open_contact", "name": "f09", "match": {"surname": "F09"}},
+           {"op": "clear_selection"}, dump()]
+    run = Run("F09", ops).execute()
+    log = run.log()
+    return [Check("the form was not checked when the selection moved on", "Contact Details" not in log,
+                  "a Contact Details message was shown")]
+
+
+@scenario("F10", "#69: the report's steps: a bad entry from Google, Alt-E,D, Ctrl-S, Exit, relaunch, Tidy Contacts, Alt-E,D, Exit")
+def f10():
+    bad = "Bad Field 1: f10@test.invalid - Bad Field 2 (Bad Field 3)"
+    create_contact_body({"names": [{"givenName": "Bench", "familyName": "F10"}],
+        "emailAddresses": [{"value": bad, "type": "Label3"}]})
+    set_mode(GOOGLE_MASTER)
+    try:
+        # Steps 1 to 6: sync, Alt-E,D, Control-S, Exit
+        a = Run("F10a", [sync(), {"op": "open_contact", "name": "f10a", "match": {"surname": "F10"}, "details": False},
+                         {"op": "alt_edit", "name": "f10a"},
+                         {"op": "menu_save", "name": "f10a", "fields": ["email"]},
+                         {"op": "exit", "name": "f10a"}, dump()], session="F10").execute()
+        # Steps 7 to 9: relaunch, open the contact, Exit
+        b = Run("F10b", [{"op": "open_contact", "name": "f10b", "match": {"surname": "F10"}, "details": False},
+                         {"op": "exit", "name": "f10b"}, dump()], session="F10").execute()
+        # Steps 10 to 14: relaunch, open the contact on the Overview, Tidy Contacts, Alt-E,D, Exit
+        c = Run("F10c", [{"op": "open_contact", "name": "f10c", "match": {"surname": "F10"}, "details": False},
+                         {"op": "tidy_full", "name": "f10c", "surname": "F10"},
+                         {"op": "tidy_contacts", "name": "f10c"},
+                         {"op": "alt_edit", "name": "f10c"},
+                         {"op": "exit", "name": "f10c"}, dump()], session="F10").execute()
+    finally:
+        set_mode(CM_MASTER)
+    ra = a.dump_file("results.json")
+    rb = b.dump_file("results.json")
+    rc = c.dump_file("results.json")
+    return [Check("step 4: Alt-E,D opens Contact Details, showing the bad entry",
+                  ra.get("f10a_details") is True and ra.get("f10a_email") == bad,
+                  "details %r, email %r" % (ra.get("f10a_details"), ra.get("f10a_email"))),
+            Check("step 5: Control-S shows the warning, then the details tab with focus on the bad entry",
+                  "Contact Details" in a.log() and ra.get("f10a_details") is True and ra.get("f10a_focus") == "editEmail",
+                  "details %r, focus %r" % (ra.get("f10a_details"), ra.get("f10a_focus"))),
+            Check("step 6: Exit closes", ra.get("f10a_exit_accepted") is True,
+                  "exit accepted %r" % ra.get("f10a_exit_accepted")),
+            Check("step 9: Exit closes after a relaunch", rb.get("f10b_exit_accepted") is True,
+                  "exit accepted %r" % rb.get("f10b_exit_accepted")),
+            Check("step 12: Tidy Contacts reports the bad entry",
+                  any("f10@test.invalid" in line for line in rc.get("f10c_unfixed", [])),
+                  "unfixed %r" % rc.get("f10c_unfixed")),
+            Check("step 13: Alt-E,D after Tidy Contacts opens Contact Details", rc.get("f10c_details") is True,
+                  "details %r (no contact is selected after Tidy Contacts)" % rc.get("f10c_details")),
+            Check("step 14: Exit closes after Tidy Contacts, with no prompt", rc.get("f10c_exit_accepted") is True
+                  and "Contact Details" not in c.log(),
+                  "exit accepted %r" % rc.get("f10c_exit_accepted"))]
+
+
+@scenario("E03","Editor: an older entry with its label in the address is tidied when opened, and saved with the next change")
 def e03():
     resource = form_scenario_contact("E03", address="e03@test.invalid (Work)")
     ops = [sync(), {"op": "open_contact", "match": {"surname": "E03"}},

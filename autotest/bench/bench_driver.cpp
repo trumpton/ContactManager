@@ -13,6 +13,7 @@
 #include <QApplication>
 #include <QTimer>
 #include <QAction>
+#include <QCloseEvent>
 #include <QDialog>
 #include <QMessageBox>
 #include <QPushButton>
@@ -177,6 +178,12 @@ int main(int argc, char *argv[])
                     b->click() ;
                     return ;
                 }
+                // Tidy Contacts and Import end on a summary, which waits for Close
+                if (b->text() == "Close") {
+                    note("progress window closed: " + m->windowTitle()) ;
+                    b->click() ;
+                    return ;
+                }
             }
             return ;
         }
@@ -316,9 +323,28 @@ int main(int argc, char *argv[])
             }
             if (hit == 1) {
                 w.populateDialog(id, true) ;
-                w.on_actionEnableContactDetailsEdit_triggered() ;      // the form is open for editing, as when a user edits it
+                // "details" false selects the contact without opening its details, as a click in the list does
+                if (op["details"].toBool(true)) w.on_actionEnableContactDetailsEdit_triggered() ;      // the form is open for editing, as when a user edits it
             }
+            // The contact that is selected after the open, so a scenario can see whether the switch happened
+            record(op["name"].toString() + "_selected", w.db.getSelected().getField(Contact::Surname)) ;
             note(QString("open_contact matched %1 contact(s)").arg(hit)) ;
+
+        } else if (kind == "alt_edit") {
+            // Alt-E,D: opens Contact Details for the selected contact.  Records whether the page is showing afterwards.
+            QString name = op["name"].toString() ;
+            w.on_actionEnableContactDetailsEdit_triggered() ;
+            record(name + "_details", w.ui->tabBar->currentIndex() == CONTACTDETAILSTABPOS) ;
+            note("alt_edit " + name) ;
+
+        } else if (kind == "exit") {
+            // File > Exit, or Alt-F4: the window's close event decides whether the window closes.  The event is sent
+            // without hiding the window, so the remaining operations still run.  Records whether it was accepted.
+            QString name = op["name"].toString() ;
+            QCloseEvent ev ;
+            QApplication::sendEvent(&w, &ev) ;
+            record(name + "_exit_accepted", ev.isAccepted()) ;
+            note("exit " + name + (ev.isAccepted() ? ": accepted" : ": refused")) ;
 
         } else if (kind == "form_set") {
             // Types into the form.  With "tidy" set, each entry is tidied as focus leaves it.
@@ -347,12 +373,22 @@ int main(int argc, char *argv[])
             // File > Save, then records what the named form entries show, to check that a refused entry keeps its text
             QString name = op["name"].toString() ;
             w.on_actionSave_triggered() ;
+            // Whether the details tab is showing, and which entry has focus, after the save
+            record(name + "_details", w.ui->tabBar->currentIndex() == CONTACTDETAILSTABPOS) ;
+            QWidget *focus = w.focusWidget() ;
+            record(name + "_focus", focus ? focus->objectName() : QString()) ;
             QMap<QString, QLineEdit*> entries = formEntries(w.ui) ;
             for (const QJsonValue &f : op["fields"].toArray()) {
                 QString field = f.toString() ;
                 if (entries.contains(field)) record(name + "_" + field, entries[field]->text()) ;
             }
             note("menu save " + name) ;
+
+        } else if (kind == "clear_selection") {
+            // What Tidy Contacts does before it reloads the form: the selection moves to the Overview
+            w.db.selectContact(SELECT_OVERVIEW) ;
+            w.populateDialog(SELECT_OVERVIEW, true) ;
+            note("clear_selection done") ;
 
         } else if (kind == "merge_duplicates") {
             // The automatic merge of Tidy Contacts: a pair that shares a name and an identifier, with no conflicting
@@ -381,6 +417,22 @@ int main(int argc, char *argv[])
             record(name + "_merged", merged) ;
             record(name + "_left", left) ;
             note(QString("%1: %2 merged automatically, %3 left").arg(name).arg(merged).arg(left)) ;
+
+        } else if (kind == "tidy_full") {
+            // Tidy Contacts, as the menu runs it.  Records the contact left loaded, and how many live contacts have the
+            // surname given, so a scenario can see a merge: the loaded contact must follow it.
+            QString name = op["name"].toString() ;
+            w.on_actionTidyContacts_triggered() ;
+            Contact &loaded = w.db.getSelected() ;
+            record(name + "_selected", loaded.getField(Contact::Surname)) ;
+            QString surname = op["surname"].toString() ;
+            int remaining = 0 ;
+            for (int i = 0; i < w.db.size(); i++) {
+                Contact &c = w.db.getContact(i) ;
+                if (!c.isSet(Contact::Deleted) && c.getField(Contact::Surname) == surname) remaining++ ;
+            }
+            record(name + "_remaining", remaining) ;
+            note(QString("tidy_full %1: %2 loaded, %3 remaining").arg(name).arg(loaded.getField(Contact::Surname)).arg(remaining)) ;
 
         } else if (kind == "tidy_contacts") {
             // The entry tidy step of Tidy Contacts, run on every contact
