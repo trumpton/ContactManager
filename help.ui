@@ -118,8 +118,13 @@
         (in brackets) at the bottom of any Global Search (Control-G).
 
 &gt;&gt; 4.2.2. EMAIL (Alt-M)
-  Email:        The contact's email address
-  Alt-Email:    The contact's second email addess
+  There are four email addresses.  Each has a title, such as Home, Work or Other, and
+  Google sends the title with the address.  Press F2 in an address box to change its
+  title.  A title can also be typed after the address, as in name@domain.com (Work).
+  A title can use up to 20 characters, and cannot contain a colon, slash or backslash.
+  An address must look like name@domain.com.  The form is checked when it is saved,
+  and a badly formatted address is shown with the cursor in its box, so nothing is
+  saved until it is right.
   Web Site:     The contact's web site
 
 &gt;&gt; 4.2.3. ADDRESS (Alt-A)
@@ -129,14 +134,13 @@
   2nd Address:  The contact's second address
     
 &gt;&gt; 4.2.4. PHONE (Alt-P)
-  Phone numbers are stored in the +nn international format, but are automatically
-  formatted when the form is saved.  You can press Control-S to save as you edit
-  to see / check the format of the phone numbers.
-  Home:         Home telephone number
-  Work:         Work telephone number
-  Mobile:       Mobile telephone number
-  Other:        The name of another phone number, plus the number  
-  VOIP / Skype: VOIP or Skype address
+  Phone numbers are stored in the +nn international format, and are formatted when the
+  form is saved.  Each number has a title, such as Home, Work, Mobile or Other.  Press F2
+  in a number box to change its title.  A title can also be typed after the number, as
+  in 01234 567890 (Home).  A title follows the same rules as an email title.
+  A number may use digits, spaces, brackets, hyphens and dots, with an optional + at the
+  start.
+  SIP / VOIP:   A SIP address for VOIP or Skype, such as sip:name@domain
 
 &gt;&gt; 4.2.5. BIRTHDAY, COMMENTS AND OPTIONS
   Birthday:     This is the contact's birthday.  You can edit it with the

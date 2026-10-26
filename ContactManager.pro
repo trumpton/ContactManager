@@ -61,6 +61,7 @@ SOURCES += main.cpp\
     mainwindow.cpp \
     history.cpp \
     contact.cpp \
+    fieldformat.cpp \
     search.cpp \
     about.cpp \
     calendar.cpp \
@@ -125,6 +126,7 @@ HEADERS  += mainwindow.h \
     account-googleaccess.h \
     history.h \
     contact.h \
+    fieldformat.h \
     search.h \
     about.h \
     calendar.h \

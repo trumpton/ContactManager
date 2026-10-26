@@ -918,11 +918,13 @@ def x04():
     digits = lambda s: "".join(ch for ch in s if ch.isdigit())
     gvals = sorted(digits(v) for v, _ in contact_info(goog[0])["phones"]) if goog else []
     want = sorted(digits(v) for v, _ in phones)
+    # The app drops the (0) after a country code, so it holds the number without it
+    want_app = sorted(digits(v.replace("(0)", "")) for v, _ in phones)
     return [Check("Google digits unchanged", gvals == want, "got %s" % gvals),
-            Check("app holds all three numbers",
+            Check("app holds all three numbers, without the (0) trunk zero",
                   len(app_live_contacts(run.dump, "X04")) == 1 and
                   sorted(digits(app_live_contacts(run.dump, "X04")[0].get(k, "")) for k in PHONE_KEYS
-                         if app_live_contacts(run.dump, "X04")[0].get(k)) == want)]
+                         if app_live_contacts(run.dump, "X04")[0].get(k)) == want_app)]
 
 
 @scenario("X05", "Same email on two different contacts: both kept, not merged")
@@ -1099,6 +1101,475 @@ def x19():
     return [Check("20 contacts on Google, no duplicates", len(goog) == 20, "found %d" % len(goog)),
             Check("five edits from Google survive the switch back",
                   len([p for p in goog if contact_info(p)["tag"].endswith(" edited")]) == 5)]
+
+
+# --- email labels (#59) and an address with no type (#61) -----------------------------------
+
+def google_email_types(resource):
+    """The address -> type (or custom label) Google holds for each email on a contact."""
+    out = {}
+    for e in google_person(resource).get("emailAddresses", []):
+        label = e.get("type") or e.get("formattedType") or ""
+        if (e.get("type") or "").lower() == "custom" and e.get("formattedType"):
+            label = e["formattedType"]
+        out[(e.get("value") or "").strip()] = label.lower()
+    return out
+
+
+@scenario("L01", "Four emails from Google (home, other, work, Partner): each keeps its slot and label, no write")
+def l01():
+    resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "L01"}],
+        "emailAddresses": [{"value": "l01a@test.invalid", "type": "home"},
+                           {"value": "l01b@test.invalid", "type": "other"},
+                           {"value": "l01c@test.invalid", "type": "work"},
+                           {"value": "l01d@test.invalid", "type": "Partner"}]})
+    before = google_person(resource)["etag"]
+    run = Run("L01", [sync(), dump()]).execute()
+    after = google_person(resource)["etag"]
+    local = app_live_contacts(run.dump, "L01")
+    c = local[0] if local else {}
+    got = (c.get("email"), c.get("email2"), c.get("email3"), c.get("email4"))
+    labels = (c.get("emailtitle"), c.get("email2title"), c.get("email3title"), c.get("email4title"))
+    return [Check("Google not written by the sync", before == after),
+            Check("app holds one address per slot, in order",
+                  got == ("l01a@test.invalid", "l01b@test.invalid", "l01c@test.invalid", "l01d@test.invalid"), "got %s" % (got,)),
+            Check("app labels them Home, Other, Work, Partner",
+                  labels == ("Home", "Other", "Work", "Partner"), "got %s" % (labels,))]
+
+
+@scenario("L02", "A label changed in the app is sent to Google as that email's type")
+def l02():
+    resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "L02"}],
+        "emailAddresses": [{"value": "l02a@test.invalid", "type": "home"},
+                           {"value": "l02b@test.invalid", "type": "other"}]})
+    ops = [sync(),
+           {"op": "edit_contact", "match": {"surname": "L02"}, "fields": {"email2title": "Mobile"}},
+           sync(), dump()]
+    run = Run("L02", ops).execute()
+    types = google_email_types(resource)
+    return [Check("the second email is sent as Mobile", types.get("l02b@test.invalid") == "mobile",
+                  "Google types: %s" % types),
+            Check("the first email keeps its home type", types.get("l02a@test.invalid") == "home",
+                  "Google types: %s" % types),
+            Check("the app still holds the label", bool(app_live_contacts(run.dump, "L02"))
+                  and app_live_contacts(run.dump, "L02")[0].get("email2title") == "Mobile")]
+
+
+@scenario("L03", "Emails with no labels set are sent with the labels they always had")
+def l03():
+    run = Run("L03", [add_contact_op("L03", email="l03a@test.invalid", email2="l03b@test.invalid",
+                                     email3="l03c@test.invalid", email4="l03d@test.invalid"),
+                      sync(), dump()]).execute()
+    goog = google_contacts_tagged("L03")
+    types = google_email_types(contact_info(goog[0])["resourceName"]) if goog else {}
+    return [Check("one copy on Google", len(goog) == 1),
+            Check("Home, Other, Other, Other as Google types",
+                  (types.get("l03a@test.invalid"), types.get("l03b@test.invalid"),
+                   types.get("l03c@test.invalid"), types.get("l03d@test.invalid")) == ("home", "other", "other", "other"),
+                  "Google types: %s" % types)]
+
+
+@scenario("X20", "An address with no type is held in the first address slot")
+def x20():
+    create_contact_body({"names": [{"givenName": "Bench", "familyName": "X20"}],
+                         "addresses": [{"formattedValue": "1 Test Road London"}]})
+    run = Run("X20", [sync(), dump()]).execute()
+    local = app_live_contacts(run.dump, "X20")
+    return [Check("app holds the address in the first slot",
+                  bool(local) and norm(local[0].get("address", "")) == norm("1 Test Road London"),
+                  "address slots: %s" % ({k: v for k, v in (local[0].items() if local else []) if "address" in k},))]
+
+def google_phone_types(resource):
+    """The number -> type (or custom label) Google holds for each phone on a contact."""
+    out = {}
+    for n in google_person(resource).get("phoneNumbers", []):
+        label = n.get("type") or n.get("formattedType") or ""
+        if (n.get("type") or "").lower() == "custom" and n.get("formattedType"):
+            label = n["formattedType"]
+        out[digits(n.get("value") or "")] = label.lower()
+    return out
+
+
+@scenario("P01", "Four phones from Google (home, work, mobile, Pager): each keeps its slot and label, no write")
+def p01():
+    resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "P01"}],
+        "phoneNumbers": [{"value": "+44 20 7946 0101", "type": "home"},
+                         {"value": "+44 20 7946 0102", "type": "work"},
+                         {"value": "+44 20 7946 0103", "type": "mobile"},
+                         {"value": "+44 20 7946 0104", "type": "Pager"}]})
+    before = google_person(resource)["etag"]
+    run = Run("P01", [sync(), dump()]).execute()
+    after = google_person(resource)["etag"]
+    local = app_live_contacts(run.dump, "P01")
+    c = local[0] if local else {}
+    got = tuple(digits(c.get(k, "")) for k in ("phone", "work", "mobile", "phone2"))
+    labels = tuple(c.get(k, "") for k in ("phonetitle", "worktitle", "mobiletitle", "phone2title"))
+    return [Check("Google not written by the sync", before == after),
+            Check("app holds the four numbers in slots Phone, Work, Mobile, Phone2",
+                  got == ("+442079460101", "+442079460102", "+442079460103", "+442079460104"), "got %s" % (got,)),
+            Check("app labels them Home, Work, Mobile, Pager",
+                  labels == ("Home", "Work", "Mobile", "Pager"), "got %s" % (labels,))]
+
+
+@scenario("P02", "A phone label changed in the app is sent to Google as that number's type")
+def p02():
+    create_contact_body({"names": [{"givenName": "Bench", "familyName": "P02"}],
+        "phoneNumbers": [{"value": "+44 20 7946 0201", "type": "home"},
+                         {"value": "+44 20 7946 0202", "type": "other"}]})
+    ops = [sync(),
+           {"op": "edit_contact", "match": {"surname": "P02"}, "fields": {"phone2title": "Fax"}},
+           sync(), dump()]
+    run = Run("P02", ops).execute()
+    goog = google_contacts_tagged("P02")
+    types = google_phone_types(contact_info(goog[0])["resourceName"]) if goog else {}
+    local = app_live_contacts(run.dump, "P02")
+    return [Check("the second number is sent as Fax", types.get(digits("+44 20 7946 0202")) == "fax",
+                  "Google types: %s" % types),
+            Check("the first number keeps its home type", types.get(digits("+44 20 7946 0201")) == "home",
+                  "Google types: %s" % types),
+            Check("the app still holds the label", bool(local) and local[0].get("phone2title") == "Fax")]
+
+
+@scenario("P03", "Phones with no labels set are sent with the labels they always had")
+def p03():
+    run = Run("P03", [add_contact_op("P03", phone="+44 20 7946 0301", work="+44 20 7946 0302",
+                                     mobile="+44 20 7946 0303", phone2="+44 20 7946 0304",
+                                     phone3="+44 20 7946 0305", phone4="+44 20 7946 0306"),
+                      sync(), dump()]).execute()
+    goog = google_contacts_tagged("P03")
+    types = google_phone_types(contact_info(goog[0])["resourceName"]) if goog else {}
+    want = [("+44 20 7946 030%d" % i, t) for i, t in enumerate(("home", "work", "mobile", "other", "other", "other"), 1)]
+    return [Check("one copy on Google", len(goog) == 1),
+            Check("Home, Work, Mobile, Other, Other, Other as Google types",
+                  [types.get(digits(v)) for v, _ in want] == [t for _, t in want], "Google types: %s" % types)]
+
+
+@scenario("P04", "Seven phones on Google: the app holds six, the seventh goes to Comments")
+def p04():
+    phones = [("+44 20 7946 04%02d" % i, t) for i, t in enumerate(
+        ("home", "work", "mobile", "other", "other", "other", "other"), 1)]
+    create_contact_body({"names": [{"givenName": "Bench", "familyName": "P04"}],
+        "phoneNumbers": [{"value": v, "type": t} for v, t in phones]})
+    run = Run("P04", [sync(), dump("d1.json"), sync(), dump("d2.json")]).execute()
+    d1 = run.dump_file("d1.json")
+    local = app_live_contacts(d1, "P04")
+    held = sum(1 for k in PHONE_KEYS if local and local[0].get(k))
+    goog = google_contacts_tagged("P04")
+    gcount = len(contact_info(goog[0])["phones"]) if goog else 0
+    seventh = digits("+44 20 7946 0407")
+    return [Check("app holds six phones", held == 6, "held %d" % held),
+            Check("the seventh number is kept in Comments",
+                  bool(local) and seventh in digits(local[0].get("comments", "")),
+                  "comments: %r" % (local[0].get("comments", "") if local else "")),
+            Check("Google still holds all seven after a second sync", gcount == 7, "Google holds %d" % gcount)]
+
+
+@scenario("D01", "Clearing an email and a phone in the app removes them from Google")
+def d01():
+    resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "D01"}],
+        "emailAddresses": [{"value": "d01a@test.invalid", "type": "home"},
+                           {"value": "d01b@test.invalid", "type": "work"}],
+        "phoneNumbers": [{"value": "+44 20 7946 0501", "type": "home"},
+                         {"value": "+44 20 7946 0502", "type": "work"}]})
+    ops = [sync(),
+           {"op": "edit_contact", "match": {"surname": "D01"},
+            "fields": {"email3": "", "email3title": "", "work": "", "worktitle": ""}},
+           sync(), dump()]
+    run = Run("D01", ops).execute()
+    info = contact_info(google_person(resource))
+    local = app_live_contacts(run.dump, "D01")
+    c = local[0] if local else {}
+    return [Check("the app has no second email", not c.get("email2")),
+            Check("Google no longer holds the second email",
+                  [v for v, _ in info["emails"]] == ["d01a@test.invalid"], "Google emails: %s" % (info["emails"],)),
+            Check("Google no longer holds the work phone",
+                  [digits(v) for v, _ in info["phones"]] == [digits("+44 20 7946 0501")],
+                  "Google phones: %s" % (info["phones"],))]
+
+
+def local_with_email(dump, address):
+    """The live local contact that holds this address in any email slot."""
+    return [c for c in dump["contacts"] if c.get("deleted") != "true"
+            and address in [c.get(k) for k in EMAIL_KEYS]]
+
+
+def form_scenario_contact(tag, address=None, home=None):
+    """A Google contact with the given email address (type home), for the editor scenarios."""
+    emails = [{"value": address, "type": "home"}] if address else []
+    phones = [{"value": home, "type": "home"}] if home else []
+    return create_contact_body({"names": [{"givenName": "Bench", "familyName": tag}],
+                                "emailAddresses": emails, "phoneNumbers": phones})
+
+
+@scenario("E01", "Editor: a label typed after an address becomes its title, and Google gets it as that type")
+def e01():
+    resource = form_scenario_contact("E01", address="e01@test.invalid")
+    ops = [sync(), {"op": "open_contact", "match": {"surname": "E01"}},
+           {"op": "form_set", "fields": {"email": "e01@test.invalid (Work)"}, "tidy": True},
+           {"op": "form_save", "name": "e01"}, sync(), dump()]
+    run = Run("E01", ops).execute()
+    results = run.dump_file("results.json")
+    local = app_live_contacts(run.dump, "E01")
+    c = local[0] if local else {}
+    types = google_email_types(resource)
+    return [Check("the form was saved", results.get("e01_saved") is True, "results %s" % results),
+            Check("the address is held without the label", c.get("email") == "e01@test.invalid", "got %r" % c.get("email")),
+            Check("the label is the title", c.get("emailtitle") == "Work", "got %r" % c.get("emailtitle")),
+            Check("Google holds the address as work", types.get("e01@test.invalid") == "work", "Google types: %s" % types)]
+
+
+@scenario("E02", "Editor: a save with a bad entry is refused, focus goes to the first, nothing is saved, and the typed text is kept")
+def e02():
+    form_scenario_contact("E02", address="e02@test.invalid")
+    bad_email = "Home: e02b@test.invalid - Home (Work)"
+    bad_phone = "+44 20 7946 0401 ext 5"
+    good_voip = "sip:e02@test.invalid"
+    ops = [sync(), {"op": "open_contact", "match": {"surname": "E02"}},
+           {"op": "form_set", "fields": {"email": bad_email, "phone": bad_phone, "voip": good_voip}, "tidy": True},
+           {"op": "form_save", "name": "e02"},
+           {"op": "menu_save", "name": "e02m", "fields": ["email", "phone", "voip"]},
+           dump(file="d_refused.json"),
+           {"op": "form_set", "fields": {"email": "e02c@test.invalid", "phone": "+44 20 7946 0401"}, "tidy": True},
+           {"op": "form_save", "name": "e02ok"},
+           dump()]
+    run = Run("E02", ops).execute()
+    results = run.dump_file("results.json")
+    local = app_live_contacts(run.dump, "E02")
+    c = local[0] if local else {}
+    held = app_live_contacts(run.dump_file("d_refused.json"), "E02")
+    h = held[0] if held else {}
+    return [Check("the save with a bad entry was refused", results.get("e02_saved") is False, "results %s" % results),
+            Check("focus is on the first bad entry, the email", results.get("e02_focus") == "editEmail",
+                  "focus was %r" % results.get("e02_focus")),
+            Check("the user was told, with a message from Contact Details", "Contact Details" in run.log()),
+            Check("the typed email is kept", results.get("e02m_email") == bad_email, "shows %r" % results.get("e02m_email")),
+            Check("the typed phone is kept", results.get("e02m_phone") == bad_phone, "shows %r" % results.get("e02m_phone")),
+            Check("nothing was saved while an entry was wrong",
+                  h.get("voip") != good_voip and h.get("email") == "e02@test.invalid",
+                  "voip %r, email %r" % (h.get("voip"), h.get("email"))),
+            Check("once everything is right, the save stores it all",
+                  results.get("e02ok_saved") is True and c.get("email") == "e02c@test.invalid"
+                  and c.get("emailtitle") == "Home", "results %s, got %r" % (results, c.get("email")))]
+
+
+@scenario("E06", "Editor: an older bad entry that was never edited still stops a save, and is shown with focus")
+def e06():
+    bad_older = "Home: e06@test.invalid - Home (Work)"
+    ops = [add_contact_op("E06", email=bad_older, phone="+44 20 7946 0601"),
+           {"op": "open_contact", "match": {"surname": "E06"}},
+           {"op": "form_set", "fields": {"phone": "+44 20 7946 0602"}},
+           {"op": "form_save", "name": "e06"},
+           dump(file="d_e06.json")]
+    run = Run("E06", ops).execute()
+    results = run.dump_file("results.json")
+    held = app_live_contacts(run.dump_file("d_e06.json"), "E06")
+    h = held[0] if held else {}
+    return [Check("the save was refused", results.get("e06_saved") is False, "results %s" % results),
+            Check("focus is on the older bad email", results.get("e06_focus") == "editEmail",
+                  "focus was %r" % results.get("e06_focus")),
+            Check("the change to the phone was not saved", digits(h.get("phone", "")) == digits("+44 20 7946 0601"),
+                  "phone %r" % h.get("phone")),
+            Check("the older entry is still held as it was", h.get("email") == bad_older, "email %r" % h.get("email"))]
+
+
+@scenario("F01", "More emails on Google than the app has slots: all of them are still on Google after an upload")
+def f01():
+    addresses = ["f01a@test.invalid", "f01b@test.invalid", "f01c@test.invalid", "f01d@test.invalid",
+                 "f01e@test.invalid", "f01f@test.invalid", "f01g@test.invalid"]
+    types = ["Label0", "Email2", "work", "Label1", "Label2", "Label3", "Label4"]
+    resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "F01"}],
+        "emailAddresses": [{"value": a, "type": t} for a, t in zip(addresses, types)]})
+    ops = [sync(), {"op": "edit_contact", "match": {"surname": "F01"}, "fields": {"emailtitle": "Home"}},
+           sync(), dump()]
+    run = Run("F01", ops).execute()
+    local = app_live_contacts(run.dump, "F01")
+    c = local[0] if local else {}
+    held = sorted(v for v, _ in contact_info(google_person(resource))["emails"])
+    return [Check("the app holds four addresses in its slots",
+                  sum(1 for k in EMAIL_KEYS if c.get(k)) == 4, "slots %s" % ({k: c.get(k) for k in EMAIL_KEYS},)),
+            Check("the other three are kept in Comments, with their types",
+                  c.get("comments", "").count("Also on Google (") == 3, "comments: %r" % c.get("comments", "")),
+            Check("Google still holds all seven addresses", held == sorted(addresses), "Google holds %s" % held)]
+
+
+@scenario("F02", "Google master: a bad entry downloaded from Google stops a save of the form, and nothing is uploaded")
+def f02():
+    bad = "Bad Field 3: f02c@test.invalid - Bad Field 3 (Bad Field 4)"
+    resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "F02"}],
+        "emailAddresses": [{"value": "f02a@test.invalid", "type": "work"}, {"value": bad, "type": "Label3"}]})
+    set_mode(GOOGLE_MASTER)
+    try:
+        ops = [sync(), {"op": "open_contact", "match": {"surname": "F02"}},
+               {"op": "form_set", "fields": {"phone": "+44 20 7946 0951"}},
+               {"op": "menu_save", "name": "f02", "fields": ["phone", "email"]}, dump(file="d_f02.json")]
+        run = Run("F02", ops).execute()
+    finally:
+        set_mode(CM_MASTER)
+    results = run.dump_file("results.json")
+    held = app_live_contacts(run.dump_file("d_f02.json"), "F02")
+    h = held[0] if held else {}
+    emails = sorted(v for v, _ in contact_info(google_person(resource))["emails"])
+    return [Check("File > Save refused the save: the user was told", "Contact Details" in run.log(),
+                  "no Contact Details message in the log"),
+            Check("the bad entry is still on the form", results.get("f02_email") == bad,
+                  "shows %r" % results.get("f02_email")),
+            Check("the phone change was not saved", not h.get("phone"), "phone %r" % h.get("phone")),
+            Check("Google still holds the entries it had", emails == sorted(["f02a@test.invalid", bad]),
+                  "Google holds %s" % emails)]
+
+
+@scenario("F03", "More phones on Google than the app has slots: all of them are still on Google after an upload")
+def f03():
+    phones = [("+44 20 7946 0731", "home"), ("+44 20 7946 0732", "work"), ("+44 20 7946 0733", "mobile"),
+              ("+44 20 7946 0734", "other"), ("+44 20 7946 0735", "other"), ("+44 20 7946 0736", "other"),
+              ("+44 20 7946 0737", "Pager")]
+    resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "F03"}],
+        "phoneNumbers": [{"value": v, "type": t} for v, t in phones]})
+    ops = [sync(), {"op": "edit_contact", "match": {"surname": "F03"}, "fields": {"phonetitle": "Home"}},
+           sync(), dump()]
+    run = Run("F03", ops).execute()
+    local = app_live_contacts(run.dump, "F03")
+    c = local[0] if local else {}
+    held = sorted(digits(v) for v, _ in contact_info(google_person(resource))["phones"])
+    types = google_phone_types(resource)
+    return [Check("the app holds six numbers in its slots", sum(1 for k in PHONE_KEYS if c.get(k)) == 6,
+                  "slots %s" % ({k: c.get(k) for k in PHONE_KEYS},)),
+            Check("the seventh is kept in Comments, with its type", "Also on Google (Pager):" in c.get("comments", ""),
+                  "comments: %r" % c.get("comments", "")),
+            Check("Google still holds all seven numbers", held == sorted(digits(v) for v, _ in phones),
+                  "Google holds %s" % held),
+            Check("Google keeps the seventh number's type", types.get(digits("+44 20 7946 0737")) == "pager",
+                  "Google types: %s" % types)]
+
+
+@scenario("F04", "A save refused for a bad entry stops the next sync, so nothing is sent to Google")
+def f04():
+    bad = "Bad Field 3: f04c@test.invalid - Bad Field 3 (Bad Field 4)"
+    resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "F04"}],
+        "emailAddresses": [{"value": "f04a@test.invalid", "type": "work"}, {"value": bad, "type": "Label3"}]})
+    ops = [sync(), {"op": "open_contact", "match": {"surname": "F04"}},
+           {"op": "form_set", "fields": {"phone": "+44 20 7946 0941"}},
+           {"op": "menu_save", "name": "f04", "fields": ["phone"]},
+           sync(), dump()]
+    run = Run("F04", ops).execute()
+    log = run.log()
+    phones = contact_info(google_person(resource))["phones"]
+    emails = sorted(v for v, _ in contact_info(google_person(resource))["emails"])
+    return [Check("the save was refused", "Contact Details" in log, "no Contact Details message"),
+            Check("the sync after it did not run", "sync 1 finished" in log and "sync 2 finished" not in log,
+                  "driver log has no 'sync 2 finished' line"),
+            Check("nothing reached Google", not phones and emails == sorted(["f04a@test.invalid", bad]),
+                  "phones %s, emails %s" % (phones, emails))]
+
+
+@scenario("E03", "Editor: an older entry with its label in the address is tidied when opened, and saved with the next change")
+def e03():
+    resource = form_scenario_contact("E03", address="e03@test.invalid (Work)")
+    ops = [sync(), {"op": "open_contact", "match": {"surname": "E03"}},
+           {"op": "form_set", "fields": {"phone": "+44 20 7946 0301"}},
+           {"op": "form_save", "name": "e03"}, sync(), dump()]
+    run = Run("E03", ops).execute()
+    results = run.dump_file("results.json")
+    local = app_live_contacts(run.dump, "E03")
+    c = local[0] if local else {}
+    types = google_email_types(resource)
+    return [Check("the form was saved", results.get("e03_saved") is True, "results %s" % results),
+            Check("the address is held without the label", c.get("email") == "e03@test.invalid", "got %r" % c.get("email")),
+            Check("the label is the title", c.get("emailtitle") == "Work", "got %r" % c.get("emailtitle")),
+            Check("Google holds the address as work", types.get("e03@test.invalid") == "work", "Google types: %s" % types)]
+
+
+@scenario("E04", "Editor: a phone typed with (0) after the country code and a label after the number is saved tidily")
+def e04():
+    run = Run("E04", [add_contact_op("E04", phone="+44 20 7946 0401"), sync(),
+                                     {"op": "open_contact", "match": {"surname": "E04"}},
+                                     {"op": "form_set", "fields": {"work": "+44 (0)20 7946 0402 - Office"}, "tidy": True},
+                                     {"op": "form_save", "name": "e04"}, sync(), dump()]).execute()
+    results = run.dump_file("results.json")
+    local = app_live_contacts(run.dump, "E04")
+    c = local[0] if local else {}
+    goog = google_contacts_tagged("E04")
+    types = google_phone_types(contact_info(goog[0])["resourceName"]) if goog else {}
+    return [Check("the form was saved", results.get("e04_saved") is True, "results %s" % results),
+            Check("the number is held without the (0) and the label",
+                  digits(c.get("work", "")) == digits("+44 20 7946 0402"), "got %r" % c.get("work")),
+            Check("the label is the title", c.get("worktitle") == "Office", "got %r" % c.get("worktitle")),
+            Check("Google holds the number as office", types.get(digits("+44 20 7946 0402")) == "office",
+                  "Google types: %s" % types)]
+
+
+@scenario("E05", "Editor: clearing the only detail of a contact saves the change")
+def e05():
+    ops = [{"op": "add_contact", "fields": {"email": "e05@test.invalid"}},
+           {"op": "open_contact", "match": {"email": "e05@test.invalid"}},
+           {"op": "form_set", "fields": {"email": ""}},
+           {"op": "form_save", "name": "e05"}, dump()]
+    run = Run("E05", ops).execute()
+    results = run.dump_file("results.json")
+    still = [c for c in run.dump["contacts"] if c.get("deleted") != "true" and c.get("email") == "e05@test.invalid"]
+    return [Check("the form was saved", results.get("e05_saved") is True, "results %s" % results),
+            Check("the address is gone from the contact", not still, "still held by %d contact(s)" % len(still))]
+
+
+@scenario("T01", "Tidy Contacts puts right an older address label and a phone label; they go to Google; a second tidy changes nothing")
+def t01():
+    resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "T01"}],
+        "emailAddresses": [{"value": "t01@test.invalid (Work)", "type": "home"}],
+        "phoneNumbers": [{"value": "+44 20 7946 0701 - Mobile", "type": "home"}]})
+    ops = [sync(), {"op": "tidy_contacts", "name": "tidy1"}, {"op": "tidy_contacts", "name": "tidy2"},
+           sync(), dump()]
+    run = Run("T01", ops).execute()
+    results = run.dump_file("results.json")
+    local = app_live_contacts(run.dump, "T01")
+    c = local[0] if local else {}
+    info = contact_info(google_person(resource))
+    types = google_email_types(resource)
+    ptypes = google_phone_types(resource)
+    return [Check("the first tidy changed the contact", results.get("tidy1_contacts", 0) >= 1, "results %s" % results),
+            Check("the address is held without the label, with its title",
+                  c.get("email") == "t01@test.invalid" and c.get("emailtitle") == "Work",
+                  "got %r / %r" % (c.get("email"), c.get("emailtitle"))),
+            Check("the phone is held without the label, with its title",
+                  digits(c.get("phone", "")) == digits("+44 20 7946 0701") and c.get("phonetitle") == "Mobile",
+                  "got %r / %r" % (c.get("phone"), c.get("phonetitle"))),
+            Check("Google holds the address as work", types.get("t01@test.invalid") == "work", "Google types: %s" % types),
+            Check("Google holds the phone as mobile", ptypes.get(digits("+44 20 7946 0701")) == "mobile",
+                  "Google phones: %s" % (info["phones"],)),
+            Check("the second tidy changed nothing", results.get("tidy2_changed") == 0, "results %s" % results)]
+
+
+@scenario("T02", "Tidy Contacts lists an entry it cannot fix, leaves it alone, and still fixes the other entry on the contact")
+def t02():
+    ops = [add_contact_op("T02", email="Home: t02@test.invalid - Home (Work)", phone="+44 20 7946 0702 (Mobile)"),
+           {"op": "tidy_contacts", "name": "tidy"}, dump()]
+    run = Run("T02", ops).execute()
+    results = run.dump_file("results.json")
+    local = app_live_contacts(run.dump, "T02")
+    c = local[0] if local else {}
+    unfixed = results.get("tidy_unfixed", [])
+    return [Check("the unfixable email is listed", any("t02@test.invalid" in line and "more than one label" in line
+                                                       for line in unfixed), "listed: %s" % unfixed),
+            Check("the unfixable email is left as it was", c.get("email") == "Home: t02@test.invalid - Home (Work)",
+                  "got %r" % c.get("email")),
+            Check("the phone on the same contact is still fixed",
+                  digits(c.get("phone", "")) == digits("+44 20 7946 0702") and c.get("phonetitle") == "Mobile",
+                  "got %r / %r" % (c.get("phone"), c.get("phonetitle")))]
+
+
+@scenario("T03", "Tidy Contacts lists a title with a colon, and leaves it and its number as they are")
+def t03():
+    ops = [add_contact_op("T03", phone="+44 20 7946 0703", phonetitle="Home: Mobile"),
+           {"op": "tidy_contacts", "name": "tidy"}, dump()]
+    run = Run("T03", ops).execute()
+    results = run.dump_file("results.json")
+    local = app_live_contacts(run.dump, "T03")
+    c = local[0] if local else {}
+    unfixed = results.get("tidy_unfixed", [])
+    return [Check("the title is listed as not allowed", any("T03" in line and "not allowed" in line for line in unfixed),
+                  "listed: %s" % unfixed),
+            Check("the title is unchanged", c.get("phonetitle") == "Home: Mobile", "got %r" % c.get("phonetitle")),
+            Check("the number is unchanged", digits(c.get("phone", "")) == digits("+44 20 7946 0703"),
+                  "got %r" % c.get("phone"))]
 
 
 def gchange_main(argv):

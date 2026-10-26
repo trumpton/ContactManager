@@ -25,8 +25,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     timer=NULL ;
     enc=NULL ;
     find=NULL ;
+    titledEntriesHeld=false ;
 
     ui->setupUi(this);
+    setupTitledEntries() ;
 
     // Enable debug
     setupdebug();
@@ -248,11 +250,36 @@ MainWindow::~MainWindow()
     ui->tabBar->setTabEnabled(CONTACTDETAILSTABPOS, false);
 
     // Free up memory
-    if (gConf) delete gConf ; gConf=NULL ;
-    if (timer) delete timer ; timer=NULL ;
-    if (ui) delete ui; ui=NULL ;
-    if (enc) delete enc ; enc=NULL ;
-    if (find) delete find ; find=NULL ;
+    if (gConf) {
+        delete gConf ;
+        gConf=NULL ;
+    }
+    if (timer) {
+        delete timer ;
+        timer=NULL ;
+    }
+    if (ui) {
+        delete ui ;
+        ui=NULL ;
+    }
+    if (enc) {
+        delete enc ;
+        enc=NULL ;
+    }
+    if (find) {
+        delete find ;
+        find=NULL ;
+    }
+}
+
+// A refused entry keeps the window open, so the typed text is not lost
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    if (!ValidateTitledEntries()) {
+        event->ignore() ;
+        return ;
+    }
+    QMainWindow::closeEvent(event) ;
 }
 
 void MainWindow::refreshPasswordMenu()
@@ -399,6 +426,9 @@ void MainWindow::populateDialog(QString id, bool switchtooverview)
     Contact& dro = db.getSelected() ;
     QString oldid = dro.getField(Contact::ID) ;
 
+    // A badly formatted email or phone entry keeps the form on this contact, with focus on that entry
+    if (!ValidateTitledEntries()) return ;
+
     // Save current contact & disable the editing tab
     SaveTabs() ;
 
@@ -528,15 +558,16 @@ void MainWindow::LoadTabs()
     LoadTodo() ;
 }
 
-void MainWindow::SaveTabs()
+bool MainWindow::SaveTabs()
 {
     SaveTodo() ;
     SaveEditHistory() ;
     SaveCalendarTab();
-    SaveContactTab() ;
+    bool contactsaved = SaveContactTab() ;
     LoadOverviewTab() ;
     db.save() ;
     calendar.save() ;
+    return contactsaved ;
 }
 
 //
@@ -548,9 +579,9 @@ void MainWindow::SaveTabs()
 void MainWindow::on_actionSave_triggered()
 {
     msg("Saving Contact ...") ;
-    SaveTabs() ;
+    bool saved = SaveTabs() ;
     LoadOverviewTab() ;
-    LoadContactTab() ;
+    if (saved) LoadContactTab() ;
     LoadEditHistory() ;
     LoadTodo() ;
 
@@ -584,8 +615,8 @@ void MainWindow::on_action_Google_Sync_triggered()
 {
     class GoogleUpdateDialog *frm ;
 
-    // Save tabs before sync
-    SaveTabs() ;
+    // Save tabs before sync.  A refused entry stops the sync, so a bad entry is not sent to Google.
+    if (!SaveTabs()) return ;
 
     // A blank contact on screen is removed by the sync, so stop showing it first
     if (!db.getSelected().isNull() && db.getSelected().isBlank()) {
@@ -612,8 +643,8 @@ void MainWindow::on_action_Google_Sync_triggered()
 
 void MainWindow::on_actionTidyContacts_triggered()
 {
-    // Save what is on screen, and stop showing a contact that may be merged away
-    SaveTabs() ;
+    // Save what is on screen, and stop showing a contact that may be merged away.  A refused entry stops the tidy.
+    if (!SaveTabs()) return ;
     db.selectContact(SELECT_OVERVIEW) ;
 
     // Progress is shown in a window with a log, which also carries the summary at the end
@@ -627,6 +658,13 @@ void MainWindow::on_actionTidyContacts_triggered()
         progress.reportProgress(0, QString("Removed %1 repeated history lines from %2 contacts").arg(historylines).arg(historycontacts)) ;
         db.save() ;
     }
+
+    // Email and phone entries: a label typed into an entry becomes its title.  An entry that cannot be put right is
+    // listed in the summary, and is left as it is.  This runs before the merges, which compare the values.
+    int entrieschanged=0, entriescontacts=0 ;
+    QStringList entriesunfixed ;
+    entrieschanged = db.tidyEntries(entriescontacts, entriesunfixed) ;
+    if (entrieschanged>0) db.save() ;
 
     // Unnamed entries: blank ones are deleted, and one whose only detail is an email address takes it as
     // its surname.  The others are left, and listed at the end.
@@ -664,26 +702,14 @@ void MainWindow::on_actionTidyContacts_triggered()
         auto field = [&](QString label, Contact::ContactRecord f, QList<Contact::ContactRecord> fields) {
             add(label, merged.getField(f), origin(merged.getField(f), fields)) ;
         } ;
-        auto titled = [&](QString label, Contact::ContactRecord f, Contact::ContactRecord titlefield, QList<Contact::ContactRecord> fields) {
-            QString title = merged.getField(titlefield).trimmed() ;
-            field(title.isEmpty() ? label : title, f, fields) ;
-        } ;
 
         add("Name", QString(merged.getFormattedName(false, true)), origin(merged.getField(Contact::Surname), { Contact::Surname })) ;
         field("Organisation", Contact::Organisation, { Contact::Organisation }) ;
         field("Address", Contact::Address, { Contact::Address }) ;
         field("Address 2", Contact::Address2, { Contact::Address2 }) ;
         field("Birthday", Contact::Birthday, { Contact::Birthday }) ;
-        field("Email", Contact::Email, emails) ;
-        field("Other", Contact::Email2, emails) ;
-        titled("Email 3", Contact::Email3, Contact::Email3Title, emails) ;
-        titled("Email 4", Contact::Email4, Contact::Email4Title, emails) ;
-        field("Phone", Contact::Phone, phones) ;
-        field("Work", Contact::Work, phones) ;
-        field("Mobile", Contact::Mobile, phones) ;
-        titled("Phone 2", Contact::Phone2, Contact::Phone2Title, phones) ;
-        titled("Phone 3", Contact::Phone3, Contact::Phone3Title, phones) ;
-        titled("Phone 4", Contact::Phone4, Contact::Phone4Title, phones) ;
+        for (int i=0; i<4; i++) field(merged.emailLabel(i), emails.at(i), emails) ;
+        for (int i=0; i<6; i++) field(merged.phoneLabel(i), phones.at(i), phones) ;
 
         QStringList commentsfrom ;
         if (!first.getField(Contact::Comments).trimmed().isEmpty()) commentsfrom << "1" ;
@@ -807,7 +833,8 @@ void MainWindow::on_actionTidyContacts_triggered()
         }
     }
 
-    if (automatic==0 && confirmed==0 && declined==0 && historylines==0 && emptied==0 && renamed==0 && unnamedleft.isEmpty()) {
+    if (automatic==0 && confirmed==0 && declined==0 && historylines==0 && emptied==0 && renamed==0 && unnamedleft.isEmpty()
+        && entrieschanged==0 && entriesunfixed.isEmpty()) {
         progress.finishProgress(stopped ? "Stopped at your request." : "No duplicate contacts, repeated history lines or unnamed entries were found.") ;
         return ;
     }
@@ -821,6 +848,11 @@ void MainWindow::on_actionTidyContacts_triggered()
     QStringList summary ;
     summary << QString("Removed %1 repeated history lines from %2 contacts.").arg(historylines).arg(historycontacts) ;
     summary << QString("Unnamed entries: %1 empty entries deleted, %2 given their email address as surname.").arg(emptied).arg(renamed) ;
+    summary << QString("Email and phone entries: %1 put right in %2 contacts.").arg(entrieschanged).arg(entriescontacts) ;
+    if (!entriesunfixed.isEmpty()) {
+        summary << QString("Email and phone entries not fixed, left as they are (%1):").arg(entriesunfixed.size()) ;
+        foreach (const QString &line, entriesunfixed) summary << "    " + line ;
+    }
     if (!unnamedleft.isEmpty()) {
         summary << QString("Unnamed entries left alone (%1):").arg(unnamedleft.size()) ;
         foreach (const QString &line, unnamedleft) summary << "    " + line ;
@@ -899,7 +931,7 @@ void MainWindow::on_actionImport_triggered()
         return ;
     }
 
-    SaveTabs() ;
+    if (!SaveTabs()) return ;
     db.selectContact(SELECT_OVERVIEW) ;
 
     int added=0, overwritten=0, skipped=0, unknown=0 ;

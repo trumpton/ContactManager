@@ -7,9 +7,9 @@
 // The contact fields that are exported, in the order they are written.  Flags are written as true or false.
 static const Contact::ContactRecord contactFields[] = {
     Contact::ID, Contact::Surname, Contact::Names, Contact::Organisation, Contact::Address, Contact::Address2,
-    Contact::Phone, Contact::Work, Contact::Mobile, Contact::Phone2, Contact::Phone2Title,
+    Contact::Phone, Contact::PhoneTitle, Contact::Work, Contact::WorkTitle, Contact::Mobile, Contact::MobileTitle, Contact::Phone2, Contact::Phone2Title,
     Contact::Phone3, Contact::Phone3Title, Contact::Phone4, Contact::Phone4Title,
-    Contact::Email, Contact::Email2, Contact::Email3, Contact::Email3Title, Contact::Email4, Contact::Email4Title,
+    Contact::Email, Contact::EmailTitle, Contact::Email2, Contact::Email2Title, Contact::Email3, Contact::Email3Title, Contact::Email4, Contact::Email4Title,
     Contact::Webaddress, Contact::Birthday, Contact::Comments,
     Contact::GroupBusiness, Contact::GroupClient, Contact::GroupFamily, Contact::GroupFriend, Contact::GroupOther,
     Contact::Hidden, Contact::EmailMe, Contact::TextMe, Contact::Created, Contact::Updated } ;
