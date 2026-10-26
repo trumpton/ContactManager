@@ -126,22 +126,20 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
 
         // "emailAddresses": [{
         //     "value": "EMAILADDRESS",
-        //     "type": "home/other",
+        //     "type": "home/other/work/LABEL",
         // }],
-        // home and other are fixed types, which parseContact maps back to Email and Email2.
-        // Email3 and Email4 use their own labels.
+        // Each email is sent with its label as its Google type.  The standard labels are sent in lower case.
         QJsonArray a_emails ;
         Contact::ContactRecord emailfields[4] = { Contact::Email, Contact::Email2, Contact::Email3, Contact::Email4 } ;
-        Contact::ContactRecord labelfields[2] = { Contact::Email3Title, Contact::Email4Title } ;
-        QString fixedlabels[2] = { "home", "other" } ;
         for (int i=0; i<4; i++) {
             QString address = contact.getField(emailfields[i]) ;
             if (address.isEmpty()) continue ;
             QJsonObject o_email ;
             o_email.insert("value", address) ;
-            QString label = (i<2) ? fixedlabels[i] : contact.getField(labelfields[i-2]) ;
-            if (label.isEmpty()) label = "Other" ;
-            o_email.insert("type", label) ;
+            QString label = contact.emailLabel(i) ;
+            QString type = label.toLower() ;
+            if (type!="home" && type!="work" && type!="other") type = label ;
+            o_email.insert("type", type) ;
             if (i==0) {
                 QJsonObject metadata ;
                 metadata.insert("primary", true) ;

@@ -674,10 +674,7 @@ void MainWindow::on_actionTidyContacts_triggered()
         field("Address", Contact::Address, { Contact::Address }) ;
         field("Address 2", Contact::Address2, { Contact::Address2 }) ;
         field("Birthday", Contact::Birthday, { Contact::Birthday }) ;
-        field("Email", Contact::Email, emails) ;
-        field("Other", Contact::Email2, emails) ;
-        titled("Email 3", Contact::Email3, Contact::Email3Title, emails) ;
-        titled("Email 4", Contact::Email4, Contact::Email4Title, emails) ;
+        for (int i=0; i<4; i++) field(merged.emailLabel(i), emails.at(i), emails) ;
         field("Phone", Contact::Phone, phones) ;
         field("Work", Contact::Work, phones) ;
         field("Mobile", Contact::Mobile, phones) ;
