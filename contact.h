@@ -37,6 +37,7 @@ public:
         MergePending,
         Email3, Email4, Email3Title, Email4Title,
         MergedInto,
+        EmailTitle, Email2Title,
         NumberOfRecords
     };
 
@@ -106,6 +107,8 @@ private:
         { Email3Title,     false,  true,  true, false,  true, false,  true, false, "email3title"},    // Label of email3
         { Email4Title,     false,  true,  true, false,  true, false,  true, false, "email4title"},    // Label of email4
         { MergedInto,      false, false, false, false, false, false,  true, false, "mergedinto"},    // ID of the entry this one was merged into
+        { EmailTitle,      false,  true,  true, false,  true, false,  true, false, "emailtitle"},    // Label of email (first slot)
+        { Email2Title,     false,  true,  true, false,  true, false,  true, false, "email2title"},   // Label of email2
     };
 
 private:
@@ -154,6 +157,12 @@ public:
     bool isEmpty() ;
     bool isBlank() ;
     bool isDirty() ;
+
+    // The label of email slot 0 to 3 (Email, Email2, Email3, Email4).  An empty label means the label that slot
+    // has always had, so a contact saved before every slot had a label keeps its meaning.
+    QString emailLabel(int slot) ;
+    // The label a new email in each slot gets when the user does not choose one
+    static QString defaultEmailLabel(int slot) ;
 
     // Set following new, until load or first save
     bool isNew() ;

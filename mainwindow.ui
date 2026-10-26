@@ -379,35 +379,21 @@ p, li { white-space: pre-wrap; }
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_8">
                <item>
-                <widget class="QLabel" name="label">
+                <widget class="SafeLineEdit" name="editEmailTitle">
                  <property name="minimumSize">
                   <size>
-                   <width>80</width>
+                   <width>100</width>
                    <height>0</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
-                   <width>80</width>
+                   <width>100</width>
                    <height>16777215</height>
                   </size>
                  </property>
-                 <property name="font">
-                  <font>
-                   <underline>false</underline>
-                  </font>
-                 </property>
-                 <property name="frameShape">
-                  <enum>QFrame::NoFrame</enum>
-                 </property>
-                 <property name="lineWidth">
-                  <number>1</number>
-                 </property>
-                 <property name="text">
-                  <string>e&lt;u&gt;M&lt;/u&gt;ail</string>
-                 </property>
-                 <property name="textFormat">
-                  <enum>Qt::RichText</enum>
+                 <property name="accessibleName">
+                  <string>Label for email 1</string>
                  </property>
                 </widget>
                </item>
@@ -423,21 +409,21 @@ p, li { white-space: pre-wrap; }
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_9">
                <item>
-                <widget class="QLabel" name="LabelAltEmail">
+                <widget class="SafeLineEdit" name="editEmail2Title">
                  <property name="minimumSize">
                   <size>
-                   <width>80</width>
+                   <width>100</width>
                    <height>0</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
-                   <width>80</width>
+                   <width>100</width>
                    <height>16777215</height>
                   </size>
                  </property>
-                 <property name="text">
-                  <string>Alt eMail</string>
+                 <property name="accessibleName">
+                  <string>Label for email 2</string>
                  </property>
                 </widget>
                </item>
@@ -1613,7 +1599,9 @@ p, li { white-space: pre-wrap; }
   <tabstop>checkFriend</tabstop>
   <tabstop>checkOther</tabstop>
   <tabstop>checkHidden</tabstop>
+  <tabstop>editEmailTitle</tabstop>
   <tabstop>editEmail</tabstop>
+  <tabstop>editEmail2Title</tabstop>
   <tabstop>editEmail2</tabstop>
   <tabstop>editEmail3Title</tabstop>
   <tabstop>editEmail3</tabstop>

@@ -124,6 +124,15 @@ void MainWindow::on_actionDeleteContact_triggered()
 
 
 
+// The label the editor shows for an email slot.  An empty slot shows the label a new email gets there, and a slot
+// with an address shows its own label, or the label that slot has always had.
+static QString emailLabelForEditor(Contact &dr, int slot)
+{
+    static const Contact::ContactRecord emailfields[4] = { Contact::Email, Contact::Email2, Contact::Email3, Contact::Email4 } ;
+    if (dr.getField(emailfields[slot]).isEmpty()) return Contact::defaultEmailLabel(slot) ;
+    return dr.emailLabel(slot) ;
+}
+
 void MainWindow::LoadContactTab()
 {
 
@@ -136,12 +145,15 @@ void MainWindow::LoadContactTab()
 
     ui->editSurname->setText(dr.getField(Contact::Surname)) ;
     ui->editFirstName->setText(dr.getField(Contact::Names)) ;
+    // A slot with no address shows the label a new email gets there.  A slot with an address shows its own label.
     ui->editEmail->setText(dr.getField(Contact::Email)) ;
     ui->editEmail2->setText(dr.getField(Contact::Email2)) ;
     ui->editEmail3->setText(dr.getField(Contact::Email3)) ;
-    ui->editEmail3Title->setText(dr.getField(Contact::Email3Title).isEmpty() ? QString("Other") : dr.getField(Contact::Email3Title)) ;
     ui->editEmail4->setText(dr.getField(Contact::Email4)) ;
-    ui->editEmail4Title->setText(dr.getField(Contact::Email4Title).isEmpty() ? QString("Other") : dr.getField(Contact::Email4Title)) ;
+    ui->editEmailTitle->setText(emailLabelForEditor(dr, 0)) ;
+    ui->editEmail2Title->setText(emailLabelForEditor(dr, 1)) ;
+    ui->editEmail3Title->setText(emailLabelForEditor(dr, 2)) ;
+    ui->editEmail4Title->setText(emailLabelForEditor(dr, 3)) ;
     ui->editWebAddress->setText(dr.getField(Contact::Webaddress)) ;
     ui->editBusiness->setText(dr.getField(Contact::Organisation)) ;
     ui->editHome->setText(dr.getField(Contact::Phone)) ;
@@ -240,8 +252,10 @@ bool MainWindow::SaveContactTab()
     newdr.setField(Contact::Email, ui->editEmail->text()) ;
     newdr.setField(Contact::Email2, ui->editEmail2->text()) ;
     newdr.setField(Contact::Email3, ui->editEmail3->text()) ;
-    newdr.setField(Contact::Email3Title, ui->editEmail3->text().isEmpty() ? QString("") : ui->editEmail3Title->text()) ;
     newdr.setField(Contact::Email4, ui->editEmail4->text()) ;
+    newdr.setField(Contact::EmailTitle, ui->editEmail->text().isEmpty() ? QString("") : ui->editEmailTitle->text()) ;
+    newdr.setField(Contact::Email2Title, ui->editEmail2->text().isEmpty() ? QString("") : ui->editEmail2Title->text()) ;
+    newdr.setField(Contact::Email3Title, ui->editEmail3->text().isEmpty() ? QString("") : ui->editEmail3Title->text()) ;
     newdr.setField(Contact::Email4Title, ui->editEmail4->text().isEmpty() ? QString("") : ui->editEmail4Title->text()) ;
     newdr.setField(Contact::Webaddress, ui->editWebAddress->text()) ;
     newdr.setField(Contact::Birthday, dateTimeToXsDate(ui->editDateOfBirth->getDateTime()));

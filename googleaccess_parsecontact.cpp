@@ -302,7 +302,8 @@ bool GoogleAccess::parseContact(QJsonObject &item, Contact &contact)
         if (isMetadataFromContacts(addresses[i])) {
             QString type = addresses[i].toObject()["type"].toString().toLower() ;
             QString formattedaddress = addresses[i].toObject()["formattedValue"].toString() ;
-            if (type.compare("address")==0 || type.compare("primary")==0 || type.compare("work")==0 || type.compare("home")==0) {
+            // An address with no type is taken as the first address, as it is when it is the only one
+            if (type.isEmpty() || type.compare("address")==0 || type.compare("primary")==0 || type.compare("work")==0 || type.compare("home")==0) {
                 if (address1.isEmpty()) {
                     address1 = formattedaddress ;
                 } else {
@@ -335,17 +336,11 @@ bool GoogleAccess::parseContact(QJsonObject &item, Contact &contact)
         }
     }
 
-    // Email: four slots.  Email holds the home address and Email2 the other address, each taken from
-    // its Google type.  Email3 and Email4 hold anything else (work, mobile, custom labels, or a second
-    // home or other address), labelled with their type, and default to "Other" with no label.  A
-    // slot is never filled with an address of the wrong type, so a work address is not copied into
-    // Email.  Anything that does not fit is kept in Comments.
-    QStringList extraemails ;
-    bool homefilled = false ;
-    bool otherfilled = false ;
-    int nexttitled = 0 ;
-    Contact::ContactRecord titledAddress[2] = { Contact::Email3, Contact::Email4 } ;
-    Contact::ContactRecord titledLabel[2] = { Contact::Email3Title, Contact::Email4Title } ;
+    // Email: four slots, each with a label.  An address goes to the slot for its Google type when that slot is
+    // free (home to the first, other to the second, work to the third).  The rest go to the first free slot.
+    // Each address keeps its Google type as its label.  An address with no slot left is kept in Comments.
+    struct PendingEmail { QString address ; QString label ; } ;
+    QList<PendingEmail> pending ;
     QJsonArray emailaddresses = item["emailAddresses"].toArray() ;
     foreach (const QJsonValue& emailitem, emailaddresses) {
 
@@ -363,32 +358,43 @@ bool GoogleAccess::parseContact(QJsonObject &item, Contact &contact)
             // A custom label comes back as type "custom", with the label as its formatted type
             QString type = emailaddress["type"].toString().trimmed() ;
             if (type.isEmpty() || type.compare("custom", Qt::CaseInsensitive)==0) type = emailaddress["formattedType"].toString().trimmed() ;
-            QString lower = type.toLower() ;
-
-            // "Email" is the label this app used for the primary address before types were mapped
-            if ((lower=="home" || lower=="email") && !homefilled) {
-                contact.setField(Contact::Email, address) ;
-                homefilled = true ;
-                continue ;
-            }
-            if ((lower=="other" || lower.isEmpty()) && !otherfilled) {
-                contact.setField(Contact::Email2, address) ;
-                otherfilled = true ;
-                continue ;
-            }
-
-            if (nexttitled<2) {
-                QString label = type.isEmpty() ? QString("Other") : type ;
-                label = label.left(1).toUpper() + label.mid(1) ;
-                contact.setField(titledAddress[nexttitled], address) ;
-                contact.setField(titledLabel[nexttitled], label) ;
-                nexttitled++ ;
-            } else {
-                extraemails << address ;
-            }
+            if (type.isEmpty()) type = "Other" ;
+            QString label = type.left(1).toUpper() + type.mid(1) ;
+            pending << PendingEmail{ address, label } ;
         }
     }
 
+    const Contact::ContactRecord emailfields[4] = { Contact::Email, Contact::Email2, Contact::Email3, Contact::Email4 } ;
+    const Contact::ContactRecord titlefields[4] = { Contact::EmailTitle, Contact::Email2Title, Contact::Email3Title, Contact::Email4Title } ;
+    bool used[4] = { false, false, false, false } ;
+    QList<bool> placed(pending.size(), false) ;
+
+    // The slot for each Google type, when it is free
+    for (int i=0; i<pending.size(); i++) {
+        QString lower = pending.at(i).label.toLower() ;
+        int want = (lower=="home") ? 0 : (lower=="other") ? 1 : (lower=="work") ? 2 : -1 ;
+        if (want>=0 && !used[want]) {
+            contact.setField(emailfields[want], pending.at(i).address) ;
+            contact.setField(titlefields[want], pending.at(i).label) ;
+            used[want] = true ;
+            placed[i] = true ;
+        }
+    }
+
+    // Everything else takes the first free slot
+    QStringList extraemails ;
+    for (int i=0; i<pending.size(); i++) {
+        if (placed[i]) continue ;
+        int slot = -1 ;
+        for (int s=0; s<4 && slot<0; s++) if (!used[s]) slot = s ;
+        if (slot<0) {
+            extraemails << pending.at(i).address ;
+        } else {
+            contact.setField(emailfields[slot], pending.at(i).address) ;
+            contact.setField(titlefields[slot], pending.at(i).label) ;
+            used[slot] = true ;
+        }
+    }
 
     // SIP Addresses
     // store whatever the type

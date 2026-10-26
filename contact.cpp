@@ -125,6 +125,24 @@ static bool isSystemHistoryLine(const QString &line)
 
 // A blank contact has nothing entered: it is still called 'Unnamed Contact', with no
 // details, no to-do items, and no history written by the user
+// The label of an email slot.  A slot with no label has always had a fixed label, so that is what it keeps.
+QString Contact::emailLabel(int slot)
+{
+    static const ContactRecord titles[4] = { EmailTitle, Email2Title, Email3Title, Email4Title } ;
+    static const char *legacy[4] = { "Home", "Other", "Other", "Other" } ;
+    if (slot<0 || slot>3) return QString() ;
+    QString title = getField(titles[slot]).trimmed() ;
+    return title.isEmpty() ? QString(legacy[slot]) : title ;
+}
+
+// The label a new email gets when the user does not choose one
+QString Contact::defaultEmailLabel(int slot)
+{
+    static const char *defaults[4] = { "Home", "Other", "Work", "Other" } ;
+    if (slot<0 || slot>3) return QString() ;
+    return QString(defaults[slot]) ;
+}
+
 bool Contact::isBlank()
 {
     Contact blank ;
@@ -761,10 +779,10 @@ QString& Contact::getOverview(enum ContactOverviewType overviewtype)
     if (!getField(Phone3).isEmpty()) response += titlestart + phone3Title + ": " + titleend + getField(Phone3) + lineend ;
     if (!getField(Phone4).isEmpty()) response += titlestart + phone4Title + ": " + titleend + getField(Phone4) + lineend ;
     if (!getField(ProfilePhone).isEmpty()) response += titlestart + "Phone: " + titleend + getField(ProfilePhone) + lineend ;
-    if (!getField(Email).isEmpty()) response += titlestart + " Primary Email:  " + titleend + getField(Email) + lineend ;
-    if (!getField(Email2).isEmpty()) response += titlestart + "Second Email:  " + titleend + getField(Email2) + lineend ;
-    if (!getField(Email3).isEmpty()) response += titlestart + getField(Email3Title) + " Email:  " + titleend + getField(Email3) + lineend ;
-    if (!getField(Email4).isEmpty()) response += titlestart + getField(Email4Title) + " Email:  " + titleend + getField(Email4) + lineend ;
+    const ContactRecord emailfields[4] = { Email, Email2, Email3, Email4 } ;
+    for (int i=0; i<4; i++) {
+        if (!getField(emailfields[i]).isEmpty()) response += titlestart + emailLabel(i) + " Email:  " + titleend + getField(emailfields[i]) + lineend ;
+    }
     if (!getField(ProfileEMail).isEmpty()) response += titlestart + " Profile Email:  " + titleend + getField(ProfileEMail) + lineend ;
     if (!getField(Webaddress).isEmpty()) response += titlestart + "Web Site:  " + titleend + getField(Webaddress) + lineend ;
     if (!getField(Organisation).isEmpty()) response += titlestart + "Organisation: " + titleend + getField(Organisation) + lineend ;
