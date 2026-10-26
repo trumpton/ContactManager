@@ -275,7 +275,7 @@ MainWindow::~MainWindow()
 // A refused entry keeps the window open, so the typed text is not lost
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    if (!ValidateTitledEntries()) {
+    if (!ValidateTitledEntries(db.getSelected())) {
         event->ignore() ;
         return ;
     }
@@ -427,7 +427,7 @@ void MainWindow::populateDialog(QString id, bool switchtooverview)
     QString oldid = dro.getField(Contact::ID) ;
 
     // A badly formatted email or phone entry keeps the form on this contact, with focus on that entry
-    if (!ValidateTitledEntries()) return ;
+    if (!ValidateTitledEntries(dro)) return ;
 
     // Save current contact & disable the editing tab
     SaveTabs() ;

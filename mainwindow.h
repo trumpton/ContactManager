@@ -182,7 +182,9 @@ private:
     bool eventFilter(QObject *watched, QEvent *event) override ;
     void tidyTitledEntries() ;                  // Puts right the email and phone entries that can be, when the form is loaded
     void tidyTitledEntry(QLineEdit *entry) ;    // Puts right one email or phone entry, when focus leaves it
-    bool ValidateTitledEntries() ;              // Checks every email and phone entry when saving
+    bool ValidateTitledEntries(Contact &dr) ;   // Checks the email and phone entries when the form has an edit
+    bool FormHasEdits(Contact &dr) ;            // True when the form has an edit that is not already in the contact
+    void FormToContact(Contact &newdr) ;        // Copies the contact details on the form into newdr
     bool SaveContactTab() ;     // Transfer Contact Tab -> Database Item Contact Data
     void LoadCalendarTab() ;  // Transfer Global Calendar to Calendar Tab
     void SaveCalendarTab() ;    // Save the Calendar if Needed
