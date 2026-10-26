@@ -1372,6 +1372,52 @@ def e06():
             Check("the older entry is still held as it was", h.get("email") == bad_older, "email %r" % h.get("email"))]
 
 
+@scenario("F01", "More emails on Google than the app has slots: all of them are still on Google after an upload")
+def f01():
+    addresses = ["f01a@test.invalid", "f01b@test.invalid", "f01c@test.invalid", "f01d@test.invalid",
+                 "f01e@test.invalid", "f01f@test.invalid", "f01g@test.invalid"]
+    types = ["Label0", "Email2", "work", "Label1", "Label2", "Label3", "Label4"]
+    resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "F01"}],
+        "emailAddresses": [{"value": a, "type": t} for a, t in zip(addresses, types)]})
+    ops = [sync(), {"op": "edit_contact", "match": {"surname": "F01"}, "fields": {"emailtitle": "Home"}},
+           sync(), dump()]
+    run = Run("F01", ops).execute()
+    local = app_live_contacts(run.dump, "F01")
+    c = local[0] if local else {}
+    held = sorted(v for v, _ in contact_info(google_person(resource))["emails"])
+    return [Check("the app holds four addresses in its slots",
+                  sum(1 for k in EMAIL_KEYS if c.get(k)) == 4, "slots %s" % ({k: c.get(k) for k in EMAIL_KEYS},)),
+            Check("the other three are kept in Comments, with their types",
+                  c.get("comments", "").count("Also on Google (") == 3, "comments: %r" % c.get("comments", "")),
+            Check("Google still holds all seven addresses", held == sorted(addresses), "Google holds %s" % held)]
+
+
+@scenario("F02", "Google master: a bad entry downloaded from Google stops a save of the form, and nothing is uploaded")
+def f02():
+    bad = "Bad Field 3: f02c@test.invalid - Bad Field 3 (Bad Field 4)"
+    resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "F02"}],
+        "emailAddresses": [{"value": "f02a@test.invalid", "type": "work"}, {"value": bad, "type": "Label3"}]})
+    set_mode(GOOGLE_MASTER)
+    try:
+        ops = [sync(), {"op": "open_contact", "match": {"surname": "F02"}},
+               {"op": "form_set", "fields": {"phone": "+44 20 7946 0951"}},
+               {"op": "menu_save", "name": "f02", "fields": ["phone", "email"]}, dump(file="d_f02.json")]
+        run = Run("F02", ops).execute()
+    finally:
+        set_mode(CM_MASTER)
+    results = run.dump_file("results.json")
+    held = app_live_contacts(run.dump_file("d_f02.json"), "F02")
+    h = held[0] if held else {}
+    emails = sorted(v for v, _ in contact_info(google_person(resource))["emails"])
+    return [Check("File > Save refused the save: the user was told", "Contact Details" in run.log(),
+                  "no Contact Details message in the log"),
+            Check("the bad entry is still on the form", results.get("f02_email") == bad,
+                  "shows %r" % results.get("f02_email")),
+            Check("the phone change was not saved", not h.get("phone"), "phone %r" % h.get("phone")),
+            Check("Google still holds the entries it had", emails == sorted(["f02a@test.invalid", bad]),
+                  "Google holds %s" % emails)]
+
+
 @scenario("E03", "Editor: an older entry with its label in the address is tidied when opened, and saved with the next change")
 def e03():
     resource = form_scenario_contact("E03", address="e03@test.invalid (Work)")

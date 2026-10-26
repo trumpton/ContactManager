@@ -5,6 +5,7 @@
 //
 // contact        - The contact structure to use in the update
 //
+#include "fieldformat.h"
 #include "googleaccess.h"
 #include <QUrl>
 #include <QJsonDocument>
@@ -240,13 +241,13 @@ bool GoogleAccess::parseContact(QJsonObject &item, Contact &contact)
             phoneplaced[i] = true ;
         }
     }
-    QStringList extraphones ;
+    QList<FieldFormat::AlsoOnGoogle> extraphones ;
     for (int i=0; i<pendingphones.size(); i++) {
         if (phoneplaced[i]) continue ;
         int slot = -1 ;
         for (int s=0; s<6 && slot<0; s++) if (!phoneused[s]) slot = s ;
         if (slot<0) {
-            extraphones << pendingphones.at(i).number ;
+            extraphones << FieldFormat::AlsoOnGoogle{ pendingphones.at(i).label, pendingphones.at(i).number } ;
         } else {
             contact.setField(phonefields[slot], pendingphones.at(i).number) ;
             contact.setField(phonetitles[slot], pendingphones.at(i).label) ;
@@ -390,13 +391,13 @@ bool GoogleAccess::parseContact(QJsonObject &item, Contact &contact)
     }
 
     // Everything else takes the first free slot
-    QStringList extraemails ;
+    QList<FieldFormat::AlsoOnGoogle> extraemails ;
     for (int i=0; i<pending.size(); i++) {
         if (placed[i]) continue ;
         int slot = -1 ;
         for (int s=0; s<4 && slot<0; s++) if (!used[s]) slot = s ;
         if (slot<0) {
-            extraemails << pending.at(i).address ;
+            extraemails << FieldFormat::AlsoOnGoogle{ pending.at(i).label, pending.at(i).address } ;
         } else {
             contact.setField(emailfields[slot], pending.at(i).address) ;
             contact.setField(titlefields[slot], pending.at(i).label) ;
@@ -429,9 +430,10 @@ bool GoogleAccess::parseContact(QJsonObject &item, Contact &contact)
         }
     }
 
-    // Only four email addresses and six phone numbers are held.  Any others are kept in Comments, so that nothing is lost.
-    foreach (const QString &extra, extraemails + extraphones) {
-        QString note = QString("Also on Google: %1").arg(extra) ;
+    // Only four email addresses and six phone numbers are held.  Any others are kept in Comments, with their Google type,
+    // and the upload sends them back, so that nothing is lost.
+    foreach (const FieldFormat::AlsoOnGoogle &extra, extraemails + extraphones) {
+        QString note = FieldFormat::alsoOnGoogleLine(extra.type, extra.value) ;
         QString comments = contact.getField(Contact::Comments) ;
         if (!comments.contains(note)) contact.setField(Contact::Comments, comments.isEmpty() ? note : comments + "\n" + note) ;
     }

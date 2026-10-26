@@ -28,6 +28,15 @@ namespace FieldFormat {
     // Any printable character except colon, slash, backslash and =, with no tabs or line breaks, up to MaxLabelLength characters
     bool validLabel(const QString &label) ;
 
+    // A number or address that Google holds but no slot is free for.  It is kept in Comments as a line
+    // "Also on Google (Type): value", so the upload can send it back and Google keeps it.
+    struct AlsoOnGoogle {
+        QString type ;
+        QString value ;
+    } ;
+    QString alsoOnGoogleLine(const QString &type, const QString &value) ;
+    QList<AlsoOnGoogle> alsoOnGoogleLines(const QString &comments) ;
+
     // The first letter of each word in capitals, the rest in lower case
     QString normaliseLabel(const QString &label) ;
 

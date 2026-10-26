@@ -118,6 +118,27 @@ Tidied tidyEntry(const QString &text, bool isEmail)
     return r ;
 }
 
+QString alsoOnGoogleLine(const QString &type, const QString &value)
+{
+    return QString("Also on Google (%1): %2").arg(type, value) ;
+}
+
+// Reads the lines written by alsoOnGoogleLine.  A line from before the type was kept has no type.
+QList<AlsoOnGoogle> alsoOnGoogleLines(const QString &comments)
+{
+    static const QRegularExpression line(QStringLiteral("^Also on Google(?: \\((.*?)\\))?: (.+)$")) ;
+    QList<AlsoOnGoogle> result ;
+    for (const QString &text : comments.split('\n')) {
+        QRegularExpressionMatch m = line.match(text.trimmed()) ;
+        if (!m.hasMatch()) continue ;
+        AlsoOnGoogle entry ;
+        entry.type = m.captured(1).trimmed() ;
+        entry.value = m.captured(2).trimmed() ;
+        result << entry ;
+    }
+    return result ;
+}
+
 QString normaliseLabel(const QString &label)
 {
     QStringList words = label.trimmed().split(' ', Qt::SkipEmptyParts) ;
