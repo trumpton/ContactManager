@@ -156,7 +156,7 @@ def update_contact_surname(resource, surname):
     name = current["names"][0]
     name["familyName"] = surname
     body = {"etag": current["etag"], "names": [name]}
-    api("POST", PEOPLE + "/" + resource + ":updateContact?updatePersonFields=names", body)
+    api("PATCH", PEOPLE + "/" + resource + ":updateContact?updatePersonFields=names", body)
 
 
 def bench_events():
