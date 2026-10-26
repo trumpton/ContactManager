@@ -58,7 +58,7 @@
        <bool>true</bool>
       </property>
       <property name="accessibleName">
-       <string/>
+       <string>Pages</string>
       </property>
       <property name="accessibleDescription">
        <string>Page Select</string>
@@ -89,7 +89,7 @@
            <enum>Qt::StrongFocus</enum>
           </property>
           <property name="accessibleName">
-           <string/>
+           <string>Overview</string>
           </property>
           <property name="accessibleDescription">
            <string>Overview</string>
@@ -130,7 +130,7 @@ p, li { white-space: pre-wrap; }
              <enum>Qt::StrongFocus</enum>
             </property>
             <property name="accessibleName">
-             <string/>
+             <string>Calendar appointments</string>
             </property>
             <property name="accessibleDescription">
              <string>Calendar</string>
@@ -157,7 +157,10 @@ p, li { white-space: pre-wrap; }
           <property name="tabChangesFocus">
            <bool>true</bool>
           </property>
-         </widget>
+                   <property name="accessibleName">
+           <string>To Do List</string>
+          </property>
+</widget>
         </item>
        </layout>
       </widget>
@@ -335,7 +338,10 @@ p, li { white-space: pre-wrap; }
                  <property name="text">
                   <string>Other</string>
                  </property>
-                </widget>
+                                 <property name="accessibleName">
+                  <string>Other</string>
+                 </property>
+</widget>
                </item>
                <item>
                 <widget class="QCheckBox" name="checkHidden">
@@ -400,9 +406,12 @@ p, li { white-space: pre-wrap; }
                <item>
                 <widget class="SafeLineEdit" name="editEmail">
                  <property name="accessibleName">
-                  <string>Email</string>
+                  <string>Email 1</string>
                  </property>
-                </widget>
+                                 <property name="placeholderText">
+                  <string>email@domain.com</string>
+                 </property>
+</widget>
                </item>
               </layout>
              </item>
@@ -432,7 +441,10 @@ p, li { white-space: pre-wrap; }
                  <property name="accessibleName">
                   <string>Email 2</string>
                  </property>
-                </widget>
+                                 <property name="placeholderText">
+                  <string>email@domain.com</string>
+                 </property>
+</widget>
                </item>
               </layout>
              </item>
@@ -462,7 +474,10 @@ p, li { white-space: pre-wrap; }
                  <property name="accessibleName">
                   <string>Email 3</string>
                  </property>
-                </widget>
+                                 <property name="placeholderText">
+                  <string>email@domain.com</string>
+                 </property>
+</widget>
                </item>
               </layout>
              </item>
@@ -492,7 +507,10 @@ p, li { white-space: pre-wrap; }
                  <property name="accessibleName">
                   <string>Email 4</string>
                  </property>
-                </widget>
+                                 <property name="placeholderText">
+                  <string>email@domain.com</string>
+                 </property>
+</widget>
                </item>
               </layout>
              </item>
@@ -670,7 +688,10 @@ p, li { white-space: pre-wrap; }
                  <property name="accessibleName">
                   <string>Home Phone Number</string>
                  </property>
-                </widget>
+                                 <property name="placeholderText">
+                  <string>+44 01234 567890</string>
+                 </property>
+</widget>
                </item>
               </layout>
              </item>
@@ -706,7 +727,10 @@ p, li { white-space: pre-wrap; }
                  <property name="accessibleName">
                   <string>Work Phone Number</string>
                  </property>
-                </widget>
+                                 <property name="placeholderText">
+                  <string>+44 01234 567890</string>
+                 </property>
+</widget>
                </item>
               </layout>
              </item>
@@ -742,7 +766,10 @@ p, li { white-space: pre-wrap; }
                  <property name="accessibleName">
                   <string>Mobile Phone Number</string>
                  </property>
-                </widget>
+                                 <property name="placeholderText">
+                  <string>+44 01234 567890</string>
+                 </property>
+</widget>
                </item>
               </layout>
              </item>
@@ -778,7 +805,10 @@ p, li { white-space: pre-wrap; }
                  <property name="accessibleName">
                   <string>First Custom Phone Number</string>
                  </property>
-                </widget>
+                                 <property name="placeholderText">
+                  <string>+44 01234 567890</string>
+                 </property>
+</widget>
                </item>
               </layout>
              </item>
@@ -814,7 +844,10 @@ p, li { white-space: pre-wrap; }
                  <property name="accessibleName">
                   <string>Second Custom Phone Number</string>
                  </property>
-                </widget>
+                                 <property name="placeholderText">
+                  <string>+44 01234 567890</string>
+                 </property>
+</widget>
                </item>
               </layout>
              </item>
@@ -847,7 +880,10 @@ p, li { white-space: pre-wrap; }
                  <property name="accessibleName">
                   <string>Third Custom Phone Number</string>
                  </property>
-                </widget>
+                                 <property name="placeholderText">
+                  <string>+44 01234 567890</string>
+                 </property>
+</widget>
                </item>
               </layout>
              </item>
@@ -1051,7 +1087,10 @@ p, li { white-space: pre-wrap; }
           <property name="textInteractionFlags">
            <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
           </property>
-         </widget>
+                   <property name="accessibleName">
+           <string>History</string>
+          </property>
+</widget>
         </item>
        </layout>
       </widget>
