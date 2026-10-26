@@ -126,7 +126,7 @@
      <item>
       <widget class="QLineEdit" name="lastContactSync">
        <property name="accessibleName">
-        <string>Last Sync</string>
+        <string>Last contact sync</string>
        </property>
        <property name="accessibleDescription">
         <string/>
@@ -147,7 +147,11 @@
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="lastCalendarSync"/>
+      <widget class="QLineEdit" name="lastCalendarSync">
+       <property name="accessibleName">
+        <string>Last calendar sync</string>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QPushButton" name="ResetLastSync">
