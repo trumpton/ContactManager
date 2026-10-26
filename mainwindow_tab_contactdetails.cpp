@@ -287,6 +287,14 @@ bool MainWindow::FormHasEdits(Contact &dr)
     return !dr.matches(newdr, Contact::mcDetailsGroup) ;
 }
 
+// The contact the form shows.  Tidy Contacts moves the selection on before the form is reloaded, so the form's
+// contact is looked up by its ID.  A contact that no longer exists is a null record, which has nothing to check.
+Contact& MainWindow::formContact()
+{
+    QString id = formContactId ;
+    return db.getContactById(id) ;
+}
+
 // The name of an entry in a message: its kind, its slot and its title, for example "Email 4 (Label3)"
 static QString entryName(const TitledEntry &t)
 {
@@ -300,6 +308,8 @@ static QString entryName(const TitledEntry &t)
 // changed with F2.  Returns false when an entry is not right.
 bool MainWindow::ValidateTitledEntries(Contact &dr)
 {
+    if (dr.isNull()) return true ;
+
     if (!FormHasEdits(dr)) {
         titledEntriesHeld = false ;
         return true ;
@@ -313,8 +323,9 @@ bool MainWindow::ValidateTitledEntries(Contact &dr)
         if (!r.fixed) {
             QString hint = (t.kind=="Email") ? QString("An email address looks like name@domain.com.")
                 : QString("Use digits, spaces, brackets, hyphens and dots, with an optional + at the start.") ;
-            warningOkDialog(this, "Contact Details", QString("The %1 is not formatted correctly: %2.\n\n"
-                            "It holds \"%3\".\n\n%4").arg(entryName(t), r.problem, text, hint), true) ;
+            warningOkDialog(this, "Contact Details", QString("Contact: %1\n\nThe %2 is not formatted correctly: %3.\n\n"
+                            "%4\n\nIt holds \"%5\".\n\nEdit the contact to correct it.")
+                            .arg(dr.getFormattedName(false, false), entryName(t), r.problem, hint, text), true) ;
             t.entry->setFocus() ;
             titledEntriesHeld = true ;
             return false ;
@@ -326,8 +337,9 @@ bool MainWindow::ValidateTitledEntries(Contact &dr)
         // A title that is not allowed, from Google or older data, is changed with F2 on its entry
         QString title = t.title->text() ;
         if (!title.isEmpty() && !FieldFormat::validLabel(title)) {
-            warningOkDialog(this, "Contact Details", QString("The title \"%1\" for %2 is not allowed: %3.\n\n"
-                            "Press F2 in that box to change its title.").arg(title, entryName(t), labelRules()), true) ;
+            warningOkDialog(this, "Contact Details", QString("Contact: %1\n\nThe title \"%2\" for %3 is not allowed: %4.\n\n"
+                            "Press F2 in that box to change its title.\n\nEdit the contact to correct it.")
+                            .arg(dr.getFormattedName(false, false), title, entryName(t), labelRules()), true) ;
             t.entry->setFocus() ;
             titledEntriesHeld = true ;
             return false ;
@@ -385,6 +397,7 @@ void MainWindow::LoadContactTab()
     dbg("Loading Contact Tab") ;
 
     Contact& dr = db.getSelected() ;
+    formContactId = dr.getField(Contact::ID) ;
     dbg(QString("Contact = {%1}").arg(dr.getField(Contact::ID))) ;
 
     ui->editSurname->setText(dr.getField(Contact::Surname)) ;
