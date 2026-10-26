@@ -13,10 +13,18 @@
 // declared where the download starts.
 #define PHASE_DONE(name) dbg(QString("TIMING phase done: %1 - %2 ms").arg(name).arg(phasetimer.restart()))
 
+// True if the app has changed the appointment since the last successful sync.  Every local edit sets its Updated
+// date, and a download sets it to Google's update time.  Dates are kept to the second, so the comparison includes
+// the second of the sync date (see the contact version).  Before any sync has completed, every entry counts as changed.
+static bool changedLocallySince(Appointment &local, const QDateTime &lastsync)
+{
+    if (!lastsync.isValid()) return true ;
+    QDateTime updated = local.getDate(Appointment::Updated) ;
+    return updated >= lastsync ;
+}
+
 bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess& google, class ContactDatabase& db, class Calendar& cal)
 {
-    Q_UNUSED(lastsync) ;
-
     bool networkok = true ;
     QDateTime fromwindow = QDateTime::currentDateTimeUtc().addDays(-1*APPOINTMENTSTARTWINDOW).addSecs(3600) ;
     QDateTime towindow = QDateTime::currentDateTimeUtc().addDays(APPOINTMENTENDWINDOW).addSecs(-3600) ;
@@ -60,8 +68,9 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
             // Google Master, So Upload by default
             upload=false ;
         } else {
-            // Local Master, So Download by default
-            upload=true ;
+            // Local Master.  Upload only what the app has changed since the last sync.  Everything else is downloaded,
+            // so a change made on Google is kept, and an unchanged entry is not written back to Google.
+            upload = changedLocallySince(localappt, lastsync) ;
         }
 
         if (localappt.isTemp()) {
