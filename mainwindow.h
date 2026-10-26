@@ -174,6 +174,10 @@ private:
 
     void LoadOverviewTab() ;  // Transfer Database Overview -> Overview Tab
     void LoadContactTab() ;     // Transfer Database Item Contact Data -> Contact Tab
+    void setupTitledEntries() ;     // F2 in an email or phone entry changes its title
+    void refreshTitledEntries() ;   // Names each email and phone entry by its title
+    void changeTitle(QLineEdit *entry) ;
+    bool eventFilter(QObject *watched, QEvent *event) override ;
     bool SaveContactTab() ;     // Transfer Contact Tab -> Database Item Contact Data
     void LoadCalendarTab() ;  // Transfer Global Calendar to Calendar Tab
     void SaveCalendarTab() ;    // Save the Calendar if Needed

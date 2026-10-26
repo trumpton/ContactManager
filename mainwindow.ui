@@ -391,7 +391,7 @@ p, li { white-space: pre-wrap; }
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_8">
                <item>
-                <widget class="SafeLineEdit" name="editEmailTitle">
+                <widget class="QLabel" name="editEmailTitle">
                  <property name="minimumSize">
                   <size>
                    <width>100</width>
@@ -406,6 +406,9 @@ p, li { white-space: pre-wrap; }
                  </property>
                  <property name="accessibleName">
                   <string>Email 1 Title</string>
+                 </property>
+                 <property name="buddy">
+                  <cstring>editEmail</cstring>
                  </property>
                 </widget>
                </item>
@@ -424,7 +427,7 @@ p, li { white-space: pre-wrap; }
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_9">
                <item>
-                <widget class="SafeLineEdit" name="editEmail2Title">
+                <widget class="QLabel" name="editEmail2Title">
                  <property name="minimumSize">
                   <size>
                    <width>100</width>
@@ -439,6 +442,9 @@ p, li { white-space: pre-wrap; }
                  </property>
                  <property name="accessibleName">
                   <string>Email 2 Title</string>
+                 </property>
+                 <property name="buddy">
+                  <cstring>editEmail2</cstring>
                  </property>
                 </widget>
                </item>
@@ -457,7 +463,7 @@ p, li { white-space: pre-wrap; }
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_email3">
                <item>
-                <widget class="SafeLineEdit" name="editEmail3Title">
+                <widget class="QLabel" name="editEmail3Title">
                  <property name="minimumSize">
                   <size>
                    <width>100</width>
@@ -472,6 +478,9 @@ p, li { white-space: pre-wrap; }
                  </property>
                  <property name="accessibleName">
                   <string>Email 3 Title</string>
+                 </property>
+                 <property name="buddy">
+                  <cstring>editEmail3</cstring>
                  </property>
                 </widget>
                </item>
@@ -490,7 +499,7 @@ p, li { white-space: pre-wrap; }
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_email4">
                <item>
-                <widget class="SafeLineEdit" name="editEmail4Title">
+                <widget class="QLabel" name="editEmail4Title">
                  <property name="minimumSize">
                   <size>
                    <width>100</width>
@@ -505,6 +514,9 @@ p, li { white-space: pre-wrap; }
                  </property>
                  <property name="accessibleName">
                   <string>Email 4 Title</string>
+                 </property>
+                 <property name="buddy">
+                  <cstring>editEmail4</cstring>
                  </property>
                 </widget>
                </item>
@@ -680,7 +692,7 @@ p, li { white-space: pre-wrap; }
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_17">
                <item>
-                <widget class="SafeLineEdit" name="editPhoneTitle">
+                <widget class="QLabel" name="editPhoneTitle">
                  <property name="minimumSize">
                   <size>
                    <width>100</width>
@@ -695,6 +707,9 @@ p, li { white-space: pre-wrap; }
                  </property>
                  <property name="accessibleName">
                   <string>Home Phone Title</string>
+                 </property>
+                 <property name="buddy">
+                  <cstring>editHome</cstring>
                  </property>
                 </widget>
                </item>
@@ -713,7 +728,7 @@ p, li { white-space: pre-wrap; }
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_18">
                <item>
-                <widget class="SafeLineEdit" name="editWorkTitle">
+                <widget class="QLabel" name="editWorkTitle">
                  <property name="minimumSize">
                   <size>
                    <width>100</width>
@@ -728,6 +743,9 @@ p, li { white-space: pre-wrap; }
                  </property>
                  <property name="accessibleName">
                   <string>Work Phone Title</string>
+                 </property>
+                 <property name="buddy">
+                  <cstring>editWork</cstring>
                  </property>
                 </widget>
                </item>
@@ -746,7 +764,7 @@ p, li { white-space: pre-wrap; }
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_19">
                <item>
-                <widget class="SafeLineEdit" name="editMobileTitle">
+                <widget class="QLabel" name="editMobileTitle">
                  <property name="minimumSize">
                   <size>
                    <width>100</width>
@@ -761,6 +779,9 @@ p, li { white-space: pre-wrap; }
                  </property>
                  <property name="accessibleName">
                   <string>Mobile Phone Title</string>
+                 </property>
+                 <property name="buddy">
+                  <cstring>editMobile</cstring>
                  </property>
                 </widget>
                </item>
@@ -779,7 +800,7 @@ p, li { white-space: pre-wrap; }
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_21">
                <item>
-                <widget class="SafeLineEdit" name="edit2Title">
+                <widget class="QLabel" name="edit2Title">
                  <property name="minimumSize">
                   <size>
                    <width>100</width>
@@ -798,8 +819,8 @@ p, li { white-space: pre-wrap; }
                  <property name="text">
                   <string/>
                  </property>
-                 <property name="placeholderText">
-                  <string>title</string>
+                 <property name="buddy">
+                  <cstring>edit2</cstring>
                  </property>
                 </widget>
                </item>
@@ -821,7 +842,7 @@ p, li { white-space: pre-wrap; }
                 <number>0</number>
                </property>
                <item>
-                <widget class="SafeLineEdit" name="edit3Title">
+                <widget class="QLabel" name="edit3Title">
                  <property name="minimumSize">
                   <size>
                    <width>100</width>
@@ -837,8 +858,8 @@ p, li { white-space: pre-wrap; }
                  <property name="accessibleName">
                   <string>Custom 2 Phone Title</string>
                  </property>
-                 <property name="placeholderText">
-                  <string>title</string>
+                 <property name="buddy">
+                  <cstring>edit3</cstring>
                  </property>
                 </widget>
                </item>
@@ -857,7 +878,7 @@ p, li { white-space: pre-wrap; }
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_20">
                <item>
-                <widget class="SafeLineEdit" name="edit4Title">
+                <widget class="QLabel" name="edit4Title">
                  <property name="minimumSize">
                   <size>
                    <width>100</width>
@@ -873,8 +894,8 @@ p, li { white-space: pre-wrap; }
                  <property name="accessibleName">
                   <string>Custom 3 Phone Title</string>
                  </property>
-                 <property name="placeholderText">
-                  <string>title</string>
+                 <property name="buddy">
+                  <cstring>edit4</cstring>
                  </property>
                 </widget>
                </item>
@@ -1650,28 +1671,18 @@ p, li { white-space: pre-wrap; }
   <tabstop>checkFriend</tabstop>
   <tabstop>checkOther</tabstop>
   <tabstop>checkHidden</tabstop>
-  <tabstop>editEmailTitle</tabstop>
   <tabstop>editEmail</tabstop>
-  <tabstop>editEmail2Title</tabstop>
   <tabstop>editEmail2</tabstop>
-  <tabstop>editEmail3Title</tabstop>
   <tabstop>editEmail3</tabstop>
-  <tabstop>editEmail4Title</tabstop>
   <tabstop>editEmail4</tabstop>
   <tabstop>editWebAddress</tabstop>
   <tabstop>editAddress</tabstop>
   <tabstop>editAddress2</tabstop>
-  <tabstop>editPhoneTitle</tabstop>
   <tabstop>editHome</tabstop>
-  <tabstop>editWorkTitle</tabstop>
   <tabstop>editWork</tabstop>
-  <tabstop>editMobileTitle</tabstop>
   <tabstop>editMobile</tabstop>
-  <tabstop>edit2Title</tabstop>
   <tabstop>edit2</tabstop>
-  <tabstop>edit3Title</tabstop>
   <tabstop>edit3</tabstop>
-  <tabstop>edit4Title</tabstop>
   <tabstop>edit4</tabstop>
   <tabstop>editVoip</tabstop>
   <tabstop>editDateOfBirth</tabstop>

@@ -132,6 +132,75 @@ static QString phoneLabelForEditor(Contact &dr, int slot)
     return dr.phoneLabel(slot) ;
 }
 
+// Each email and phone entry is named by its title, and F2 in the entry changes that title.  The title is plain
+// text, not a tab stop, so tabbing goes from entry to entry.
+struct TitledEntry {
+    QLineEdit *entry ;
+    QLabel *title ;
+    QString kind ;          // "Email" or "Phone", used in the name and the dialog
+    int slot ;              // the email or phone slot, for its default label
+} ;
+
+static QList<TitledEntry> titledEntries(Ui::MainWindow *ui)
+{
+    return {
+        { ui->editEmail, ui->editEmailTitle, QString("Email"), 0 },
+        { ui->editEmail2, ui->editEmail2Title, QString("Email"), 1 },
+        { ui->editEmail3, ui->editEmail3Title, QString("Email"), 2 },
+        { ui->editEmail4, ui->editEmail4Title, QString("Email"), 3 },
+        { ui->editHome, ui->editPhoneTitle, QString("Phone"), 0 },
+        { ui->editWork, ui->editWorkTitle, QString("Phone"), 1 },
+        { ui->editMobile, ui->editMobileTitle, QString("Phone"), 2 },
+        { ui->edit2, ui->edit2Title, QString("Phone"), 3 },
+        { ui->edit3, ui->edit3Title, QString("Phone"), 4 },
+        { ui->edit4, ui->edit4Title, QString("Phone"), 5 },
+    } ;
+}
+
+void MainWindow::setupTitledEntries()
+{
+    for (const TitledEntry &t : titledEntries(ui)) t.entry->installEventFilter(this) ;
+}
+
+void MainWindow::refreshTitledEntries()
+{
+    for (const TitledEntry &t : titledEntries(ui)) t.entry->setAccessibleName(t.title->text() + " " + t.kind) ;
+}
+
+// F2 in an email or phone entry opens a dialog for that entry's title
+bool MainWindow::eventFilter(QObject *watched, QEvent *event)
+{
+    if (event->type() == QEvent::KeyPress && static_cast<QKeyEvent *>(event)->key() == Qt::Key_F2) {
+        QLineEdit *entry = qobject_cast<QLineEdit *>(watched) ;
+        if (entry) {
+            changeTitle(entry) ;
+            return true ;
+        }
+    }
+    return QMainWindow::eventFilter(watched, event) ;
+}
+
+// Changes the title of one email or phone for this contact.  A blank title gives the default label back.
+void MainWindow::changeTitle(QLineEdit *entry)
+{
+    for (const TitledEntry &t : titledEntries(ui)) {
+        if (t.entry != entry) continue ;
+
+        QString defaultlabel = (t.kind == "Email") ? Contact::defaultEmailLabel(t.slot) : Contact::defaultPhoneLabel(t.slot) ;
+        QString windowtitle = QString("Title for this %1").arg(t.kind) ;
+        QString prompt = QString("Title for this %1 (blank gives the default, %2):").arg(t.kind.toLower(), defaultlabel) ;
+
+        bool ok = false ;
+        QString title = QInputDialog::getText(this, windowtitle, prompt, QLineEdit::Normal, t.title->text(), &ok) ;
+        if (!ok) return ;
+
+        title = title.trimmed() ;
+        t.title->setText(title.isEmpty() ? defaultlabel : title) ;
+        refreshTitledEntries() ;
+        return ;
+    }
+}
+
 // The label the editor shows for an email slot.  An empty slot shows the label a new email gets there, and a slot
 // with an address shows its own label, or the label that slot has always had.
 static QString emailLabelForEditor(Contact &dr, int slot)
@@ -174,6 +243,7 @@ void MainWindow::LoadContactTab()
     ui->edit2Title->setText(phoneLabelForEditor(dr, 3)) ;
     ui->edit3Title->setText(phoneLabelForEditor(dr, 4)) ;
     ui->edit4Title->setText(phoneLabelForEditor(dr, 5)) ;
+    refreshTitledEntries() ;
 
     ui->editVoip->setText(dr.getField(Contact::Voip)) ;
 

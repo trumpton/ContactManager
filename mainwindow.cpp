@@ -27,6 +27,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     find=NULL ;
 
     ui->setupUi(this);
+    setupTitledEntries() ;
 
     // Enable debug
     setupdebug();
