@@ -379,6 +379,8 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
         }
 
         if (success) {
+            // The etag Google returned for this change, which the next sync compares against
+            contact.setField(Contact::GoogleEtag, googlecontact.getField(Contact::GoogleEtag)) ;
         }
     }
 
