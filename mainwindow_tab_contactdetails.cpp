@@ -189,40 +189,45 @@ static QString labelRules()
                    "It can be up to %1 characters long.").arg(FieldFormat::MaxLabelLength) ;
 }
 
-// Checks the email and phone entries that changed on the form.  A title typed after a number, as in "01234 567890 (Home)",
-// becomes the title of that entry and is taken off the number.  Returns false, after a message, when an entry is not
-// formatted correctly, and focus then goes to that entry.
+// Puts right the email and phone entries that can be: a label typed into an entry becomes its title, and the value is
+// tidied.  Run when the form is loaded, so entries from Google and older entries are shown as they should be.  An entry
+// that cannot be put right is shown as it is.
+void MainWindow::tidyTitledEntries()
+{
+    for (const TitledEntry &t : titledEntries(ui)) {
+        QString text = t.entry->text() ;
+        FieldFormat::Tidied r = FieldFormat::tidyEntry(text, t.kind=="Email") ;
+        if (!r.fixed) continue ;
+
+        if (r.value.compare(text)!=0) t.entry->setText(r.value) ;
+        if (!r.label.isEmpty()) t.title->setText(r.label) ;
+    }
+
+    refreshTitledEntries() ;
+}
+
+// Checks the email and phone entries that changed on the form.  Returns false, after a message, when an entry is not
+// formatted correctly, and focus then goes to that entry.  An entry that was not changed is not checked, so an older
+// entry that cannot be put right does not stop other changes being saved.
 bool MainWindow::ValidateTitledEntries(Contact &dr)
 {
     for (const TitledEntry &t : titledEntries(ui)) {
-        QString text = t.entry->text().trimmed() ;
+        QString text = t.entry->text() ;
         if (text.compare(dr.getField(t.value))==0) continue ;
 
         QString name = t.title->text() + " " + t.kind ;
-        QString value = text ;
-        QString label ;
-        if (FieldFormat::splitLabel(text, value, label)) {
-            if (!FieldFormat::validLabel(label)) {
-                warningOkDialog(this, "Contact Details", QString("The title \"%1\" for the %2 is not formatted correctly.\n\n%3")
-                                     .arg(label, name, labelRules()), true) ;
-                t.entry->setFocus() ;
-                return false ;
-            }
-        }
-
-        bool ok = value.isEmpty() || ((t.kind=="Email") ? FieldFormat::validEmailAddress(value) : FieldFormat::validPhoneNumber(value)) ;
-        if (!ok) {
+        FieldFormat::Tidied r = FieldFormat::tidyEntry(text, t.kind=="Email") ;
+        if (!r.fixed) {
             QString hint = (t.kind=="Email") ? QString("An email address looks like name@domain.com.")
-                : QString("Use digits, spaces, brackets, hyphens and dots, with an optional + at the start.  "
-                          "A title can follow the number, as in 01234 567890 (Home).") ;
-            warningOkDialog(this, "Contact Details", QString("The %1 \"%2\" is not formatted correctly.\n\n%3")
-                                 .arg(name, text, hint), true) ;
+                : QString("Use digits, spaces, brackets, hyphens and dots, with an optional + at the start.") ;
+            warningOkDialog(this, "Contact Details", QString("The %1 \"%2\" is not formatted correctly: %3.\n\n%4")
+                            .arg(name, text, r.problem, hint), true) ;
             t.entry->setFocus() ;
             return false ;
         }
 
-        t.entry->setText(value) ;
-        if (!label.isEmpty()) t.title->setText(FieldFormat::normaliseLabel(label)) ;
+        t.entry->setText(r.value) ;
+        if (!r.label.isEmpty()) t.title->setText(r.label) ;
     }
 
     refreshTitledEntries() ;
@@ -300,7 +305,7 @@ void MainWindow::LoadContactTab()
     ui->edit2Title->setText(phoneLabelForEditor(dr, 3)) ;
     ui->edit3Title->setText(phoneLabelForEditor(dr, 4)) ;
     ui->edit4Title->setText(phoneLabelForEditor(dr, 5)) ;
-    refreshTitledEntries() ;
+    tidyTitledEntries() ;
 
     ui->editVoip->setText(dr.getField(Contact::Voip)) ;
 

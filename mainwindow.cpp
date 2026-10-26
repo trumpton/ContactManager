@@ -632,6 +632,13 @@ void MainWindow::on_actionTidyContacts_triggered()
         db.save() ;
     }
 
+    // Email and phone entries: a label typed into an entry becomes its title.  An entry that cannot be put right is
+    // listed in the summary, and is left as it is.  This runs before the merges, which compare the values.
+    int entrieschanged=0, entriescontacts=0 ;
+    QStringList entriesunfixed ;
+    entrieschanged = db.tidyEntries(entriescontacts, entriesunfixed) ;
+    if (entrieschanged>0) db.save() ;
+
     // Unnamed entries: blank ones are deleted, and one whose only detail is an email address takes it as
     // its surname.  The others are left, and listed at the end.
     int emptied=0, renamed=0 ;
@@ -799,7 +806,8 @@ void MainWindow::on_actionTidyContacts_triggered()
         }
     }
 
-    if (automatic==0 && confirmed==0 && declined==0 && historylines==0 && emptied==0 && renamed==0 && unnamedleft.isEmpty()) {
+    if (automatic==0 && confirmed==0 && declined==0 && historylines==0 && emptied==0 && renamed==0 && unnamedleft.isEmpty()
+        && entrieschanged==0 && entriesunfixed.isEmpty()) {
         progress.finishProgress(stopped ? "Stopped at your request." : "No duplicate contacts, repeated history lines or unnamed entries were found.") ;
         return ;
     }
@@ -813,6 +821,11 @@ void MainWindow::on_actionTidyContacts_triggered()
     QStringList summary ;
     summary << QString("Removed %1 repeated history lines from %2 contacts.").arg(historylines).arg(historycontacts) ;
     summary << QString("Unnamed entries: %1 empty entries deleted, %2 given their email address as surname.").arg(emptied).arg(renamed) ;
+    summary << QString("Email and phone entries: %1 put right in %2 contacts.").arg(entrieschanged).arg(entriescontacts) ;
+    if (!entriesunfixed.isEmpty()) {
+        summary << QString("Email and phone entries not fixed, left as they are (%1):").arg(entriesunfixed.size()) ;
+        foreach (const QString &line, entriesunfixed) summary << "    " + line ;
+    }
     if (!unnamedleft.isEmpty()) {
         summary << QString("Unnamed entries left alone (%1):").arg(unnamedleft.size()) ;
         foreach (const QString &line, unnamedleft) summary << "    " + line ;

@@ -9,6 +9,7 @@
 
 #include "../Lib/supportfunctions.h"
 #include "contactdatabase.h"
+#include "fieldformat.h"
 #include "configuration.h"
 
 ContactDatabase::ContactDatabase()
@@ -429,6 +430,65 @@ int ContactDatabase::tidyHistories(int &changedcontacts)
         c.getHistory().updateHistory(unique.join("\n") + "\n") ;
     }
     return removed ;
+}
+
+int ContactDatabase::tidyEntries(int &changedcontacts, QStringList &unfixed)
+{
+    struct Entry {
+        Contact::ContactRecord value ;
+        Contact::ContactRecord title ;
+        bool isemail ;
+        QString kind ;
+    } ;
+    const QList<Entry> entries = {
+        { Contact::Email,   Contact::EmailTitle,   true,  QString("Email") },
+        { Contact::Email2,  Contact::Email2Title,  true,  QString("Email") },
+        { Contact::Email3,  Contact::Email3Title,  true,  QString("Email") },
+        { Contact::Email4,  Contact::Email4Title,  true,  QString("Email") },
+        { Contact::Phone,   Contact::PhoneTitle,   false, QString("Phone") },
+        { Contact::Work,    Contact::WorkTitle,    false, QString("Phone") },
+        { Contact::Mobile,  Contact::MobileTitle,  false, QString("Phone") },
+        { Contact::Phone2,  Contact::Phone2Title,  false, QString("Phone") },
+        { Contact::Phone3,  Contact::Phone3Title,  false, QString("Phone") },
+        { Contact::Phone4,  Contact::Phone4Title,  false, QString("Phone") },
+    } ;
+
+    int changed = 0 ;
+    changedcontacts = 0 ;
+    unfixed.clear() ;
+
+    for (int i=0; i<contacts.size(); i++) {
+        Contact &c = contacts[i] ;
+        if (c.isSet(Contact::Deleted)) continue ;
+
+        bool contactchanged = false ;
+        for (const Entry &e : entries) {
+            QString text = c.getField(e.value) ;
+            if (text.trimmed().isEmpty()) continue ;
+
+            QString title = c.getField(e.title) ;
+            QString name = c.getFormattedName(false, true) ;
+            if (!title.isEmpty() && !FieldFormat::validLabel(title)) {
+                unfixed << QString("%1: %2 title \"%3\" is not allowed").arg(name, e.kind, title) ;
+                continue ;
+            }
+
+            FieldFormat::Tidied r = FieldFormat::tidyEntry(text, e.isemail) ;
+            if (!r.fixed) {
+                unfixed << QString("%1: %2 entry - %3").arg(name, e.kind, r.problem) ;
+                continue ;
+            }
+
+            if (r.value.compare(text)!=0 || !r.label.isEmpty()) {
+                c.setField(e.value, r.value) ;
+                if (!r.label.isEmpty()) c.setField(e.title, r.label) ;
+                changed++ ;
+                contactchanged = true ;
+            }
+        }
+        if (contactchanged) changedcontacts++ ;
+    }
+    return changed ;
 }
 
 // Works out the merged entry in 'merged', which starts as a copy of 'keep'.  'conflicts' lists the

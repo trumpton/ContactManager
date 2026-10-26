@@ -62,6 +62,46 @@ bool validLabel(const QString &label)
     return l.length()<=MaxLabelLength && allowed.match(l).hasMatch() ;
 }
 
+Tidied tidyEntry(const QString &text, bool isEmail)
+{
+    Tidied r ;
+    r.fixed = true ;
+
+    QString first, firstlabel, second, secondlabel ;
+    QString value = text.trimmed() ;
+    QString label ;
+    if (splitLabel(text, first, firstlabel)) {
+        if (splitLabel(first, second, secondlabel)) {
+            r.fixed = false ;
+            r.problem = QStringLiteral("it has more than one label") ;
+            r.value = text.trimmed() ;
+            return r ;
+        }
+        value = first.trimmed() ;
+        label = firstlabel ;
+    }
+
+    if (!label.isEmpty() && !validLabel(label)) {
+        r.fixed = false ;
+        r.problem = QString("the label \"%1\" is not allowed").arg(label) ;
+    } else if (!value.isEmpty()) {
+        bool ok = isEmail ? validEmailAddress(value) : validPhoneNumber(value) ;
+        if (!ok) {
+            r.fixed = false ;
+            r.problem = QString("\"%1\" is not a valid %2").arg(value, isEmail ? QString("email address") : QString("phone number")) ;
+        }
+    }
+
+    if (!r.fixed) {
+        r.value = text.trimmed() ;
+        return r ;
+    }
+
+    r.value = value ;
+    r.label = label.isEmpty() ? QString() : normaliseLabel(label) ;
+    return r ;
+}
+
 QString normaliseLabel(const QString &label)
 {
     QStringList words = label.trimmed().split(' ', Qt::SkipEmptyParts) ;
