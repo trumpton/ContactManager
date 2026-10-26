@@ -65,6 +65,17 @@ static QString changedPersonFields(Contact &local, Contact &google)
     return changed.join(",") ;
 }
 
+// True if the app has changed the contact since the last successful sync.  Every local edit sets its Updated date.
+// Dates are kept to the second, and an edit made just after a sync falls in the same second as the sync date, so
+// the comparison includes that second.  Downloads finish before the sync date is saved, so they are not counted.
+// Before any sync has completed, every contact counts as changed.
+static bool changedLocallySince(Contact &local, const QDateTime &lastsync)
+{
+    if (!lastsync.isValid()) return true ;
+    QDateTime updated = local.getDate(Contact::Updated) ;
+    return updated >= lastsync ;
+}
+
 bool GoogleUpdateDialog::uploadContact(Contact& contact, GoogleAccess &google, Contact& googlecontact)
 {
     bool success=false ;
@@ -88,8 +99,6 @@ bool GoogleUpdateDialog::uploadContact(Contact& contact, GoogleAccess &google, C
 
 bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess& google, class ContactDatabase& db)
 {
-    Q_UNUSED(lastsync) ;
-
     bool networkok = true ;
 
     ContactDatabase googledb ;
@@ -166,8 +175,10 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
             // Google Master, So Upload by default
             upload=false ;
         } else {
-            // Local Master, So Download by default
-            upload=true ;
+            // Local Master.  Upload only what the app has changed since the last sync.  Everything else is downloaded,
+            // so a change made on Google is kept, a contact removed on Google is removed here, and an unchanged
+            // contact is not written back to Google.  Where both sides changed, the local copy wins.
+            upload = changedLocallySince(localcontact, lastsync) ;
         }
 
         // A merged entry must reach Google, or the next download would put back its old details
@@ -426,6 +437,11 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
             localcontact.setFlag(Contact::MergePending, false) ;
         }
 
+        // Google's copy matches, so its etag is the one this contact was last synchronised at
+        if (googlematcheslocal && !googleremoved) {
+            localcontact.setField(Contact::GoogleEtag, googlecontact.getField(Contact::GoogleEtag)) ;
+        }
+
         if ( deletedlocaldeletedgoogle ) {
 
             // Deleted everywhere, so nothing is required.  Google has no live record,
@@ -457,6 +473,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
                     changes = QString("Downloaded: ") + googlecontact.mismatch(localcontact, Contact::mcDetailsGroup|Contact::mcId) + QString(". ");
                     summary = QString("downloaded") ;
                     googlecontact.copyTo(localcontact, Contact::mcDetailsGroup|Contact::mcGoogleId) ;
+                    localcontact.setField(Contact::GoogleEtag, googlecontact.getField(Contact::GoogleEtag)) ;
                 }
                 ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false, false)  + QString(" - Updating Local Contact Details (%1)").arg(summary)) ;
             }

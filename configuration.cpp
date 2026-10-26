@@ -389,15 +389,22 @@ QString& Configuration::getGoogleUsername()
     return settingGoogleUsername ;
 }
 
+// IniConfig returns the text "ERROR" for every key when the settings file is missing.  A dialling code read
+// that way must be empty, or the text would be put into every phone number (error202020202).
+static QString diallingCodeFromIni(QString value)
+{
+    return value == "ERROR" ? QString() : value ;
+}
+
 QString& Configuration::getLocalDiallingCode()
 {
-    settingLocalDiallingCode = ini.get("phone", "localcode") ;
+    settingLocalDiallingCode = diallingCodeFromIni(ini.get("phone", "localcode")) ;
     return settingLocalDiallingCode ;
 }
 
 QString& Configuration::getCountryDiallingCode()
 {
-    settingCountryDiallingCode = ini.get("phone", "countrycode") ;
+    settingCountryDiallingCode = diallingCodeFromIni(ini.get("phone", "countrycode")) ;
     return settingCountryDiallingCode ;
 }
 
