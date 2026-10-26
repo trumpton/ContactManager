@@ -61,6 +61,11 @@ public:
     // Removes history lines that repeat an earlier line exactly (same date and text), in every contact.
     // Returns the number of lines removed, and sets changedcontacts to the number of contacts changed.
     int tidyHistories(int &changedcontacts) ;
+
+    // Puts right the email and phone entries that can be, in every contact: a label typed into an entry becomes its title,
+    // and the value is tidied.  An entry that cannot be put right is left as it is, and described in unfixed.
+    // Returns the number of entries changed, and sets changedcontacts to the number of contacts changed.
+    int tidyEntries(int &changedcontacts, QStringList &unfixed) ;
     bool reloadJournal(Contact& contact) ;
     bool saveIndex(int j, QString path, QString contactid, QString name, QString phone, QString email, QString address) ;
 

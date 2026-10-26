@@ -24,6 +24,18 @@ namespace FieldFormat {
 
     // The first letter of each word in capitals, the rest in lower case
     QString normaliseLabel(const QString &label) ;
+
+    // The result of checking one email or phone entry, and of putting it right where that can be done
+    struct Tidied {
+        QString value ;     // the address or number, without its label
+        QString label ;     // the label found in the entry, normalised; empty when there is none
+        bool fixed ;        // false when the entry cannot be put right, and should be left as it is
+        QString problem ;   // why it cannot be, when fixed is false
+    } ;
+
+    // Checks an email address or phone number and takes off a label typed into it, as in "user@host.com (Work)".  An entry
+    // with more than one label, or one that is not valid once its label is taken off, is not fixed.
+    Tidied tidyEntry(const QString &text, bool isEmail) ;
 }
 
 #endif // FIELDFORMAT_H
