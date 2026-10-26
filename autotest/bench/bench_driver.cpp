@@ -356,6 +356,12 @@ int main(int argc, char *argv[])
             }
             note("menu save " + name) ;
 
+        } else if (kind == "clear_selection") {
+            // What Tidy Contacts does before it reloads the form: the selection moves to the Overview
+            w.db.selectContact(SELECT_OVERVIEW) ;
+            w.populateDialog(SELECT_OVERVIEW, true) ;
+            note("clear_selection done") ;
+
         } else if (kind == "merge_duplicates") {
             // The automatic merge of Tidy Contacts: a pair that shares a name and an identifier, with no conflicting
             // details, is merged.  Any other pair is left for the user, and only counted here.

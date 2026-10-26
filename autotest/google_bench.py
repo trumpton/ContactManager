@@ -1554,6 +1554,19 @@ def f08():
                   "etag changed on later syncs")]
 
 
+@scenario("F09", "#66: moving the selection on, as Tidy Contacts does, does not check the open contact's entries")
+def f09():
+    bad = "Bad Field 1: f09a@test.invalid - Bad Field 2 (Bad Field 3)"
+    create_contact_body({"names": [{"givenName": "Bench", "familyName": "F09"}],
+        "emailAddresses": [{"value": bad, "type": "Label3"}]})
+    ops = [sync(), {"op": "open_contact", "name": "f09", "match": {"surname": "F09"}},
+           {"op": "clear_selection"}, dump()]
+    run = Run("F09", ops).execute()
+    log = run.log()
+    return [Check("the form was not checked when the selection moved on", "Contact Details" not in log,
+                  "a Contact Details message was shown")]
+
+
 @scenario("E03", "Editor: an older entry with its label in the address is tidied when opened, and saved with the next change")
 def e03():
     resource = form_scenario_contact("E03", address="e03@test.invalid (Work)")

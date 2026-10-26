@@ -275,7 +275,7 @@ MainWindow::~MainWindow()
 // A refused entry keeps the window open, so the typed text is not lost
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    if (!ValidateTitledEntries(db.getSelected())) {
+    if (!ValidateTitledEntries(formContact())) {
         event->ignore() ;
         return ;
     }
@@ -427,7 +427,7 @@ void MainWindow::populateDialog(QString id, bool switchtooverview)
     QString oldid = dro.getField(Contact::ID) ;
 
     // A badly formatted email or phone entry keeps the form on this contact, with focus on that entry
-    if (!ValidateTitledEntries(dro)) return ;
+    if (!ValidateTitledEntries(formContact())) return ;
 
     // Save current contact & disable the editing tab
     SaveTabs() ;
@@ -852,6 +852,9 @@ void MainWindow::on_actionTidyContacts_triggered()
     if (!entriesunfixed.isEmpty()) {
         summary << QString("Email and phone entries not fixed, left as they are (%1):").arg(entriesunfixed.size()) ;
         foreach (const QString &line, entriesunfixed) summary << "    " + line ;
+        summary << (gConf->googleMaster()
+                    ? QString("Correct each one by editing the contact on Google, then run Google Sync.")
+                    : QString("Correct each one by editing the contact with Alt-E,D.")) ;
     }
     if (!unnamedleft.isEmpty()) {
         summary << QString("Unnamed entries left alone (%1):").arg(unnamedleft.size()) ;

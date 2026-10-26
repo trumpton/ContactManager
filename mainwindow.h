@@ -183,6 +183,8 @@ private:
     void tidyTitledEntries() ;                  // Puts right the email and phone entries that can be, when the form is loaded
     void tidyTitledEntry(QLineEdit *entry) ;    // Puts right one email or phone entry, when focus leaves it
     bool ValidateTitledEntries(Contact &dr) ;   // Checks the email and phone entries when the form has an edit
+    Contact& formContact() ;                    // The contact the form shows, even when the selection has moved on
+    QString formContactId ;                     // The ID of the contact the form was loaded with
     bool FormHasEdits(Contact &dr) ;            // True when the form has an edit that is not already in the contact
     void FormToContact(Contact &newdr) ;        // Copies the contact details on the form into newdr
     bool SaveContactTab() ;     // Transfer Contact Tab -> Database Item Contact Data
