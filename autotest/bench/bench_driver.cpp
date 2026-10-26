@@ -318,6 +318,8 @@ int main(int argc, char *argv[])
                 w.populateDialog(id, true) ;
                 w.on_actionEnableContactDetailsEdit_triggered() ;      // the form is open for editing, as when a user edits it
             }
+            // The contact that is selected after the open, so a scenario can see whether the switch happened
+            record(op["name"].toString() + "_selected", w.db.getSelected().getField(Contact::Surname)) ;
             note(QString("open_contact matched %1 contact(s)").arg(hit)) ;
 
         } else if (kind == "form_set") {

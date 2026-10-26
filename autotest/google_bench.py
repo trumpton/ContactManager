@@ -1495,6 +1495,34 @@ def mg02():
                   "results %s" % results)]
 
 
+@scenario("F05", "#66: an unchanged bad entry does not stop switching to another contact")
+def f05():
+    bad = "Bad Field 1: f05a@test.invalid - Bad Field 2 (Bad Field 3)"
+    create_contact_body({"names": [{"givenName": "Bench", "familyName": "F05A"}],
+        "emailAddresses": [{"value": bad, "type": "Label3"}]})
+    create_contact_body({"names": [{"givenName": "Bench", "familyName": "F05B"}],
+        "emailAddresses": [{"value": "f05b@test.invalid", "type": "home"}]})
+    ops = [sync(), {"op": "open_contact", "name": "f05a", "match": {"surname": "F05A"}},
+           {"op": "open_contact", "name": "f05b", "match": {"surname": "F05B"}}, dump()]
+    run = Run("F05", ops).execute()
+    results = run.dump_file("results.json")
+    return [Check("the second contact is selected", results.get("f05b_selected") == "F05B",
+                  "selected %r" % results.get("f05b_selected")),
+            Check("the first contact opened", results.get("f05a_selected") == "F05A",
+                  "selected %r" % results.get("f05a_selected"))]
+
+
+@scenario("F06", "#66: with a contact holding an unchanged bad entry open, a Google sync still runs")
+def f06():
+    bad = "Bad Field 1: f06a@test.invalid - Bad Field 2 (Bad Field 3)"
+    create_contact_body({"names": [{"givenName": "Bench", "familyName": "F06"}],
+        "emailAddresses": [{"value": bad, "type": "Label3"}]})
+    ops = [sync(), {"op": "open_contact", "name": "f06", "match": {"surname": "F06"}}, sync(), dump()]
+    run = Run("F06", ops).execute()
+    log = run.log()
+    return [Check("the second sync ran", "sync 2 finished" in log, "driver log has no 'sync 2 finished' line")]
+
+
 @scenario("E03", "Editor: an older entry with its label in the address is tidied when opened, and saved with the next change")
 def e03():
     resource = form_scenario_contact("E03", address="e03@test.invalid (Work)")
