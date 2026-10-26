@@ -334,6 +334,17 @@ int main(int argc, char *argv[])
             record(name + "_focus", focus ? focus->objectName() : QString()) ;
             note(QString("form save %1: %2").arg(name).arg(saved ? "saved" : "refused")) ;
 
+        } else if (kind == "menu_save") {
+            // File > Save, then records what the named form entries show, to check that a refused entry keeps its text
+            QString name = op["name"].toString() ;
+            w.on_actionSave_triggered() ;
+            QMap<QString, QLineEdit*> entries = formEntries(w.ui) ;
+            for (const QJsonValue &f : op["fields"].toArray()) {
+                QString field = f.toString() ;
+                if (entries.contains(field)) record(name + "_" + field, entries[field]->text()) ;
+            }
+            note("menu save " + name) ;
+
         } else if (kind == "tidy_contacts") {
             // The entry tidy step of Tidy Contacts, run on every contact
             QString name = op["name"].toString().isEmpty() ? QString("tidy") : op["name"].toString() ;

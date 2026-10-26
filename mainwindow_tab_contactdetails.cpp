@@ -141,21 +141,22 @@ struct TitledEntry {
     QString kind ;          // "Email" or "Phone", used in the name and the dialog
     int slot ;              // the email or phone slot, for its default label
     Contact::ContactRecord value ;  // the record the entry is saved to
+    Contact::ContactRecord titlerec ;  // the record its title is saved to
 } ;
 
 static QList<TitledEntry> titledEntries(Ui::MainWindow *ui)
 {
     return {
-        { ui->editEmail, ui->editEmailTitle, QString("Email"), 0, Contact::Email },
-        { ui->editEmail2, ui->editEmail2Title, QString("Email"), 1, Contact::Email2 },
-        { ui->editEmail3, ui->editEmail3Title, QString("Email"), 2, Contact::Email3 },
-        { ui->editEmail4, ui->editEmail4Title, QString("Email"), 3, Contact::Email4 },
-        { ui->editHome, ui->editPhoneTitle, QString("Phone"), 0, Contact::Phone },
-        { ui->editWork, ui->editWorkTitle, QString("Phone"), 1, Contact::Work },
-        { ui->editMobile, ui->editMobileTitle, QString("Phone"), 2, Contact::Mobile },
-        { ui->edit2, ui->edit2Title, QString("Phone"), 3, Contact::Phone2 },
-        { ui->edit3, ui->edit3Title, QString("Phone"), 4, Contact::Phone3 },
-        { ui->edit4, ui->edit4Title, QString("Phone"), 5, Contact::Phone4 },
+        { ui->editEmail, ui->editEmailTitle, QString("Email"), 0, Contact::Email, Contact::EmailTitle },
+        { ui->editEmail2, ui->editEmail2Title, QString("Email"), 1, Contact::Email2, Contact::Email2Title },
+        { ui->editEmail3, ui->editEmail3Title, QString("Email"), 2, Contact::Email3, Contact::Email3Title },
+        { ui->editEmail4, ui->editEmail4Title, QString("Email"), 3, Contact::Email4, Contact::Email4Title },
+        { ui->editHome, ui->editPhoneTitle, QString("Phone"), 0, Contact::Phone, Contact::PhoneTitle },
+        { ui->editWork, ui->editWorkTitle, QString("Phone"), 1, Contact::Work, Contact::WorkTitle },
+        { ui->editMobile, ui->editMobileTitle, QString("Phone"), 2, Contact::Mobile, Contact::MobileTitle },
+        { ui->edit2, ui->edit2Title, QString("Phone"), 3, Contact::Phone2, Contact::Phone2Title },
+        { ui->edit3, ui->edit3Title, QString("Phone"), 4, Contact::Phone3, Contact::Phone3Title },
+        { ui->edit4, ui->edit4Title, QString("Phone"), 5, Contact::Phone4, Contact::Phone4Title },
     } ;
 }
 
@@ -213,23 +214,24 @@ void MainWindow::tidyTitledEntries()
     refreshTitledEntries() ;
 }
 
-// Checks the email and phone entries that changed on the form.  Returns false, after a message, when an entry is not
-// formatted correctly, and focus then goes to that entry.  An entry that was not changed is not checked, so an older
-// entry that cannot be put right does not stop other changes being saved.
+// Checks the email and phone entries that changed on the form, when the contact is saved.  A label typed into an entry
+// is tidied first.  If an entry is not right, the first one is shown with focus on it, and the save stops, so nothing is
+// saved and the user returns to editing.  Returns false when an entry is not right.
 bool MainWindow::ValidateTitledEntries(Contact &dr)
 {
     for (const TitledEntry &t : titledEntries(ui)) {
         QString text = t.entry->text() ;
         if (text.compare(dr.getField(t.value))==0) continue ;
 
-        QString name = t.title->text() + " " + t.kind ;
         FieldFormat::Tidied r = FieldFormat::tidyEntry(text, t.kind=="Email") ;
         if (!r.fixed) {
+            QString name = t.title->text() + " " + t.kind.toLower() ;
             QString hint = (t.kind=="Email") ? QString("An email address looks like name@domain.com.")
                 : QString("Use digits, spaces, brackets, hyphens and dots, with an optional + at the start.") ;
             warningOkDialog(this, "Contact Details", QString("The %1 \"%2\" is not formatted correctly: %3.\n\n%4")
                             .arg(name, text, r.problem, hint), true) ;
             t.entry->setFocus() ;
+            titledEntriesHeld = true ;
             return false ;
         }
 
@@ -237,6 +239,7 @@ bool MainWindow::ValidateTitledEntries(Contact &dr)
         if (!r.label.isEmpty()) t.title->setText(r.label) ;
     }
 
+    titledEntriesHeld = false ;
     refreshTitledEntries() ;
     return true ;
 }
@@ -281,6 +284,8 @@ static QString emailLabelForEditor(Contact &dr, int slot)
 
 void MainWindow::LoadContactTab()
 {
+    // A refused entry is kept as it was typed, so the form is not reloaded until it is fixed
+    if (titledEntriesHeld) return ;
 
     dbg("Loading Contact Tab") ;
 
@@ -343,6 +348,7 @@ bool MainWindow::SaveContactTab()
 
     if (dr.isNull()) return true ;
 
+    // An entry that is not right stops the save, and the user returns to editing
     if (!ValidateTitledEntries(dr)) return false ;
 
     Contact newdr ;

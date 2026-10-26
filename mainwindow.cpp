@@ -25,6 +25,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     timer=NULL ;
     enc=NULL ;
     find=NULL ;
+    titledEntriesHeld=false ;
 
     ui->setupUi(this);
     setupTitledEntries() ;
@@ -532,15 +533,16 @@ void MainWindow::LoadTabs()
     LoadTodo() ;
 }
 
-void MainWindow::SaveTabs()
+bool MainWindow::SaveTabs()
 {
     SaveTodo() ;
     SaveEditHistory() ;
     SaveCalendarTab();
-    SaveContactTab() ;
+    bool contactsaved = SaveContactTab() ;
     LoadOverviewTab() ;
     db.save() ;
     calendar.save() ;
+    return contactsaved ;
 }
 
 //
@@ -552,9 +554,9 @@ void MainWindow::SaveTabs()
 void MainWindow::on_actionSave_triggered()
 {
     msg("Saving Contact ...") ;
-    SaveTabs() ;
+    bool saved = SaveTabs() ;
     LoadOverviewTab() ;
-    LoadContactTab() ;
+    if (saved) LoadContactTab() ;
     LoadEditHistory() ;
     LoadTodo() ;
 
