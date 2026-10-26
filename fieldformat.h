@@ -13,6 +13,10 @@ namespace FieldFormat {
     // Returns true only when both the value and the label are found, and then value and label hold them.
     bool splitLabel(const QString &text, QString &value, QString &label) ;
 
+    // Drops the trunk zero in brackets after a country code, so "+44 (0) 1234 567890" becomes "+44 1234 567890".
+    // Many mobile phones do not accept the form with it.
+    QString dropTrunkZero(const QString &number) ;
+
     // Digits, spaces, brackets, hyphens and dots, with an optional + at the start, and at least one digit
     bool validPhoneNumber(const QString &number) ;
 
