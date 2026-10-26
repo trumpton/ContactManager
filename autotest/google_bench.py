@@ -1523,6 +1523,37 @@ def f06():
     return [Check("the second sync ran", "sync 2 finished" in log, "driver log has no 'sync 2 finished' line")]
 
 
+@scenario("F07", "#66: a contact kept with an unfixable entry is uploaded once, then not again on later syncs")
+def f07():
+    bad = "Bad Field 1: f07a@test.invalid - Bad Field 2 (Bad Field 3)"
+    resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "F07"}],
+        "emailAddresses": [{"value": bad, "type": "Label3"}]})
+    ops = [sync(), {"op": "edit_contact", "match": {"surname": "F07"}, "fields": {"phone": "+44 20 7946 0701"}},
+           sync(), dump()]
+    run = Run("F07", ops, session="F07").execute()
+    after_upload = google_person(resource).get("etag")
+    # The same local data, in the same session: two more syncs with nothing changed
+    Run("F07b", [sync(), sync(), dump()], session="F07").execute()
+    after_more = google_person(resource).get("etag")
+    return [Check("the change reached Google", digits("+44 20 7946 0701") in
+                  [digits(v) for v, _ in contact_info(google_person(resource))["phones"]]),
+            Check("two more syncs with no change leave Google's copy alone", after_upload == after_more,
+                  "etag changed on later syncs")]
+
+
+@scenario("F08", "A contact with a clean address and no titles set: uploaded once, then not again on later syncs")
+def f08():
+    resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "F08"}],
+        "emailAddresses": [{"value": "f08a@test.invalid", "type": "home"}]})
+    Run("F08", [sync(), {"op": "edit_contact", "match": {"surname": "F08"}, "fields": {"phone": "+44 20 7946 0801"}},
+                sync(), dump()], session="F08").execute()
+    after_upload = google_person(resource).get("etag")
+    Run("F08b", [sync(), sync(), dump()], session="F08").execute()
+    after_more = google_person(resource).get("etag")
+    return [Check("two more syncs with no change leave Google's copy alone", after_upload == after_more,
+                  "etag changed on later syncs")]
+
+
 @scenario("E03", "Editor: an older entry with its label in the address is tidied when opened, and saved with the next change")
 def e03():
     resource = form_scenario_contact("E03", address="e03@test.invalid (Work)")
