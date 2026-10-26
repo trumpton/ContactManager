@@ -11,7 +11,9 @@ namespace FieldFormat {
 
     // Takes a label off the end or start of an entry: "01234 567890 (Home)", "01234 567890 - Home" or "Home: 01234 567890".
     // Returns true only when both the value and the label are found, and then value and label hold them.
-    bool splitLabel(const QString &text, QString &value, QString &label) ;
+    // For a phone number the hyphen may have no space before it, as the number is stored with its spaces removed.
+    // An email address never splits at a hyphen with no space, as user-name@host.com is one address.
+    bool splitLabel(const QString &text, QString &value, QString &label, bool phone=false) ;
 
     // Drops the trunk zero in brackets after a country code, so "+44 (0) 1234 567890" becomes "+44 1234 567890".
     // Many mobile phones do not accept the form with it.

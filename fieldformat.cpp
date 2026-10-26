@@ -8,10 +8,11 @@ namespace FieldFormat {
 // A label typed after a number or address cannot contain the delimiters (: - and brackets), and must start with a letter
 static const QString labelpattern = QStringLiteral("\\p{L}[^\\x{0}-\\x{1F}=\\\\:()\\-]*") ;
 
-bool splitLabel(const QString &text, QString &value, QString &label)
+bool splitLabel(const QString &text, QString &value, QString &label, bool phone)
 {
     static const QRegularExpression bracketed(QStringLiteral("^(.+?)\\s*\\(\\s*(%1)\\s*\\)$").arg(labelpattern)) ;
     static const QRegularExpression dashed(QStringLiteral("^(.+?)\\s+-\\s*(%1)$").arg(labelpattern)) ;
+    static const QRegularExpression dashedphone(QStringLiteral("^(.+?)\\s*-\\s*(%1)$").arg(labelpattern)) ;
     static const QRegularExpression prefixed(QStringLiteral("^(%1)\\s*:\\s*(.+)$").arg(labelpattern)) ;
 
     QString trimmed = text.trimmed() ;
@@ -20,7 +21,7 @@ bool splitLabel(const QString &text, QString &value, QString &label)
     if (m.hasMatch()) {
         v = m.captured(1) ;
         l = m.captured(2) ;
-    } else if ((m = dashed.match(trimmed)).hasMatch()) {
+    } else if ((m = (phone ? dashedphone : dashed).match(trimmed)).hasMatch()) {
         v = m.captured(1) ;
         l = m.captured(2) ;
     } else if ((m = prefixed.match(trimmed)).hasMatch()) {
@@ -85,8 +86,8 @@ Tidied tidyEntry(const QString &text, bool isEmail)
     QString first, firstlabel, second, secondlabel ;
     QString value = text.trimmed() ;
     QString label ;
-    if (splitLabel(text, first, firstlabel)) {
-        if (splitLabel(first, second, secondlabel)) {
+    if (splitLabel(text, first, firstlabel, !isEmail)) {
+        if (splitLabel(first, second, secondlabel, !isEmail)) {
             r.fixed = false ;
             r.problem = QStringLiteral("it has more than one label") ;
             r.value = text.trimmed() ;
