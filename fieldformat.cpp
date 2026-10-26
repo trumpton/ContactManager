@@ -56,13 +56,15 @@ bool validEmailAddress(const QString &address)
     return email.match(address.trimmed()).hasMatch() ;
 }
 
-// Any printable character Google accepts as a custom label, except the ones the contact file cannot hold: '=' and '\\'
+// A label may use any printable character except the ones Google does not allow in a label (colon, slash and backslash),
+// and the ones the contact file cannot hold ('=').  Leading and trailing spaces are trimmed, as Google trims them.
+// Tabs, line breaks and other control characters are not allowed.
 bool validLabel(const QString &label)
 {
     QString l = label.trimmed() ;
     if (l.isEmpty() || l.length()>MaxLabelLength) return false ;
     for (const QChar c : l) {
-        if (!c.isPrint() || c==QChar('=') || c==QChar('\\')) return false ;
+        if (!c.isPrint() || c==QChar(':') || c==QChar('/') || c==QChar('\\') || c==QChar('=')) return false ;
     }
     return true ;
 }

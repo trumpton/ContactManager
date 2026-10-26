@@ -184,8 +184,8 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
 // The rules for a title, for the message when one is not allowed
 static QString labelRules()
 {
-    return QString("A title starts with a letter, and may use letters, digits, spaces, hyphens and apostrophes.  "
-                   "It can be up to %1 characters long.").arg(FieldFormat::MaxLabelLength) ;
+    return QString("A title can use letters, numbers, spaces and most symbols.  It cannot contain a colon, a slash, a backslash, "
+                   "or a tab or line break.  It can be up to %1 characters long.").arg(FieldFormat::MaxLabelLength) ;
 }
 
 // Puts right one email or phone entry that can be: a label typed into it becomes its title, and the value is tidied.
