@@ -124,6 +124,14 @@ void MainWindow::on_actionDeleteContact_triggered()
 
 
 
+// The label the editor shows for a phone slot, with the same rules as emailLabelForEditor
+static QString phoneLabelForEditor(Contact &dr, int slot)
+{
+    static const Contact::ContactRecord phonefields[6] = { Contact::Phone, Contact::Work, Contact::Mobile, Contact::Phone2, Contact::Phone3, Contact::Phone4 } ;
+    if (dr.getField(phonefields[slot]).isEmpty()) return Contact::defaultPhoneLabel(slot) ;
+    return dr.phoneLabel(slot) ;
+}
+
 // The label the editor shows for an email slot.  An empty slot shows the label a new email gets there, and a slot
 // with an address shows its own label, or the label that slot has always had.
 static QString emailLabelForEditor(Contact &dr, int slot)
@@ -141,8 +149,6 @@ void MainWindow::LoadContactTab()
     Contact& dr = db.getSelected() ;
     dbg(QString("Contact = {%1}").arg(dr.getField(Contact::ID))) ;
 
-    dr.sortPhoneNumbers() ;
-
     ui->editSurname->setText(dr.getField(Contact::Surname)) ;
     ui->editFirstName->setText(dr.getField(Contact::Names)) ;
     // A slot with no address shows the label a new email gets there.  A slot with an address shows its own label.
@@ -157,33 +163,17 @@ void MainWindow::LoadContactTab()
     ui->editWebAddress->setText(dr.getField(Contact::Webaddress)) ;
     ui->editBusiness->setText(dr.getField(Contact::Organisation)) ;
     ui->editHome->setText(dr.getField(Contact::Phone)) ;
-
-    ui->edit2->setText(dr.getField(Contact::Phone2)) ;
-
-    if (dr.getField(Contact::Phone2Title).isEmpty()) {
-        ui->edit2Title->setText("Other") ;
-    } else {
-        ui->edit2Title->setText(dr.getField(Contact::Phone2Title)) ;
-    }
-
-    ui->edit3->setText(dr.getField(Contact::Phone3)) ;
-
-    if (dr.getField(Contact::Phone3Title).isEmpty()) {
-        ui->edit3Title->setText("Other") ;
-    } else {
-        ui->edit3Title->setText(dr.getField(Contact::Phone3Title)) ;
-    }
-
-    ui->edit4->setText(dr.getField(Contact::Phone4)) ;
-
-    if (dr.getField(Contact::Phone4Title).isEmpty()) {
-        ui->edit4Title->setText("Other") ;
-    } else {
-        ui->edit4Title->setText(dr.getField(Contact::Phone4Title)) ;
-    }
-
-    ui->editMobile->setText(dr.getField(Contact::Mobile)) ;
     ui->editWork->setText(dr.getField(Contact::Work)) ;
+    ui->editMobile->setText(dr.getField(Contact::Mobile)) ;
+    ui->edit2->setText(dr.getField(Contact::Phone2)) ;
+    ui->edit3->setText(dr.getField(Contact::Phone3)) ;
+    ui->edit4->setText(dr.getField(Contact::Phone4)) ;
+    ui->editPhoneTitle->setText(phoneLabelForEditor(dr, 0)) ;
+    ui->editWorkTitle->setText(phoneLabelForEditor(dr, 1)) ;
+    ui->editMobileTitle->setText(phoneLabelForEditor(dr, 2)) ;
+    ui->edit2Title->setText(phoneLabelForEditor(dr, 3)) ;
+    ui->edit3Title->setText(phoneLabelForEditor(dr, 4)) ;
+    ui->edit4Title->setText(phoneLabelForEditor(dr, 5)) ;
 
     ui->editVoip->setText(dr.getField(Contact::Voip)) ;
 
@@ -224,31 +214,17 @@ bool MainWindow::SaveContactTab()
     newdr.setField(Contact::Address, ui->editAddress->toPlainText().replace("\n", ", ")) ;
     newdr.setField(Contact::Address2, ui->editAddress2->toPlainText().replace("\n", ", ")) ;
     newdr.setField(Contact::Phone, ui->editHome->text()) ;
-    newdr.setField(Contact::Phone2,ui->edit2->text());
-    if (ui->edit2->text().isEmpty()) {
-        newdr.setField(Contact::Phone2Title, "");
-    } else {
-        newdr.setField(Contact::Phone2Title, ui->edit2Title->text());
-    }
-
-    newdr.setField(Contact::Phone3,ui->edit3->text());
-    if (ui->edit3->text().isEmpty()) {
-        newdr.setField(Contact::Phone3Title, "");
-    } else {
-        newdr.setField(Contact::Phone3Title, ui->edit3Title->text());
-    }
-
-    newdr.setField(Contact::Phone4,ui->edit4->text());
-    if (ui->edit4->text().isEmpty()) {
-        newdr.setField(Contact::Phone4Title, "");
-    } else {
-        newdr.setField(Contact::Phone4Title, ui->edit4Title->text());
-    }
-
-    newdr.setField(Contact::Voip, ui->editVoip->text()) ;
-
-    newdr.setField(Contact::Work, ui->editWork->text());
+    newdr.setField(Contact::Work, ui->editWork->text()) ;
     newdr.setField(Contact::Mobile, ui->editMobile->text()) ;
+    newdr.setField(Contact::Phone2, ui->edit2->text()) ;
+    newdr.setField(Contact::Phone3, ui->edit3->text()) ;
+    newdr.setField(Contact::Phone4, ui->edit4->text()) ;
+    newdr.setField(Contact::PhoneTitle, ui->editHome->text().isEmpty() ? QString("") : ui->editPhoneTitle->text()) ;
+    newdr.setField(Contact::WorkTitle, ui->editWork->text().isEmpty() ? QString("") : ui->editWorkTitle->text()) ;
+    newdr.setField(Contact::MobileTitle, ui->editMobile->text().isEmpty() ? QString("") : ui->editMobileTitle->text()) ;
+    newdr.setField(Contact::Phone2Title, ui->edit2->text().isEmpty() ? QString("") : ui->edit2Title->text()) ;
+    newdr.setField(Contact::Phone3Title, ui->edit3->text().isEmpty() ? QString("") : ui->edit3Title->text()) ;
+    newdr.setField(Contact::Phone4Title, ui->edit4->text().isEmpty() ? QString("") : ui->edit4Title->text()) ;
     newdr.setField(Contact::Email, ui->editEmail->text()) ;
     newdr.setField(Contact::Email2, ui->editEmail2->text()) ;
     newdr.setField(Contact::Email3, ui->editEmail3->text()) ;
@@ -268,7 +244,6 @@ bool MainWindow::SaveContactTab()
     newdr.setFlag(Contact::Hidden, ui->checkHidden->isChecked()) ;
     newdr.setFlag(Contact::EmailMe, ui->checkEmailMe->checkState()!=Qt::Unchecked) ;
     newdr.setFlag(Contact::TextMe, ui->checkTextMe->checkState()!=Qt::Unchecked) ;
-    newdr.sortPhoneNumbers() ;
 
     // If nothing set / changed / updated, return
     if (!newdr.isDirty()) return true ;
