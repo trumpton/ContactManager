@@ -180,14 +180,11 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
             newlocal.setField(Appointment::To, googleappt.getField(Appointment::To)) ;
             newlocal.setField(Appointment::Summary, QString("--! Undefined !--")) ;
 
+            // Download only, and not uploaded.  An event made on Google has no ID stored there, but its local ID is
+            // derived from its Google ID (see parseAppointment), so it is stable without an upload.  Uploading it
+            // rewrote the event on Google, adding the app's properties, and rewrote events the user never changed.
             newlocal.setFlag(Appointment::ToBeDownloaded, true) ;
             newlocal.setFlag(Appointment::InternetOwned, googleappt.isSet(Appointment::InternetOwned)) ;
-
-            // Only re-upload if appointment has not already been uploaded before
-            // (perhaps by another instance of contact manager), and never a read-only entry
-            if (!googleappt.isSet(Appointment::Uploaded) && !googleappt.isSet(Appointment::InternetOwned)) {
-                newlocal.setFlag(Appointment::ToBeUploaded, true) ;
-            }
             cal.addAppointment(newlocal) ;
             ui->updateStatusReport->append(QString("        ") + googleappt.asText()) ;
         }
