@@ -354,6 +354,34 @@ int main(int argc, char *argv[])
             }
             note("menu save " + name) ;
 
+        } else if (kind == "merge_duplicates") {
+            // The automatic merge of Tidy Contacts: a pair that shares a name and an identifier, with no conflicting
+            // details, is merged.  Any other pair is left for the user, and only counted here.
+            QString name = op["name"].toString().isEmpty() ? QString("merge") : op["name"].toString() ;
+            int merged = 0, left = 0 ;
+            for (int i = 0; i < w.db.size(); i++) {
+                Contact &first = w.db.getContact(i) ;
+                if (first.isSet(Contact::Deleted) || w.db.isUnnamed(first)) continue ;
+                for (int j = i + 1; j < w.db.size(); j++) {
+                    if (first.isSet(Contact::Deleted)) break ;
+                    Contact &second = w.db.getContact(j) ;
+                    if (second.isSet(Contact::Deleted) || w.db.isUnnamed(second)) continue ;
+                    if (!w.db.isMergeCandidate(first, second)) continue ;
+                    Contact mergedcontact ;
+                    QList<MergeConflict> conflicts ;
+                    w.db.planMerge(first, second, mergedcontact, conflicts) ;
+                    if (conflicts.isEmpty() && w.db.isSafeToAutoMerge(first, second)) {
+                        w.db.applyMerge(first, second, mergedcontact) ;
+                        merged++ ;
+                    } else {
+                        left++ ;
+                    }
+                }
+            }
+            record(name + "_merged", merged) ;
+            record(name + "_left", left) ;
+            note(QString("%1: %2 merged automatically, %3 left").arg(name).arg(merged).arg(left)) ;
+
         } else if (kind == "tidy_contacts") {
             // The entry tidy step of Tidy Contacts, run on every contact
             QString name = op["name"].toString().isEmpty() ? QString("tidy") : op["name"].toString() ;

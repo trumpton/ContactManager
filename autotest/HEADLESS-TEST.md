@@ -128,6 +128,50 @@ The app keeps its local data in its working directory. Give each run its own emp
 
 The app shows dialogs even headless. `bench/bench_driver.cpp` answers them: the key and login dialogs with `CM_TEST_SECRET`, the sync dialog by pressing its finish button, and every other dialog with its default button. It records each dialog it meets in `driver.log`.
 
+## 5a. Messages and programs outside the bench
+
+**"No audio device detected" and "PulseAudioService: pa_context_connect() failed".** The container has no sound device, so
+Qt Multimedia reports it when the app's sound effects are set up. Every bench run prints about eleven of these lines
+in its `stdout.log`. They are harmless and are not a failure. The bench driver calls `initSound(NULL)`, which creates
+the sound effects without a device. A test program that uses the app's dialogs or alerts must call `initSound(NULL)`
+too (`alertsound.h` in the Lib folder).
+
+**Test programs that link against the app.** These are for checks the bench cannot make, such as loading a file
+written by an older version. Build one from the app's objects, not from the app's `main`:
+
+- Build the app first (section 1). Then compile the program with the same `DEFINES` and `INCPATH` as the Makefile, and
+  link it with every `.o` in the build folder except `main.o`, plus the Qt libraries. Add `-I/home/user/Lib`, because
+  `encryption.h` and `alertsound.h` are in the Lib folder.
+- Include the Qt and standard headers before any `#define private public`. Defining `private` first breaks the
+  standard library headers.
+- Call `initSound(NULL)`, then create `new Configuration(nullptr)` and give it an `Encryption` object. Contact loading
+  needs both. The app keeps contacts as plain text unless the settings say `encrypted=true`, which is the default.
+- The encryption object shows a key dialog. Answer it with `CM_TEST_SECRET`, as the driver does (its "Enter Key and
+  Password" fields are `lineEdit0` to `lineEdit3`, "Login" uses `lineEdit2`), or the program waits for ever.
+- Give the program its own HOME with `TrumptonApps/ContactManager.ini` (section 4a) and an empty
+  `.config/trumpton.org.uk` folder, the same as a bench run. Without the ini file, phone numbers are stored with the
+  dialling code `ERROR`.
+- Run it with `QT_QPA_PLATFORM=offscreen`, and in the background with a time limit, so a wait on a dialog does not
+  hold up the session.
+
+**The old-file test (`autotest/oldfile/old_contact_test.cpp`).** It loads a contact file written before the label fields
+existed and checks the meaning of its emails and phones, then saves and reloads it. Build it in the build folder the same
+way as above, with `-I../contactmanager`, and link it with the app's objects (not `main.o`). Run it in an empty folder
+with the two fixture files copied in, using its own HOME with the settings from section 4a, and with
+`CM_TEST_SECRET` set:
+
+    cp autotest/oldfile/*.contact /some/empty/folder/
+    CM_TEST_SECRET="$(cat /home/user/.cm-test-secret)" QT_QPA_PLATFORM=offscreen HOME=/some/home ./old_contact_test /some/empty/folder
+
+It prints PASS or FAIL for each check and exits with 1 if any check fails.
+
+**Long builds.** A build can take longer than the two-minute limit of the tool that runs commands. Start it in the
+background with a log file, then wait for the log to show it has finished. This matters most after a change to a
+`.pro` file, which needs `qmake6` run again before `make`.
+
+**One run at a time.** Two bench runs, or a bench run and a test program, on the same account delete each other's
+test contacts. The bench's cleanup removes every contact named `Bench`. Stop any background run before starting another.
+
 ## 6. Running the Google bench
 
 ```bash
