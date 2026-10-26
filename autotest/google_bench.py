@@ -1575,7 +1575,8 @@ def f10():
     set_mode(GOOGLE_MASTER)
     try:
         # Steps 1 to 6: sync, Alt-E,D, Control-S, Exit
-        a = Run("F10a", [sync(), {"op": "open_contact", "name": "f10a", "match": {"surname": "F10"}},
+        a = Run("F10a", [sync(), {"op": "open_contact", "name": "f10a", "match": {"surname": "F10"}, "details": False},
+                         {"op": "alt_edit", "name": "f10a"},
                          {"op": "menu_save", "name": "f10a", "fields": ["email"]},
                          {"op": "exit", "name": "f10a"}, dump()], session="F10").execute()
         # Steps 7 to 9: relaunch, open the contact, Exit
