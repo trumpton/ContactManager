@@ -1101,6 +1101,82 @@ def x19():
                   len([p for p in goog if contact_info(p)["tag"].endswith(" edited")]) == 5)]
 
 
+# --- email labels (#59) and an address with no type (#61) -----------------------------------
+
+def google_email_types(resource):
+    """The address -> type (or custom label) Google holds for each email on a contact."""
+    out = {}
+    for e in google_person(resource).get("emailAddresses", []):
+        label = e.get("type") or e.get("formattedType") or ""
+        if (e.get("type") or "").lower() == "custom" and e.get("formattedType"):
+            label = e["formattedType"]
+        out[(e.get("value") or "").strip()] = label.lower()
+    return out
+
+
+@scenario("L01", "Four emails from Google (home, other, work, Partner): each keeps its slot and label, no write")
+def l01():
+    resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "L01"}],
+        "emailAddresses": [{"value": "l01a@test.invalid", "type": "home"},
+                           {"value": "l01b@test.invalid", "type": "other"},
+                           {"value": "l01c@test.invalid", "type": "work"},
+                           {"value": "l01d@test.invalid", "type": "Partner"}]})
+    before = google_person(resource)["etag"]
+    run = Run("L01", [sync(), dump()]).execute()
+    after = google_person(resource)["etag"]
+    local = app_live_contacts(run.dump, "L01")
+    c = local[0] if local else {}
+    got = (c.get("email"), c.get("email2"), c.get("email3"), c.get("email4"))
+    labels = (c.get("emailtitle"), c.get("email2title"), c.get("email3title"), c.get("email4title"))
+    return [Check("Google not written by the sync", before == after),
+            Check("app holds one address per slot, in order",
+                  got == ("l01a@test.invalid", "l01b@test.invalid", "l01c@test.invalid", "l01d@test.invalid"), "got %s" % (got,)),
+            Check("app labels them Home, Other, Work, Partner",
+                  labels == ("Home", "Other", "Work", "Partner"), "got %s" % (labels,))]
+
+
+@scenario("L02", "A label changed in the app is sent to Google as that email's type")
+def l02():
+    resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "L02"}],
+        "emailAddresses": [{"value": "l02a@test.invalid", "type": "home"},
+                           {"value": "l02b@test.invalid", "type": "other"}]})
+    ops = [sync(),
+           {"op": "edit_contact", "match": {"surname": "L02"}, "fields": {"email2title": "Mobile"}},
+           sync(), dump()]
+    run = Run("L02", ops).execute()
+    types = google_email_types(resource)
+    return [Check("the second email is sent as Mobile", types.get("l02b@test.invalid") == "mobile",
+                  "Google types: %s" % types),
+            Check("the first email keeps its home type", types.get("l02a@test.invalid") == "home",
+                  "Google types: %s" % types),
+            Check("the app still holds the label", bool(app_live_contacts(run.dump, "L02"))
+                  and app_live_contacts(run.dump, "L02")[0].get("email2title") == "Mobile")]
+
+
+@scenario("L03", "Emails with no labels set are sent with the labels they always had")
+def l03():
+    run = Run("L03", [add_contact_op("L03", email="l03a@test.invalid", email2="l03b@test.invalid",
+                                     email3="l03c@test.invalid", email4="l03d@test.invalid"),
+                      sync(), dump()]).execute()
+    goog = google_contacts_tagged("L03")
+    types = google_email_types(contact_info(goog[0])["resourceName"]) if goog else {}
+    return [Check("one copy on Google", len(goog) == 1),
+            Check("Home, Other, Other, Other as Google types",
+                  (types.get("l03a@test.invalid"), types.get("l03b@test.invalid"),
+                   types.get("l03c@test.invalid"), types.get("l03d@test.invalid")) == ("home", "other", "other", "other"),
+                  "Google types: %s" % types)]
+
+
+@scenario("X20", "An address with no type is held in the first address slot")
+def x20():
+    create_contact_body({"names": [{"givenName": "Bench", "familyName": "X20"}],
+                         "addresses": [{"formattedValue": "1 Test Road London"}]})
+    run = Run("X20", [sync(), dump()]).execute()
+    local = app_live_contacts(run.dump, "X20")
+    return [Check("app holds the address in the first slot",
+                  bool(local) and norm(local[0].get("address", "")) == norm("1 Test Road London"),
+                  "address slots: %s" % ({k: v for k, v in (local[0].items() if local else []) if "address" in k},))]
+
 def gchange_main(argv):
     cmd = argv[0]
     if cmd == "edit-contact":
