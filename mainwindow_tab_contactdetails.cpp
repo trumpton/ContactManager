@@ -141,21 +141,22 @@ struct TitledEntry {
     QString kind ;          // "Email" or "Phone", used in the name and the dialog
     int slot ;              // the email or phone slot, for its default label
     Contact::ContactRecord value ;  // the record the entry is saved to
+    Contact::ContactRecord titlerec ;  // the record its title is saved to
 } ;
 
 static QList<TitledEntry> titledEntries(Ui::MainWindow *ui)
 {
     return {
-        { ui->editEmail, ui->editEmailTitle, QString("Email"), 0, Contact::Email },
-        { ui->editEmail2, ui->editEmail2Title, QString("Email"), 1, Contact::Email2 },
-        { ui->editEmail3, ui->editEmail3Title, QString("Email"), 2, Contact::Email3 },
-        { ui->editEmail4, ui->editEmail4Title, QString("Email"), 3, Contact::Email4 },
-        { ui->editHome, ui->editPhoneTitle, QString("Phone"), 0, Contact::Phone },
-        { ui->editWork, ui->editWorkTitle, QString("Phone"), 1, Contact::Work },
-        { ui->editMobile, ui->editMobileTitle, QString("Phone"), 2, Contact::Mobile },
-        { ui->edit2, ui->edit2Title, QString("Phone"), 3, Contact::Phone2 },
-        { ui->edit3, ui->edit3Title, QString("Phone"), 4, Contact::Phone3 },
-        { ui->edit4, ui->edit4Title, QString("Phone"), 5, Contact::Phone4 },
+        { ui->editEmail, ui->editEmailTitle, QString("Email"), 0, Contact::Email, Contact::EmailTitle },
+        { ui->editEmail2, ui->editEmail2Title, QString("Email"), 1, Contact::Email2, Contact::Email2Title },
+        { ui->editEmail3, ui->editEmail3Title, QString("Email"), 2, Contact::Email3, Contact::Email3Title },
+        { ui->editEmail4, ui->editEmail4Title, QString("Email"), 3, Contact::Email4, Contact::Email4Title },
+        { ui->editHome, ui->editPhoneTitle, QString("Phone"), 0, Contact::Phone, Contact::PhoneTitle },
+        { ui->editWork, ui->editWorkTitle, QString("Phone"), 1, Contact::Work, Contact::WorkTitle },
+        { ui->editMobile, ui->editMobileTitle, QString("Phone"), 2, Contact::Mobile, Contact::MobileTitle },
+        { ui->edit2, ui->edit2Title, QString("Phone"), 3, Contact::Phone2, Contact::Phone2Title },
+        { ui->edit3, ui->edit3Title, QString("Phone"), 4, Contact::Phone3, Contact::Phone3Title },
+        { ui->edit4, ui->edit4Title, QString("Phone"), 5, Contact::Phone4, Contact::Phone4Title },
     } ;
 }
 
@@ -213,23 +214,127 @@ void MainWindow::tidyTitledEntries()
     refreshTitledEntries() ;
 }
 
-// Checks every email and phone entry on the form, when the contact is saved, so entries from Google or from older data
-// are checked too.  A label typed into an entry is tidied first.  If an entry or its title is not right, the first one is
-// shown with focus on it, and the save stops, so nothing is saved and the user returns to editing.  A title is changed
-// with F2.  Returns false when an entry is not right.
-bool MainWindow::ValidateTitledEntries()
+// The contact details on the form, copied into newdr
+void MainWindow::FormToContact(Contact &newdr)
 {
+    newdr.setField(Contact::Surname, ui->editSurname->text()) ;
+    newdr.setField(Contact::Names,ui->editFirstName->text());
+    newdr.setField(Contact::Organisation,ui->editBusiness->text()) ;
+    newdr.setField(Contact::Address, ui->editAddress->toPlainText().replace("\n", ", ")) ;
+    newdr.setField(Contact::Address2, ui->editAddress2->toPlainText().replace("\n", ", ")) ;
+    newdr.setField(Contact::Phone, ui->editHome->text()) ;
+    newdr.setField(Contact::Work, ui->editWork->text()) ;
+    newdr.setField(Contact::Mobile, ui->editMobile->text()) ;
+    newdr.setField(Contact::Phone2, ui->edit2->text()) ;
+    newdr.setField(Contact::Phone3, ui->edit3->text()) ;
+    newdr.setField(Contact::Phone4, ui->edit4->text()) ;
+    newdr.setField(Contact::PhoneTitle, ui->editHome->text().isEmpty() ? QString("") : ui->editPhoneTitle->text()) ;
+    newdr.setField(Contact::WorkTitle, ui->editWork->text().isEmpty() ? QString("") : ui->editWorkTitle->text()) ;
+    newdr.setField(Contact::MobileTitle, ui->editMobile->text().isEmpty() ? QString("") : ui->editMobileTitle->text()) ;
+    newdr.setField(Contact::Phone2Title, ui->edit2->text().isEmpty() ? QString("") : ui->edit2Title->text()) ;
+    newdr.setField(Contact::Phone3Title, ui->edit3->text().isEmpty() ? QString("") : ui->edit3Title->text()) ;
+    newdr.setField(Contact::Phone4Title, ui->edit4->text().isEmpty() ? QString("") : ui->edit4Title->text()) ;
+    newdr.setField(Contact::Email, ui->editEmail->text()) ;
+    newdr.setField(Contact::Email2, ui->editEmail2->text()) ;
+    newdr.setField(Contact::Email3, ui->editEmail3->text()) ;
+    newdr.setField(Contact::Email4, ui->editEmail4->text()) ;
+    newdr.setField(Contact::EmailTitle, ui->editEmail->text().isEmpty() ? QString("") : ui->editEmailTitle->text()) ;
+    newdr.setField(Contact::Email2Title, ui->editEmail2->text().isEmpty() ? QString("") : ui->editEmail2Title->text()) ;
+    newdr.setField(Contact::Email3Title, ui->editEmail3->text().isEmpty() ? QString("") : ui->editEmail3Title->text()) ;
+    newdr.setField(Contact::Email4Title, ui->editEmail4->text().isEmpty() ? QString("") : ui->editEmail4Title->text()) ;
+    newdr.setField(Contact::Voip, ui->editVoip->text()) ;
+    newdr.setField(Contact::Webaddress, ui->editWebAddress->text()) ;
+    newdr.setField(Contact::Birthday, dateTimeToXsDate(ui->editDateOfBirth->getDateTime()));
+    newdr.setField(Contact::Comments, ui->editComment->toPlainText() );
+    newdr.setFlag(Contact::GroupBusiness, ui->checkBusiness->isChecked()) ;
+    newdr.setFlag(Contact::GroupClient, ui->checkClient->isChecked()) ;
+    newdr.setFlag(Contact::GroupFamily, ui->checkFamily->isChecked()) ;
+    newdr.setFlag(Contact::GroupFriend, ui->checkFriend->isChecked()) ;
+    newdr.setFlag(Contact::GroupOther, ui->checkOther->isChecked()) ;
+    newdr.setFlag(Contact::Hidden, ui->checkHidden->isChecked()) ;
+    newdr.setFlag(Contact::EmailMe, ui->checkEmailMe->checkState()!=Qt::Unchecked) ;
+    newdr.setFlag(Contact::TextMe, ui->checkTextMe->checkState()!=Qt::Unchecked) ;
+}
+
+// True when an entry differs from the contact only by the tidy done when the contact was opened, such as a label
+// taken off the address.  Such a change is not an edit, so it is not saved by itself.
+static bool autoFixedOnly(const TitledEntry &t, Contact &dr)
+{
+    QString stored = dr.getField(t.value) ;
+    FieldFormat::Tidied r = FieldFormat::tidyEntry(stored, t.kind=="Email") ;
+    if (!r.fixed) return false ;
+    if (t.entry->text().compare(r.value)!=0) return false ;
+    if (!r.label.isEmpty() && t.title->text().compare(r.label)!=0) return false ;
+    return stored.compare(r.value)!=0 || !r.label.isEmpty() ;
+}
+
+// True when the form has an edit that is not already in the contact.  An entry that is unchanged, and a title that
+// shows the label the contact already uses, are not edits, and neither are the tidies done on opening.
+bool MainWindow::FormHasEdits(Contact &dr)
+{
+    Contact newdr ;
+    FormToContact(newdr) ;
+
+    for (const TitledEntry &t : titledEntries(ui)) {
+        bool unchanged = (t.entry->text().compare(dr.getField(t.value))==0) ;
+        QString effective = (t.kind=="Email") ? dr.emailLabel(t.slot) : dr.phoneLabel(t.slot) ;
+        bool titleshown = (t.title->text().compare(effective)==0) || (t.title->text().compare(dr.getField(t.titlerec))==0) ;
+        if (!(unchanged && titleshown) && !autoFixedOnly(t, dr)) continue ;
+
+        newdr.setField(t.value, dr.getField(t.value)) ;
+        newdr.setField(t.titlerec, dr.getField(t.titlerec)) ;
+    }
+    return !dr.matches(newdr, Contact::mcDetailsGroup) ;
+}
+
+// The contact the form shows.  Tidy Contacts moves the selection on before the form is reloaded, so the form's
+// contact is looked up by its ID.  A contact that no longer exists is a null record, which has nothing to check.
+Contact& MainWindow::formContact()
+{
+    QString id = formContactId ;
+    return db.getContactById(id) ;
+}
+
+// The name of an entry in a message: its kind, its slot and its title, for example "Email 4 (Label3)"
+static QString entryName(const TitledEntry &t)
+{
+    return QString("%1 %2 (%3)").arg(t.kind).arg(t.slot+1).arg(t.title->text()) ;
+}
+
+// Checks the email and phone entries when the form has an edit, before the contact is saved, switched, synced, tidied,
+// imported or closed.  A label typed into an entry is tidied first.  If an entry or its title is not right, the first one
+// is shown with focus on it, and the action stops, so nothing is saved and the user returns to editing.  Without an
+// edit nothing is checked, so an entry that was already bad is left quietly for Tidy Contacts to report, unless the
+// contact is saved with File > Save, which checks every entry and shows the details tab.  A title is changed with F2.
+// Returns false when an entry is not right.
+bool MainWindow::ValidateTitledEntries(Contact &dr, bool always)
+{
+    if (dr.isNull()) return true ;
+
+    // A refused save with File > Save shows the details tab, with focus on the entry
+    auto showdetails = [&]() {
+        if (!always) return ;
+        ui->tabBar->setTabEnabled(CONTACTDETAILSTABPOS, true) ;
+        ui->tabBar->setCurrentIndex(CONTACTDETAILSTABPOS) ;
+    } ;
+
+    if (!always && !FormHasEdits(dr)) {
+        titledEntriesHeld = false ;
+        return true ;
+    }
+
     for (const TitledEntry &t : titledEntries(ui)) {
         QString text = t.entry->text() ;
         if (text.trimmed().isEmpty()) continue ;
 
         FieldFormat::Tidied r = FieldFormat::tidyEntry(text, t.kind=="Email") ;
         if (!r.fixed) {
-            QString name = t.title->text() + " " + t.kind.toLower() ;
             QString hint = (t.kind=="Email") ? QString("An email address looks like name@domain.com.")
                 : QString("Use digits, spaces, brackets, hyphens and dots, with an optional + at the start.") ;
-            warningOkDialog(this, "Contact Details", QString("The %1 \"%2\" is not formatted correctly: %3.\n\n%4")
-                            .arg(name, text, r.problem, hint), true) ;
+            showdetails() ;
+            warningOkDialog(this, "Contact Details", QString("Contact: %1\n\nThe %2 is not formatted correctly: %3.\n\n"
+                            "%4\n\nIt holds \"%5\".\n\nEdit the contact to correct it.")
+                            .arg(dr.getFormattedName(false, false), entryName(t), r.problem, hint, text), true) ;
             t.entry->setFocus() ;
             titledEntriesHeld = true ;
             return false ;
@@ -241,9 +346,10 @@ bool MainWindow::ValidateTitledEntries()
         // A title that is not allowed, from Google or older data, is changed with F2 on its entry
         QString title = t.title->text() ;
         if (!title.isEmpty() && !FieldFormat::validLabel(title)) {
-            QString name = title + " " + t.kind.toLower() ;
-            warningOkDialog(this, "Contact Details", QString("The title \"%1\" for the %2 is not allowed: %3.\n\n"
-                            "Press F2 in the %2 to change its title.").arg(title, name, labelRules()), true) ;
+            showdetails() ;
+            warningOkDialog(this, "Contact Details", QString("Contact: %1\n\nThe title \"%2\" for %3 is not allowed: %4.\n\n"
+                            "Press F2 in that box to change its title.\n\nEdit the contact to correct it.")
+                            .arg(dr.getFormattedName(false, false), title, entryName(t), labelRules()), true) ;
             t.entry->setFocus() ;
             titledEntriesHeld = true ;
             return false ;
@@ -301,6 +407,7 @@ void MainWindow::LoadContactTab()
     dbg("Loading Contact Tab") ;
 
     Contact& dr = db.getSelected() ;
+    formContactId = dr.getField(Contact::ID) ;
     dbg(QString("Contact = {%1}").arg(dr.getField(Contact::ID))) ;
 
     ui->editSurname->setText(dr.getField(Contact::Surname)) ;
@@ -351,7 +458,7 @@ void MainWindow::LoadContactTab()
 }
 
 
-bool MainWindow::SaveContactTab()
+bool MainWindow::SaveContactTab(bool explicitsave)
 {
     dbg("Saving Contact Tab") ;
 
@@ -360,52 +467,19 @@ bool MainWindow::SaveContactTab()
     if (dr.isNull()) return true ;
 
     // An entry that is not right stops the save, and the user returns to editing
-    if (!ValidateTitledEntries()) return false ;
+    if (!ValidateTitledEntries(dr, explicitsave)) return false ;
 
     Contact newdr ;
     QString log="" ;
     bool wasempty = dr.isEmpty() ;
 
-    newdr.setField(Contact::Surname, ui->editSurname->text()) ;
-    newdr.setField(Contact::Names,ui->editFirstName->text());
-    newdr.setField(Contact::Organisation,ui->editBusiness->text()) ;
-    newdr.setField(Contact::Address, ui->editAddress->toPlainText().replace("\n", ", ")) ;
-    newdr.setField(Contact::Address2, ui->editAddress2->toPlainText().replace("\n", ", ")) ;
-    newdr.setField(Contact::Phone, ui->editHome->text()) ;
-    newdr.setField(Contact::Work, ui->editWork->text()) ;
-    newdr.setField(Contact::Mobile, ui->editMobile->text()) ;
-    newdr.setField(Contact::Phone2, ui->edit2->text()) ;
-    newdr.setField(Contact::Phone3, ui->edit3->text()) ;
-    newdr.setField(Contact::Phone4, ui->edit4->text()) ;
-    newdr.setField(Contact::PhoneTitle, ui->editHome->text().isEmpty() ? QString("") : ui->editPhoneTitle->text()) ;
-    newdr.setField(Contact::WorkTitle, ui->editWork->text().isEmpty() ? QString("") : ui->editWorkTitle->text()) ;
-    newdr.setField(Contact::MobileTitle, ui->editMobile->text().isEmpty() ? QString("") : ui->editMobileTitle->text()) ;
-    newdr.setField(Contact::Phone2Title, ui->edit2->text().isEmpty() ? QString("") : ui->edit2Title->text()) ;
-    newdr.setField(Contact::Phone3Title, ui->edit3->text().isEmpty() ? QString("") : ui->edit3Title->text()) ;
-    newdr.setField(Contact::Phone4Title, ui->edit4->text().isEmpty() ? QString("") : ui->edit4Title->text()) ;
-    newdr.setField(Contact::Email, ui->editEmail->text()) ;
-    newdr.setField(Contact::Email2, ui->editEmail2->text()) ;
-    newdr.setField(Contact::Email3, ui->editEmail3->text()) ;
-    newdr.setField(Contact::Email4, ui->editEmail4->text()) ;
-    newdr.setField(Contact::EmailTitle, ui->editEmail->text().isEmpty() ? QString("") : ui->editEmailTitle->text()) ;
-    newdr.setField(Contact::Email2Title, ui->editEmail2->text().isEmpty() ? QString("") : ui->editEmail2Title->text()) ;
-    newdr.setField(Contact::Email3Title, ui->editEmail3->text().isEmpty() ? QString("") : ui->editEmail3Title->text()) ;
-    newdr.setField(Contact::Email4Title, ui->editEmail4->text().isEmpty() ? QString("") : ui->editEmail4Title->text()) ;
-    newdr.setField(Contact::Voip, ui->editVoip->text()) ;
-    newdr.setField(Contact::Webaddress, ui->editWebAddress->text()) ;
-    newdr.setField(Contact::Birthday, dateTimeToXsDate(ui->editDateOfBirth->getDateTime()));
-    newdr.setField(Contact::Comments, ui->editComment->toPlainText() );
-    newdr.setFlag(Contact::GroupBusiness, ui->checkBusiness->isChecked()) ;
-    newdr.setFlag(Contact::GroupClient, ui->checkClient->isChecked()) ;
-    newdr.setFlag(Contact::GroupFamily, ui->checkFamily->isChecked()) ;
-    newdr.setFlag(Contact::GroupFriend, ui->checkFriend->isChecked()) ;
-    newdr.setFlag(Contact::GroupOther, ui->checkOther->isChecked()) ;
-    newdr.setFlag(Contact::Hidden, ui->checkHidden->isChecked()) ;
-    newdr.setFlag(Contact::EmailMe, ui->checkEmailMe->checkState()!=Qt::Unchecked) ;
-    newdr.setFlag(Contact::TextMe, ui->checkTextMe->checkState()!=Qt::Unchecked) ;
+    FormToContact(newdr) ;
 
     // If nothing set / changed / updated, return.  A field that was cleared does not make newdr dirty, so compare with dr.
     if (dr.matches(newdr, Contact::mcDetailsGroup)) return true ;
+
+    // A tidy done on opening is not an edit: it is kept on the form, and saved with the next real change
+    if (!FormHasEdits(dr)) return true ;
 
     // Check the textme and emailme fields are right for a client
     if ( gConf->getEnableReminders() &&

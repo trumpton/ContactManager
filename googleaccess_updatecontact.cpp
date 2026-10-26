@@ -386,7 +386,18 @@ bool GoogleAccess::updateContact(Contact &contact, googleAction action, QString 
             QString tag = "" ;
             if (parseContact(jsonresponse, tag, googlecontact)) {
                 googlecontact.copyTo(contact, Contact::mcGoogleId) ;
-                QString mismatch = contact.mismatch(googlecontact, Contact::mcDetails|Contact::mcId, true) ;
+
+                // The labels that were sent.  A blank title was sent as the label its entry has by default, so that is
+                // what Google holds, and the comparison uses it.
+                Contact sent = contact ;
+                const Contact::ContactRecord sentemails[4] = { Contact::Email, Contact::Email2, Contact::Email3, Contact::Email4 } ;
+                const Contact::ContactRecord sentemailtitles[4] = { Contact::EmailTitle, Contact::Email2Title, Contact::Email3Title, Contact::Email4Title } ;
+                for (int i=0; i<4; i++) if (!contact.getField(sentemails[i]).isEmpty()) sent.setField(sentemailtitles[i], contact.emailLabel(i)) ;
+                const Contact::ContactRecord sentphones[6] = { Contact::Phone, Contact::Work, Contact::Mobile, Contact::Phone2, Contact::Phone3, Contact::Phone4 } ;
+                const Contact::ContactRecord sentphonetitles[6] = { Contact::PhoneTitle, Contact::WorkTitle, Contact::MobileTitle, Contact::Phone2Title, Contact::Phone3Title, Contact::Phone4Title } ;
+                for (int i=0; i<6; i++) if (!contact.getField(sentphones[i]).isEmpty()) sent.setField(sentphonetitles[i], contact.phoneLabel(i)) ;
+
+                QString mismatch = sent.mismatch(googlecontact, Contact::mcDetails|Contact::mcId, true) ;
                 if (mismatch.isEmpty()) {
                     addLog(QString("    parseContact OK ")) ;
                 } else {
