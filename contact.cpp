@@ -618,8 +618,8 @@ QString& Contact::parsePhoneNumber(QString src)
         return result ;
     }
 
-    // Remove all Spaces
-    result = src.replace(" ","") ;
+    // Drop the (0) trunk zero after a country code, then remove all Spaces
+    result = FieldFormat::dropTrunkZero(src.trimmed()).replace(" ","") ;
 
     // Replace leading 00 with +
     // [...].replace(QRegExp("((?:https?|ftp)://\\S+)"), "<a href=\"\\1\">\\1</a>")

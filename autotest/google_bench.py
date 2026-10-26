@@ -918,11 +918,13 @@ def x04():
     digits = lambda s: "".join(ch for ch in s if ch.isdigit())
     gvals = sorted(digits(v) for v, _ in contact_info(goog[0])["phones"]) if goog else []
     want = sorted(digits(v) for v, _ in phones)
+    # The app drops the (0) after a country code, so it holds the number without it
+    want_app = sorted(digits(v.replace("(0)", "")) for v, _ in phones)
     return [Check("Google digits unchanged", gvals == want, "got %s" % gvals),
-            Check("app holds all three numbers",
+            Check("app holds all three numbers, without the (0) trunk zero",
                   len(app_live_contacts(run.dump, "X04")) == 1 and
                   sorted(digits(app_live_contacts(run.dump, "X04")[0].get(k, "")) for k in PHONE_KEYS
-                         if app_live_contacts(run.dump, "X04")[0].get(k)) == want)]
+                         if app_live_contacts(run.dump, "X04")[0].get(k)) == want_app)]
 
 
 @scenario("X05", "Same email on two different contacts: both kept, not merged")

@@ -39,6 +39,14 @@ bool splitLabel(const QString &text, QString &value, QString &label)
     return true ;
 }
 
+QString dropTrunkZero(const QString &number)
+{
+    static const QRegularExpression trunk(QStringLiteral("^(\\+\\d+)\\s*\\(0\\)\\s*")) ;
+    QString result = number ;
+    result.replace(trunk, QStringLiteral("\\1 ")) ;
+    return result ;
+}
+
 bool validPhoneNumber(const QString &number)
 {
     static const QRegularExpression allowed(QStringLiteral("^\\+?[0-9 ()\\-.]+$")) ;
