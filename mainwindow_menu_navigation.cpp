@@ -32,15 +32,13 @@ void MainWindow::on_actionGotoMe_triggered()
      dbg("listCalendar->setCurrentIndex()") ;
      ui->listCalendar->setCurrentIndex(calendarlist.index(0,0)) ;
 
-     Appointment nearest = calendar.getNearestAppointment() ;
-     QString thisid = nearest.getField(Appointment::ID) ;
-     QModelIndex index = calendarlist.find(thisid) ;
-
-     if (!index.isValid()) {
-         // No nearest entry found, goto end of list
-         int rows = calendarlist.rowCount() ;
-         index = calendarlist.index(rows-1,0) ;
+     // The nearest entry is the first one in the list that has not ended, repeats included.  If there is none, the end.
+     QDateTime now = QDateTime::currentDateTimeUtc() ;
+     int nearestrow = -1 ;
+     for (int r=0; r<calendarrowends.size() && nearestrow<0; r++) {
+         if (calendarrowends[r] > now) nearestrow = r ;
      }
+     QModelIndex index = calendarlist.index(nearestrow>=0 ? nearestrow : calendarlist.rowCount()-1, 0) ;
 
      if (index.isValid()) {
          dbg("listCalendar->setCurrentIndex()") ;

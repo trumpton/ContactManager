@@ -2023,5 +2023,69 @@ def g42():
                   "repeats %d, expected %d" % (len(repeats), len(repeats_in_window(-120))))]
 
 
+@scenario("E30", "#30: a repeat ends after a number of times, or on a date, in the list and in the form")
+def e30():
+    weekly = {"summary": "BENCH E30 count", "from": at_day(2, "09:00"), "to": at_day(2, "10:00"),
+              "repeat": "2", "repeatinterval": "1", "repeatcount": "3"}
+    until_ = dict(weekly, summary="BENCH E30 until", repeatcount="", repeatuntil=at_day(16, "09:00"))
+    run = Run("E30", [{"op": "add_appointment", "fields": weekly},
+                      {"op": "add_appointment", "fields": until_},
+                      {"op": "calendar_rows", "name": "e30"},
+                      {"op": "form_repeat", "name": "formcount", "repeat": "2", "every": "1", "count": "3", "until": ""},
+                      {"op": "form_repeat", "name": "formuntil", "repeat": "2", "every": "1", "count": "",
+                       "until": at_day(16, "09:00")},
+                      dump()]).execute()
+    r = run.dump_file("results.json")
+    rows = r.get("e30_hints", [])
+    stored = {x.get("summary"): x.get("id") for x in run.dump["appointments"]}
+    count_id = stored.get("BENCH E30 count", "")
+    until_id = stored.get("BENCH E30 until", "")
+    count_rows = [h for h in rows if count_id and h.split("@")[0] == count_id]
+    until_rows = [h for h in rows if until_id and h.split("@")[0] == until_id]
+    return [Check("a repeat with a count is listed that many times, including the first", len(count_rows) == 3,
+                  "rows %d, expected 3" % len(count_rows)),
+            Check("a repeat with an until date stops on that date", len(until_rows) == 3,
+                  "rows %d, expected 3 (weeks 0, 1 and 2)" % len(until_rows)),
+            Check("the form keeps a count", r.get("formcount_count") == "3" and r.get("formcount_until") == "",
+                  "count %r, until %r" % (r.get("formcount_count"), r.get("formcount_until"))),
+            Check("the form keeps an until date", r.get("formuntil_until", "")[:10] == at_day(16, "09:00")[:10],
+                  "until %r" % r.get("formuntil_until"))]
+
+
+@scenario("G43", "#30: a Google repeat with a count is stored once and listed that many times, and an app edit keeps the count")
+def g43():
+    eid = api("POST", CALENDAR + "/events", {"summary": "BENCH G43 count", "start": {"dateTime": at_day(2, "09:00"), "timeZone": "UTC"},
+                                              "end": {"dateTime": at_day(2, "10:00"), "timeZone": "UTC"},
+                                              "recurrence": ["RRULE:FREQ=WEEKLY;COUNT=3"]})["id"]
+    third = at_day(2 + 7 * 2, "09:00")
+    run = Run("G43", [sync(), {"op": "calendar_rows", "name": "g43"},
+                      {"op": "repeat_edit", "name": "g43", "summary": "BENCH G43 count", "occurrence": third,
+                       "shiftdays": 0, "newsummary": "BENCH G43 edited"},
+                      sync(), dump()]).execute()
+    stored = [x for x in run.dump["appointments"] if x.get("summary") in ("BENCH G43 count", "BENCH G43 edited")]
+    origin_id = stored[0]["id"] if stored else ""
+    rows = [h for h in run.dump_file("results.json").get("g43_hints", []) if origin_id and h.split("@")[0] == origin_id]
+    event = api("GET", CALENDAR + "/events/" + eid)
+    return [Check("the Google repeat is stored once, and listed three times", len(stored) == 1 and len(rows) == 3,
+                  "stored %d, rows %d" % (len(stored), len(rows))),
+            Check("the count survives an edit in the app", any("COUNT=3" in r for r in event.get("recurrence", [])),
+                  "recurrence %r" % event.get("recurrence"))]
+
+
+@scenario("T30", "#30: Goto Today selects the first entry that has not ended, including a repeat, rather than the end of the list")
+def t30():
+    run = Run("T30", [{"op": "add_appointment", "fields": {"summary": "BENCH T30 weekly", "from": at_day(-3, "09:00"),
+                                                         "to": at_day(-3, "10:00"), "repeat": "2", "repeatinterval": "1"}},
+                      {"op": "calendar_rows", "name": "t30"},
+                      {"op": "goto_today", "name": "t30"},
+                      dump()]).execute()
+    r = run.dump_file("results.json")
+    hint = r.get("t30_hint") or ""
+    return [Check("the selected row is the repeat four days from now", hint.endswith("@" + at_day(4, "09:00")),
+                  "selected %r" % hint),
+            Check("Goto Today does not go to the end of the list", r.get("t30_row", -1) != len(r.get("t30_hints", [])) - 1,
+                  "row %r of %d" % (r.get("t30_row"), len(r.get("t30_hints", []))))]
+
+
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

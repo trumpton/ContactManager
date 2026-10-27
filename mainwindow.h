@@ -157,6 +157,7 @@ private:
     QTimer *timer ;
     Encryption *enc ;
     AdvancedFind *find ;
+    QList<QDateTime> calendarrowends ;              // The end of each row in the calendar list, so Goto Today can find the nearest
     bool titledEntriesHeld ;                        // An email or phone entry was refused: the form is not reloaded until it is fixed
 
     QString SMTPSMSErrorMessage ;

@@ -31,7 +31,7 @@ void MainWindow::LoadCalendarTab()
     calendarlist.clear() ;
 
     // A row for an entry, shown at a start.  A repeat is shown at its own start and end, and its hint is its own.
-    struct Row { QDateTime start ; QString title ; QString accessible ; QString hint ; } ;
+    struct Row { QDateTime start ; QDateTime end ; QString title ; QString accessible ; QString hint ; } ;
     QList<Row> rows ;
     auto addRow = [&](Appointment &appt, QDateTime start, QString hint) {
         QDateTime from = appt.getDate(Appointment::From) ;          // getDate shares one value, so copy each date
@@ -47,6 +47,7 @@ void MainWindow::LoadCalendarTab()
         }
         Row row ;
         row.start = start ;
+        row.end = start.addSecs(from.secsTo(to)) ;
         row.title = shown.asText(apptfor) ;
         row.accessible = shown.asAccessibleText(apptfor) ;
         row.hint = hint ;
@@ -78,6 +79,7 @@ void MainWindow::LoadCalendarTab()
            for (int n=1; n<maxrepeats; n++) {
                QDateTime start = appt.occurrenceFrom(n) ;
                if (start > windowend) break ;
+               if (!appt.occurrenceExists(n)) break ;
                if (start.addSecs(length) > windowstart) addRow(appt, start, Calendar::occurrenceHint(apptid, start)) ;
            }
        }
@@ -87,8 +89,10 @@ void MainWindow::LoadCalendarTab()
     std::stable_sort(rows.begin(), rows.end(), [](const Row &a, const Row &b) { return a.start < b.start ; }) ;
 
     // The entry on screen is kept.  If it is no longer listed, its appointment is, so the list is not left at the end.
+    calendarrowends.clear() ;
     for (int j=0; j<rows.size(); j++) {
         calendarlist.appendData(rows[j].title, rows[j].accessible, rows[j].hint) ;
+        calendarrowends << rows[j].end ;
         if (matchid<0 && rows[j].hint.compare(selected)==0) matchid = j ;
     }
     if (matchid<0) {
@@ -133,6 +137,12 @@ static Appointment appointmentForRepeat(Appointment &result, Appointment &origin
     QDateTime newfrom = origfrom.addSecs(shift) ;
     moved.setDate(Appointment::From, newfrom) ;
     moved.setDate(Appointment::To, newfrom.addSecs(formfrom.secsTo(formto))) ;
+
+    // A repeat's end moves with the appointment
+    QString until = result.getField(Appointment::RepeatUntil) ;
+    if (!until.isEmpty() && shift!=0) {
+        moved.setField(Appointment::RepeatUntil, QDateTime::fromString(until, Qt::ISODate).addSecs(shift).toUTC().toString(Qt::ISODate)) ;
+    }
     return moved ;
 }
 

@@ -48,6 +48,10 @@ public:
         ToBeUploaded,           // Used to track uploads
         ToBeDownloaded,         // Used to track downloads
 
+        // Repeat end: the number of times it repeats (counting this appointment), and the date it stops
+        RepeatCount,
+        RepeatUntil,
+
         NumberOfRecords
 
         //------------------------
@@ -95,7 +99,10 @@ public:
         { MessageCounter,      false, false, false, true, "messagecounter" },
 
         { ToBeUploaded,         true, false, false, false, "tobeuploaded" },
-        { ToBeDownloaded,       true, false, false, false, "tobedownloaded" }
+        { ToBeDownloaded,       true, false, false, false, "tobedownloaded" },
+
+        { RepeatCount,         false,  true, false, true, "repeatcount" },
+        { RepeatUntil,         false,  true, false, true, "repeatuntil" }
     } ;
 
     // Match and Copy Masks (matype)
@@ -159,6 +166,9 @@ public:
     // occurrences are worked out from this appointment, and are not stored.  Occurrence 0 is this appointment.
     bool isRepeating() ;
     QDateTime occurrenceFrom(int n) ;
+
+    // True if occurrence n exists: it is within the repeat count, and starts no later than the repeat's until date
+    bool occurrenceExists(int n) ;
 
     bool isNotFor(QString& id) ;
 
