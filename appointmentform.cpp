@@ -83,6 +83,19 @@ void AppointmentForm::setupForm(ContactDatabase &db, QString contactid, Appointm
    ui->editWhenTo->setDateTime(then) ;
    ui->editSummary->setText(summary) ;
    ui->plaintexteditDescription->setPlainText(description);
+
+   // The repeat: its type, and how often it repeats.  The unit after the number follows the type.
+   int repeat = appt.getField(Appointment::Repeat).toInt() ;
+   ui->comboRepeat->setCurrentIndex((repeat>=0 && repeat<=4) ? repeat : 0) ;
+   ui->spinRepeatEvery->setValue(qMax(1, appt.getField(Appointment::RepeatInterval).toInt())) ;
+   auto updateRepeat = [this]() {
+       static const char *units[5] = { "", "day(s)", "week(s)", "month(s)", "year(s)" } ;
+       int type = ui->comboRepeat->currentIndex() ;
+       ui->spinRepeatEvery->setEnabled(type>0) ;
+       ui->labelRepeatUnit->setText(units[type]) ;
+   } ;
+   updateRepeat() ;
+   connect(ui->comboRepeat, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [updateRepeat](int) { updateRepeat() ; }) ;
 }
 
 AppointmentForm::~AppointmentForm()
@@ -120,6 +133,10 @@ Appointment& AppointmentForm::getAppointmentDetails()
 
     description = ui->plaintexteditDescription->document()->toPlainText() ;
     appt.setField(Appointment::Description, description) ;
+
+    // The repeat: 0 for none, or the type, and how often it repeats
+    appt.setField(Appointment::Repeat, QString::number(ui->comboRepeat->currentIndex())) ;
+    appt.setField(Appointment::RepeatInterval, QString::number(ui->spinRepeatEvery->value())) ;
 
     return appt ;
 }

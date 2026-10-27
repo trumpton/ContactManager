@@ -1941,5 +1941,16 @@ def p31():
                   "focus %r, expected the appointment %r" % (r.get("p31b_selected_hint"), origin_id))]
 
 
+@scenario("D30", "#30: the appointment form keeps a repeat's type and interval, and gives back none for an appointment that does not repeat")
+def d30():
+    r = Run("D30", [{"op": "form_repeat", "name": "weekly3", "repeat": "2", "every": "3"},
+                    {"op": "form_repeat", "name": "none", "repeat": "0", "every": "1"}]).execute()
+    res = r.dump_file("results.json")
+    return [Check("a weekly repeat every 3 is kept", res.get("weekly3_repeat") == "2" and res.get("weekly3_every") == "3",
+                  "repeat %r, every %r" % (res.get("weekly3_repeat"), res.get("weekly3_every"))),
+            Check("an appointment that does not repeat stays so", res.get("none_repeat") == "0",
+                  "repeat %r" % res.get("none_repeat"))]
+
+
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
