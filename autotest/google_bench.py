@@ -1952,5 +1952,39 @@ def d30():
                   "repeat %r" % res.get("none_repeat"))]
 
 
+def create_recurring_event(summary, start, end, rule):
+    body = {"summary": summary, "start": {"dateTime": start}, "end": {"dateTime": end}, "recurrence": [rule]}
+    return api("POST", CALENDAR + "/events", body)["id"]
+
+
+@scenario("G40", "#30: a repeating Google event is stored once, with its repeat, and listed on each week")
+def g40():
+    start, end = at_day(2, "09:00"), at_day(2, "10:00")
+    create_recurring_event("BENCH G40 weekly", start, end, "RRULE:FREQ=WEEKLY;INTERVAL=1")
+    weeks = [k for k in range(0, 200) if 2 + 7 * k <= 93]
+    run = Run("G40", [sync(), {"op": "calendar_rows", "name": "g40"}, dump()]).execute()
+    r = run.dump_file("results.json")
+    stored = [x for x in run.dump["appointments"] if x.get("summary") == "BENCH G40 weekly"]
+    listed = [h for h in r.get("g40_hints", []) if stored and h.split("@")[0] == stored[0]["id"]]
+    return [Check("the event is stored once, not once per week", len(stored) == 1, "stored %d times" % len(stored)),
+            Check("the event is listed on each week in the repeats window", len(listed) == len(weeks),
+                  "rows %d, expected %d" % (len(listed), len(weeks)))]
+
+
+@scenario("G41", "#30: an edit of a repeat in the app changes the Google event, and the event stays repeating")
+def g41():
+    start, end = at_day(2, "09:00"), at_day(2, "10:00")
+    eid = create_recurring_event("BENCH G41 weekly", start, end, "RRULE:FREQ=WEEKLY;INTERVAL=1")
+    third = at_day(2 + 7 * 2, "09:00")
+    Run("G41", [sync(), {"op": "repeat_edit", "name": "g41", "summary": "BENCH G41 weekly", "occurrence": third,
+                         "shiftdays": 0, "newsummary": "BENCH G41 edited"}, sync(), dump()]).execute()
+    event = api("GET", CALENDAR + "/events/" + eid)
+    rules = event.get("recurrence", [])
+    return [Check("Google holds the edited summary", event.get("summary") == "BENCH G41 edited",
+                  "summary %r" % event.get("summary")),
+            Check("the Google event still repeats weekly", any("FREQ=WEEKLY" in r for r in rules),
+                  "recurrence %r" % rules)]
+
+
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

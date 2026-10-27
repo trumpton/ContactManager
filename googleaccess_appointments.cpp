@@ -80,7 +80,8 @@ bool GoogleAccess::getCalendar(Calendar &googlecalendar, int startdays, int endd
                 QJsonObject item = value.toObject() ;
 
                 // Add the changes, storing only non-deleted entries
-                if (parseAppointment(item, appt, account)) {
+                // An exception to a repeat has a recurringEventId: the repeat is the entry, so it is not stored again
+                if (item["recurringEventId"].toString().isEmpty() && parseAppointment(item, appt, account)) {
                     if (!appt.isSet(Appointment::Deleted)) {
                         googlecalendar.addAppointment(appt, false) ;
                     }
@@ -172,6 +173,31 @@ bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QStrin
     appt.setField(Appointment::Description, description) ;
     appt.setField(Appointment::Location, location) ;
     appt.setField(Appointment::Flags, flags) ;
+
+    // The rule of a repeating event: a repeat every day, week, month or year.  Other rules are read as the first
+    // occurrence only, as the app cannot show them.  Exceptions to a repeat are skipped by the download.
+    QString repeattype = "0" ;
+    QString repeatevery = "0" ;
+    foreach (const QJsonValue &rule, item["recurrence"].toArray()) {
+        QString text = rule.toString().trimmed() ;
+        if (!text.startsWith("RRULE:")) continue ;
+        QString freq ;
+        int every = 1 ;
+        foreach (const QString &part, text.mid(6).split(';')) {
+            QStringList keyvalue = part.split('=') ;
+            if (keyvalue.size()!=2) continue ;
+            if (keyvalue[0]=="FREQ") freq = keyvalue[1] ;
+            if (keyvalue[0]=="INTERVAL") every = qMax(1, keyvalue[1].toInt()) ;
+        }
+        if (freq=="DAILY") repeattype = "1" ;
+        else if (freq=="WEEKLY") repeattype = "2" ;
+        else if (freq=="MONTHLY") repeattype = "3" ;
+        else if (freq=="YEARLY") repeattype = "4" ;
+        if (repeattype!="0") repeatevery = QString::number(every) ;
+        break ;
+    }
+    appt.setField(Appointment::Repeat, repeattype) ;
+    appt.setField(Appointment::RepeatInterval, repeatevery) ;
 
     if (!fromdatetime.isEmpty()) {
         appt.setField(Appointment::From, fromdatetime) ;
@@ -306,6 +332,16 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
         root.insert("summary",  summary) ;
         root.insert("description",  appt.getField(Appointment::Description)) ;
         root.insert("location", appt.getField(Appointment::Location)) ;
+
+        // A repeat is sent as its rule, so Google repeats it.  An empty list is no repeat.
+        QJsonArray rules ;
+        if (appt.isRepeating()) {
+            static const char *freqs[5] = { "", "DAILY", "WEEKLY", "MONTHLY", "YEARLY" } ;
+            int type = appt.getField(Appointment::Repeat).toInt() ;
+            int every = qMax(1, appt.getField(Appointment::RepeatInterval).toInt()) ;
+            rules.append("RRULE:FREQ=" + QString(freqs[type]) + ";INTERVAL=" + QString::number(every)) ;
+        }
+        root.insert("recurrence", rules) ;
 
         if (false) {
             // All Day Event
