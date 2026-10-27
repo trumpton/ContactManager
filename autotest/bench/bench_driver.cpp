@@ -394,6 +394,11 @@ int main(int argc, char *argv[])
             note(QString("calendar_click %1: row %2, focus %3").arg(name).arg(w.ui->listCalendar->currentIndex().row())
                  .arg(focus ? focus->objectName() : QString())) ;
 
+        } else if (kind == "report_clashes") {
+            // Runs the check the window does when it opens, on demand
+            w.reportClashes() ;
+            note("report_clashes done") ;
+
         } else if (kind == "answer") {
             // Clicks the button with this text on the next dialog that asks a question
             nextanswer = op["text"].toString() ;
