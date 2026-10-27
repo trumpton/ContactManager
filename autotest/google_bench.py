@@ -2087,5 +2087,14 @@ def t30():
                   "row %r of %d" % (r.get("t30_row"), len(r.get("t30_hints", []))))]
 
 
+@scenario("G44", "#30: an appointment on Google older than the one-year lookback is not downloaded")
+def g44():
+    api("POST", CALENDAR + "/events", {"summary": "BENCH G44 old", "start": {"dateTime": at_day(-400, "09:00"), "timeZone": "UTC"},
+                                       "end": {"dateTime": at_day(-400, "10:00"), "timeZone": "UTC"}})
+    run = Run("G44", [sync(), dump()]).execute()
+    held = [x for x in run.dump["appointments"] if x.get("summary") == "BENCH G44 old"]
+    return [Check("an event 400 days old is not downloaded", len(held) == 0, "held %d" % len(held))]
+
+
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
