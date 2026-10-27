@@ -157,6 +157,7 @@ private:
     Encryption *enc ;
     AdvancedFind *find ;
     bool titledEntriesHeld ;                        // An email or phone entry was refused: the form is not reloaded until it is fixed
+    bool quitting ;                                 // Quitting with an entry that is not right: the entries are not checked, and the bad ones are kept as stored
 
     QString SMTPSMSErrorMessage ;
 
@@ -186,6 +187,8 @@ private:
     Contact& formContact() ;                    // The contact the form shows, even when the selection has moved on
     QString formContactId ;                     // The ID of the contact the form was loaded with
     bool FormHasEdits(Contact &dr) ;            // True when the form has an edit that is not already in the contact
+    bool FormHasBadEntry() ;                    // True when an email or phone entry on the form, or its title, is not right
+    void KeepStoredEntries(Contact &dr) ;       // Puts the stored value back into each entry that is not right, so the rest can be saved
     void FormToContact(Contact &newdr) ;        // Copies the contact details on the form into newdr
     bool SaveContactTab(bool explicitsave=false) ;     // Transfer Contact Tab -> Database Item Contact Data
     void LoadCalendarTab() ;  // Transfer Global Calendar to Calendar Tab

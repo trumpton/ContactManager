@@ -26,6 +26,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     enc=NULL ;
     find=NULL ;
     titledEntriesHeld=false ;
+    quitting=false ;
 
     ui->setupUi(this);
     setupTitledEntries() ;
@@ -272,9 +273,26 @@ MainWindow::~MainWindow()
     }
 }
 
-// A refused entry keeps the window open, so the typed text is not lost
+// A refused entry keeps the window open, so the typed text is not lost.  Quitting with an edit and an entry that is not
+// right asks first.  Quit saves the other changes, and leaves the entry as it was saved.  Stay keeps the window open.
 void MainWindow::closeEvent(QCloseEvent *event)
 {
+    Contact &dr = formContact() ;
+    if (!dr.isNull() && FormHasEdits(dr) && FormHasBadEntry()) {
+        bool quit = warningYesNoDialog(this, "Exit", QString("Contact: %1\n\nAn email or phone entry on this contact is not "
+                        "formatted correctly, so it will not be saved.\n\nQuit without saving it?  The other changes are saved.")
+                        .arg(dr.getFormattedName(false, false)), "Quit", QChar('q'), "Stay", QChar('s')) ;
+        if (!quit) {
+            event->ignore() ;
+            return ;
+        }
+        quitting = true ;
+        KeepStoredEntries(dr) ;
+        SaveTabs() ;
+        QMainWindow::closeEvent(event) ;
+        return ;
+    }
+
     if (!ValidateTitledEntries(formContact())) {
         event->ignore() ;
         return ;

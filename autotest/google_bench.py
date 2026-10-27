@@ -1613,6 +1613,35 @@ def f10():
                   "exit accepted %r" % rc.get("f10c_exit_accepted"))]
 
 
+@scenario("F12", "#68: quitting with an edit and an entry that is not right asks first: Stay keeps the window open, Quit saves the rest")
+def f12():
+    bad = "Bad Field 1: f12@test.invalid - Bad Field 2 (Bad Field 3)"
+    a = Run("F12a", [add_contact_op("F12", email="f12@test.invalid"),
+                     {"op": "open_contact", "name": "f12a", "match": {"surname": "F12"}},
+                     {"op": "form_set", "fields": {"email": bad, "phone": "+44 20 7946 1201"}},
+                     {"op": "answer", "text": "Stay"},
+                     {"op": "exit", "name": "f12stay"},
+                     {"op": "answer", "text": "Quit"},
+                     {"op": "exit", "name": "f12quit"},
+                     dump()], session="F12").execute()
+    # A fresh launch, to see what was saved
+    b = Run("F12b", [{"op": "open_contact", "name": "f12b", "match": {"surname": "F12"}, "details": False},
+                     dump()], session="F12").execute()
+    ra = a.dump_file("results.json")
+    saved = app_live_contacts(b.dump_file("dump.json"), "F12")
+    stored = saved[0] if saved else {}
+    return [Check("Stay keeps the window open", ra.get("f12stay_exit_accepted") is False,
+                  "exit accepted %r" % ra.get("f12stay_exit_accepted")),
+            Check("the question was asked, and answered Stay then Quit",
+                  'answered "Stay"' in a.log() and 'answered "Quit"' in a.log(), "driver log has no answer lines"),
+            Check("Quit closes the window", ra.get("f12quit_exit_accepted") is True,
+                  "exit accepted %r" % ra.get("f12quit_exit_accepted")),
+            Check("the bad email is not saved: the stored email is kept", len(saved) == 1 and stored.get("email") == "f12@test.invalid",
+                  "email %r" % stored.get("email")),
+            Check("the other change is saved", len(saved) == 1 and digits(stored.get("phone", "")).endswith("79461201"),
+                  "phone %r" % stored.get("phone"))]
+
+
 @scenario("E03","Editor: an older entry with its label in the address is tidied when opened, and saved with the next change")
 def e03():
     resource = form_scenario_contact("E03", address="e03@test.invalid (Work)")
