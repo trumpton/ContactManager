@@ -1613,16 +1613,18 @@ def f10():
                   "exit accepted %r" % rc.get("f10c_exit_accepted"))]
 
 
-@scenario("F12", "#68: quitting with an edit and an entry that is not right asks first: Stay keeps the window open, Quit saves the rest")
+@scenario("F12", "#68: quitting with edits asks Save, Discard or Cancel: Save refuses a bad entry, Discard keeps the stored contact")
 def f12():
     bad = "Bad Field 1: f12@test.invalid - Bad Field 2 (Bad Field 3)"
     a = Run("F12a", [add_contact_op("F12", email="f12@test.invalid"),
                      {"op": "open_contact", "name": "f12a", "match": {"surname": "F12"}},
                      {"op": "form_set", "fields": {"email": bad, "phone": "+44 20 7946 1201"}},
-                     {"op": "answer", "text": "Stay"},
-                     {"op": "exit", "name": "f12stay"},
-                     {"op": "answer", "text": "Quit"},
-                     {"op": "exit", "name": "f12quit"},
+                     {"op": "answer", "text": "Save"},
+                     {"op": "exit", "name": "f12save"},
+                     {"op": "answer", "text": "Cancel"},
+                     {"op": "exit", "name": "f12cancel"},
+                     {"op": "answer", "text": "Discard"},
+                     {"op": "exit", "name": "f12discard"},
                      dump()], session="F12").execute()
     # A fresh launch, to see what was saved
     b = Run("F12b", [{"op": "open_contact", "name": "f12b", "match": {"surname": "F12"}, "details": False},
@@ -1630,16 +1632,57 @@ def f12():
     ra = a.dump_file("results.json")
     saved = app_live_contacts(b.dump_file("dump.json"), "F12")
     stored = saved[0] if saved else {}
-    return [Check("Stay keeps the window open", ra.get("f12stay_exit_accepted") is False,
-                  "exit accepted %r" % ra.get("f12stay_exit_accepted")),
-            Check("the question was asked, and answered Stay then Quit",
-                  'answered "Stay"' in a.log() and 'answered "Quit"' in a.log(), "driver log has no answer lines"),
-            Check("Quit closes the window", ra.get("f12quit_exit_accepted") is True,
-                  "exit accepted %r" % ra.get("f12quit_exit_accepted")),
-            Check("the bad email is not saved: the stored email is kept", len(saved) == 1 and stored.get("email") == "f12@test.invalid",
-                  "email %r" % stored.get("email")),
-            Check("the other change is saved", len(saved) == 1 and digits(stored.get("phone", "")).endswith("79461201"),
-                  "phone %r" % stored.get("phone"))]
+    return [Check("Save refuses the bad entry: the window stays open, with the warning shown",
+                  ra.get("f12save_exit_accepted") is False and "Contact Details" in a.log(),
+                  "exit accepted %r" % ra.get("f12save_exit_accepted")),
+            Check("Cancel keeps the window open", ra.get("f12cancel_exit_accepted") is False,
+                  "exit accepted %r" % ra.get("f12cancel_exit_accepted")),
+            Check("Discard closes the window", ra.get("f12discard_exit_accepted") is True,
+                  "exit accepted %r" % ra.get("f12discard_exit_accepted")),
+            Check("Discard keeps the stored contact: no bad email, and no phone change",
+                  len(saved) == 1 and stored.get("email") == "f12@test.invalid" and not stored.get("phone"),
+                  "email %r, phone %r" % (stored.get("email"), stored.get("phone")))]
+
+
+@scenario("F13", "#68: switching contact, Tidy Contacts and sync ask Save or Discard when the contact has edits")
+def f13():
+    run = Run("F13", [add_contact_op("F13A", email="f13a@test.invalid"),
+                      add_contact_op("F13B", email="f13b@test.invalid"),
+                      # Switching away from an edit, and discarding it
+                      {"op": "open_contact", "name": "f13a", "match": {"surname": "F13A"}},
+                      {"op": "form_set", "fields": {"phone": "+44 20 7946 1301"}},
+                      {"op": "answer", "text": "Discard"},
+                      {"op": "open_contact", "name": "f13b", "match": {"surname": "F13B"}, "details": False},
+                      dump(file="d_switch_discard.json"),
+                      # Switching away from an edit, and saving it
+                      {"op": "form_set", "fields": {"phone": "+44 20 7946 1302"}},
+                      {"op": "answer", "text": "Save"},
+                      {"op": "open_contact", "name": "f13a2", "match": {"surname": "F13A"}, "details": False},
+                      dump(file="d_switch_save.json"),
+                      # Tidy Contacts with an edit, and discarding it
+                      {"op": "form_set", "fields": {"phone": "+44 20 7946 1303"}},
+                      {"op": "answer", "text": "Discard"},
+                      {"op": "tidy_full", "name": "f13t", "surname": "F13A"},
+                      dump(file="d_tidy_discard.json"),
+                      # Sync with an edit, and saving it
+                      {"op": "open_contact", "name": "f13b2", "match": {"surname": "F13B"}, "details": False},
+                      {"op": "form_set", "fields": {"phone": "+44 20 7946 1304"}},
+                      {"op": "answer", "text": "Save"},
+                      sync(),
+                      dump(file="d_sync_save.json")], session="F13").execute()
+    checks = [Check("switching with Discard does not save the phone",
+                    not any(c.get("phone") for c in app_live_contacts(run.dump_file("d_switch_discard.json"), "F13A")),
+                    "F13A phone was saved"),
+              Check("switching with Save saves the phone",
+                    any(digits(c.get("phone", "")).endswith("79461302") for c in app_live_contacts(run.dump_file("d_switch_save.json"), "F13B")),
+                    "F13B phone not saved"),
+              Check("Tidy Contacts with Discard does not save the phone",
+                    not any(c.get("phone") for c in app_live_contacts(run.dump_file("d_tidy_discard.json"), "F13A")),
+                    "F13A phone was saved"),
+              Check("sync with Save saves the phone first",
+                    any(digits(c.get("phone", "")).endswith("79461304") for c in app_live_contacts(run.dump_file("d_sync_save.json"), "F13B")),
+                    "F13B phone not saved")]
+    return checks
 
 
 @scenario("E03","Editor: an older entry with its label in the address is tidied when opened, and saved with the next change")
