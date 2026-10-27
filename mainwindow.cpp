@@ -6,6 +6,7 @@
 //
 // ==========================================================================
 
+#include <algorithm>
 #include <QProcess>
 #include <QMessageBox>
 #include <QPushButton>
@@ -157,6 +158,40 @@ void MainWindow::on_initial_focus()
     populateDialog(SELECT_OVERVIEW) ;
     on_tabBar_currentChanged(1) ;
     on_actionGotoToday_triggered() ;
+    reportClashes() ;
+}
+
+// Lists the pairs of appointments that overlap, so they can be fixed.  Nothing is changed.  Appointments are sorted by
+// their start, so an appointment is only compared with those that start before it ends.
+void MainWindow::reportClashes()
+{
+    QList<Appointment*> live ;
+    for (int i=0; i<calendar.size(); i++) {
+        Appointment &appt = calendar.getAppointment(i) ;
+        if (!appt.isSet(Appointment::Deleted) && !appt.isTemp()) live << &appt ;
+    }
+    std::sort(live.begin(), live.end(), [](Appointment *a, Appointment *b) {
+        return a->getDate(Appointment::From) < b->getDate(Appointment::From) ;
+    }) ;
+
+    // A line for an appointment: its summary, its day, and its times
+    auto describe = [](Appointment *appt) {
+        return QString("%1 (%2 - %3)").arg(appt->getField(Appointment::Summary),
+                                            appt->getDate(Appointment::From).toString("dd MMM yyyy HH:mm"),
+                                            appt->getDate(Appointment::To).toString("HH:mm")) ;
+    } ;
+
+    QStringList lines ;
+    for (int i=0; i<live.size(); i++) {
+        for (int j=i+1; j<live.size(); j++) {
+            if (live[j]->getDate(Appointment::From) >= live[i]->getDate(Appointment::To)) break ;
+            if (live[i]->clashes(*live[j])) lines << "    " + describe(live[i]) + " and " + describe(live[j]) ;
+        }
+    }
+    if (lines.isEmpty()) return ;
+
+    warningOkDialog(this, "Appointment Clashes", QString("These appointments overlap.  Nothing has been changed, so fix them in the calendar.\n\n%1")
+                    .arg(lines.join("\n")), true) ;
 }
 
 void MainWindow::abort()

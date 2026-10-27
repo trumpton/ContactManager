@@ -145,6 +145,7 @@ private slots:
     void on_action_Advanced_Find_triggered();
 
     void on_initial_focus() ;
+    void reportClashes() ;      // Lists the appointments that overlap, when the window opens.  Nothing is changed
 
 private:
     Ui::MainWindow *ui;
