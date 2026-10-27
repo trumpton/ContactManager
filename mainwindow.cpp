@@ -170,8 +170,10 @@ void MainWindow::reportClashes()
         Appointment &appt = calendar.getAppointment(i) ;
         if (!appt.isSet(Appointment::Deleted) && !appt.isTemp()) live << &appt ;
     }
+    // getDate returns one shared value, so a date is copied before the next one is read
     std::sort(live.begin(), live.end(), [](Appointment *a, Appointment *b) {
-        return a->getDate(Appointment::From) < b->getDate(Appointment::From) ;
+        QDateTime afrom = a->getDate(Appointment::From) ;
+        return afrom < b->getDate(Appointment::From) ;
     }) ;
 
     // A line for an appointment: its summary, its day, and its times
@@ -183,8 +185,9 @@ void MainWindow::reportClashes()
 
     QStringList lines ;
     for (int i=0; i<live.size(); i++) {
+        QDateTime iend = live[i]->getDate(Appointment::To) ;
         for (int j=i+1; j<live.size(); j++) {
-            if (live[j]->getDate(Appointment::From) >= live[i]->getDate(Appointment::To)) break ;
+            if (live[j]->getDate(Appointment::From) >= iend) break ;
             if (live[i]->clashes(*live[j])) lines << "    " + describe(live[i]) + " and " + describe(live[j]) ;
         }
     }
