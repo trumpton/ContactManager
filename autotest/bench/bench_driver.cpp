@@ -416,9 +416,16 @@ int main(int argc, char *argv[])
                 result.setDate(Appointment::From, occ.addSecs(shift)) ;
                 result.setDate(Appointment::To, occ.addSecs(shift + from.secsTo(to))) ;
                 if (op.contains("newsummary")) result.setField(Appointment::Summary, op["newsummary"].toString()) ;
+                if (op.contains("count")) result.setField(Appointment::RepeatCount, op["count"].toString()) ;
                 w.storeAppointmentEdit(result, op["occurrence"].toString()) ;
             }
             record(name + "_selected_hint", w.calendar.selectedHint()) ;
+
+            // The row that has the focus after the edit, and how many rows the list has (the last is "Add New")
+            int row = w.ui->listCalendar->currentIndex().row() ;
+            record(name + "_row", row) ;
+            record(name + "_rows", w.calendarlist.rowCount()) ;
+            record(name + "_listed", (row >= 0 && row < w.calendarlist.rowCount()) ? w.calendarlist.hintAt(row) : QString()) ;
             note("repeat_edit " + name) ;
 
         } else if (kind == "form_repeat") {

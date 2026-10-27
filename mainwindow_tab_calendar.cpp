@@ -95,10 +95,19 @@ void MainWindow::LoadCalendarTab()
         calendarrowends << rows[j].end ;
         if (matchid<0 && rows[j].hint.compare(selected)==0) matchid = j ;
     }
+    // The entry on screen is no longer listed, as when a repeat is shortened.  The entry of the same appointment that is
+    // nearest to it takes the focus, so the focus stays where it was.
     if (matchid<0) {
         QString selectedid = Calendar::appointmentIdOf(selected) ;
-        for (int j=0; j<rows.size() && matchid<0; j++) {
-            if (Calendar::appointmentIdOf(rows[j].hint).compare(selectedid)==0) matchid = j ;
+        QDateTime wanted = QDateTime::fromString(selected.section('@', 1), Qt::ISODate) ;
+        qint64 nearest = -1 ;
+        for (int j=0; j<rows.size(); j++) {
+            if (Calendar::appointmentIdOf(rows[j].hint).compare(selectedid)!=0) continue ;
+            qint64 gap = wanted.isValid() ? qAbs(rows[j].start.secsTo(wanted)) : 0 ;
+            if (nearest<0 || gap<nearest) {
+                nearest = gap ;
+                matchid = j ;
+            }
         }
     }
 
@@ -174,9 +183,13 @@ void MainWindow::storeAppointmentEdit(Appointment &result, QString occurrence)
     calendar.selectAppointment(hint) ;
     LoadTabs() ;
 
+    // LoadTabs has already chosen the row, including the nearest one when the edited entry is no longer listed.  An
+    // invalid row is never set, as it leaves the list with no focus.
     QModelIndex index = calendarlist.find(hint) ;
-    dbg("listCalendar->setCurrentIndex()") ;
-    ui->listCalendar->setCurrentIndex(index) ;
+    if (index.isValid()) {
+        dbg("listCalendar->setCurrentIndex()") ;
+        ui->listCalendar->setCurrentIndex(index) ;
+    }
 }
 
 void MainWindow::editAppointment(Appointment &editing, Appointment &reference, QString contactid, bool createnew, QString occurrence)
