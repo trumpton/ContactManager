@@ -149,10 +149,22 @@ int main(int argc, char *argv[])
     // Answer dialogs as they appear, including any shown while the main window is being built
     QWidget *lastmodal = nullptr ;
     int clicksonthis = 0 ;
+    QString nextanswer ;     // The button the next yes/no question is answered with, set by an "answer" operation
     QTimer *tick = new QTimer(&a) ;
     QObject::connect(tick, &QTimer::timeout, [&]() {
         QWidget *m = QApplication::activeModalWidget() ;
         if (!m) return ;
+
+        if (!nextanswer.isEmpty()) {
+            for (QPushButton *b : m->findChildren<QPushButton*>()) {
+                if (b->text() == nextanswer) {
+                    note("answered \"" + nextanswer + "\": " + m->windowTitle()) ;
+                    nextanswer.clear() ;
+                    b->click() ;
+                    return ;
+                }
+            }
+        }
 
         // A long sync keeps its progress dialog open for a long time, so only other dialogs can be stuck
         if (m->objectName() != "GoogleUpdateDialog" && m == lastmodal) {
@@ -336,6 +348,11 @@ int main(int argc, char *argv[])
             w.on_actionEnableContactDetailsEdit_triggered() ;
             record(name + "_details", w.ui->tabBar->currentIndex() == CONTACTDETAILSTABPOS) ;
             note("alt_edit " + name) ;
+
+        } else if (kind == "answer") {
+            // Clicks the button with this text on the next dialog that asks a question
+            nextanswer = op["text"].toString() ;
+            note("answer next question: " + nextanswer) ;
 
         } else if (kind == "exit") {
             // File > Exit, or Alt-F4: the window's close event decides whether the window closes.  The event is sent
