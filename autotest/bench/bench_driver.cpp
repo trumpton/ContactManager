@@ -96,6 +96,8 @@ static int appointmentRecordFor(const QString &key)
     if (key == "to") return Appointment::To ;
     if (key == "for") return Appointment::For ;
     if (key == "googlerecordid") return Appointment::GoogleRecordId ;
+    if (key == "repeat") return Appointment::Repeat ;
+    if (key == "repeatinterval") return Appointment::RepeatInterval ;
     return -1 ;
 }
 
@@ -340,6 +342,9 @@ int main(int argc, char *argv[])
             }
             // The contact that is selected after the open, so a scenario can see whether the switch happened
             record(op["name"].toString() + "_selected", w.db.getSelected().getField(Contact::Surname)) ;
+            // Where focus is after the open, so a scenario can see whether it stays on the calendar
+            QWidget *focus = w.focusWidget() ;
+            record(op["name"].toString() + "_focus", focus ? focus->objectName() : QString()) ;
             note(QString("open_contact matched %1 contact(s)").arg(hit)) ;
 
         } else if (kind == "alt_edit") {
