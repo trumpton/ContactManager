@@ -221,9 +221,12 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
         QDateTime from = localappt.getDate(Appointment::From) ;
         QDateTime to = localappt.getDate(Appointment::To) ;
 
-        // Just process non-temp entries within sync window
+        // Just process non-temp entries within sync window.  An entry that Google has, or that is to be downloaded, is
+        // processed whatever its date: a repeat, or an entry older than the window, is downloaded with its details.
+        bool ongoogle = !googlecal.getAppointmentBy(Appointment::ID, localappt.getField(Appointment::ID)).isNull() ;
         if ( !localappt.isTemp() &&
-               ( (from <= fromwindow && to >= fromwindow) ||
+               ( ongoogle || localappt.isSet(Appointment::ToBeDownloaded) ||
+                 (from <= fromwindow && to >= fromwindow) ||
                  (from >= fromwindow && to <= towindow) ||
                  ( from <= towindow && to >= towindow) )  ) {
 
