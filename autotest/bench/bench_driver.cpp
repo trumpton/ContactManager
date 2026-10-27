@@ -400,8 +400,10 @@ int main(int argc, char *argv[])
                  .arg(focus ? focus->objectName() : QString())) ;
 
         } else if (kind == "calendar_rows") {
-            // The calendar list as it is shown: each row's hint and title, in order
+            // The calendar list as it is shown: each row's hint and title, in order.  The list is rebuilt first, as the
+            // window does when its calendar tab loads.
             QString name = op["name"].toString() ;
+            w.LoadCalendarTab() ;
             QJsonArray hints, titles ;
             for (int r = 0; r < w.calendarlist.rowCount(); r++) {
                 hints.append(w.calendarlist.hintAt(r)) ;
