@@ -53,25 +53,32 @@ void MainWindow::LoadCalendarTab()
         rows << row ;
     } ;
 
-    // The entries in the calendar window, and the repeats of each in the repeats window.  A repeat is worked out here
-    // from its appointment, and is not stored.  The appointment itself is the first occurrence, so it is not repeated.
+    // The appointment window, from the settings.  An appointment is listed if it overlaps the window, and a repeat of one
+    // is listed if its occurrence does.  A repeat is worked out here from its appointment, and is not stored.  The
+    // appointment is the first occurrence, so it is not listed again as a repeat.  Its source may be outside the window,
+    // in which case only its repeats in the window are listed.
+    int windowbefore = gConf->calendarWindowBefore() ;
+    int windowafter = gConf->calendarWindowAfter() ;
     QDateTime now = QDateTime::currentDateTimeUtc() ;
-    QDateTime repeatsfrom = now.addDays(-gConf->calendarRepeatsBefore()) ;
-    QDateTime repeatsto = now.addDays(gConf->calendarRepeatsAfter()) ;
+    QDateTime windowstart = now.addDays(-windowbefore) ;
+    QDateTime windowend = now.addDays(windowafter) ;
     const int maxrepeats = 100000 ;
     int ne=calendar.size() ;
     for (int i=0; i<ne; i++) {
        Appointment &appt = calendar.getAppointment(i) ;
        if (appt.isSet(Appointment::Deleted)) continue ;
        QString apptid = appt.getField(Appointment::ID) ;
-       if (appt.isInRange(APPOINTMENTSTARTWINDOW, APPOINTMENTENDWINDOW)) {
+       if (appt.isInRange(windowbefore, windowafter)) {
            addRow(appt, appt.getDate(Appointment::From), apptid) ;
        }
        if (appt.isRepeating()) {
+           QDateTime apptfrom = appt.getDate(Appointment::From) ;     // copies: getDate shares one value
+           QDateTime apptto = appt.getDate(Appointment::To) ;
+           qint64 length = apptfrom.secsTo(apptto) ;
            for (int n=1; n<maxrepeats; n++) {
                QDateTime start = appt.occurrenceFrom(n) ;
-               if (start > repeatsto) break ;
-               if (start >= repeatsfrom) addRow(appt, start, Calendar::occurrenceHint(apptid, start)) ;
+               if (start > windowend) break ;
+               if (start.addSecs(length) > windowstart) addRow(appt, start, Calendar::occurrenceHint(apptid, start)) ;
            }
        }
     }
@@ -225,7 +232,7 @@ void MainWindow::editAppointment(Appointment &editing, Appointment &reference, Q
                 msg = msg + clash.asText(db.getContactById(clash.getField(Appointment::ContactId)).getFormattedName(false, false)) + "\n" ;
                 msg = msg + "Select Yes/Enter to save anyway, or No/Escape to go back and change it" ;
                 retry = !warningYesNoDialog(this, "Appointment Clash", msg) ;
-            } else if (!checked.isInRange(APPOINTMENTSTARTWINDOW, APPOINTMENTENDWINDOW)) {
+            } else if (!checked.isInRange(gConf->calendarWindowBefore(), gConf->calendarWindowAfter())) {
                 warningOkDialog(this, "Invalid Date", "You have set an invalid date for the appointment, please fix it") ;
                 retry = true ;
             } else if (duration==0) {

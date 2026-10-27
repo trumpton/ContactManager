@@ -243,8 +243,8 @@ void MainWindow::logLoadSummary()
 
     // Calendar
     QDateTime now = QDateTime::currentDateTimeUtc() ;
-    QDateTime windowstart = now.addDays(-APPOINTMENTSTARTWINDOW) ;
-    QDateTime windowend = now.addDays(APPOINTMENTENDWINDOW) ;
+    QDateTime windowstart = now.addDays(-gConf->calendarWindowBefore()) ;
+    QDateTime windowend = now.addDays(gConf->calendarWindowAfter()) ;
 
     int cdeleted=0, ccancelled=0, clinked=0, cinwindow=0, cbefore=0, cafter=0 ;
     int cbirthday=0, cinternet=0, ccontact=0, ccontactdeleted=0, ccontactmissing=0 ;

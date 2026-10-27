@@ -1888,8 +1888,8 @@ def at_day(days, time_of_day):
 @scenario("P30", "#30: a weekly appointment is listed on each week in the repeats window, and stored once")
 def p30():
     start, end = at_day(2, "09:00"), at_day(2, "10:00")
-    # Weeks from the start that fall in the repeats window (31 days before today to 93 days after)
-    weeks = [k for k in range(0, 200) if 2 + 7 * k <= 93]
+    # Weeks from the start that fall in the appointment window (90 days before today to 730 days after)
+    weeks = [k for k in range(0, 200) if 2 + 7 * k <= 730]
     run = Run("P30", [add_contact_op("P30C", email="p30c@test.invalid"),
                       {"op": "add_appointment", "fields": {"summary": "BENCH P30 weekly", "from": start, "to": end,
                                                          "repeat": "2", "repeatinterval": "1"}},
@@ -1963,7 +1963,7 @@ def create_recurring_event(summary, start, end, rule):
 def g40():
     start, end = at_day(2, "09:00"), at_day(2, "10:00")
     create_recurring_event("BENCH G40 weekly", start, end, "RRULE:FREQ=WEEKLY;INTERVAL=1")
-    weeks = [k for k in range(0, 200) if 2 + 7 * k <= 93]
+    weeks = [k for k in range(0, 200) if 2 + 7 * k <= 730]
     run = Run("G40", [sync(), {"op": "calendar_rows", "name": "g40"}, dump()]).execute()
     r = run.dump_file("results.json")
     stored = [x for x in run.dump["appointments"] if x.get("summary") == "BENCH G40 weekly"]
@@ -1986,6 +1986,41 @@ def g41():
                   "summary %r" % event.get("summary")),
             Check("the Google event still repeats weekly", any("FREQ=WEEKLY" in r for r in rules),
                   "recurrence %r" % rules)]
+
+
+def repeats_in_window(source_days):
+    """Weeks from a source that fall in the appointment window (90 days before today to 730 days after), counted from 1."""
+    return [k for k in range(1, 400) if -90 <= source_days + 7 * k <= 730]
+
+
+@scenario("W30", "#30: a repeat whose source is older than the window is listed, and the source is not")
+def w30():
+    run = Run("W30", [{"op": "add_appointment", "fields": {"summary": "BENCH W30 weekly", "from": at_day(-120, "09:00"),
+                                                         "to": at_day(-120, "10:00"), "repeat": "2", "repeatinterval": "1"}},
+                      {"op": "calendar_rows", "name": "w30"}, dump()]).execute()
+    r = run.dump_file("results.json")
+    stored = [x for x in run.dump["appointments"] if x.get("summary") == "BENCH W30 weekly"]
+    origin_id = stored[0]["id"] if stored else ""
+    hints = r.get("w30_hints", [])
+    repeats = [h for h in hints if h.split("@")[0] == origin_id and "@" in h]
+    return [Check("the source, older than the window, is not listed", origin_id != "" and origin_id not in hints,
+                  "source listed"),
+            Check("its repeats in the window are listed", len(repeats) == len(repeats_in_window(-120)),
+                  "repeats %d, expected %d" % (len(repeats), len(repeats_in_window(-120)))),
+            Check("the source is stored once", len(stored) == 1, "stored %d times" % len(stored))]
+
+
+@scenario("G42", "#30: a repeating Google event whose first occurrence is older than the window still lists its repeats")
+def g42():
+    create_recurring_event("BENCH G42 weekly", at_day(-120, "09:00"), at_day(-120, "10:00"), "RRULE:FREQ=WEEKLY;INTERVAL=1")
+    run = Run("G42", [sync(), {"op": "calendar_rows", "name": "g42"}, dump()]).execute()
+    r = run.dump_file("results.json")
+    stored = [x for x in run.dump["appointments"] if x.get("summary") == "BENCH G42 weekly"]
+    origin_id = stored[0]["id"] if stored else ""
+    repeats = [h for h in r.get("g42_hints", []) if origin_id and h.split("@")[0] == origin_id and "@" in h]
+    return [Check("the event is stored once", len(stored) == 1, "stored %d times" % len(stored)),
+            Check("its repeats in the window are listed", len(repeats) == len(repeats_in_window(-120)),
+                  "repeats %d, expected %d" % (len(repeats), len(repeats_in_window(-120))))]
 
 
 if __name__ == "__main__":

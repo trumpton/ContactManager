@@ -3,9 +3,6 @@
 
 #include <QDateTime>
 
-// Range of dates considered valid for any appointment: -3 months, + 5 years
-#define APPOINTMENTSTARTWINDOW 90
-#define APPOINTMENTENDWINDOW 1825
 
 class Appointment
 {

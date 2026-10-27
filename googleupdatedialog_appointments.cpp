@@ -26,8 +26,10 @@ static bool changedLocallySince(Appointment &local, const QDateTime &lastsync)
 bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess& google, class ContactDatabase& db, class Calendar& cal)
 {
     bool networkok = true ;
-    QDateTime fromwindow = QDateTime::currentDateTimeUtc().addDays(-1*APPOINTMENTSTARTWINDOW).addSecs(3600) ;
-    QDateTime towindow = QDateTime::currentDateTimeUtc().addDays(APPOINTMENTENDWINDOW).addSecs(-3600) ;
+    int windowbefore = gConf->calendarWindowBefore() ;
+    int windowafter = gConf->calendarWindowAfter() ;
+    QDateTime fromwindow = QDateTime::currentDateTimeUtc().addDays(-1*windowbefore).addSecs(3600) ;
+    QDateTime towindow = QDateTime::currentDateTimeUtc().addDays(windowafter).addSecs(-3600) ;
     Calendar googlecal ;
 
     // ------------------------------------------------------------------------------------
@@ -39,7 +41,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     setProgress(0) ;
     QElapsedTimer phasetimer ;
     phasetimer.start() ;
-    networkok &= google.getCalendar(googlecal, APPOINTMENTSTARTWINDOW, APPOINTMENTENDWINDOW) ;
+    networkok &= google.getCalendar(googlecal, windowbefore, windowafter) ;
     PHASE_DONE("download appointments") ;
     googlecal.dumpEntries("google", db) ;
     int googlesize = googlecal.size() ;
