@@ -186,6 +186,7 @@ private:
     Contact& formContact() ;                    // The contact the form shows, even when the selection has moved on
     QString formContactId ;                     // The ID of the contact the form was loaded with
     bool FormHasEdits(Contact &dr) ;            // True when the form has an edit that is not already in the contact
+    bool ConfirmSaveOrDiscard(const QString &action) ;   // Asks Save, Discard or Cancel when the form has edits.  False when cancelled or refused
     void FormToContact(Contact &newdr) ;        // Copies the contact details on the form into newdr
     bool SaveContactTab(bool explicitsave=false) ;     // Transfer Contact Tab -> Database Item Contact Data
     void LoadCalendarTab() ;  // Transfer Global Calendar to Calendar Tab
