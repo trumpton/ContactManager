@@ -2096,5 +2096,25 @@ def g44():
     return [Check("an event 400 days old is not downloaded", len(held) == 0, "held %d" % len(held))]
 
 
+@scenario("P33", "#73: shortening a repeat from a later entry keeps the focus on the nearest entry of that repeat")
+def p33():
+    run = Run("P33", [{"op": "add_appointment", "fields": {"summary": "BENCH P33 weekly", "from": at_day(2, "09:00"),
+                                                         "to": at_day(2, "10:00"), "repeat": "2", "repeatinterval": "1"}},
+                      {"op": "calendar_rows", "name": "p33a"},
+                      {"op": "repeat_edit", "name": "p33", "summary": "BENCH P33 weekly", "occurrence": at_day(2 + 7 * 15, "09:00"),
+                       "shiftdays": 0, "count": "2"},
+                      dump()]).execute()
+    r = run.dump_file("results.json")
+    stored = [x for x in run.dump["appointments"] if x.get("summary") == "BENCH P33 weekly"]
+    origin_id = stored[0]["id"] if stored else ""
+    listed = r.get("p33_listed") or ""
+    row, rows = r.get("p33_row", -1), r.get("p33_rows", 0)
+    return [Check("the list has the two remaining entries and the Add row", rows == 3, "rows %d, expected 3" % rows),
+            Check("the focus is on an entry of this repeat", row >= 0 and listed.split("@")[0] == origin_id and origin_id != "",
+                  "row %r, listed %r" % (row, listed)),
+            Check("the focus is on the nearest remaining entry to the one edited",
+                  listed.endswith("@" + at_day(2 + 7, "09:00")), "listed %r" % listed)]
+
+
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
