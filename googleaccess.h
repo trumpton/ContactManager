@@ -12,6 +12,11 @@
 #include "calendar.h"
 #include "contactdatabase.h"
 
+// Appointments are downloaded from Google for this many days back, so a repeating appointment whose first occurrence is
+// within the year is still downloaded.  Google does not return a repeat whose first occurrence is before its range.
+// Someone who does not synchronise at least once a year is not really using Google sync, so a year is the limit.
+#define GOOGLE_APPOINTMENT_LOOKBACK_DAYS 365
+
 // Contact Details
 // Requested parameters for person, from: addresses,ageRanges,biographies,birthdays,
 // braggingRights,coverPhotos,emailAddresses,events,genders,imClients,interests,locales,

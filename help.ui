@@ -214,6 +214,12 @@
    recorded in the History for the appropriate contact, and can be found on the 
    History tab (Alt-Y).
 
+   Appointments are downloaded from Google from one year back, up to the end of
+   the appointment window set in File/Setup.  A repeating appointment is downloaded
+   with its first occurrence, so if that is more than a year old it is not
+   downloaded, and its repeats are not shown.  Synchronise at least once a year:
+   anyone who does not is not really using Google sync.
+
 &gt;&gt; 8. CONFIGURATION
 
    Configuration is stored ContactManager.ini file, which is located in either:

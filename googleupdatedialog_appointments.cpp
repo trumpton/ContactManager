@@ -41,7 +41,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     setProgress(0) ;
     QElapsedTimer phasetimer ;
     phasetimer.start() ;
-    networkok &= google.getCalendar(googlecal, windowbefore, windowafter) ;
+    networkok &= google.getCalendar(googlecal, qMax(windowbefore, GOOGLE_APPOINTMENT_LOOKBACK_DAYS), windowafter) ;
     PHASE_DONE("download appointments") ;
     googlecal.dumpEntries("google", db) ;
     int googlesize = googlecal.size() ;
