@@ -93,6 +93,8 @@ public:
     bool contactSyncEnabled() ;
     bool calendarSyncEnabled() ;
     bool calendarShowBirthdays() ;
+    int calendarRepeatsBefore() ;           // Days before today that repeats are listed from (default 31)
+    int calendarRepeatsAfter() ;            // Days after today that repeats are listed to (default 93)
 
     // QSettings Access Functions
     QString &getMe() ;

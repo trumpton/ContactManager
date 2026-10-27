@@ -431,6 +431,51 @@
         </property>
        </widget>
       </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_repeats">
+        <item>
+         <widget class="QLabel" name="labelRepeatsBefore">
+          <property name="text">
+           <string>List repeats from</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSpinBox" name="repeatsBefore">
+          <property name="accessibleName">
+           <string>Days before today for repeats</string>
+          </property>
+          <property name="maximum">
+           <number>3650</number>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="labelRepeatsDaysBefore">
+          <property name="text">
+           <string>days before today, to</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSpinBox" name="repeatsAfter">
+          <property name="accessibleName">
+           <string>Days after today for repeats</string>
+          </property>
+          <property name="maximum">
+           <number>3650</number>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="labelRepeatsDaysAfter">
+          <property name="text">
+           <string>days after today</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
      </layout>
     </widget>
    </item>

@@ -1,4 +1,5 @@
 
+#include <algorithm>
 #include "mainwindow.h"
 #include "../Lib/alertsound.h"
 
@@ -8,7 +9,8 @@
 
 void MainWindow::LoadCalendarTab()
 {
-    QString id = calendar.getSelected().getField(Appointment::ID) ;
+    // The entry on screen: a repeat has its own hint, and an appointment has its ID
+    QString selected = calendar.selectedHint().isEmpty() ? calendar.getSelected().getField(Appointment::ID) : calendar.selectedHint() ;
     int matchid=-1 ;
 
     // Refresh birthdays (all but mine), and sort ready for load
@@ -27,25 +29,66 @@ void MainWindow::LoadCalendarTab()
 
     calendar.sort() ;
     calendarlist.clear() ;
+
+    // A row for an entry, shown at a start.  A repeat is shown at its own start and end, and its hint is its own.
+    struct Row { QDateTime start ; QString title ; QString accessible ; QString hint ; } ;
+    QList<Row> rows ;
+    auto addRow = [&](Appointment &appt, QDateTime start, QString hint) {
+        QDateTime from = appt.getDate(Appointment::From) ;          // getDate shares one value, so copy each date
+        QDateTime to = appt.getDate(Appointment::To) ;
+        Appointment shown = appt ;
+        shown.setDate(Appointment::From, start) ;
+        shown.setDate(Appointment::To, start.addSecs(from.secsTo(to))) ;
+        QString apptfor ;
+        QString apptforid = appt.getField(Appointment::ContactId) ;
+        if (!apptforid.isEmpty() && appt.isNotFor(gConf->getMe())) {
+            Contact& contact = db.getContactById(apptforid) ;
+            apptfor = contact.getFormattedName(false, false) ;
+        }
+        Row row ;
+        row.start = start ;
+        row.title = shown.asText(apptfor) ;
+        row.accessible = shown.asAccessibleText(apptfor) ;
+        row.hint = hint ;
+        rows << row ;
+    } ;
+
+    // The entries in the calendar window, and the repeats of each in the repeats window.  A repeat is worked out here
+    // from its appointment, and is not stored.  The appointment itself is the first occurrence, so it is not repeated.
+    QDateTime now = QDateTime::currentDateTimeUtc() ;
+    QDateTime repeatsfrom = now.addDays(-gConf->calendarRepeatsBefore()) ;
+    QDateTime repeatsto = now.addDays(gConf->calendarRepeatsAfter()) ;
+    const int maxrepeats = 100000 ;
     int ne=calendar.size() ;
-    for (int i=0,j=0; i<ne; i++) {
+    for (int i=0; i<ne; i++) {
        Appointment &appt = calendar.getAppointment(i) ;
-       if (!appt.isSet(Appointment::Deleted) &&
-               appt.isInRange(APPOINTMENTSTARTWINDOW, APPOINTMENTENDWINDOW) ) {
-           QString apptfor ;
-           QString apptforid = appt.getField(Appointment::ContactId) ;
-           if (!apptforid.isEmpty() && appt.isNotFor(gConf->getMe())) {
-               Contact& contact = db.getContactById(apptforid) ;
-               apptfor = contact.getFormattedName(false, false) ;
-           }
-           QString title = appt.asText(apptfor) ;
-           QString accessibletitle = appt.asAccessibleText(apptfor) ;
-           calendarlist.appendData(title, accessibletitle, appt.getField(Appointment::ID)) ;
-          if (id.compare(appt.getField(Appointment::ID))==0) {
-              matchid = j ;
-          }
-          j++ ;
+       if (appt.isSet(Appointment::Deleted)) continue ;
+       QString apptid = appt.getField(Appointment::ID) ;
+       if (appt.isInRange(APPOINTMENTSTARTWINDOW, APPOINTMENTENDWINDOW)) {
+           addRow(appt, appt.getDate(Appointment::From), apptid) ;
        }
+       if (appt.isRepeating()) {
+           for (int n=1; n<maxrepeats; n++) {
+               QDateTime start = appt.occurrenceFrom(n) ;
+               if (start > repeatsto) break ;
+               if (start >= repeatsfrom) addRow(appt, start, Calendar::occurrenceHint(apptid, start)) ;
+           }
+       }
+    }
+
+    // Start order, with the entries that start together kept in the order they were found
+    std::stable_sort(rows.begin(), rows.end(), [](const Row &a, const Row &b) { return a.start < b.start ; }) ;
+
+    // The entry on screen is kept.  If it is no longer listed, its appointment is, so the list is not left at the end.
+    for (int j=0; j<rows.size(); j++) {
+        calendarlist.appendData(rows[j].title, rows[j].accessible, rows[j].hint) ;
+        if (matchid<0 && rows[j].hint.compare(selected)==0) matchid = j ;
+    }
+    if (matchid<0) {
+        QString selectedid = Calendar::appointmentIdOf(selected) ;
+        for (int j=0; j<rows.size() && matchid<0; j++) {
+            if (Calendar::appointmentIdOf(rows[j].hint).compare(selectedid)==0) matchid = j ;
+        }
     }
 
     calendarlist.appendData(" -- Add New Appointment for Me (Control-Shift-N) -- ", "Add New Appointment for Me", "ADD") ;
@@ -166,7 +209,7 @@ void MainWindow::on_listCalendar_activated(const QModelIndex &index)
 
     } else {
 
-        QString contactid = calendar.getAppointmentBy(Appointment::ID, id).getField(Appointment::ContactId) ;
+        QString contactid = calendar.getAppointmentBy(Appointment::ID, Calendar::appointmentIdOf(id)).getField(Appointment::ContactId) ;
         if (contactid.isEmpty()) {
             play(NotFound) ;
         }
@@ -286,7 +329,7 @@ void MainWindow::on_action_Insert_Appointment_After_triggered()
 
         if (idx>=0) {
             QString id = calendarlist.hintAt(idx) ;
-            reference = calendar.getAppointmentBy(Appointment::ID, id) ;
+            reference = calendar.getAppointmentBy(Appointment::ID, Calendar::appointmentIdOf(id)) ;
             Appointment newappt ;
             editAppointment(newappt, reference, db.getSelected().getField(Contact::ID), true) ;
         } else {
@@ -313,7 +356,7 @@ void MainWindow::on_actionInsert_My_Appointment_After_triggered()
         if (idx<0) {
             play(NotFound) ;
         } else {
-            Appointment reference = calendar.getAppointmentBy(Appointment::ID, id) ;
+            Appointment reference = calendar.getAppointmentBy(Appointment::ID, Calendar::appointmentIdOf(id)) ;
             Appointment newappt ;
             editAppointment(newappt, reference, me, true) ;
         }
@@ -341,7 +384,7 @@ void MainWindow::on_actionMoveAppointment_triggered()
     // TODO: If calendar not selected, beep
     int idx = ui->listCalendar->currentIndex().row() ;
     QString id = calendarlist.hintAt(idx) ;
-    Appointment& appt = calendar.getAppointmentBy(Appointment::ID, id) ;
+    Appointment& appt = calendar.getAppointmentBy(Appointment::ID, Calendar::appointmentIdOf(id)) ;
     if (appt.isNull()) {
         play(NotFound) ;
     } else {
@@ -356,7 +399,7 @@ void MainWindow::on_actionRemoveAppointment_triggered()
     int idx = ui->listCalendar->currentIndex().row() ;
     QString id = calendarlist.hintAt(idx) ;
 
-    Appointment& appt = calendar.getAppointmentBy(Appointment::ID, id) ;
+    Appointment& appt = calendar.getAppointmentBy(Appointment::ID, Calendar::appointmentIdOf(id)) ;
     if (appt.isNull() || appt.isTemp()) {
         play(Disabled) ;
     } else {

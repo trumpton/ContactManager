@@ -375,10 +375,15 @@ int main(int argc, char *argv[])
             // The list is built when the calendar tab loads, so reload it to show the entry added since
             w.LoadCalendarTab() ;
 
-            // The row of the entry, with the calendar tab shown and its list focused, as a click leaves it
+            // The row of the entry, or of one of its repeats when an occurrence is given, with the calendar tab shown and
+            // its list focused, as a click leaves it
+            QString wanted = apptid ;
+            if (op.contains("occurrence")) {
+                wanted = Calendar::occurrenceHint(apptid, QDateTime::fromString(op["occurrence"].toString(), Qt::ISODate)) ;
+            }
             int row = -1 ;
             for (int r = 0; r < w.calendarlist.rowCount(); r++) {
-                if (w.calendarlist.hintAt(r) == apptid) row = r ;
+                if (w.calendarlist.hintAt(r) == wanted) row = r ;
             }
             record(name + "_expected_row", row) ;
             w.ui->tabBar->setCurrentIndex(CALENDARTABPOS) ;
@@ -393,6 +398,17 @@ int main(int argc, char *argv[])
             record(name + "_selected", w.db.getSelected().getField(Contact::Surname)) ;
             note(QString("calendar_click %1: row %2, focus %3").arg(name).arg(w.ui->listCalendar->currentIndex().row())
                  .arg(focus ? focus->objectName() : QString())) ;
+
+        } else if (kind == "calendar_rows") {
+            // The calendar list as it is shown: each row's hint and title, in order
+            QString name = op["name"].toString() ;
+            QJsonArray hints, titles ;
+            for (int r = 0; r < w.calendarlist.rowCount(); r++) {
+                hints.append(w.calendarlist.hintAt(r)) ;
+                titles.append(w.calendarlist.data(w.calendarlist.index(r, 0), Qt::DisplayRole).toString()) ;
+            }
+            record(name + "_hints", hints) ;
+            record(name + "_titles", titles) ;
 
         } else if (kind == "report_clashes") {
             // Runs the check the window does when it opens, on demand

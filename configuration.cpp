@@ -143,6 +143,8 @@ bool Configuration::SetupForm(ContactDatabase *currentdatabase, GoogleAccess *ga
 
     // Load flags
     ui->showBirthdays->setChecked(calendarShowBirthdays()) ;
+    ui->repeatsBefore->setValue(calendarRepeatsBefore()) ;
+    ui->repeatsAfter->setValue(calendarRepeatsAfter()) ;
 
     // Show ini file path
     ui->iniFilePath->setText(ini.canonicalPath()) ;
@@ -182,6 +184,9 @@ bool Configuration::SaveForm()
     } else {
         settings->setValue("showbirthdays", "no") ;
     }
+
+    settings->setValue("repeatsbefore", QString::number(ui->repeatsBefore->value())) ;
+    settings->setValue("repeatsafter", QString::number(ui->repeatsAfter->value())) ;
 
 
     if (ui->checkBox_syncCalendar->isChecked())
@@ -235,6 +240,21 @@ bool Configuration::calendarShowBirthdays()
 {
     QString m = settings->value("showbirthdays").toString() ;
     return (m.compare("yes", Qt::CaseInsensitive)==0) ;
+}
+
+// The days either side of today that repeating appointments are listed for.  Blank or unreadable gives the default.
+int Configuration::calendarRepeatsBefore()
+{
+    bool ok = false ;
+    int days = settings->value("repeatsbefore").toString().toInt(&ok) ;
+    return (ok && days>=0) ? days : 31 ;
+}
+
+int Configuration::calendarRepeatsAfter()
+{
+    bool ok = false ;
+    int days = settings->value("repeatsafter").toString().toInt(&ok) ;
+    return (ok && days>=0) ? days : 93 ;
 }
 
 Encryption* Configuration::encryption()

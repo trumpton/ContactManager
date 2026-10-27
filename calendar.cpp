@@ -439,8 +439,26 @@ Appointment& Calendar::getAppointmentClash(Appointment& appt)
 
 Appointment& Calendar::selectAppointment(QString id)
 {
-    selectedappointment=id ;
+    selectedhint = id ;
+    selectedappointment = appointmentIdOf(id) ;
     return getSelected() ;
+}
+
+// The hint for a repeat: the start is in UTC, so the same repeat always has the same hint
+QString Calendar::occurrenceHint(QString id, QDateTime start)
+{
+    return id + "@" + start.toUTC().toString(Qt::ISODate) ;
+}
+
+// The appointment a hint belongs to.  An appointment's own hint is its ID.
+QString Calendar::appointmentIdOf(QString hint)
+{
+    return hint.section('@', 0, 0) ;
+}
+
+QString Calendar::selectedHint()
+{
+    return selectedhint ;
 }
 
 Appointment& Calendar::selectAppointment(Appointment &appointment)

@@ -158,6 +158,11 @@ public:
     bool isCurrent() ;
     bool isInRange(qint64 beforedays, qint64 afterdays) ;
 
+    // Repeats: Repeat is 0 for none, 1 daily, 2 weekly, 3 monthly or 4 yearly, every RepeatInterval of them.  The
+    // occurrences are worked out from this appointment, and are not stored.  Occurrence 0 is this appointment.
+    bool isRepeating() ;
+    QDateTime occurrenceFrom(int n) ;
+
     bool isNotFor(QString& id) ;
 
     void setField(enum AppointmentRecord field, QString data) ;
