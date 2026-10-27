@@ -18,6 +18,7 @@ usage:
   google_bench.py run [scenario ...]       run all scenarios, or the named ones
   google_bench.py gchange <cmd> <json>     change the account from inside a run (used by the driver)
 """
+import datetime
 import json
 import os
 import re
@@ -1876,6 +1877,37 @@ def k24():
                   "held %r" % held),
             Check("back-to-back appointments do not clash", 'Appointment Clashes' not in d.log(),
                   "a clash was listed for appointments that only touch")]
+
+
+def at_day(days, time_of_day):
+    """A UTC time this many days from now, so repeats are checked against the window from today."""
+    when = datetime.datetime.utcnow() + datetime.timedelta(days=days)
+    return when.strftime("%Y-%m-%d") + "T" + time_of_day + ":00Z"
+
+
+@scenario("P30", "#30: a weekly appointment is listed on each week in the repeats window, and stored once")
+def p30():
+    start, end = at_day(2, "09:00"), at_day(2, "10:00")
+    # Weeks from the start that fall in the repeats window (31 days before today to 93 days after)
+    weeks = [k for k in range(0, 200) if 2 + 7 * k <= 93]
+    run = Run("P30", [add_contact_op("P30C", email="p30c@test.invalid"),
+                      {"op": "add_appointment", "fields": {"summary": "BENCH P30 weekly", "from": start, "to": end,
+                                                         "repeat": "2", "repeatinterval": "1"}},
+                      {"op": "calendar_rows", "name": "p30"},
+                      {"op": "calendar_click", "name": "p30c", "summary": "BENCH P30 weekly", "surname": "P30C",
+                       "occurrence": at_day(2 + 7 * 3, "09:00")},
+                      dump()]).execute()
+    r = run.dump_file("results.json")
+    stored = [x for x in run.dump["appointments"] if x.get("summary") == "BENCH P30 weekly"]
+    listed = [h for h in r.get("p30_hints", []) if h.split("@")[0] == (stored[0]["id"] if stored else "")]
+    return [Check("one row for each week in the repeats window", len(listed) == len(weeks),
+                  "rows %d, expected %d" % (len(listed), len(weeks))),
+            Check("the appointment is stored once, not once per repeat", len(stored) == 1,
+                  "stored %d times" % len(stored)),
+            Check("selecting a repeat opens the contact of its appointment", r.get("p30c_selected") == "P30C",
+                  "selected %r" % r.get("p30c_selected")),
+            Check("the repeat is the row that was selected", r.get("p30c_row") == r.get("p30c_expected_row", -1) >= 0,
+                  "row %r, expected %r" % (r.get("p30c_row"), r.get("p30c_expected_row")))]
 
 
 if __name__ == "__main__":

@@ -458,6 +458,28 @@ bool Appointment::isInRange(qint64 beforedays, qint64 afterdays)
     return inrange ;
 }
 
+bool Appointment::isRepeating()
+{
+    int type = getField(Appointment::Repeat).toInt() ;
+    return (type>=1 && type<=4) ;
+}
+
+// The start of occurrence n of this appointment, where occurrence 0 is this appointment.  Each occurrence is n steps of
+// the repeat (every RepeatInterval days, weeks, months or years) after this one.
+QDateTime Appointment::occurrenceFrom(int n)
+{
+    QDateTime start = getDate(Appointment::From) ;
+    int every = qMax(1, getField(Appointment::RepeatInterval).toInt()) ;
+    int steps = n * every ;
+    switch (getField(Appointment::Repeat).toInt()) {
+        case 1: return start.addDays(steps) ;
+        case 2: return start.addDays(7*steps) ;
+        case 3: return start.addMonths(steps) ;
+        case 4: return start.addYears(steps) ;
+    }
+    return start ;
+}
+
 bool Appointment::isCurrent()
 {
     QDateTime from = getDate(Appointment::From) ;
