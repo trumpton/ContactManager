@@ -399,6 +399,25 @@ int main(int argc, char *argv[])
             note(QString("calendar_click %1: row %2, focus %3").arg(name).arg(w.ui->listCalendar->currentIndex().row())
                  .arg(focus ? focus->objectName() : QString())) ;
 
+        } else if (kind == "repeat_edit") {
+            // Saves an edit of a repeat, as the form does: the repeat's own day is moved by shiftdays, and the summary can
+            // change.  The focus afterwards is recorded.
+            QString name = op["name"].toString() ;
+            QDateTime occ = QDateTime::fromString(op["occurrence"].toString(), Qt::ISODate) ;
+            Appointment &origin = w.calendar.getAppointmentBy(Appointment::Summary, op["summary"].toString()) ;
+            if (!origin.isNull()) {
+                QDateTime from = origin.getDate(Appointment::From) ;
+                QDateTime to = origin.getDate(Appointment::To) ;
+                qint64 shift = op["shiftdays"].toInt() * 86400 ;
+                Appointment result = origin ;
+                result.setDate(Appointment::From, occ.addSecs(shift)) ;
+                result.setDate(Appointment::To, occ.addSecs(shift + from.secsTo(to))) ;
+                if (op.contains("newsummary")) result.setField(Appointment::Summary, op["newsummary"].toString()) ;
+                w.storeAppointmentEdit(result, op["occurrence"].toString()) ;
+            }
+            record(name + "_selected_hint", w.calendar.selectedHint()) ;
+            note("repeat_edit " + name) ;
+
         } else if (kind == "calendar_rows") {
             // The calendar list as it is shown: each row's hint and title, in order.  The list is rebuilt first, as the
             // window does when its calendar tab loads.

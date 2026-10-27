@@ -1910,5 +1910,36 @@ def p30():
                   "row %r, expected %r" % (r.get("p30c_row"), r.get("p30c_expected_row")))]
 
 
+@scenario("P31", "#30: an edit of a repeat changes its appointment; a move to another day moves the appointment and the focus with it")
+def p31():
+    start = at_day(2, "09:00")
+    third = at_day(2 + 7 * 2, "09:00")       # the third week's repeat
+    run = Run("P31", [{"op": "add_appointment", "fields": {"summary": "BENCH P31 weekly", "from": start,
+                                                         "to": at_day(2, "10:00"), "repeat": "2", "repeatinterval": "1"}},
+                      {"op": "repeat_edit", "name": "p31a", "summary": "BENCH P31 weekly", "occurrence": third,
+                       "shiftdays": 0, "newsummary": "BENCH P31 edited"},
+                      dump(file="d_inplace.json"),
+                      {"op": "repeat_edit", "name": "p31b", "summary": "BENCH P31 edited", "occurrence": third,
+                       "shiftdays": 1},
+                      dump()]).execute()
+    r = run.dump_file("results.json")
+    stored = [x for x in run.dump["appointments"] if x.get("summary") == "BENCH P31 edited"]
+    inplace = run.dump_file("d_inplace.json")
+    stored_inplace = [x for x in inplace["appointments"] if x.get("summary") == "BENCH P31 edited"]
+    origin_id = stored[0]["id"] if stored else ""
+    return [Check("an edit of a repeat changes the appointment, and it is stored once",
+                  len(stored_inplace) == 1 and len([x for x in inplace["appointments"] if x.get("summary") == "BENCH P31 weekly"]) == 0,
+                  "stored %d times" % len(stored_inplace)),
+            Check("an edit within the same day keeps the focus on the repeat",
+                  r.get("p31a_selected_hint", "").startswith(origin_id + "@"),
+                  "focus %r" % r.get("p31a_selected_hint")),
+            Check("a move to another day moves the appointment by the same amount",
+                  len(stored) == 1 and stored[0].get("from") == at_day(3, "09:00"),
+                  "from %r" % (stored[0].get("from") if stored else None)),
+            Check("a move to another day puts the focus on the appointment",
+                  r.get("p31b_selected_hint") == origin_id,
+                  "focus %r, expected the appointment %r" % (r.get("p31b_selected_hint"), origin_id))]
+
+
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
