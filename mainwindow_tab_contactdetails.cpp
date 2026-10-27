@@ -301,6 +301,34 @@ static QString entryName(const TitledEntry &t)
     return QString("%1 %2 (%3)").arg(t.kind).arg(t.slot+1).arg(t.title->text()) ;
 }
 
+// True when an email or phone entry, or its title, is not right, so it cannot be saved as it is
+static bool entryIsBad(const TitledEntry &t)
+{
+    QString text = t.entry->text() ;
+    if (!text.trimmed().isEmpty() && !FieldFormat::tidyEntry(text, t.kind=="Email").fixed) return true ;
+    QString title = t.title->text() ;
+    return !title.isEmpty() && !FieldFormat::validLabel(title) ;
+}
+
+// True when an email or phone entry on the form is not right
+bool MainWindow::FormHasBadEntry()
+{
+    for (const TitledEntry &t : titledEntries(ui)) {
+        if (entryIsBad(t)) return true ;
+    }
+    return false ;
+}
+
+// Puts the stored value and title back into each entry that is not right, so the rest of the form can be saved
+void MainWindow::KeepStoredEntries(Contact &dr)
+{
+    for (const TitledEntry &t : titledEntries(ui)) {
+        if (!entryIsBad(t)) continue ;
+        t.entry->setText(dr.getField(t.value)) ;
+        t.title->setText((t.kind=="Email") ? dr.emailLabel(t.slot) : dr.phoneLabel(t.slot)) ;
+    }
+}
+
 // Checks the email and phone entries when the form has an edit, before the contact is saved, switched, synced, tidied,
 // imported or closed.  A label typed into an entry is tidied first.  If an entry or its title is not right, the first one
 // is shown with focus on it, and the action stops, so nothing is saved and the user returns to editing.  Without an
@@ -310,6 +338,9 @@ static QString entryName(const TitledEntry &t)
 bool MainWindow::ValidateTitledEntries(Contact &dr, bool always)
 {
     if (dr.isNull()) return true ;
+
+    // Quitting has already decided what to do with an entry that is not right, so the save does not check it again
+    if (quitting) return true ;
 
     // A refused save with File > Save shows the details tab, with focus on the entry
     auto showdetails = [&]() {
