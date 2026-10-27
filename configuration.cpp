@@ -143,8 +143,8 @@ bool Configuration::SetupForm(ContactDatabase *currentdatabase, GoogleAccess *ga
 
     // Load flags
     ui->showBirthdays->setChecked(calendarShowBirthdays()) ;
-    ui->repeatsBefore->setValue(calendarRepeatsBefore()) ;
-    ui->repeatsAfter->setValue(calendarRepeatsAfter()) ;
+    ui->windowBefore->setValue(calendarWindowBefore()) ;
+    ui->windowAfter->setValue(calendarWindowAfter()) ;
 
     // Show ini file path
     ui->iniFilePath->setText(ini.canonicalPath()) ;
@@ -185,8 +185,8 @@ bool Configuration::SaveForm()
         settings->setValue("showbirthdays", "no") ;
     }
 
-    settings->setValue("repeatsbefore", QString::number(ui->repeatsBefore->value())) ;
-    settings->setValue("repeatsafter", QString::number(ui->repeatsAfter->value())) ;
+    settings->setValue("windowbefore", QString::number(ui->windowBefore->value())) ;
+    settings->setValue("windowafter", QString::number(ui->windowAfter->value())) ;
 
 
     if (ui->checkBox_syncCalendar->isChecked())
@@ -242,19 +242,20 @@ bool Configuration::calendarShowBirthdays()
     return (m.compare("yes", Qt::CaseInsensitive)==0) ;
 }
 
-// The days either side of today that repeating appointments are listed for.  Blank or unreadable gives the default.
-int Configuration::calendarRepeatsBefore()
+// The appointment window: the days before today, and the days after today, that appointments are kept and shown for.
+// Blank or unreadable gives the default: 90 days before, and two years (730 days) after.
+int Configuration::calendarWindowBefore()
 {
     bool ok = false ;
-    int days = settings->value("repeatsbefore").toString().toInt(&ok) ;
-    return (ok && days>=0) ? days : 31 ;
+    int days = settings->value("windowbefore").toString().toInt(&ok) ;
+    return (ok && days>=0) ? days : 90 ;
 }
 
-int Configuration::calendarRepeatsAfter()
+int Configuration::calendarWindowAfter()
 {
     bool ok = false ;
-    int days = settings->value("repeatsafter").toString().toInt(&ok) ;
-    return (ok && days>=0) ? days : 93 ;
+    int days = settings->value("windowafter").toString().toInt(&ok) ;
+    return (ok && days>=0) ? days : 730 ;
 }
 
 Encryption* Configuration::encryption()

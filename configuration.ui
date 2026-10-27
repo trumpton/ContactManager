@@ -432,18 +432,18 @@
        </widget>
       </item>
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_repeats">
+       <layout class="QHBoxLayout" name="horizontalLayout_window">
         <item>
-         <widget class="QLabel" name="labelRepeatsBefore">
+         <widget class="QLabel" name="labelWindowBefore">
           <property name="text">
-           <string>List repeats from</string>
+           <string>Show appointments from</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QSpinBox" name="repeatsBefore">
+         <widget class="QSpinBox" name="windowBefore">
           <property name="accessibleName">
-           <string>Days before today for repeats</string>
+           <string>Days before today for appointments</string>
           </property>
           <property name="maximum">
            <number>3650</number>
@@ -451,16 +451,16 @@
          </widget>
         </item>
         <item>
-         <widget class="QLabel" name="labelRepeatsDaysBefore">
+         <widget class="QLabel" name="labelWindowDaysBefore">
           <property name="text">
            <string>days before today, to</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QSpinBox" name="repeatsAfter">
+         <widget class="QSpinBox" name="windowAfter">
           <property name="accessibleName">
-           <string>Days after today for repeats</string>
+           <string>Days after today for appointments</string>
           </property>
           <property name="maximum">
            <number>3650</number>
@@ -468,7 +468,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QLabel" name="labelRepeatsDaysAfter">
+         <widget class="QLabel" name="labelWindowDaysAfter">
           <property name="text">
            <string>days after today</string>
           </property>
