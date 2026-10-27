@@ -1836,5 +1836,23 @@ def main(argv):
     return 0 if passed == len(RESULTS) else 1
 
 
+@scenario("U34", "#34: double-clicking a calendar entry opens its contact, and keeps the calendar row and its focus")
+def u34():
+    run = Run("U34", [add_contact_op("U34", email="u34@test.invalid"),
+                      {"op": "add_appointment", "fields": {"summary": "BENCH U34 meeting", "from": DAY % (7, "09:00"),
+                                                         "to": DAY % (7, "10:00")}},
+                      {"op": "calendar_click", "name": "u34", "summary": "BENCH U34 meeting", "surname": "U34"},
+                      dump()]).execute()
+    r = run.dump_file("results.json")
+    return [Check("the calendar entry was found in the list", r.get("u34_expected_row", -1) >= 0,
+                  "row %r" % r.get("u34_expected_row")),
+            Check("the entry's contact is opened", r.get("u34_selected") == "U34",
+                  "selected %r" % r.get("u34_selected")),
+            Check("the calendar row is kept", r.get("u34_row") == r.get("u34_expected_row"),
+                  "row %r, expected %r" % (r.get("u34_row"), r.get("u34_expected_row"))),
+            Check("focus stays on the calendar list", r.get("u34_focus") == "listCalendar",
+                  "focus %r" % r.get("u34_focus"))]
+
+
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
