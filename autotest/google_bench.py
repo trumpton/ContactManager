@@ -1854,5 +1854,29 @@ def u34():
                   "focus %r" % r.get("u34_focus"))]
 
 
+@scenario("K24", "#24: when the app opens, overlapping appointments are listed, and nothing is changed")
+def k24():
+    clash = [{"op": "add_appointment", "fields": {"summary": "BENCH K24 a", "from": DAY % (8, "09:00"), "to": DAY % (8, "10:00")}},
+             {"op": "add_appointment", "fields": {"summary": "BENCH K24 b", "from": DAY % (8, "09:30"), "to": DAY % (8, "10:30")}},
+             {"op": "add_appointment", "fields": {"summary": "BENCH K24 c", "from": DAY % (8, "12:00"), "to": DAY % (8, "13:00")}}]
+    Run("K24a", clash + [dump()], session="K24").execute()
+    # A fresh launch on the same data: the clash is listed when the window opens
+    b = Run("K24b", [dump()], session="K24").execute()
+    held = sorted(x["summary"] for x in b.dump["appointments"] if x.get("summary", "").startswith("BENCH K24"))
+    # No overlap, on its own: nothing is listed
+    c = Run("K24c", [{"op": "add_appointment", "fields": {"summary": "BENCH K24 d", "from": DAY % (9, "09:00"), "to": DAY % (9, "10:00")}},
+                     {"op": "add_appointment", "fields": {"summary": "BENCH K24 e", "from": DAY % (9, "10:00"), "to": DAY % (9, "11:00")}},
+                     dump()], session="K24n").execute()
+    d = Run("K24d", [dump()], session="K24n").execute()
+    return [Check("the overlapping appointments are listed when the app opens", 'Appointment Clashes' in b.log(),
+                  "no Appointment Clashes dialog"),
+            Check("the clash is listed once, for the overlapping pair", b.log().count('dialog WarningOk "Appointment Clashes"') == 1,
+                  "dialog count %d" % b.log().count('dialog WarningOk "Appointment Clashes"')),
+            Check("nothing is changed: all three appointments are still held", held == ["BENCH K24 a", "BENCH K24 b", "BENCH K24 c"],
+                  "held %r" % held),
+            Check("back-to-back appointments do not clash", 'Appointment Clashes' not in d.log(),
+                  "a clash was listed for appointments that only touch")]
+
+
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
