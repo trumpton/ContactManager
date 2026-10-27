@@ -203,7 +203,8 @@ private:
     // Update window title
     void setAccessibleTextAndWindowTitle(QString name) ;
 
-    void editAppointment(Appointment &editing, Appointment &reference, QString contactid = QString(""), bool createnew = false) ;
+    void editAppointment(Appointment &editing, Appointment &reference, QString contactid = QString(""), bool createnew = false, QString occurrence = QString("")) ;
+    void storeAppointmentEdit(Appointment &result, QString occurrence = QString("")) ;   // Saves an edit; a repeat changes its appointment
 
     void doBackup() ;
     void sendMailSMS() ;
