@@ -33,6 +33,7 @@
 #include "../Lib/alertsound.h"
 #define private public
 #include "mainwindow.h"
+#include "appointmentform.h"
 #undef private
 #include "contact.h"
 #include "contactdatabase.h"
@@ -417,6 +418,24 @@ int main(int argc, char *argv[])
             }
             record(name + "_selected_hint", w.calendar.selectedHint()) ;
             note("repeat_edit " + name) ;
+
+        } else if (kind == "form_repeat") {
+            // Opens the appointment form with a repeat, and records the repeat it gives back, as a save would store it
+            QString name = op["name"].toString() ;
+            Appointment appt ;
+            appt.createNew() ;
+            appt.setField(Appointment::Summary, "BENCH form repeat") ;
+            appt.setField(Appointment::Repeat, op["repeat"].toString()) ;
+            appt.setField(Appointment::RepeatInterval, op["every"].toString()) ;
+            appt.setDate(Appointment::From, QDateTime::currentDateTimeUtc()) ;
+            appt.setDate(Appointment::To, QDateTime::currentDateTimeUtc().addSecs(3600)) ;
+            Appointment reference = appt ;
+            AppointmentForm frm(&w) ;
+            frm.setupForm(w.db, QString(), appt, reference, true) ;
+            Appointment &back = frm.getAppointmentDetails() ;
+            record(name + "_repeat", back.getField(Appointment::Repeat)) ;
+            record(name + "_every", back.getField(Appointment::RepeatInterval)) ;
+            note("form_repeat " + name) ;
 
         } else if (kind == "calendar_rows") {
             // The calendar list as it is shown: each row's hint and title, in order.  The list is rebuilt first, as the
