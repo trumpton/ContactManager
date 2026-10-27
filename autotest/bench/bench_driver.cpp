@@ -354,6 +354,46 @@ int main(int argc, char *argv[])
             record(name + "_details", w.ui->tabBar->currentIndex() == CONTACTDETAILSTABPOS) ;
             note("alt_edit " + name) ;
 
+        } else if (kind == "calendar_click") {
+            // Double-clicks a calendar entry: its contact is opened by the same handler the list uses.  The entry is first
+            // linked to the contact with this surname, as an entry is linked to a contact when it is made.
+            QString name = op["name"].toString() ;
+            QString summary = op["summary"].toString() ;
+            QString contactid, apptid ;
+            for (int i = 0; i < w.db.size(); i++) {
+                Contact &c = w.db.getContact(i) ;
+                if (c.getField(Contact::Surname) == op["surname"].toString()) contactid = c.getField(Contact::ID) ;
+            }
+            for (int i = 0; i < w.calendar.size(); i++) {
+                Appointment &appt = w.calendar.getAppointment(i) ;
+                if (appt.getField(Appointment::Summary) == summary) {
+                    appt.setContactId(contactid) ;
+                    apptid = appt.getField(Appointment::ID) ;
+                }
+            }
+
+            // The list is built when the calendar tab loads, so reload it to show the entry added since
+            w.LoadCalendarTab() ;
+
+            // The row of the entry, with the calendar tab shown and its list focused, as a click leaves it
+            int row = -1 ;
+            for (int r = 0; r < w.calendarlist.rowCount(); r++) {
+                if (w.calendarlist.hintAt(r) == apptid) row = r ;
+            }
+            record(name + "_expected_row", row) ;
+            w.ui->tabBar->setCurrentIndex(CALENDARTABPOS) ;
+            w.ui->listCalendar->setFocus() ;
+            if (row >= 0) w.ui->listCalendar->setCurrentIndex(w.calendarlist.index(row, 0)) ;
+
+            w.on_listCalendar_activated(w.ui->listCalendar->currentIndex()) ;
+
+            QWidget *focus = w.focusWidget() ;
+            record(name + "_row", w.ui->listCalendar->currentIndex().row()) ;
+            record(name + "_focus", focus ? focus->objectName() : QString()) ;
+            record(name + "_selected", w.db.getSelected().getField(Contact::Surname)) ;
+            note(QString("calendar_click %1: row %2, focus %3").arg(name).arg(w.ui->listCalendar->currentIndex().row())
+                 .arg(focus ? focus->objectName() : QString())) ;
+
         } else if (kind == "answer") {
             // Clicks the button with this text on the next dialog that asks a question
             nextanswer = op["text"].toString() ;
