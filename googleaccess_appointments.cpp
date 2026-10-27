@@ -349,9 +349,16 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
             // Normal Event
             QJsonObject StartDateTime ;
             StartDateTime.insert("dateTime", appt.getField(Appointment::From)) ;
-            root.insert("start", StartDateTime) ;
             QJsonObject EndDateTime ;
             EndDateTime.insert("dateTime", appt.getField(Appointment::To)) ;
+
+            // A repeating event needs a time zone on its start and end, or Google refuses it
+            if (appt.isRepeating()) {
+                StartDateTime.insert("timeZone", "UTC") ;
+                EndDateTime.insert("timeZone", "UTC") ;
+            }
+
+            root.insert("start", StartDateTime) ;
             root.insert("end", EndDateTime) ;
         }
 

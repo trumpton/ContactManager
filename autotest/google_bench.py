@@ -1953,7 +1953,9 @@ def d30():
 
 
 def create_recurring_event(summary, start, end, rule):
-    body = {"summary": summary, "start": {"dateTime": start}, "end": {"dateTime": end}, "recurrence": [rule]}
+    # A repeating event needs a time zone on its start and end
+    body = {"summary": summary, "start": {"dateTime": start, "timeZone": "UTC"},
+            "end": {"dateTime": end, "timeZone": "UTC"}, "recurrence": [rule]}
     return api("POST", CALENDAR + "/events", body)["id"]
 
 
