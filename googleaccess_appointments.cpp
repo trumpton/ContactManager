@@ -137,6 +137,21 @@ bool GoogleAccess::getAppointment(Appointment& appt)
 //  Parse a single JSonObject into an appointment
 //
 
+// A repeat's UNTIL from Google, as UTC ISO text.  Google writes a time (20261130T090000Z) or a date (20261130), and a date
+// is taken to its last second.  Blank if it cannot be read.
+static QString googleUntilToIso(QString value)
+{
+    QDateTime when = QDateTime::fromString(value, "yyyyMMdd'T'HHmmss'Z'") ;
+    if (when.isValid()) {
+        when = QDateTime(when.date(), when.time(), Qt::UTC) ;
+    } else {
+        QDate day = QDate::fromString(value, "yyyyMMdd") ;
+        if (!day.isValid()) return QString() ;
+        when = QDateTime(day, QTime(23, 59, 59), Qt::UTC) ;
+    }
+    return when.toString(Qt::ISODate) ;
+}
+
 bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QString account)
 {
     QString summary = item["summary"].toString().trimmed()  ;
@@ -176,8 +191,11 @@ bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QStrin
 
     // The rule of a repeating event: a repeat every day, week, month or year.  Other rules are read as the first
     // occurrence only, as the app cannot show them.  Exceptions to a repeat are skipped by the download.
+    // The end of a repeat: COUNT (the number of times, including the first) or UNTIL (the last date)
     QString repeattype = "0" ;
     QString repeatevery = "0" ;
+    QString repeatcount ;
+    QString repeatuntil ;
     foreach (const QJsonValue &rule, item["recurrence"].toArray()) {
         QString text = rule.toString().trimmed() ;
         if (!text.startsWith("RRULE:")) continue ;
@@ -188,6 +206,8 @@ bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QStrin
             if (keyvalue.size()!=2) continue ;
             if (keyvalue[0]=="FREQ") freq = keyvalue[1] ;
             if (keyvalue[0]=="INTERVAL") every = qMax(1, keyvalue[1].toInt()) ;
+            if (keyvalue[0]=="COUNT") repeatcount = QString::number(qMax(1, keyvalue[1].toInt())) ;
+            if (keyvalue[0]=="UNTIL") repeatuntil = googleUntilToIso(keyvalue[1]) ;
         }
         if (freq=="DAILY") repeattype = "1" ;
         else if (freq=="WEEKLY") repeattype = "2" ;
@@ -198,6 +218,8 @@ bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QStrin
     }
     appt.setField(Appointment::Repeat, repeattype) ;
     appt.setField(Appointment::RepeatInterval, repeatevery) ;
+    appt.setField(Appointment::RepeatCount, repeattype=="0" ? QString() : repeatcount) ;
+    appt.setField(Appointment::RepeatUntil, repeattype=="0" ? QString() : repeatuntil) ;
 
     if (!fromdatetime.isEmpty()) {
         appt.setField(Appointment::From, fromdatetime) ;
@@ -339,7 +361,16 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
             static const char *freqs[5] = { "", "DAILY", "WEEKLY", "MONTHLY", "YEARLY" } ;
             int type = appt.getField(Appointment::Repeat).toInt() ;
             int every = qMax(1, appt.getField(Appointment::RepeatInterval).toInt()) ;
-            rules.append("RRULE:FREQ=" + QString(freqs[type]) + ";INTERVAL=" + QString::number(every)) ;
+            QString rule = "RRULE:FREQ=" + QString(freqs[type]) + ";INTERVAL=" + QString::number(every) ;
+            int count = appt.getField(Appointment::RepeatCount).toInt() ;
+            QString until = appt.getField(Appointment::RepeatUntil) ;
+            if (count>0) {
+                rule += ";COUNT=" + QString::number(count) ;
+            } else if (!until.isEmpty()) {
+                QDateTime last = QDateTime::fromString(until, Qt::ISODate).toUTC() ;
+                rule += ";UNTIL=" + last.toString("yyyyMMdd'T'HHmmss'Z'") ;
+            }
+            rules.append(rule) ;
         }
         root.insert("recurrence", rules) ;
 

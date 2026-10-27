@@ -480,6 +480,19 @@ QDateTime Appointment::occurrenceFrom(int n)
     return start ;
 }
 
+bool Appointment::occurrenceExists(int n)
+{
+    int count = getField(Appointment::RepeatCount).toInt() ;
+    if (count>0 && n>=count) return false ;
+
+    QString until = getField(Appointment::RepeatUntil) ;
+    if (!until.isEmpty()) {
+        QDateTime last = QDateTime::fromString(until, Qt::ISODate) ;
+        if (occurrenceFrom(n) > last) return false ;
+    }
+    return true ;
+}
+
 bool Appointment::isCurrent()
 {
     QDateTime from = getDate(Appointment::From) ;

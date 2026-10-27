@@ -99,6 +99,8 @@ static int appointmentRecordFor(const QString &key)
     if (key == "googlerecordid") return Appointment::GoogleRecordId ;
     if (key == "repeat") return Appointment::Repeat ;
     if (key == "repeatinterval") return Appointment::RepeatInterval ;
+    if (key == "repeatcount") return Appointment::RepeatCount ;
+    if (key == "repeatuntil") return Appointment::RepeatUntil ;
     return -1 ;
 }
 
@@ -427,6 +429,8 @@ int main(int argc, char *argv[])
             appt.setField(Appointment::Summary, "BENCH form repeat") ;
             appt.setField(Appointment::Repeat, op["repeat"].toString()) ;
             appt.setField(Appointment::RepeatInterval, op["every"].toString()) ;
+            appt.setField(Appointment::RepeatCount, op["count"].toString()) ;
+            appt.setField(Appointment::RepeatUntil, op["until"].toString()) ;
             appt.setDate(Appointment::From, QDateTime::currentDateTimeUtc()) ;
             appt.setDate(Appointment::To, QDateTime::currentDateTimeUtc().addSecs(3600)) ;
             Appointment reference = appt ;
@@ -435,7 +439,18 @@ int main(int argc, char *argv[])
             Appointment &back = frm.getAppointmentDetails() ;
             record(name + "_repeat", back.getField(Appointment::Repeat)) ;
             record(name + "_every", back.getField(Appointment::RepeatInterval)) ;
+            record(name + "_count", back.getField(Appointment::RepeatCount)) ;
+            record(name + "_until", back.getField(Appointment::RepeatUntil)) ;
             note("form_repeat " + name) ;
+
+        } else if (kind == "goto_today") {
+            // Goto Today, as the menu runs it; records the row it lands on, and that row's hint
+            QString name = op["name"].toString() ;
+            w.on_actionGotoToday_triggered() ;
+            int row = w.ui->listCalendar->currentIndex().row() ;
+            record(name + "_row", row) ;
+            record(name + "_hint", (row >= 0 && row < w.calendarlist.rowCount()) ? w.calendarlist.hintAt(row) : QString()) ;
+            note("goto_today " + name) ;
 
         } else if (kind == "calendar_rows") {
             // The calendar list as it is shown: each row's hint and title, in order.  The list is rebuilt first, as the
