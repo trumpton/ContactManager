@@ -34,6 +34,7 @@
 #define private public
 #include "mainwindow.h"
 #include "appointmentform.h"
+#include "accessibledaterangeedit.h"
 #undef private
 #include "contact.h"
 #include "contactdatabase.h"
@@ -155,10 +156,30 @@ int main(int argc, char *argv[])
     QWidget *lastmodal = nullptr ;
     int clicksonthis = 0 ;
     QString nextanswer ;     // The button the next yes/no question is answered with, set by an "answer" operation
+    QList<QDateTime> nextfroms ;   // The start each appointment form is given when it is shown, then OK is pressed
     QTimer *tick = new QTimer(&a) ;
     QObject::connect(tick, &QTimer::timeout, [&]() {
         QWidget *m = QApplication::activeModalWidget() ;
         if (!m) return ;
+
+        // An appointment form: give it the next start, as a user types one, and press OK
+        if (QString(m->metaObject()->className()) == "AppointmentForm" && !nextfroms.isEmpty()) {
+            auto *from = m->findChild<AccessibleDateRangeEdit*>("editWhenFrom") ;
+            auto *to = m->findChild<AccessibleDateRangeEdit*>("editWhenTo") ;
+            if (from && to) {
+                // The end moves with the start, keeping the hour the form has
+                QDateTime start = nextfroms.takeFirst() ;
+                from->setDateTime(start, 60) ;
+                to->setDateTime(start.addSecs(3600)) ;
+                note("form start set") ;
+            }
+            for (QPushButton *b : m->findChildren<QPushButton*>()) {
+                if (b->text().replace("&", "") == "OK") {
+                    b->click() ;
+                    return ;
+                }
+            }
+        }
 
         if (!nextanswer.isEmpty()) {
             for (QPushButton *b : m->findChildren<QPushButton*>()) {
@@ -471,6 +492,22 @@ int main(int argc, char *argv[])
             }
             record(name + "_hints", hints) ;
             record(name + "_titles", titles) ;
+
+        } else if (kind == "edit_ok") {
+            // Opens the appointment edit path for an appointment, as Control-U does, on the given occurrence; the form's
+            // default button is pressed by the driver.  Records whether the edit path returned.
+            QString name = op["name"].toString() ;
+            for (const QJsonValue &v : op["froms"].toArray()) {
+                nextfroms.append(QDateTime::fromString(v.toString(), Qt::ISODate)) ;
+            }
+            Appointment &origin = w.calendar.getAppointmentBy(Appointment::Summary, op["summary"].toString()) ;
+            if (!origin.isNull()) {
+                w.calendar.selectAppointment(op.contains("occurrence") ? Calendar::occurrenceHint(origin.getField(Appointment::ID),
+                    QDateTime::fromString(op["occurrence"].toString(), Qt::ISODate)) : origin.getField(Appointment::ID)) ;
+                w.editAppointment(origin, origin, QString(), false, op["occurrence"].toString()) ;
+            }
+            record(name + "_returned", true) ;
+            note("edit_ok " + name + " returned") ;
 
         } else if (kind == "report_clashes") {
             // Runs the check the window does when it opens, on demand

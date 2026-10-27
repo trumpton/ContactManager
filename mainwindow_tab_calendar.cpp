@@ -226,14 +226,18 @@ void MainWindow::editAppointment(Appointment &editing, Appointment &reference, Q
     oldfrom = appt.getField(Appointment::From) ;
     if (contactid.isEmpty()) contactid = editing.getContactId() ;
 
-    frm = new AppointmentForm(this) ;
-    frm->setupForm(db, contactid, shown, reference, createnew) ;
-
     do {
+
+        // A new form for each attempt, showing the values of the last one.  A form that has been accepted does not close
+        // on OK when it is shown again, so it is not reused.
+        frm = new AppointmentForm(this) ;
+        frm->setupForm(db, contactid, appt, reference, createnew) ;
 
         play(Query) ;
         ret=frm->exec() ;
         appt = frm->getAppointmentDetails() ;
+        delete frm ;
+        frm = NULL ;
 
         // The appointment as it would be saved, so the checks are made on that
         Appointment checked = repeat ? appointmentForRepeat(appt, editing, repeatstart) : appt ;
@@ -255,8 +259,10 @@ void MainWindow::editAppointment(Appointment &editing, Appointment &reference, Q
                 msg = msg + clash.asText(db.getContactById(clash.getField(Appointment::ContactId)).getFormattedName(false, false)) + "\n" ;
                 msg = msg + "Select Yes/Enter to save anyway, or No/Escape to go back and change it" ;
                 retry = !warningYesNoDialog(this, "Appointment Clash", msg) ;
-            } else if (!checked.isInRange(gConf->calendarWindowBefore(), gConf->calendarWindowAfter())) {
-                warningOkDialog(this, "Invalid Date", "You have set an invalid date for the appointment, please fix it") ;
+            } else if (checked.getDate(Appointment::From) > QDateTime::currentDateTimeUtc().addDays(gConf->calendarWindowAfter())) {
+                // An appointment can start before the window, as it can be set again after a deletion; it cannot start after it
+                warningOkDialog(this, "Invalid Date", QString("The appointment starts more than %1 days ahead, which is after the end of the appointment window, so it cannot be shown.  Please fix the date.")
+                                .arg(gConf->calendarWindowAfter())) ;
                 retry = true ;
             } else if (duration==0) {
                 retry = !warningYesNoDialog(this, "Appointment Check", "Your appointment is 0 minutes long, do you want that set as a reminder?") ;
@@ -271,7 +277,6 @@ void MainWindow::editAppointment(Appointment &editing, Appointment &reference, Q
     }
 
     calendar.save() ;
-    delete frm ;
 
 }
 

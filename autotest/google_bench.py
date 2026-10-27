@@ -2116,5 +2116,38 @@ def p33():
                   listed.endswith("@" + at_day(2 + 7, "09:00")), "listed %r" % listed)]
 
 
+@scenario("Q34", "#74: OK on the edit of a repeat that started 11 days ago closes the form, with no dialog")
+def q34():
+    run = Run("Q34", [{"op": "add_appointment", "fields": {"summary": "BENCH Q34 repeat", "from": at_day(-11, "10:00"),
+                                                         "to": at_day(-11, "11:00"), "repeat": "2", "repeatinterval": "3",
+                                                         "repeatcount": "32"}},
+                      {"op": "edit_ok", "name": "q34", "summary": "BENCH Q34 repeat", "occurrence": at_day(-11, "10:00")},
+                      dump()]).execute()
+    r = run.dump_file("results.json")
+    log = run.log()
+    dialogs = [l for l in log.splitlines() if " dialog " in l and "Login" not in l and "failed to login" not in l
+               and "AppointmentForm" not in l]
+    return [Check("the edit path returns", r.get("q34_returned") is True, "not returned"),
+            Check("no dialog is shown when OK is pressed", len(dialogs) == 0, "dialogs: %r" % dialogs[:3])]
+
+
+@scenario("Q35", "#74: a start three months back is accepted, and OK then closes the form, as with a start 11 days back")
+def q35():
+    run = Run("Q35", [{"op": "add_appointment", "fields": {"summary": "BENCH Q35 repeat", "from": at_day(2, "09:00"),
+                                                         "to": at_day(2, "10:00"), "repeat": "2", "repeatinterval": "3",
+                                                         "repeatcount": "32"}},
+                      {"op": "edit_ok", "name": "q35", "summary": "BENCH Q35 repeat", "occurrence": at_day(2 + 21, "09:00"),
+                       "froms": [at_day(-112, "09:00"), at_day(-11, "09:00")]},
+                      dump()]).execute()
+    r = run.dump_file("results.json")
+    log = run.log()
+    forms = [l for l in log.splitlines() if "form start set" in l]
+    invalid = [l for l in log.splitlines() if "Invalid Date" in l]
+    return [Check("the edit path returns", r.get("q35_returned") is True, "not returned"),
+            Check("a start three months back is not refused as an invalid date", len(invalid) == 0,
+                  "refused %d time(s)" % len(invalid)),
+            Check("the form closes on the first OK", len(forms) == 1, "form shown %d times" % len(forms))]
+
+
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
