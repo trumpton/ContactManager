@@ -8,6 +8,7 @@
 
 #include <QProcess>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QShortcut>
 
 #include "mainwindow.h"
@@ -26,7 +27,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     enc=NULL ;
     find=NULL ;
     titledEntriesHeld=false ;
-    quitting=false ;
 
     ui->setupUi(this);
     setupTitledEntries() ;
@@ -273,27 +273,38 @@ MainWindow::~MainWindow()
     }
 }
 
-// A refused entry keeps the window open, so the typed text is not lost.  Quitting with an edit and an entry that is not
-// right asks first.  Quit saves the other changes, and leaves the entry as it was saved.  Stay keeps the window open.
-void MainWindow::closeEvent(QCloseEvent *event)
+// Asks Save, Discard or Cancel when the contact has edits, before it is left or an operation that saves it starts.
+// Save is the File > Save check, so a bad entry is refused with the warning shown.  Discard puts back the stored contact.
+// Returns false when the action is cancelled, or the save is refused.  Without edits nothing is asked.
+bool MainWindow::ConfirmSaveOrDiscard(const QString &action)
 {
     Contact &dr = formContact() ;
-    if (!dr.isNull() && FormHasEdits(dr) && FormHasBadEntry()) {
-        bool quit = warningYesNoDialog(this, "Exit", QString("Contact: %1\n\nAn email or phone entry on this contact is not "
-                        "formatted correctly, so it will not be saved.\n\nQuit without saving it?  The other changes are saved.")
-                        .arg(dr.getFormattedName(false, false)), "Quit", QChar('q'), "Stay", QChar('s')) ;
-        if (!quit) {
-            event->ignore() ;
-            return ;
-        }
-        quitting = true ;
-        KeepStoredEntries(dr) ;
-        SaveTabs() ;
-        QMainWindow::closeEvent(event) ;
-        return ;
-    }
+    if (dr.isNull() || !FormHasEdits(dr)) return true ;
 
-    if (!ValidateTitledEntries(formContact())) {
+    QMessageBox box(this) ;
+    box.setWindowTitle("Contact Details") ;
+    box.setText(QString("Contact: %1\n\nThis contact has changes that are not saved.\n\nSave them before %2?")
+                .arg(dr.getFormattedName(false, false), action)) ;
+    QPushButton *save = box.addButton("Save", QMessageBox::AcceptRole) ;
+    QPushButton *discard = box.addButton("Discard", QMessageBox::DestructiveRole) ;
+    box.addButton("Cancel", QMessageBox::RejectRole) ;
+    box.setDefaultButton(save) ;
+    box.exec() ;
+
+    if (box.clickedButton() == save) return SaveTabs(true) ;
+    if (box.clickedButton() == discard) {
+        titledEntriesHeld = false ;
+        LoadContactTab() ;
+        return true ;
+    }
+    return false ;
+}
+
+// A refused entry keeps the window open, so the typed text is not lost.  Quitting asks Save, Discard or Cancel when
+// the contact has edits.
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    if (!ConfirmSaveOrDiscard("quitting")) {
         event->ignore() ;
         return ;
     }
@@ -443,6 +454,9 @@ void MainWindow::populateDialog(QString id, bool switchtooverview)
 {
     Contact& dro = db.getSelected() ;
     QString oldid = dro.getField(Contact::ID) ;
+
+    // Changing to another contact asks whether to save or discard the edits to this one
+    if (id.compare(oldid)!=0 && !ConfirmSaveOrDiscard("switching contact")) return ;
 
     // A badly formatted email or phone entry keeps the form on this contact, with focus on that entry
     if (!ValidateTitledEntries(formContact())) return ;
@@ -633,7 +647,8 @@ void MainWindow::on_action_Google_Sync_triggered()
 {
     class GoogleUpdateDialog *frm ;
 
-    // Save tabs before sync.  A refused entry stops the sync, so a bad entry is not sent to Google.
+    // Edits are saved or discarded first.  A refused entry stops the sync, so a bad entry is not sent to Google.
+    if (!ConfirmSaveOrDiscard("syncing")) return ;
     if (!SaveTabs()) return ;
 
     // A blank contact on screen is removed by the sync, so stop showing it first
@@ -661,7 +676,8 @@ void MainWindow::on_action_Google_Sync_triggered()
 
 void MainWindow::on_actionTidyContacts_triggered()
 {
-    // Save what is on screen.  A refused entry stops the tidy.  The contact on screen stays loaded, and follows a merge.
+    // Edits are saved or discarded first.  A refused entry stops the tidy.  The contact on screen stays loaded, and follows a merge.
+    if (!ConfirmSaveOrDiscard("tidying contacts")) return ;
     if (!SaveTabs()) return ;
     QString loadedid = db.getSelected().isNull() ? QString(SELECT_OVERVIEW) : db.getSelected().getField(Contact::ID) ;
 
@@ -963,6 +979,7 @@ void MainWindow::on_actionImport_triggered()
         return ;
     }
 
+    if (!ConfirmSaveOrDiscard("importing")) return ;
     if (!SaveTabs()) return ;
     db.selectContact(SELECT_OVERVIEW) ;
 
