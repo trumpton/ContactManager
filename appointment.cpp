@@ -499,17 +499,88 @@ QDateTime Appointment::occurrenceFrom(int n)
     return wallClockToUtc(next, zone) ;
 }
 
-bool Appointment::occurrenceExists(int n)
+bool Appointment::occurrenceEnded(int n)
 {
     int count = getField(Appointment::RepeatCount).toInt() ;
-    if (count>0 && n>=count) return false ;
+    if (count>0 && n>=count) return true ;
 
     QString until = getField(Appointment::RepeatUntil) ;
     if (!until.isEmpty()) {
         QDateTime last = QDateTime::fromString(until, Qt::ISODate) ;
-        if (occurrenceFrom(n) > last) return false ;
+        if (occurrenceFrom(n) > last) return true ;
     }
-    return true ;
+    return false ;
+}
+
+bool Appointment::occurrenceExists(int n)
+{
+    return !occurrenceEnded(n) && !isException(occurrenceFrom(n)) ;
+}
+
+bool Appointment::isException(QDateTime start)
+{
+    return exceptions().contains(start) ;    // QDateTime equality compares the moment, whatever its time spec
+}
+
+void Appointment::addException(QDateTime start)
+{
+    QList<QDateTime> list = exceptions() ;
+    if (!list.contains(start)) {
+        list.append(start) ;
+        setExceptions(list) ;
+    }
+}
+
+QList<QDateTime> Appointment::exceptions()
+{
+    QList<QDateTime> list ;
+    foreach (const QString &text, getField(Appointment::RepeatExceptions).split(QChar(','), Qt::SkipEmptyParts)) {
+        QDateTime when = QDateTime::fromString(text, Qt::ISODate) ;
+        if (when.isValid()) list.append(when) ;
+    }
+    return list ;
+}
+
+void Appointment::setExceptions(QList<QDateTime> starts)
+{
+    QStringList texts ;
+    foreach (const QDateTime &when, starts) texts.append(when.toUTC().toString(Qt::ISODate)) ;
+    setField(Appointment::RepeatExceptions, texts.join(QChar(','))) ;
+}
+
+int Appointment::indexOfOccurrence(QDateTime start)
+{
+    if (!isRepeating()) return (occurrenceFrom(0)==start) ? 0 : -1 ;
+    for (int n=0; !occurrenceEnded(n); n++) {
+        QDateTime when = occurrenceFrom(n) ;
+        if (when==start) return n ;
+        if (when>start) break ;
+    }
+    return -1 ;
+}
+
+void Appointment::endBefore(int n)
+{
+    if (n<=0) return ;
+    int count = getField(Appointment::RepeatCount).toInt() ;
+    if (count>0) {
+        if (n<count) setField(Appointment::RepeatCount, QString::number(n)) ;
+        return ;
+    }
+    setField(Appointment::RepeatUntil, occurrenceFrom(n-1).toUTC().toString(Qt::ISODate)) ;
+}
+
+// A copy with a new ID, and without the Google record of this appointment, so that Google receives it as a new event
+Appointment Appointment::copyAsNew()
+{
+    Appointment copy = *this ;
+    copy.setId(QUuid::createUuid().toString()) ;
+    for (int i=0; i<NumberOfRecords; i++) {
+        if (!appointmentrecordinfo[i].isgacct) continue ;
+        if (appointmentrecordinfo[i].isflag) copy.setFlag((enum AppointmentRecord)i, false) ;
+        else copy.setField((enum AppointmentRecord)i, "") ;
+    }
+    return copy ;
 }
 
 // The first occurrence that is still to come.  A repeat is stepped from its start, so a repeat that began in the past is
@@ -521,8 +592,9 @@ QDateTime Appointment::nextOccurrence()
         QDateTime start = getDate(Appointment::From) ;
         return start>now ? start : QDateTime() ;
     }
-    for (int n=0; occurrenceExists(n); n++) {
-        if (occurrenceFrom(n) > now) return occurrenceFrom(n) ;
+    for (int n=0; !occurrenceEnded(n); n++) {
+        QDateTime when = occurrenceFrom(n) ;
+        if (when > now && !isException(when)) return when ;
     }
     return QDateTime() ;
 }

@@ -2045,6 +2045,84 @@ def o79():
                   "BENCH O79 weekly" in overview, "overview has the repeat: %s" % ("BENCH O79 weekly" in overview))]
 
 
+def google_master(summary):
+    """The repeating event on Google with this summary (not an instance of a repeat)."""
+    items = api("GET", CALENDAR + "/events?q=" + urllib.parse.quote(summary) + "&singleEvents=false").get("items", [])
+    masters = [e for e in items if e.get("summary") == summary and not e.get("recurringEventId") and e.get("status") != "cancelled"]
+    return masters[0] if masters else {}
+
+
+def google_instances(master_id):
+    url = CALENDAR + "/events/%s/instances?showDeleted=true&timeMin=%s&timeMax=%s" % (
+        master_id, at_day(-1, "00:00"), at_day(90, "00:00"))
+    return api("GET", url).get("items", [])
+
+
+@scenario("X81D", "#81: deleting just one occurrence of a repeat keeps the others, and Google leaves that date out")
+def x81d():
+    summary = "BENCH X81D weekly"
+    gone = datetime.datetime.utcnow() + datetime.timedelta(days=2 + 14)
+    run = Run("X81D", [{"op": "add_appointment", "fields": {"summary": summary, "from": at_day(2, "09:00"), "to": at_day(2, "10:00"),
+                                                         "repeat": "2", "repeatinterval": "1", "repeatcount": "6"}},
+                       sync(), {"op": "choose", "letter": "a"},
+                       {"op": "repeat_delete", "summary": summary, "occurrence": at_day(2 + 14, "09:00")},
+                       sync(), {"op": "calendar_rows", "name": "x81d", "reload": False}, dump()]).execute()
+    r = run.dump_file("results.json")
+    mine = [t for t in r.get("x81d_titles", []) if summary in t]
+    gone_text = gone.strftime("%d %b %Y")
+    master = google_master(summary)
+    target = gone.strftime("%Y%m%dT090000")
+    exdate = any(line.startswith("EXDATE") and target in line for line in master.get("recurrence", []))
+    cancelled = any(i.get("status") == "cancelled" and (i.get("originalStartTime") or {}).get("dateTime", "").startswith(gone.strftime("%Y-%m-%dT09"))
+                    for i in google_instances(master.get("id", "x")))
+    return [Check("the other five occurrences are still listed", len(mine) == 5, "rows %r" % mine),
+            Check("the deleted date is not listed", not any(gone_text in t for t in mine), "rows %r" % mine),
+            Check("Google leaves that date out of the repeat", exdate or cancelled,
+                  "EXDATE %s, cancelled instance %s, recurrence %r" % (exdate, cancelled, master.get("recurrence")))]
+
+
+@scenario("X81E", "#81: changing one occurrence and all following splits the repeat, and Google gets both parts")
+def x81e():
+    summary = "BENCH X81E weekly"
+    run = Run("X81E", [{"op": "add_appointment", "fields": {"summary": summary, "from": at_day(2, "09:00"), "to": at_day(2, "10:00"),
+                                                         "repeat": "2", "repeatinterval": "1", "repeatcount": "6"}},
+                       sync(), {"op": "choose", "letter": "b"},
+                       {"op": "repeat_edit", "name": "x81e", "summary": summary, "occurrence": at_day(2 + 21, "09:00"),
+                        "shiftdays": 0, "newsummary": "BENCH X81E later"},
+                       sync(), {"op": "calendar_rows", "name": "x81e", "reload": True}, dump()]).execute()
+    r = run.dump_file("results.json")
+    titles = r.get("x81e_titles", [])
+    before = [t for t in titles if "BENCH X81E weekly" in t]
+    after = [t for t in titles if "BENCH X81E later" in t]
+    origin = google_master(summary)
+    later = google_master("BENCH X81E later")
+    return [Check("the first three occurrences keep the old summary", len(before) == 3, "rows %r" % before),
+            Check("the next three have the new summary", len(after) == 3, "rows %r" % after),
+            Check("Google keeps the first part, with three occurrences", "COUNT=3" in " ".join(origin.get("recurrence", [])),
+                  "recurrence %r" % origin.get("recurrence")),
+            Check("Google has the new part as its own repeat, with three occurrences",
+                  later.get("id") and later.get("id") != origin.get("id") and "COUNT=3" in " ".join(later.get("recurrence", [])),
+                  "recurrence %r" % later.get("recurrence"))]
+
+
+@scenario("X81C", "#81: cancelling the change of a repeat changes nothing")
+def x81c():
+    summary = "BENCH X81C weekly"
+    run = Run("X81C", [{"op": "add_appointment", "fields": {"summary": summary, "from": at_day(2, "09:00"), "to": at_day(2, "10:00"),
+                                                         "repeat": "2", "repeatinterval": "1", "repeatcount": "6"}},
+                       sync(), {"op": "choose", "letter": "d"},
+                       {"op": "repeat_edit", "name": "x81c", "summary": summary, "occurrence": at_day(2 + 14, "09:00"),
+                        "shiftdays": 0, "newsummary": "BENCH X81C changed"},
+                       sync(), {"op": "calendar_rows", "name": "x81c", "reload": True}, dump()]).execute()
+    r = run.dump_file("results.json")
+    titles = r.get("x81c_titles", [])
+    master = google_master(summary)
+    return [Check("no row shows the change", not any("changed" in t for t in titles), "rows %r" % titles[:3]),
+            Check("Google still has the original repeat, with six occurrences",
+                  master.get("summary") == summary and "COUNT=6" in " ".join(master.get("recurrence", [])),
+                  "summary %r recurrence %r" % (master.get("summary"), master.get("recurrence")))]
+
+
 @scenario("G41", "#30: an edit of a repeat in the app changes the Google event, and the event stays repeating")
 def g41():
     start, end = at_day(2, "09:00"), at_day(2, "10:00")
