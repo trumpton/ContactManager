@@ -1921,9 +1921,11 @@ def p31():
     third = at_day(2 + 7 * 2, "09:00")       # the third week's repeat
     run = Run("P31", [{"op": "add_appointment", "fields": {"summary": "BENCH P31 weekly", "from": start,
                                                          "to": at_day(2, "10:00"), "repeat": "2", "repeatinterval": "1"}},
+                      {"op": "choose", "letter": "c"},
                       {"op": "repeat_edit", "name": "p31a", "summary": "BENCH P31 weekly", "occurrence": third,
                        "shiftdays": 0, "newsummary": "BENCH P31 edited"},
                       dump(file="d_inplace.json"),
+                      {"op": "choose", "letter": "c"},
                       {"op": "repeat_edit", "name": "p31b", "summary": "BENCH P31 edited", "occurrence": third,
                        "shiftdays": 1},
                       dump()]).execute()
@@ -2128,7 +2130,7 @@ def g41():
     start, end = at_day(2, "09:00"), at_day(2, "10:00")
     eid = create_recurring_event("BENCH G41 weekly", start, end, "RRULE:FREQ=WEEKLY;INTERVAL=1")
     third = at_day(2 + 7 * 2, "09:00")
-    Run("G41", [sync(), {"op": "repeat_edit", "name": "g41", "summary": "BENCH G41 weekly", "occurrence": third,
+    Run("G41", [sync(), {"op": "choose", "letter": "c"}, {"op": "repeat_edit", "name": "g41", "summary": "BENCH G41 weekly", "occurrence": third,
                          "shiftdays": 0, "newsummary": "BENCH G41 edited"}, sync(), dump()]).execute()
     event = api("GET", CALENDAR + "/events/" + eid)
     rules = event.get("recurrence", [])
@@ -2251,6 +2253,7 @@ def p33():
     run = Run("P33", [{"op": "add_appointment", "fields": {"summary": "BENCH P33 weekly", "from": at_day(2, "09:00"),
                                                          "to": at_day(2, "10:00"), "repeat": "2", "repeatinterval": "1"}},
                       {"op": "calendar_rows", "name": "p33a"},
+                      {"op": "choose", "letter": "c"},
                       {"op": "repeat_edit", "name": "p33", "summary": "BENCH P33 weekly", "occurrence": at_day(2 + 7 * 15, "09:00"),
                        "shiftdays": 0, "count": "2"},
                       dump()]).execute()
