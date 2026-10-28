@@ -560,6 +560,9 @@ bool MainWindow::SaveContactTab(bool explicitsave)
         populateDialog(SELECT_OVERVIEW) ;
     }
 
+    // Birthdays on the calendar come from the contacts, so the calendar is rebuilt from the saved contact
+    LoadCalendarTab() ;
+
     dbg("Contact Tab Save Complete") ;
 
     return true ;

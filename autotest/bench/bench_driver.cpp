@@ -314,6 +314,16 @@ int main(int argc, char *argv[])
                 int rec = appointmentRecordFor(it.key()) ;
                 if (rec >= 0) appt.setField((Appointment::AppointmentRecord)rec, it.value().toString()) ;
             }
+            // "surname" links the appointment to that contact, with its ID and name, as the form does
+            QString surname = op["surname"].toString() ;
+            for (int i = 0; !surname.isEmpty() && i < w.db.size(); i++) {
+                Contact &c = w.db.getContact(i) ;
+                if (c.getField(Contact::Surname) == surname) {
+                    appt.setField(Appointment::ContactId, c.getField(Contact::ID)) ;
+                    appt.setField(Appointment::For, c.getField(Contact::Names) + " " + surname) ;
+                    break ;
+                }
+            }
             w.calendar.addAppointment(appt, true) ;
             note("added appointment " + appt.getField(Appointment::Summary)) ;
 
@@ -482,9 +492,9 @@ int main(int argc, char *argv[])
 
         } else if (kind == "calendar_rows") {
             // The calendar list as it is shown: each row's hint and title, in order.  The list is rebuilt first, as the
-            // window does when its calendar tab loads.
+            // window does when its calendar tab loads, unless "reload" is false: then it is read as it is shown now.
             QString name = op["name"].toString() ;
-            w.LoadCalendarTab() ;
+            if (op["reload"].toBool(true)) w.LoadCalendarTab() ;
             QJsonArray hints, titles ;
             for (int r = 0; r < w.calendarlist.rowCount(); r++) {
                 hints.append(w.calendarlist.hintAt(r)) ;
@@ -492,6 +502,10 @@ int main(int argc, char *argv[])
             }
             record(name + "_hints", hints) ;
             record(name + "_titles", titles) ;
+
+        } else if (kind == "overview") {
+            // The overview of the open contact as it is shown now, with no rebuild
+            record(op["name"].toString() + "_overview", QJsonValue(w.ui->editOverview->toPlainText())) ;
 
         } else if (kind == "edit_ok") {
             // Opens the appointment edit path for an appointment, as Control-U does, on the given occurrence; the form's
@@ -533,6 +547,7 @@ int main(int argc, char *argv[])
             QJsonObject fields = op["fields"].toObject() ;
             QMap<QString, QLineEdit*> entries = formEntries(w.ui) ;
             for (auto it = fields.begin(); it != fields.end(); ++it) {
+                if (it.key() == "birthday") { w.ui->editDateOfBirth->setDateTime(xsDateToDateTime(it.value().toString())) ; continue ; }
                 if (!entries.contains(it.key())) { note("unknown form field: " + it.key()) ; continue ; }
                 entries[it.key()]->setText(it.value().toString()) ;
             }
