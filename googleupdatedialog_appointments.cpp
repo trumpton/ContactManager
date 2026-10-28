@@ -26,8 +26,10 @@ static bool changedLocallySince(Appointment &local, const QDateTime &lastsync)
 bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess& google, class ContactDatabase& db, class Calendar& cal)
 {
     bool networkok = true ;
-    QDateTime fromwindow = QDateTime::currentDateTimeUtc().addDays(-1*APPOINTMENTSTARTWINDOW).addSecs(3600) ;
-    QDateTime towindow = QDateTime::currentDateTimeUtc().addDays(APPOINTMENTENDWINDOW).addSecs(-3600) ;
+    int windowbefore = gConf->calendarWindowBefore() ;
+    int windowafter = gConf->calendarWindowAfter() ;
+    QDateTime fromwindow = QDateTime::currentDateTimeUtc().addDays(-1*windowbefore).addSecs(3600) ;
+    QDateTime towindow = QDateTime::currentDateTimeUtc().addDays(windowafter).addSecs(-3600) ;
     Calendar googlecal ;
 
     // ------------------------------------------------------------------------------------
@@ -39,7 +41,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     setProgress(0) ;
     QElapsedTimer phasetimer ;
     phasetimer.start() ;
-    networkok &= google.getCalendar(googlecal, APPOINTMENTSTARTWINDOW, APPOINTMENTENDWINDOW) ;
+    networkok &= google.getCalendar(googlecal, qMax(windowbefore, GOOGLE_APPOINTMENT_LOOKBACK_DAYS), windowafter) ;
     PHASE_DONE("download appointments") ;
     googlecal.dumpEntries("google", db) ;
     int googlesize = googlecal.size() ;
@@ -219,9 +221,12 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
         QDateTime from = localappt.getDate(Appointment::From) ;
         QDateTime to = localappt.getDate(Appointment::To) ;
 
-        // Just process non-temp entries within sync window
+        // Just process non-temp entries within sync window.  An entry that Google has, or that is to be downloaded, is
+        // processed whatever its date: a repeat, or an entry older than the window, is downloaded with its details.
+        bool ongoogle = !googlecal.getAppointmentBy(Appointment::ID, localappt.getField(Appointment::ID)).isNull() ;
         if ( !localappt.isTemp() &&
-               ( (from <= fromwindow && to >= fromwindow) ||
+               ( ongoogle || localappt.isSet(Appointment::ToBeDownloaded) ||
+                 (from <= fromwindow && to >= fromwindow) ||
                  (from >= fromwindow && to <= towindow) ||
                  ( from <= towindow && to >= towindow) )  ) {
 

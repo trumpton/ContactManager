@@ -33,6 +33,8 @@
 #include "../Lib/alertsound.h"
 #define private public
 #include "mainwindow.h"
+#include "appointmentform.h"
+#include "accessibledaterangeedit.h"
 #undef private
 #include "contact.h"
 #include "contactdatabase.h"
@@ -96,6 +98,10 @@ static int appointmentRecordFor(const QString &key)
     if (key == "to") return Appointment::To ;
     if (key == "for") return Appointment::For ;
     if (key == "googlerecordid") return Appointment::GoogleRecordId ;
+    if (key == "repeat") return Appointment::Repeat ;
+    if (key == "repeatinterval") return Appointment::RepeatInterval ;
+    if (key == "repeatcount") return Appointment::RepeatCount ;
+    if (key == "repeatuntil") return Appointment::RepeatUntil ;
     return -1 ;
 }
 
@@ -150,10 +156,30 @@ int main(int argc, char *argv[])
     QWidget *lastmodal = nullptr ;
     int clicksonthis = 0 ;
     QString nextanswer ;     // The button the next yes/no question is answered with, set by an "answer" operation
+    QList<QDateTime> nextfroms ;   // The start each appointment form is given when it is shown, then OK is pressed
     QTimer *tick = new QTimer(&a) ;
     QObject::connect(tick, &QTimer::timeout, [&]() {
         QWidget *m = QApplication::activeModalWidget() ;
         if (!m) return ;
+
+        // An appointment form: give it the next start, as a user types one, and press OK
+        if (QString(m->metaObject()->className()) == "AppointmentForm" && !nextfroms.isEmpty()) {
+            auto *from = m->findChild<AccessibleDateRangeEdit*>("editWhenFrom") ;
+            auto *to = m->findChild<AccessibleDateRangeEdit*>("editWhenTo") ;
+            if (from && to) {
+                // The end moves with the start, keeping the hour the form has
+                QDateTime start = nextfroms.takeFirst() ;
+                from->setDateTime(start, 60) ;
+                to->setDateTime(start.addSecs(3600)) ;
+                note("form start set") ;
+            }
+            for (QPushButton *b : m->findChildren<QPushButton*>()) {
+                if (b->text().replace("&", "") == "OK") {
+                    b->click() ;
+                    return ;
+                }
+            }
+        }
 
         if (!nextanswer.isEmpty()) {
             for (QPushButton *b : m->findChildren<QPushButton*>()) {
@@ -340,6 +366,9 @@ int main(int argc, char *argv[])
             }
             // The contact that is selected after the open, so a scenario can see whether the switch happened
             record(op["name"].toString() + "_selected", w.db.getSelected().getField(Contact::Surname)) ;
+            // Where focus is after the open, so a scenario can see whether it stays on the calendar
+            QWidget *focus = w.focusWidget() ;
+            record(op["name"].toString() + "_focus", focus ? focus->objectName() : QString()) ;
             note(QString("open_contact matched %1 contact(s)").arg(hit)) ;
 
         } else if (kind == "alt_edit") {
@@ -348,6 +377,142 @@ int main(int argc, char *argv[])
             w.on_actionEnableContactDetailsEdit_triggered() ;
             record(name + "_details", w.ui->tabBar->currentIndex() == CONTACTDETAILSTABPOS) ;
             note("alt_edit " + name) ;
+
+        } else if (kind == "calendar_click") {
+            // Double-clicks a calendar entry: its contact is opened by the same handler the list uses.  The entry is first
+            // linked to the contact with this surname, as an entry is linked to a contact when it is made.
+            QString name = op["name"].toString() ;
+            QString summary = op["summary"].toString() ;
+            QString contactid, apptid ;
+            for (int i = 0; i < w.db.size(); i++) {
+                Contact &c = w.db.getContact(i) ;
+                if (c.getField(Contact::Surname) == op["surname"].toString()) contactid = c.getField(Contact::ID) ;
+            }
+            for (int i = 0; i < w.calendar.size(); i++) {
+                Appointment &appt = w.calendar.getAppointment(i) ;
+                if (appt.getField(Appointment::Summary) == summary) {
+                    appt.setContactId(contactid) ;
+                    apptid = appt.getField(Appointment::ID) ;
+                }
+            }
+
+            // The list is built when the calendar tab loads, so reload it to show the entry added since
+            w.LoadCalendarTab() ;
+
+            // The row of the entry, or of one of its repeats when an occurrence is given, with the calendar tab shown and
+            // its list focused, as a click leaves it
+            QString wanted = apptid ;
+            if (op.contains("occurrence")) {
+                wanted = Calendar::occurrenceHint(apptid, QDateTime::fromString(op["occurrence"].toString(), Qt::ISODate)) ;
+            }
+            int row = -1 ;
+            for (int r = 0; r < w.calendarlist.rowCount(); r++) {
+                if (w.calendarlist.hintAt(r) == wanted) row = r ;
+            }
+            record(name + "_expected_row", row) ;
+            w.ui->tabBar->setCurrentIndex(CALENDARTABPOS) ;
+            w.ui->listCalendar->setFocus() ;
+            if (row >= 0) w.ui->listCalendar->setCurrentIndex(w.calendarlist.index(row, 0)) ;
+
+            w.on_listCalendar_activated(w.ui->listCalendar->currentIndex()) ;
+
+            QWidget *focus = w.focusWidget() ;
+            record(name + "_row", w.ui->listCalendar->currentIndex().row()) ;
+            record(name + "_focus", focus ? focus->objectName() : QString()) ;
+            record(name + "_selected", w.db.getSelected().getField(Contact::Surname)) ;
+            note(QString("calendar_click %1: row %2, focus %3").arg(name).arg(w.ui->listCalendar->currentIndex().row())
+                 .arg(focus ? focus->objectName() : QString())) ;
+
+        } else if (kind == "repeat_edit") {
+            // Saves an edit of a repeat, as the form does: the repeat's own day is moved by shiftdays, and the summary can
+            // change.  The focus afterwards is recorded.
+            QString name = op["name"].toString() ;
+            QDateTime occ = QDateTime::fromString(op["occurrence"].toString(), Qt::ISODate) ;
+            Appointment &origin = w.calendar.getAppointmentBy(Appointment::Summary, op["summary"].toString()) ;
+            if (!origin.isNull()) {
+                QDateTime from = origin.getDate(Appointment::From) ;
+                QDateTime to = origin.getDate(Appointment::To) ;
+                qint64 shift = op["shiftdays"].toInt() * 86400 ;
+                Appointment result = origin ;
+                result.setDate(Appointment::From, occ.addSecs(shift)) ;
+                result.setDate(Appointment::To, occ.addSecs(shift + from.secsTo(to))) ;
+                if (op.contains("newsummary")) result.setField(Appointment::Summary, op["newsummary"].toString()) ;
+                if (op.contains("count")) result.setField(Appointment::RepeatCount, op["count"].toString()) ;
+                w.storeAppointmentEdit(result, op["occurrence"].toString()) ;
+            }
+            record(name + "_selected_hint", w.calendar.selectedHint()) ;
+
+            // The row that has the focus after the edit, and how many rows the list has (the last is "Add New")
+            int row = w.ui->listCalendar->currentIndex().row() ;
+            record(name + "_row", row) ;
+            record(name + "_rows", w.calendarlist.rowCount()) ;
+            record(name + "_listed", (row >= 0 && row < w.calendarlist.rowCount()) ? w.calendarlist.hintAt(row) : QString()) ;
+            note("repeat_edit " + name) ;
+
+        } else if (kind == "form_repeat") {
+            // Opens the appointment form with a repeat, and records the repeat it gives back, as a save would store it
+            QString name = op["name"].toString() ;
+            Appointment appt ;
+            appt.createNew() ;
+            appt.setField(Appointment::Summary, "BENCH form repeat") ;
+            appt.setField(Appointment::Repeat, op["repeat"].toString()) ;
+            appt.setField(Appointment::RepeatInterval, op["every"].toString()) ;
+            appt.setField(Appointment::RepeatCount, op["count"].toString()) ;
+            appt.setField(Appointment::RepeatUntil, op["until"].toString()) ;
+            appt.setDate(Appointment::From, QDateTime::currentDateTimeUtc()) ;
+            appt.setDate(Appointment::To, QDateTime::currentDateTimeUtc().addSecs(3600)) ;
+            Appointment reference = appt ;
+            AppointmentForm frm(&w) ;
+            frm.setupForm(w.db, QString(), appt, reference, true) ;
+            Appointment &back = frm.getAppointmentDetails() ;
+            record(name + "_repeat", back.getField(Appointment::Repeat)) ;
+            record(name + "_every", back.getField(Appointment::RepeatInterval)) ;
+            record(name + "_count", back.getField(Appointment::RepeatCount)) ;
+            record(name + "_until", back.getField(Appointment::RepeatUntil)) ;
+            note("form_repeat " + name) ;
+
+        } else if (kind == "goto_today") {
+            // Goto Today, as the menu runs it; records the row it lands on, and that row's hint
+            QString name = op["name"].toString() ;
+            w.on_actionGotoToday_triggered() ;
+            int row = w.ui->listCalendar->currentIndex().row() ;
+            record(name + "_row", row) ;
+            record(name + "_hint", (row >= 0 && row < w.calendarlist.rowCount()) ? w.calendarlist.hintAt(row) : QString()) ;
+            note("goto_today " + name) ;
+
+        } else if (kind == "calendar_rows") {
+            // The calendar list as it is shown: each row's hint and title, in order.  The list is rebuilt first, as the
+            // window does when its calendar tab loads.
+            QString name = op["name"].toString() ;
+            w.LoadCalendarTab() ;
+            QJsonArray hints, titles ;
+            for (int r = 0; r < w.calendarlist.rowCount(); r++) {
+                hints.append(w.calendarlist.hintAt(r)) ;
+                titles.append(w.calendarlist.data(w.calendarlist.index(r, 0), Qt::DisplayRole).toString()) ;
+            }
+            record(name + "_hints", hints) ;
+            record(name + "_titles", titles) ;
+
+        } else if (kind == "edit_ok") {
+            // Opens the appointment edit path for an appointment, as Control-U does, on the given occurrence; the form's
+            // default button is pressed by the driver.  Records whether the edit path returned.
+            QString name = op["name"].toString() ;
+            for (const QJsonValue &v : op["froms"].toArray()) {
+                nextfroms.append(QDateTime::fromString(v.toString(), Qt::ISODate)) ;
+            }
+            Appointment &origin = w.calendar.getAppointmentBy(Appointment::Summary, op["summary"].toString()) ;
+            if (!origin.isNull()) {
+                w.calendar.selectAppointment(op.contains("occurrence") ? Calendar::occurrenceHint(origin.getField(Appointment::ID),
+                    QDateTime::fromString(op["occurrence"].toString(), Qt::ISODate)) : origin.getField(Appointment::ID)) ;
+                w.editAppointment(origin, origin, QString(), false, op["occurrence"].toString()) ;
+            }
+            record(name + "_returned", true) ;
+            note("edit_ok " + name + " returned") ;
+
+        } else if (kind == "report_clashes") {
+            // Runs the check the window does when it opens, on demand
+            w.reportClashes() ;
+            note("report_clashes done") ;
 
         } else if (kind == "answer") {
             // Clicks the button with this text on the next dialog that asks a question
