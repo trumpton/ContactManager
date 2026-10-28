@@ -6,6 +6,7 @@
 //
 // ==========================================================================
 
+#include <algorithm>
 #include <QProcess>
 #include <QMessageBox>
 #include <QPushButton>
@@ -157,6 +158,43 @@ void MainWindow::on_initial_focus()
     populateDialog(SELECT_OVERVIEW) ;
     on_tabBar_currentChanged(1) ;
     on_actionGotoToday_triggered() ;
+    reportClashes() ;
+}
+
+// Lists the pairs of appointments that overlap, so they can be fixed.  Nothing is changed.  Appointments are sorted by
+// their start, so an appointment is only compared with those that start before it ends.
+void MainWindow::reportClashes()
+{
+    QList<Appointment*> live ;
+    for (int i=0; i<calendar.size(); i++) {
+        Appointment &appt = calendar.getAppointment(i) ;
+        if (!appt.isSet(Appointment::Deleted) && !appt.isTemp()) live << &appt ;
+    }
+    // getDate returns one shared value, so a date is copied before the next one is read
+    std::sort(live.begin(), live.end(), [](Appointment *a, Appointment *b) {
+        QDateTime afrom = a->getDate(Appointment::From) ;
+        return afrom < b->getDate(Appointment::From) ;
+    }) ;
+
+    // A line for an appointment: its summary, its day, and its times
+    auto describe = [](Appointment *appt) {
+        return QString("%1 (%2 - %3)").arg(appt->getField(Appointment::Summary),
+                                            appt->getDate(Appointment::From).toString("dd MMM yyyy HH:mm"),
+                                            appt->getDate(Appointment::To).toString("HH:mm")) ;
+    } ;
+
+    QStringList lines ;
+    for (int i=0; i<live.size(); i++) {
+        QDateTime iend = live[i]->getDate(Appointment::To) ;
+        for (int j=i+1; j<live.size(); j++) {
+            if (live[j]->getDate(Appointment::From) >= iend) break ;
+            if (live[i]->clashes(*live[j])) lines << "    " + describe(live[i]) + " and " + describe(live[j]) ;
+        }
+    }
+    if (lines.isEmpty()) return ;
+
+    warningOkDialog(this, "Appointment Clashes", QString("These appointments overlap.  Nothing has been changed, so fix them in the calendar.\n\n%1")
+                    .arg(lines.join("\n")), true) ;
 }
 
 void MainWindow::abort()
@@ -205,8 +243,8 @@ void MainWindow::logLoadSummary()
 
     // Calendar
     QDateTime now = QDateTime::currentDateTimeUtc() ;
-    QDateTime windowstart = now.addDays(-APPOINTMENTSTARTWINDOW) ;
-    QDateTime windowend = now.addDays(APPOINTMENTENDWINDOW) ;
+    QDateTime windowstart = now.addDays(-gConf->calendarWindowBefore()) ;
+    QDateTime windowend = now.addDays(gConf->calendarWindowAfter()) ;
 
     int cdeleted=0, ccancelled=0, clinked=0, cinwindow=0, cbefore=0, cafter=0 ;
     int cbirthday=0, cinternet=0, ccontact=0, ccontactdeleted=0, ccontactmissing=0 ;

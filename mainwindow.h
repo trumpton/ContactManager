@@ -145,6 +145,7 @@ private slots:
     void on_action_Advanced_Find_triggered();
 
     void on_initial_focus() ;
+    void reportClashes() ;      // Lists the appointments that overlap, when the window opens.  Nothing is changed
 
 private:
     Ui::MainWindow *ui;
@@ -156,6 +157,7 @@ private:
     QTimer *timer ;
     Encryption *enc ;
     AdvancedFind *find ;
+    QList<QDateTime> calendarrowends ;              // The end of each row in the calendar list, so Goto Today can find the nearest
     bool titledEntriesHeld ;                        // An email or phone entry was refused: the form is not reloaded until it is fixed
 
     QString SMTPSMSErrorMessage ;
@@ -202,7 +204,8 @@ private:
     // Update window title
     void setAccessibleTextAndWindowTitle(QString name) ;
 
-    void editAppointment(Appointment &editing, Appointment &reference, QString contactid = QString(""), bool createnew = false) ;
+    void editAppointment(Appointment &editing, Appointment &reference, QString contactid = QString(""), bool createnew = false, QString occurrence = QString("")) ;
+    void storeAppointmentEdit(Appointment &result, QString occurrence = QString("")) ;   // Saves an edit; a repeat changes its appointment
 
     void doBackup() ;
     void sendMailSMS() ;

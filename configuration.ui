@@ -431,6 +431,51 @@
         </property>
        </widget>
       </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_window">
+        <item>
+         <widget class="QLabel" name="labelWindowBefore">
+          <property name="text">
+           <string>Show appointments from</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSpinBox" name="windowBefore">
+          <property name="accessibleName">
+           <string>Days before today for appointments</string>
+          </property>
+          <property name="maximum">
+           <number>3650</number>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="labelWindowDaysBefore">
+          <property name="text">
+           <string>days before today, to</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSpinBox" name="windowAfter">
+          <property name="accessibleName">
+           <string>Days after today for appointments</string>
+          </property>
+          <property name="maximum">
+           <number>3650</number>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="labelWindowDaysAfter">
+          <property name="text">
+           <string>days after today</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
      </layout>
     </widget>
    </item>

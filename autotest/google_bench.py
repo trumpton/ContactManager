@@ -18,6 +18,7 @@ usage:
   google_bench.py run [scenario ...]       run all scenarios, or the named ones
   google_bench.py gchange <cmd> <json>     change the account from inside a run (used by the driver)
 """
+import datetime
 import json
 import os
 import re
@@ -1834,6 +1835,318 @@ def main(argv):
     with open(os.path.join(RUNS, "results.json"), "w") as f:
         json.dump(RESULTS, f, indent=1)
     return 0 if passed == len(RESULTS) else 1
+
+
+@scenario("U34", "#34: double-clicking a calendar entry opens its contact, and keeps the calendar row and its focus")
+def u34():
+    run = Run("U34", [add_contact_op("U34", email="u34@test.invalid"),
+                      {"op": "add_appointment", "fields": {"summary": "BENCH U34 meeting", "from": DAY % (7, "09:00"),
+                                                         "to": DAY % (7, "10:00")}},
+                      {"op": "calendar_click", "name": "u34", "summary": "BENCH U34 meeting", "surname": "U34"},
+                      dump()]).execute()
+    r = run.dump_file("results.json")
+    return [Check("the calendar entry was found in the list", r.get("u34_expected_row", -1) >= 0,
+                  "row %r" % r.get("u34_expected_row")),
+            Check("the entry's contact is opened", r.get("u34_selected") == "U34",
+                  "selected %r" % r.get("u34_selected")),
+            Check("the calendar row is kept", r.get("u34_row") == r.get("u34_expected_row"),
+                  "row %r, expected %r" % (r.get("u34_row"), r.get("u34_expected_row"))),
+            Check("focus stays on the calendar list", r.get("u34_focus") == "listCalendar",
+                  "focus %r" % r.get("u34_focus"))]
+
+
+@scenario("K24", "#24: when the app opens, overlapping appointments are listed, and nothing is changed")
+def k24():
+    clash = [{"op": "add_appointment", "fields": {"summary": "BENCH K24 a", "from": DAY % (8, "09:00"), "to": DAY % (8, "10:00")}},
+             {"op": "add_appointment", "fields": {"summary": "BENCH K24 b", "from": DAY % (8, "09:30"), "to": DAY % (8, "10:30")}},
+             {"op": "add_appointment", "fields": {"summary": "BENCH K24 c", "from": DAY % (8, "12:00"), "to": DAY % (8, "13:00")}}]
+    Run("K24a", clash + [dump()], session="K24").execute()
+    # A fresh launch on the same data: the clash is listed when the window opens
+    b = Run("K24b", [dump()], session="K24").execute()
+    held = sorted(x["summary"] for x in b.dump["appointments"] if x.get("summary", "").startswith("BENCH K24"))
+    # No overlap, on its own: nothing is listed
+    c = Run("K24c", [{"op": "add_appointment", "fields": {"summary": "BENCH K24 d", "from": DAY % (9, "09:00"), "to": DAY % (9, "10:00")}},
+                     {"op": "add_appointment", "fields": {"summary": "BENCH K24 e", "from": DAY % (9, "10:00"), "to": DAY % (9, "11:00")}},
+                     dump()], session="K24n").execute()
+    d = Run("K24d", [dump()], session="K24n").execute()
+    return [Check("the overlapping appointments are listed when the app opens", 'Appointment Clashes' in b.log(),
+                  "no Appointment Clashes dialog"),
+            Check("the clash is listed once, for the overlapping pair", b.log().count('dialog WarningOk "Appointment Clashes"') == 1,
+                  "dialog count %d" % b.log().count('dialog WarningOk "Appointment Clashes"')),
+            Check("nothing is changed: all three appointments are still held", held == ["BENCH K24 a", "BENCH K24 b", "BENCH K24 c"],
+                  "held %r" % held),
+            Check("back-to-back appointments do not clash", 'Appointment Clashes' not in d.log(),
+                  "a clash was listed for appointments that only touch")]
+
+
+def at_day(days, time_of_day):
+    """A UTC time this many days from now, so repeats are checked against the window from today."""
+    when = datetime.datetime.utcnow() + datetime.timedelta(days=days)
+    return when.strftime("%Y-%m-%d") + "T" + time_of_day + ":00Z"
+
+
+@scenario("P30", "#30: a weekly appointment is listed on each week in the repeats window, and stored once")
+def p30():
+    start, end = at_day(2, "09:00"), at_day(2, "10:00")
+    # Weeks from the start that fall in the appointment window (90 days before today to 730 days after)
+    weeks = [k for k in range(0, 200) if 2 + 7 * k <= 730]
+    run = Run("P30", [add_contact_op("P30C", email="p30c@test.invalid"),
+                      {"op": "add_appointment", "fields": {"summary": "BENCH P30 weekly", "from": start, "to": end,
+                                                         "repeat": "2", "repeatinterval": "1"}},
+                      {"op": "calendar_rows", "name": "p30"},
+                      {"op": "calendar_click", "name": "p30c", "summary": "BENCH P30 weekly", "surname": "P30C",
+                       "occurrence": at_day(2 + 7 * 3, "09:00")},
+                      dump()]).execute()
+    r = run.dump_file("results.json")
+    stored = [x for x in run.dump["appointments"] if x.get("summary") == "BENCH P30 weekly"]
+    listed = [h for h in r.get("p30_hints", []) if h.split("@")[0] == (stored[0]["id"] if stored else "")]
+    return [Check("one row for each week in the repeats window", len(listed) == len(weeks),
+                  "rows %d, expected %d" % (len(listed), len(weeks))),
+            Check("the appointment is stored once, not once per repeat", len(stored) == 1,
+                  "stored %d times" % len(stored)),
+            Check("selecting a repeat opens the contact of its appointment", r.get("p30c_selected") == "P30C",
+                  "selected %r" % r.get("p30c_selected")),
+            Check("the repeat is the row that was selected", r.get("p30c_row") == r.get("p30c_expected_row", -1) >= 0,
+                  "row %r, expected %r" % (r.get("p30c_row"), r.get("p30c_expected_row")))]
+
+
+@scenario("P31", "#30: an edit of a repeat changes its appointment; a move to another day moves the appointment and the focus with it")
+def p31():
+    start = at_day(2, "09:00")
+    third = at_day(2 + 7 * 2, "09:00")       # the third week's repeat
+    run = Run("P31", [{"op": "add_appointment", "fields": {"summary": "BENCH P31 weekly", "from": start,
+                                                         "to": at_day(2, "10:00"), "repeat": "2", "repeatinterval": "1"}},
+                      {"op": "repeat_edit", "name": "p31a", "summary": "BENCH P31 weekly", "occurrence": third,
+                       "shiftdays": 0, "newsummary": "BENCH P31 edited"},
+                      dump(file="d_inplace.json"),
+                      {"op": "repeat_edit", "name": "p31b", "summary": "BENCH P31 edited", "occurrence": third,
+                       "shiftdays": 1},
+                      dump()]).execute()
+    r = run.dump_file("results.json")
+    stored = [x for x in run.dump["appointments"] if x.get("summary") == "BENCH P31 edited"]
+    inplace = run.dump_file("d_inplace.json")
+    stored_inplace = [x for x in inplace["appointments"] if x.get("summary") == "BENCH P31 edited"]
+    origin_id = stored[0]["id"] if stored else ""
+    return [Check("an edit of a repeat changes the appointment, and it is stored once",
+                  len(stored_inplace) == 1 and len([x for x in inplace["appointments"] if x.get("summary") == "BENCH P31 weekly"]) == 0,
+                  "stored %d times" % len(stored_inplace)),
+            Check("an edit within the same day keeps the focus on the repeat",
+                  r.get("p31a_selected_hint", "").startswith(origin_id + "@"),
+                  "focus %r" % r.get("p31a_selected_hint")),
+            Check("a move to another day moves the appointment by the same amount",
+                  len(stored) == 1 and stored[0].get("from") == at_day(3, "09:00"),
+                  "from %r" % (stored[0].get("from") if stored else None)),
+            Check("a move to another day puts the focus on the appointment",
+                  r.get("p31b_selected_hint") == origin_id,
+                  "focus %r, expected the appointment %r" % (r.get("p31b_selected_hint"), origin_id))]
+
+
+@scenario("D30", "#30: the appointment form keeps a repeat's type and interval, and gives back none for an appointment that does not repeat")
+def d30():
+    r = Run("D30", [{"op": "form_repeat", "name": "weekly3", "repeat": "2", "every": "3"},
+                    {"op": "form_repeat", "name": "none", "repeat": "0", "every": "1"}]).execute()
+    res = r.dump_file("results.json")
+    return [Check("a weekly repeat every 3 is kept", res.get("weekly3_repeat") == "2" and res.get("weekly3_every") == "3",
+                  "repeat %r, every %r" % (res.get("weekly3_repeat"), res.get("weekly3_every"))),
+            Check("an appointment that does not repeat stays so", res.get("none_repeat") == "0",
+                  "repeat %r" % res.get("none_repeat"))]
+
+
+def create_recurring_event(summary, start, end, rule):
+    # A repeating event needs a time zone on its start and end
+    body = {"summary": summary, "start": {"dateTime": start, "timeZone": "UTC"},
+            "end": {"dateTime": end, "timeZone": "UTC"}, "recurrence": [rule]}
+    return api("POST", CALENDAR + "/events", body)["id"]
+
+
+@scenario("G40", "#30: a repeating Google event is stored once, with its repeat, and listed on each week")
+def g40():
+    start, end = at_day(2, "09:00"), at_day(2, "10:00")
+    create_recurring_event("BENCH G40 weekly", start, end, "RRULE:FREQ=WEEKLY;INTERVAL=1")
+    weeks = [k for k in range(0, 200) if 2 + 7 * k <= 730]
+    run = Run("G40", [sync(), {"op": "calendar_rows", "name": "g40"}, dump()]).execute()
+    r = run.dump_file("results.json")
+    stored = [x for x in run.dump["appointments"] if x.get("summary") == "BENCH G40 weekly"]
+    listed = [h for h in r.get("g40_hints", []) if stored and h.split("@")[0] == stored[0]["id"]]
+    return [Check("the event is stored once, not once per week", len(stored) == 1, "stored %d times" % len(stored)),
+            Check("the event is listed on each week in the repeats window", len(listed) == len(weeks),
+                  "rows %d, expected %d" % (len(listed), len(weeks)))]
+
+
+@scenario("G41", "#30: an edit of a repeat in the app changes the Google event, and the event stays repeating")
+def g41():
+    start, end = at_day(2, "09:00"), at_day(2, "10:00")
+    eid = create_recurring_event("BENCH G41 weekly", start, end, "RRULE:FREQ=WEEKLY;INTERVAL=1")
+    third = at_day(2 + 7 * 2, "09:00")
+    Run("G41", [sync(), {"op": "repeat_edit", "name": "g41", "summary": "BENCH G41 weekly", "occurrence": third,
+                         "shiftdays": 0, "newsummary": "BENCH G41 edited"}, sync(), dump()]).execute()
+    event = api("GET", CALENDAR + "/events/" + eid)
+    rules = event.get("recurrence", [])
+    return [Check("Google holds the edited summary", event.get("summary") == "BENCH G41 edited",
+                  "summary %r" % event.get("summary")),
+            Check("the Google event still repeats weekly", any("FREQ=WEEKLY" in r for r in rules),
+                  "recurrence %r" % rules)]
+
+
+def repeats_in_window(source_days):
+    """Weeks from a source that fall in the appointment window (90 days before today to 730 days after), counted from 1."""
+    return [k for k in range(1, 400) if -90 <= source_days + 7 * k <= 730]
+
+
+@scenario("W30", "#30: a repeat whose source is older than the window is listed, and the source is not")
+def w30():
+    run = Run("W30", [{"op": "add_appointment", "fields": {"summary": "BENCH W30 weekly", "from": at_day(-120, "09:00"),
+                                                         "to": at_day(-120, "10:00"), "repeat": "2", "repeatinterval": "1"}},
+                      {"op": "calendar_rows", "name": "w30"}, dump()]).execute()
+    r = run.dump_file("results.json")
+    stored = [x for x in run.dump["appointments"] if x.get("summary") == "BENCH W30 weekly"]
+    origin_id = stored[0]["id"] if stored else ""
+    hints = r.get("w30_hints", [])
+    repeats = [h for h in hints if h.split("@")[0] == origin_id and "@" in h]
+    return [Check("the source, older than the window, is not listed", origin_id != "" and origin_id not in hints,
+                  "source listed"),
+            Check("its repeats in the window are listed", len(repeats) == len(repeats_in_window(-120)),
+                  "repeats %d, expected %d" % (len(repeats), len(repeats_in_window(-120)))),
+            Check("the source is stored once", len(stored) == 1, "stored %d times" % len(stored))]
+
+
+@scenario("G42", "#30: a repeating Google event whose first occurrence is older than the window still lists its repeats")
+def g42():
+    create_recurring_event("BENCH G42 weekly", at_day(-120, "09:00"), at_day(-120, "10:00"), "RRULE:FREQ=WEEKLY;INTERVAL=1")
+    run = Run("G42", [sync(), {"op": "calendar_rows", "name": "g42"}, dump()]).execute()
+    r = run.dump_file("results.json")
+    stored = [x for x in run.dump["appointments"] if x.get("summary") == "BENCH G42 weekly"]
+    origin_id = stored[0]["id"] if stored else ""
+    repeats = [h for h in r.get("g42_hints", []) if origin_id and h.split("@")[0] == origin_id and "@" in h]
+    return [Check("the event is stored once", len(stored) == 1, "stored %d times" % len(stored)),
+            Check("its repeats in the window are listed", len(repeats) == len(repeats_in_window(-120)),
+                  "repeats %d, expected %d" % (len(repeats), len(repeats_in_window(-120))))]
+
+
+@scenario("E30", "#30: a repeat ends after a number of times, or on a date, in the list and in the form")
+def e30():
+    weekly = {"summary": "BENCH E30 count", "from": at_day(2, "09:00"), "to": at_day(2, "10:00"),
+              "repeat": "2", "repeatinterval": "1", "repeatcount": "3"}
+    until_ = dict(weekly, summary="BENCH E30 until", repeatcount="", repeatuntil=at_day(16, "09:00"))
+    run = Run("E30", [{"op": "add_appointment", "fields": weekly},
+                      {"op": "add_appointment", "fields": until_},
+                      {"op": "calendar_rows", "name": "e30"},
+                      {"op": "form_repeat", "name": "formcount", "repeat": "2", "every": "1", "count": "3", "until": ""},
+                      {"op": "form_repeat", "name": "formuntil", "repeat": "2", "every": "1", "count": "",
+                       "until": at_day(16, "09:00")},
+                      dump()]).execute()
+    r = run.dump_file("results.json")
+    rows = r.get("e30_hints", [])
+    stored = {x.get("summary"): x.get("id") for x in run.dump["appointments"]}
+    count_id = stored.get("BENCH E30 count", "")
+    until_id = stored.get("BENCH E30 until", "")
+    count_rows = [h for h in rows if count_id and h.split("@")[0] == count_id]
+    until_rows = [h for h in rows if until_id and h.split("@")[0] == until_id]
+    return [Check("a repeat with a count is listed that many times, including the first", len(count_rows) == 3,
+                  "rows %d, expected 3" % len(count_rows)),
+            Check("a repeat with an until date stops on that date", len(until_rows) == 3,
+                  "rows %d, expected 3 (weeks 0, 1 and 2)" % len(until_rows)),
+            Check("the form keeps a count", r.get("formcount_count") == "3" and r.get("formcount_until") == "",
+                  "count %r, until %r" % (r.get("formcount_count"), r.get("formcount_until"))),
+            Check("the form keeps an until date", r.get("formuntil_until", "")[:10] == at_day(16, "09:00")[:10],
+                  "until %r" % r.get("formuntil_until"))]
+
+
+@scenario("G43", "#30: a Google repeat with a count is stored once and listed that many times, and an app edit keeps the count")
+def g43():
+    eid = api("POST", CALENDAR + "/events", {"summary": "BENCH G43 count", "start": {"dateTime": at_day(2, "09:00"), "timeZone": "UTC"},
+                                              "end": {"dateTime": at_day(2, "10:00"), "timeZone": "UTC"},
+                                              "recurrence": ["RRULE:FREQ=WEEKLY;COUNT=3"]})["id"]
+    third = at_day(2 + 7 * 2, "09:00")
+    run = Run("G43", [sync(), {"op": "calendar_rows", "name": "g43"},
+                      {"op": "repeat_edit", "name": "g43", "summary": "BENCH G43 count", "occurrence": third,
+                       "shiftdays": 0, "newsummary": "BENCH G43 edited"},
+                      sync(), dump()]).execute()
+    stored = [x for x in run.dump["appointments"] if x.get("summary") in ("BENCH G43 count", "BENCH G43 edited")]
+    origin_id = stored[0]["id"] if stored else ""
+    rows = [h for h in run.dump_file("results.json").get("g43_hints", []) if origin_id and h.split("@")[0] == origin_id]
+    event = api("GET", CALENDAR + "/events/" + eid)
+    return [Check("the Google repeat is stored once, and listed three times", len(stored) == 1 and len(rows) == 3,
+                  "stored %d, rows %d" % (len(stored), len(rows))),
+            Check("the count survives an edit in the app", any("COUNT=3" in r for r in event.get("recurrence", [])),
+                  "recurrence %r" % event.get("recurrence"))]
+
+
+@scenario("T30", "#30: Goto Today selects the first entry that has not ended, including a repeat, rather than the end of the list")
+def t30():
+    run = Run("T30", [{"op": "add_appointment", "fields": {"summary": "BENCH T30 weekly", "from": at_day(-3, "09:00"),
+                                                         "to": at_day(-3, "10:00"), "repeat": "2", "repeatinterval": "1"}},
+                      {"op": "calendar_rows", "name": "t30"},
+                      {"op": "goto_today", "name": "t30"},
+                      dump()]).execute()
+    r = run.dump_file("results.json")
+    hint = r.get("t30_hint") or ""
+    return [Check("the selected row is the repeat four days from now", hint.endswith("@" + at_day(4, "09:00")),
+                  "selected %r" % hint),
+            Check("Goto Today does not go to the end of the list", r.get("t30_row", -1) != len(r.get("t30_hints", [])) - 1,
+                  "row %r of %d" % (r.get("t30_row"), len(r.get("t30_hints", []))))]
+
+
+@scenario("G44", "#30: an appointment on Google older than the one-year lookback is not downloaded")
+def g44():
+    api("POST", CALENDAR + "/events", {"summary": "BENCH G44 old", "start": {"dateTime": at_day(-400, "09:00"), "timeZone": "UTC"},
+                                       "end": {"dateTime": at_day(-400, "10:00"), "timeZone": "UTC"}})
+    run = Run("G44", [sync(), dump()]).execute()
+    held = [x for x in run.dump["appointments"] if x.get("summary") == "BENCH G44 old"]
+    return [Check("an event 400 days old is not downloaded", len(held) == 0, "held %d" % len(held))]
+
+
+@scenario("P33", "#73: shortening a repeat from a later entry keeps the focus on the nearest entry of that repeat")
+def p33():
+    run = Run("P33", [{"op": "add_appointment", "fields": {"summary": "BENCH P33 weekly", "from": at_day(2, "09:00"),
+                                                         "to": at_day(2, "10:00"), "repeat": "2", "repeatinterval": "1"}},
+                      {"op": "calendar_rows", "name": "p33a"},
+                      {"op": "repeat_edit", "name": "p33", "summary": "BENCH P33 weekly", "occurrence": at_day(2 + 7 * 15, "09:00"),
+                       "shiftdays": 0, "count": "2"},
+                      dump()]).execute()
+    r = run.dump_file("results.json")
+    stored = [x for x in run.dump["appointments"] if x.get("summary") == "BENCH P33 weekly"]
+    origin_id = stored[0]["id"] if stored else ""
+    listed = r.get("p33_listed") or ""
+    row, rows = r.get("p33_row", -1), r.get("p33_rows", 0)
+    return [Check("the list has the two remaining entries and the Add row", rows == 3, "rows %d, expected 3" % rows),
+            Check("the focus is on an entry of this repeat", row >= 0 and listed.split("@")[0] == origin_id and origin_id != "",
+                  "row %r, listed %r" % (row, listed)),
+            Check("the focus is on the nearest remaining entry to the one edited",
+                  listed.endswith("@" + at_day(2 + 7, "09:00")), "listed %r" % listed)]
+
+
+@scenario("Q34", "#74: OK on the edit of a repeat that started 11 days ago closes the form, with no dialog")
+def q34():
+    run = Run("Q34", [{"op": "add_appointment", "fields": {"summary": "BENCH Q34 repeat", "from": at_day(-11, "10:00"),
+                                                         "to": at_day(-11, "11:00"), "repeat": "2", "repeatinterval": "3",
+                                                         "repeatcount": "32"}},
+                      {"op": "edit_ok", "name": "q34", "summary": "BENCH Q34 repeat", "occurrence": at_day(-11, "10:00")},
+                      dump()]).execute()
+    r = run.dump_file("results.json")
+    log = run.log()
+    dialogs = [l for l in log.splitlines() if " dialog " in l and "Login" not in l and "failed to login" not in l
+               and "AppointmentForm" not in l]
+    return [Check("the edit path returns", r.get("q34_returned") is True, "not returned"),
+            Check("no dialog is shown when OK is pressed", len(dialogs) == 0, "dialogs: %r" % dialogs[:3])]
+
+
+@scenario("Q35", "#74: a start three months back is accepted, and OK then closes the form, as with a start 11 days back")
+def q35():
+    run = Run("Q35", [{"op": "add_appointment", "fields": {"summary": "BENCH Q35 repeat", "from": at_day(2, "09:00"),
+                                                         "to": at_day(2, "10:00"), "repeat": "2", "repeatinterval": "3",
+                                                         "repeatcount": "32"}},
+                      {"op": "edit_ok", "name": "q35", "summary": "BENCH Q35 repeat", "occurrence": at_day(2 + 21, "09:00"),
+                       "froms": [at_day(-112, "09:00"), at_day(-11, "09:00")]},
+                      dump()]).execute()
+    r = run.dump_file("results.json")
+    log = run.log()
+    forms = [l for l in log.splitlines() if "form start set" in l]
+    invalid = [l for l in log.splitlines() if "Invalid Date" in l]
+    return [Check("the edit path returns", r.get("q35_returned") is True, "not returned"),
+            Check("a start three months back is not refused as an invalid date", len(invalid) == 0,
+                  "refused %d time(s)" % len(invalid)),
+            Check("the form closes on the first OK", len(forms) == 1, "form shown %d times" % len(forms))]
 
 
 if __name__ == "__main__":

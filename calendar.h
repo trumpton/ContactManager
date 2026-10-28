@@ -33,6 +33,7 @@ private:
       bool isdirty ;
       QString getOverviewResponse ;
       QString selectedappointment ;
+      QString selectedhint ;                  // The entry on screen: a repeat has its own hint, but the appointment it comes from is selected
 
 public:
     Calendar();
@@ -77,6 +78,11 @@ public:
 
     Appointment& selectAppointment(QString id) ;
     Appointment& selectAppointment(Appointment &appointment) ;
+
+    // A repeat in the list has the hint <ID of its appointment>@<its start>.  The appointment is what is selected.
+    static QString occurrenceHint(QString id, QDateTime start) ;
+    static QString appointmentIdOf(QString hint) ;
+    QString selectedHint() ;
     Appointment& getSelected() ;
 
     void purgeBirthdays() ;

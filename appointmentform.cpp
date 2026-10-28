@@ -83,6 +83,38 @@ void AppointmentForm::setupForm(ContactDatabase &db, QString contactid, Appointm
    ui->editWhenTo->setDateTime(then) ;
    ui->editSummary->setText(summary) ;
    ui->plaintexteditDescription->setPlainText(description);
+
+   // The repeat: its type, and how often it repeats.  The unit after the number follows the type.
+   int repeat = appt.getField(Appointment::Repeat).toInt() ;
+   ui->comboRepeat->setCurrentIndex((repeat>=0 && repeat<=4) ? repeat : 0) ;
+   ui->spinRepeatEvery->setValue(qMax(1, appt.getField(Appointment::RepeatInterval).toInt())) ;
+   auto updateRepeat = [this]() {
+       static const char *units[5] = { "", "day(s)", "week(s)", "month(s)", "year(s)" } ;
+       int type = ui->comboRepeat->currentIndex() ;
+       ui->spinRepeatEvery->setEnabled(type>0) ;
+       ui->labelRepeatUnit->setText(units[type]) ;
+   } ;
+   updateRepeat() ;
+   connect(ui->comboRepeat, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [updateRepeat](int) { updateRepeat() ; }) ;
+
+   // The end of the repeat: never, after a number of times (counting this one), or on a date.  Nothing ends a repeat
+   // that does not repeat.
+   int count = appt.getField(Appointment::RepeatCount).toInt() ;
+   QString until = appt.getField(Appointment::RepeatUntil) ;
+   ui->comboEnds->setCurrentIndex(count>0 ? 1 : (until.isEmpty() ? 0 : 2)) ;
+   ui->spinEndCount->setValue(qMax(1, count)) ;
+   QDateTime lastwhen = QDateTime::fromString(until, Qt::ISODate) ;
+   ui->dateEndDate->setDate(lastwhen.isValid() ? lastwhen.toLocalTime().date() : QDate::currentDate()) ;
+   auto updateEnds = [this]() {
+       bool repeating = ui->comboRepeat->currentIndex()>0 ;
+       int ends = ui->comboEnds->currentIndex() ;
+       ui->comboEnds->setEnabled(repeating) ;
+       ui->spinEndCount->setEnabled(repeating && ends==1) ;
+       ui->dateEndDate->setEnabled(repeating && ends==2) ;
+   } ;
+   updateEnds() ;
+   connect(ui->comboEnds, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [updateEnds](int) { updateEnds() ; }) ;
+   connect(ui->comboRepeat, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [updateEnds](int) { updateEnds() ; }) ;
 }
 
 AppointmentForm::~AppointmentForm()
@@ -120,6 +152,21 @@ Appointment& AppointmentForm::getAppointmentDetails()
 
     description = ui->plaintexteditDescription->document()->toPlainText() ;
     appt.setField(Appointment::Description, description) ;
+
+    // The repeat: 0 for none, or the type, and how often it repeats
+    appt.setField(Appointment::Repeat, QString::number(ui->comboRepeat->currentIndex())) ;
+    appt.setField(Appointment::RepeatInterval, QString::number(ui->spinRepeatEvery->value())) ;
+
+    // The end of the repeat.  A date ends on the form's start time, on that day.
+    bool repeating = ui->comboRepeat->currentIndex()>0 ;
+    int ends = ui->comboEnds->currentIndex() ;
+    appt.setField(Appointment::RepeatCount, (repeating && ends==1) ? QString::number(ui->spinEndCount->value()) : QString()) ;
+    QString until ;
+    if (repeating && ends==2) {
+        QDateTime lastwhen(ui->dateEndDate->date(), from.toLocalTime().time()) ;
+        until = lastwhen.toUTC().toString(Qt::ISODate) ;
+    }
+    appt.setField(Appointment::RepeatUntil, until) ;
 
     return appt ;
 }

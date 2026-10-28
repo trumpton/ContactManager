@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>426</width>
-    <height>258</height>
+    <height>340</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -19,7 +19,7 @@
   <property name="maximumSize">
    <size>
     <width>16777215</width>
-    <height>258</height>
+    <height>340</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -144,6 +144,150 @@
        </property>
        <property name="accessibleDescription">
         <string/>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_repeat">
+     <item>
+      <widget class="QLabel" name="labelRepeat">
+       <property name="minimumSize">
+        <size>
+         <width>100</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Repeat</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="comboRepeat">
+       <property name="accessibleName">
+        <string>Repeat</string>
+       </property>
+       <property name="accessibleDescription">
+        <string>How often this appointment repeats</string>
+       </property>
+       <item>
+        <property name="text">
+         <string>Does not repeat</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Daily</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Weekly</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Monthly</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Yearly</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="labelRepeatEvery">
+       <property name="text">
+        <string>Every</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QSpinBox" name="spinRepeatEvery">
+       <property name="accessibleName">
+        <string>Repeat every</string>
+       </property>
+       <property name="minimum">
+        <number>1</number>
+       </property>
+       <property name="maximum">
+        <number>99</number>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="labelRepeatUnit">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_ends">
+     <item>
+      <widget class="QLabel" name="labelEnds">
+       <property name="minimumSize">
+        <size>
+         <width>100</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Ends</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="comboEnds">
+       <property name="accessibleName">
+        <string>Repeat ends</string>
+       </property>
+       <item>
+        <property name="text">
+         <string>Never</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>After a number of times</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>On a date</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item>
+      <widget class="QSpinBox" name="spinEndCount">
+       <property name="accessibleName">
+        <string>Number of times, including this one</string>
+       </property>
+       <property name="minimum">
+        <number>1</number>
+       </property>
+       <property name="maximum">
+        <number>999</number>
+       </property>
+       <property name="value">
+        <number>2</number>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QDateEdit" name="dateEndDate">
+       <property name="accessibleName">
+        <string>Last date of the repeat</string>
+       </property>
+       <property name="calendarPopup">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
