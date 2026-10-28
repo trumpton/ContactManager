@@ -403,20 +403,30 @@ QString Calendar::getOverview(enum CalendarOverviewType overviewtype, QString co
     getOverviewResponse = "" ;
 
     for (int i=0; i<ne; i++) {
-        if ((contactid.isEmpty() || getAppointment(i).getField(Appointment::ContactId).compare(contactid)==0) &&
-                (appointmentIsInFuture(i) || !futureonly) &&
-                !getAppointment(i).isSet(Appointment::Deleted)) {
-            switch (overviewtype) {
+        if (!contactid.isEmpty() && getAppointment(i).getField(Appointment::ContactId).compare(contactid)!=0) continue ;
+        if (getAppointment(i).isSet(Appointment::Deleted)) continue ;
+
+        // Future appointments are listed at their next occurrence, so a repeat that began in the past is listed too
+        Appointment shown = getAppointment(i) ;
+        if (futureonly) {
+            QDateTime next = shown.nextOccurrence() ;
+            if (!next.isValid()) continue ;
+            QDateTime from = shown.getDate(Appointment::From) ;
+            QDateTime to = shown.getDate(Appointment::To) ;
+            shown.setDate(Appointment::From, next) ;
+            shown.setDate(Appointment::To, next.addSecs(from.secsTo(to))) ;
+        }
+
+        switch (overviewtype) {
             case calendarAsHTML:
                 getOverviewResponse += "<p>" ;
-                getOverviewResponse += getAppointmentAsHTML(i) ;
+                getOverviewResponse += shown.asHTML() ;
                 getOverviewResponse += "</p>\n" ;
                 break ;
             default:
-                getOverviewResponse += getAppointmentAsText(i) ;
+                getOverviewResponse += shown.asText() ;
                 getOverviewResponse += "\n" ;
                 break ;
-            }
         }
     }
     return getOverviewResponse ;
@@ -583,14 +593,14 @@ void Calendar::addBirthday(QString who, QString whoid, QString when)
         Appointment *appt2 = new Appointment(*appt1) ;
         appt2->setDate(Appointment::From, now) ;
         appt2->setDate(Appointment::To, now) ;
-        appt1->setId(QString("2-%1").arg(whoid)) ;
+        appt2->setId(QString("2-%1").arg(whoid)) ;
         appointments.append(*appt2) ;
 
         next = QDateTime( QDate(year+1, month, day), midnight, Qt::UTC) ;
         Appointment *appt3 = new Appointment(*appt1) ;
         appt3->setDate(Appointment::From, next) ;
         appt3->setDate(Appointment::To, next) ;
-        appt1->setId(QString("3-%1").arg(whoid)) ;
+        appt3->setId(QString("3-%1").arg(whoid)) ;
         appointments.append(*appt3) ;
 
     }

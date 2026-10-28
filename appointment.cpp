@@ -493,6 +493,21 @@ bool Appointment::occurrenceExists(int n)
     return true ;
 }
 
+// The first occurrence that is still to come.  A repeat is stepped from its start, so a repeat that began in the past is
+// found by its later dates.
+QDateTime Appointment::nextOccurrence()
+{
+    QDateTime now = QDateTime::currentDateTimeUtc() ;
+    if (!isRepeating()) {
+        QDateTime start = getDate(Appointment::From) ;
+        return start>now ? start : QDateTime() ;
+    }
+    for (int n=0; occurrenceExists(n); n++) {
+        if (occurrenceFrom(n) > now) return occurrenceFrom(n) ;
+    }
+    return QDateTime() ;
+}
+
 bool Appointment::isCurrent()
 {
     QDateTime from = getDate(Appointment::From) ;
