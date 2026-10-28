@@ -220,8 +220,9 @@ def cleanup():
 # Running the app
 
 class Run:
-    def __init__(self, name, ops, session=None):
+    def __init__(self, name, ops, session=None, conf=()):
         self.name = name
+        self.conf = list(conf)
         self.dir = os.path.join(RUNS, name)
         shutil.rmtree(self.dir, ignore_errors=True)
         os.makedirs(self.dir)
@@ -243,7 +244,7 @@ class Run:
         secret = os.environ.get("CM_TEST_SECRET", "")
         if not secret:
             raise SystemExit("set CM_TEST_SECRET to the local test password")
-        prepare_home(self.home, self.fresh, MODE["master"])
+        prepare_home(self.home, self.fresh, MODE["master"], self.conf)
         env = dict(os.environ, CM_TEST_SECRET=secret, QT_QPA_PLATFORM="offscreen", HOME=self.home)
         env.pop("XDG_CONFIG_HOME", None)
         subprocess.run([DRIVER, self.dir, os.path.join(self.dir, "ops.json")], env=env,
@@ -329,7 +330,7 @@ def set_mode(master):
     MODE["master"] = master
 
 
-def prepare_home(home, fresh, master):
+def prepare_home(home, fresh, master, extra=()):
     """Give a run its own HOME, so its settings, phone settings and local data are its own.
 
     A fresh home gets the sign-in from the source settings file, the sync switches, and no sync dates, so the
@@ -351,6 +352,7 @@ def prepare_home(home, fresh, master):
     else:
         with open(cfg) as f:
             lines = [l for l in f.read().splitlines() if not l.startswith("databasemaster=")]
+    lines += list(extra)
     lines.append("databasemaster=%d" % master)
     with open(cfg, "w") as f:
         f.write("\n".join(lines) + "\n")
@@ -1971,6 +1973,45 @@ def g40():
     return [Check("the event is stored once, not once per week", len(stored) == 1, "stored %d times" % len(stored)),
             Check("the event is listed on each week in the repeats window", len(listed) == len(weeks),
                   "rows %d, expected %d" % (len(listed), len(weeks)))]
+
+
+@scenario("B78", "#78: a birthday saved on a contact shows in the calendar straight away, with birthdays shown")
+def b78():
+    # Birthdays are shown from the contacts, so the saved change must reach the calendar without a restart.  The
+    # calendar is read as it is shown after the save (no rebuild), as a user sees it.
+    year = datetime.datetime.utcnow().year
+    run = Run("B78", [add_contact_op("B78", birthday="1980-11-03"),
+                      {"op": "open_contact", "match": {"surname": "B78"}},
+                      {"op": "form_set", "fields": {"birthday": "1980-11-10"}},
+                      {"op": "form_save", "name": "b78"},
+                      {"op": "calendar_rows", "name": "b78", "reload": False},
+                      dump()], conf=["showbirthdays=yes"]).execute()
+    r = run.dump_file("results.json")
+    titles = r.get("b78_titles", [])
+    # A birthday row's title carries its date, as "03 Nov 2026 : Bench B78 - Birthday"
+    saved = [t for t in titles if "B78" in t and "irthday" in t and "10 Nov %d" % year in t]
+    old = [t for t in titles if "B78" in t and "irthday" in t and "03 Nov %d" % year in t]
+    return [Check("the calendar shows the saved birthday on its new date", bool(saved), "rows %r" % titles[:3]),
+            Check("the old birthday date is gone", not old, "still listed: %r" % old[:2])]
+
+
+@scenario("O79", "#79: a repeat that started before today, with later dates, is in the overview's future appointments")
+def o79():
+    run = Run("O79", [add_contact_op("O79"),
+                      {"op": "add_appointment", "surname": "O79", "fields": {"summary": "BENCH O79 one-off",
+                                                                            "from": at_day(5, "09:00"), "to": at_day(5, "10:00")}},
+                      {"op": "add_appointment", "surname": "O79", "fields": {"summary": "BENCH O79 weekly",
+                                                                            "from": at_day(-21, "09:00"), "to": at_day(-21, "10:00"),
+                                                                            "repeat": "2", "repeatinterval": "1"}},
+                      {"op": "open_contact", "match": {"surname": "O79"}},
+                      {"op": "overview", "name": "o79"},
+                      dump()]).execute()
+    r = run.dump_file("results.json")
+    overview = r.get("o79_overview", "")
+    return [Check("a one-off appointment in the future is listed (control)", "BENCH O79 one-off" in overview,
+                  "overview %r" % overview[:160]),
+            Check("a weekly repeat that started 21 days ago is listed, as it has later dates",
+                  "BENCH O79 weekly" in overview, "overview has the repeat: %s" % ("BENCH O79 weekly" in overview))]
 
 
 @scenario("G41", "#30: an edit of a repeat in the app changes the Google event, and the event stays repeating")
