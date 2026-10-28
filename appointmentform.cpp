@@ -6,6 +6,7 @@
 #include <QDateTime>
 #include <QDate>
 #include <QTime>
+#include <QTimeZone>
 
 #include <stdio.h>
 
@@ -104,7 +105,7 @@ void AppointmentForm::setupForm(ContactDatabase &db, QString contactid, Appointm
    ui->comboEnds->setCurrentIndex(count>0 ? 1 : (until.isEmpty() ? 0 : 2)) ;
    ui->spinEndCount->setValue(qMax(1, count)) ;
    QDateTime lastwhen = QDateTime::fromString(until, Qt::ISODate) ;
-   ui->dateEndDate->setDate(lastwhen.isValid() ? lastwhen.toLocalTime().date() : QDate::currentDate()) ;
+   ui->dateEndDate->setDate(lastwhen.isValid() ? lastwhen.toTimeZone(appt.repeatTimeZone()).date() : QDate::currentDate()) ;
    auto updateEnds = [this]() {
        bool repeating = ui->comboRepeat->currentIndex()>0 ;
        int ends = ui->comboEnds->currentIndex() ;
@@ -161,10 +162,18 @@ Appointment& AppointmentForm::getAppointmentDetails()
     bool repeating = ui->comboRepeat->currentIndex()>0 ;
     int ends = ui->comboEnds->currentIndex() ;
     appt.setField(Appointment::RepeatCount, (repeating && ends==1) ? QString::number(ui->spinEndCount->value()) : QString()) ;
+
+    // The zone the repeat is worked out in: a repeat keeps the zone it was made in, and a new repeat uses this machine's
+    QString zone = appt.getField(Appointment::RepeatZone) ;
+    if (zone.isEmpty()) zone = QTimeZone::systemTimeZoneId() ;
+    appt.setField(Appointment::RepeatZone, repeating ? zone : QString()) ;
+
+    // A date ends on the form's start time, on that day, in the repeat's zone
     QString until ;
     if (repeating && ends==2) {
-        QDateTime lastwhen(ui->dateEndDate->date(), from.toLocalTime().time()) ;
-        until = lastwhen.toUTC().toString(Qt::ISODate) ;
+        QTimeZone repeatzone = appt.repeatTimeZone() ;
+        QDateTime lastwhen(ui->dateEndDate->date(), from.toTimeZone(repeatzone).time()) ;
+        until = Appointment::wallClockToUtc(lastwhen, repeatzone).toString(Qt::ISODate) ;
     }
     appt.setField(Appointment::RepeatUntil, until) ;
 

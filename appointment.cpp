@@ -464,20 +464,39 @@ bool Appointment::isRepeating()
     return (type>=1 && type<=4) ;
 }
 
+QTimeZone Appointment::repeatTimeZone()
+{
+    QString id = getField(Appointment::RepeatZone) ;
+    if (id.isEmpty()) return QTimeZone::systemTimeZone() ;
+    QTimeZone zone(id.toUtf8()) ;
+    return zone.isValid() ? zone : QTimeZone::systemTimeZone() ;
+}
+
+QDateTime Appointment::wallClockToUtc(QDateTime local, QTimeZone zone)
+{
+    QDateTime when(local.date(), local.time(), zone) ;
+    if (!when.isValid()) when = QDateTime(local.date(), local.time().addSecs(3600), zone) ;
+    return when.toUTC() ;
+}
+
 // The start of occurrence n of this appointment, where occurrence 0 is this appointment.  Each occurrence is n steps of
-// the repeat (every RepeatInterval days, weeks, months or years) after this one.
+// the repeat (every RepeatInterval days, weeks, months or years) after this one.  The steps are taken on the clock in the
+// repeat's zone, so the occurrence keeps its clock time when the clocks change.
 QDateTime Appointment::occurrenceFrom(int n)
 {
     QDateTime start = getDate(Appointment::From) ;
     int every = qMax(1, getField(Appointment::RepeatInterval).toInt()) ;
     int steps = n * every ;
+    QTimeZone zone = repeatTimeZone() ;
+    QDateTime next = start.toTimeZone(zone) ;
     switch (getField(Appointment::Repeat).toInt()) {
-        case 1: return start.addDays(steps) ;
-        case 2: return start.addDays(7*steps) ;
-        case 3: return start.addMonths(steps) ;
-        case 4: return start.addYears(steps) ;
+        case 1: next = next.addDays(steps) ; break ;
+        case 2: next = next.addDays(7*steps) ; break ;
+        case 3: next = next.addMonths(steps) ; break ;
+        case 4: next = next.addYears(steps) ; break ;
+        default: return start ;
     }
-    return start ;
+    return wallClockToUtc(next, zone) ;
 }
 
 bool Appointment::occurrenceExists(int n)

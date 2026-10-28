@@ -1,6 +1,7 @@
 
 #include <algorithm>
 #include "mainwindow.h"
+#include <QTimeZone>
 #include "../Lib/alertsound.h"
 
 //
@@ -140,17 +141,26 @@ static Appointment appointmentForRepeat(Appointment &result, Appointment &origin
     QDateTime formfrom = result.getDate(Appointment::From) ;     // getDate shares one value, so copy each date
     QDateTime formto = result.getDate(Appointment::To) ;
     QDateTime origfrom = original.getDate(Appointment::From) ;
-    qint64 shift = repeatstart.secsTo(formfrom) ;
+
+    // The move is the difference between clock times in the repeat's zone, so a move across a clock change keeps the
+    // clock time of the appointment.  The clock times are kept as plain wall-clock values (UTC, so no zone rules apply).
+    QTimeZone zone = original.repeatTimeZone() ;
+    auto clock = [zone](QDateTime when) {
+        QDateTime local = when.toTimeZone(zone) ;
+        return QDateTime(local.date(), local.time(), Qt::UTC) ;
+    } ;
+    qint64 shift = clock(repeatstart).secsTo(clock(formfrom)) ;
 
     Appointment moved = result ;
-    QDateTime newfrom = origfrom.addSecs(shift) ;
+    QDateTime newfrom = Appointment::wallClockToUtc(clock(origfrom).addSecs(shift), zone) ;
     moved.setDate(Appointment::From, newfrom) ;
     moved.setDate(Appointment::To, newfrom.addSecs(formfrom.secsTo(formto))) ;
 
     // A repeat's end moves with the appointment
     QString until = result.getField(Appointment::RepeatUntil) ;
     if (!until.isEmpty() && shift!=0) {
-        moved.setField(Appointment::RepeatUntil, QDateTime::fromString(until, Qt::ISODate).addSecs(shift).toUTC().toString(Qt::ISODate)) ;
+        QDateTime newuntil = clock(QDateTime::fromString(until, Qt::ISODate)).addSecs(shift) ;
+        moved.setField(Appointment::RepeatUntil, Appointment::wallClockToUtc(newuntil, zone).toString(Qt::ISODate)) ;
     }
     return moved ;
 }
