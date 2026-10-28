@@ -2125,6 +2125,32 @@ def x81c():
                   "summary %r recurrence %r" % (master.get("summary"), master.get("recurrence")))]
 
 
+@scenario("X81G", "#81: an occurrence deleted on Google is left out of the repeat in the app, when Google is the master")
+def x81g():
+    summary = "BENCH X81G weekly"
+    gone = datetime.datetime.utcnow() + datetime.timedelta(days=2 + 14)
+    # Uploaded with the app as master, so the repeat is on Google; then Google is the master for the next sync
+    Run("X81G1", [{"op": "add_appointment", "fields": {"summary": summary, "from": at_day(2, "09:00"), "to": at_day(2, "10:00"),
+                                                    "repeat": "2", "repeatinterval": "1", "repeatcount": "6"}},
+                  sync()], session="x81g").execute()
+    master = google_master(summary)
+    instances = [i for i in google_instances(master.get("id", "none"))
+                 if i.get("status") != "cancelled" and (i.get("originalStartTime") or {}).get("dateTime", "").startswith(gone.strftime("%Y-%m-%dT09"))]
+    if instances:
+        api("DELETE", CALENDAR + "/events/" + instances[0]["id"])
+    set_mode(1)
+    try:
+        run = Run("X81G2", [sync(), {"op": "calendar_rows", "name": "x81g", "reload": True}, dump()], session="x81g").execute()
+    finally:
+        set_mode(0)
+    r = run.dump_file("results.json")
+    mine = [t for t in r.get("x81g_titles", []) if summary in t]
+    return [Check("Google deleted an occurrence", len(instances) == 1, "instances found %d" % len(instances)),
+            Check("the deleted occurrence is not listed in the app", not any(gone.strftime("%d %b %Y") in t for t in mine),
+                  "rows %r" % mine),
+            Check("the other five occurrences are still listed", len(mine) == 5, "rows %d" % len(mine))]
+
+
 @scenario("G41", "#30: an edit of a repeat in the app changes the Google event, and the event stays repeating")
 def g41():
     start, end = at_day(2, "09:00"), at_day(2, "10:00")
