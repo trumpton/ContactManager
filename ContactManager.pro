@@ -76,6 +76,7 @@ SOURCES += main.cpp\
     transactionform.cpp \
     ../Lib/warningyesno.cpp \
     ../Lib/warningok.cpp \
+    ../Lib/warningchoice.cpp \
     contactdatabase.cpp \
     googleaccess_appointments.cpp \
     googleaccess_contacts.cpp \
@@ -141,6 +142,7 @@ HEADERS  += mainwindow.h \
     transactionform.h \
     ../Lib/warningyesno.h \
     ../Lib/warningok.h \
+    ../Lib/warningchoice.h \
     contactdatabase.h \
     accessibledatetimeedit.h \
     logform.h \

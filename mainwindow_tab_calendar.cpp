@@ -1,6 +1,7 @@
 
 #include <algorithm>
 #include "mainwindow.h"
+#include "../Lib/warningchoice.h"
 #include <QTimeZone>
 #include "../Lib/alertsound.h"
 
@@ -70,7 +71,9 @@ void MainWindow::LoadCalendarTab()
        Appointment &appt = calendar.getAppointment(i) ;
        if (appt.isSet(Appointment::Deleted)) continue ;
        QString apptid = appt.getField(Appointment::ID) ;
-       if (appt.isInRange(windowbefore, windowafter)) {
+       // The first occurrence is not listed when the repeat leaves it out
+       bool originlisted = !(appt.isRepeating() && appt.isException(appt.getDate(Appointment::From))) ;
+       if (appt.isInRange(windowbefore, windowafter) && originlisted) {
            addRow(appt, appt.getDate(Appointment::From), apptid) ;
        }
        if (appt.isRepeating()) {
@@ -80,7 +83,8 @@ void MainWindow::LoadCalendarTab()
            for (int n=1; n<maxrepeats; n++) {
                QDateTime start = appt.occurrenceFrom(n) ;
                if (start > windowend) break ;
-               if (!appt.occurrenceExists(n)) break ;
+               if (appt.occurrenceEnded(n)) break ;
+               if (appt.isException(start)) continue ;
                if (start.addSecs(length) > windowstart) addRow(appt, start, Calendar::occurrenceHint(apptid, start)) ;
            }
        }
@@ -165,8 +169,83 @@ static Appointment appointmentForRepeat(Appointment &result, Appointment &origin
     return moved ;
 }
 
-// Saves an edit made in the form.  An edit of a repeat changes its appointment, so every repeat changes.  The focus stays
-// on the repeat, unless it was moved to another day, when it goes to the appointment.
+// The edit of one appointment of a repeat, as a choice of what changes.  Returns the index of the choice, or -1.
+static int chooseRepeatChange(QWidget *parent, Appointment &result)
+{
+    WarningChoice choice(parent) ;
+    choice.setText("Change which appointments of this repeat?\n" + result.asText()) ;
+    choice.addChoice("Change just this one", 'a', "The other appointments in the repeat are not changed") ;
+    choice.addChoice("Change this one and all following", 'b', "The appointments before it are not changed") ;
+    choice.addChoice("Change all from today onwards", 'c', "The appointments before today are not changed") ;
+    choice.addChoice("Cancel", 'd', "Nothing is changed") ;
+    choice.setDefaultChoice(3) ;
+    return choice.choose() ;
+}
+
+// The first occurrence on or after today, in the zone of the repeat, or -1 if there is none
+static int indexFromToday(Appointment &original)
+{
+    QTimeZone zone = original.repeatTimeZone() ;
+    QDate today = QDateTime::currentDateTimeUtc().toTimeZone(zone).date() ;
+    for (int n=0; !original.occurrenceEnded(n); n++) {
+        if (original.occurrenceFrom(n).toTimeZone(zone).date() >= today) return n ;
+    }
+    return -1 ;
+}
+
+// Just this one: the occurrence is left out of the repeat, and the edited appointment is a new one.  Returns its ID.
+static QString changeJustThisOne(Calendar &cal, Appointment &original, Appointment &result, QDateTime repeatstart)
+{
+    original.addException(repeatstart) ;
+    cal.addAppointment(original) ;
+
+    Appointment single = result.copyAsNew() ;
+    single.setField(Appointment::Repeat, "0") ;
+    single.setField(Appointment::RepeatInterval, "") ;
+    single.setField(Appointment::RepeatCount, "") ;
+    single.setField(Appointment::RepeatUntil, "") ;
+    single.setField(Appointment::RepeatZone, "") ;
+    single.setField(Appointment::RepeatExceptions, "") ;
+    cal.addAppointment(single) ;
+    return single.getField(Appointment::ID) ;
+}
+
+// This one and all following, from occurrence number from (not the first): the repeat ends before it, and a new repeat
+// starts there with the edit.  The occurrences it leaves out from there on move with the new repeat.  Returns its ID.
+static QString changeThisAndFollowing(Calendar &cal, Appointment &original, Appointment &result, QDateTime repeatstart, int from)
+{
+    QTimeZone zone = original.repeatTimeZone() ;
+    QDateTime boundary = original.occurrenceFrom(from) ;
+
+    // The edit moves the occurrence by this many seconds of clock time, as in appointmentForRepeat
+    auto clock = [zone](QDateTime when) {
+        QDateTime local = when.toTimeZone(zone) ;
+        return QDateTime(local.date(), local.time(), Qt::UTC) ;
+    } ;
+    qint64 shift = clock(repeatstart).secsTo(clock(result.getDate(Appointment::From))) ;
+
+    Appointment base = original ;
+    base.setDate(Appointment::From, boundary) ;
+    Appointment rest = appointmentForRepeat(result, base, repeatstart).copyAsNew() ;
+    int count = original.getField(Appointment::RepeatCount).toInt() ;
+    if (count>0) rest.setField(Appointment::RepeatCount, QString::number(count-from)) ;
+
+    QList<QDateTime> kept, moved ;
+    foreach (const QDateTime &left, original.exceptions()) {
+        if (left < boundary) kept.append(left) ;
+        else moved.append(Appointment::wallClockToUtc(clock(left).addSecs(shift), zone)) ;
+    }
+    original.setExceptions(kept) ;
+    original.endBefore(from) ;
+    rest.setExceptions(moved) ;
+
+    cal.addAppointment(original) ;
+    cal.addAppointment(rest) ;
+    return rest.getField(Appointment::ID) ;
+}
+
+// Saves an edit made in the form.  An edit of a repeat asks which of its appointments change: just this one, this one and
+// all following, or all from today.  Cancel changes nothing.  The focus stays on the entry that was edited.
 void MainWindow::storeAppointmentEdit(Appointment &result, QString occurrence)
 {
     QString originid = result.getField(Appointment::ID) ;
@@ -174,22 +253,40 @@ void MainWindow::storeAppointmentEdit(Appointment &result, QString occurrence)
     QDateTime repeatstart = QDateTime::fromString(occurrence, Qt::ISODate) ;
 
     Appointment stored = result ;
-    if (repeat) {
-        Appointment original = calendar.getAppointmentBy(Appointment::ID, originid) ;
-        stored = appointmentForRepeat(result, original, repeatstart) ;
-    }
-    calendar.addAppointment(stored) ;
-    calendar.sort() ;
-
     QString hint = originid ;
     if (repeat) {
-        bool daymoved = result.getDate(Appointment::From).toLocalTime().date() != repeatstart.toLocalTime().date() ;
-        QDateTime newstart = result.getDate(Appointment::From) ;
-        QDateTime originstart = stored.getDate(Appointment::From) ;
-        if (!daymoved) {
-            hint = (newstart == originstart) ? originid : Calendar::occurrenceHint(originid, newstart) ;
+        Appointment original = calendar.getAppointmentBy(Appointment::ID, originid) ;
+        int chosen = chooseRepeatChange(this, result) ;
+        if (chosen<0 || chosen==3) return ;
+
+        int n = original.indexOfOccurrence(repeatstart) ;
+        if (n<0) return ;
+        int from = (chosen==2) ? indexFromToday(original) : n ;
+        if (from<0) {
+            warningOkDialog(this, "Change Repeat", "There are no appointments from today onwards in this repeat.") ;
+            return ;
         }
+
+        if (chosen==0) {
+            hint = changeJustThisOne(calendar, original, result, repeatstart) ;
+        } else if (from>0) {
+            hint = changeThisAndFollowing(calendar, original, result, repeatstart, from) ;
+        } else {
+            // The first appointment of the repeat: every appointment of the repeat changes, as before
+            stored = appointmentForRepeat(result, original, repeatstart) ;
+            calendar.addAppointment(stored) ;
+            bool daymoved = result.getDate(Appointment::From).toLocalTime().date() != repeatstart.toLocalTime().date() ;
+            QDateTime newstart = result.getDate(Appointment::From) ;
+            QDateTime originstart = stored.getDate(Appointment::From) ;
+            if (!daymoved) {
+                hint = (newstart == originstart) ? originid : Calendar::occurrenceHint(originid, newstart) ;
+            }
+        }
+    } else {
+        calendar.addAppointment(stored) ;
     }
+    calendar.sort() ;
+
     calendar.selectAppointment(hint) ;
     LoadTabs() ;
 
@@ -503,8 +600,33 @@ void MainWindow::on_actionRemoveAppointment_triggered()
     Appointment& appt = calendar.getAppointmentBy(Appointment::ID, Calendar::appointmentIdOf(id)) ;
     if (appt.isNull() || appt.isTemp()) {
         play(Disabled) ;
+    } else if (appt.isRepeating()) {
+        // A repeat: which of its appointments to delete.  The entry is an occurrence, or the first appointment itself.
+        QString hint = calendarlist.hintAt(idx) ;
+        QDateTime occurrence = hint.contains('@') ? QDateTime::fromString(hint.section('@', 1), Qt::ISODate) : appt.getDate(Appointment::From) ;
+        WarningChoice choice(this) ;
+        choice.setText("Delete which appointments of this repeat?\n" + appt.asText()) ;
+        choice.addChoice("Delete just this one", 'a', "The other appointments in the repeat are kept") ;
+        choice.addChoice("Delete this one and all following", 'b', "The appointments before it are kept") ;
+        choice.addChoice("Delete all in the repeat", 'c', "Every appointment in the repeat is deleted") ;
+        choice.addChoice("Cancel", 'd', "Nothing is deleted") ;
+        choice.setDefaultChoice(3) ;
+        int chosen = choice.choose() ;
+        int n = appt.indexOfOccurrence(occurrence) ;
+        if (chosen==0 && n>=0) {
+            appt.addException(occurrence) ;
+        } else if (chosen==1 && n>0) {
+            appt.endBefore(n) ;
+        } else if (chosen==2 || (chosen==1 && n==0)) {
+            appt.setFlag(Appointment::Deleted, true) ;
+        } else {
+            return ;
+        }
+        calendar.save() ;
+        LoadTabs() ;
+
     } else {
-        // A repeat is its appointment, so deleting it deletes every repeat
+        // A single appointment is deleted
         QString repeats = appt.isRepeating() ? QString(" and all its repeats") : QString() ;
         if (warningYesNoDialog(this, "Delete Appointment?", "Are you sure you want to delete " +
                                  appt.asText() + repeats +
