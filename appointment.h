@@ -182,6 +182,9 @@ public:
     // True if occurrence n exists: it is within the repeat count, and starts no later than the repeat's until date
     bool occurrenceExists(int n) ;
 
+    // The first occurrence that is still to come, or an invalid time when there is none
+    QDateTime nextOccurrence() ;
+
     bool isNotFor(QString& id) ;
 
     void setField(enum AppointmentRecord field, QString data) ;
