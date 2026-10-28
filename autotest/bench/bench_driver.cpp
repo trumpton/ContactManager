@@ -488,6 +488,9 @@ int main(int argc, char *argv[])
                 if (op.contains("newsummary")) result.setField(Appointment::Summary, op["newsummary"].toString()) ;
                 if (op.contains("count")) result.setField(Appointment::RepeatCount, op["count"].toString()) ;
                 w.storeAppointmentEdit(result, op["occurrence"].toString()) ;
+                // The list keeps the index it is given until it has focus, and a bench window does not get the focus back
+                // after a dialog.  So the index it kept is applied, as the list does when the user returns to it.
+                if (w.ui->listCalendar->curridx.isValid()) w.ui->listCalendar->QListView::setCurrentIndex(w.ui->listCalendar->curridx) ;
             }
             record(name + "_selected_hint", w.calendar.selectedHint()) ;
 
