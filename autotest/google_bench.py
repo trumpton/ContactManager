@@ -220,8 +220,9 @@ def cleanup():
 # Running the app
 
 class Run:
-    def __init__(self, name, ops, session=None):
+    def __init__(self, name, ops, session=None, tz=None):
         self.name = name
+        self.tz = tz
         self.dir = os.path.join(RUNS, name)
         shutil.rmtree(self.dir, ignore_errors=True)
         os.makedirs(self.dir)
@@ -246,6 +247,8 @@ class Run:
         prepare_home(self.home, self.fresh, MODE["master"])
         env = dict(os.environ, CM_TEST_SECRET=secret, QT_QPA_PLATFORM="offscreen", HOME=self.home)
         env.pop("XDG_CONFIG_HOME", None)
+        if self.tz:
+            env["TZ"] = self.tz
         subprocess.run([DRIVER, self.dir, os.path.join(self.dir, "ops.json")], env=env,
                        stdout=open(os.path.join(self.dir, "stdout.log"), "w"), stderr=subprocess.STDOUT,
                        timeout=900, check=False, cwd=self.workdir)
@@ -1973,15 +1976,16 @@ def g40():
                   "rows %d, expected %d" % (len(listed), len(weeks)))]
 
 
-@scenario("T40", "#75: a weekly repeat keeps its 14:00 London time across the clocks going back (run with TZ=Europe/London)")
+@scenario("T40", "#75: a weekly repeat keeps its 14:00 London time across the clocks going back")
 def t40():
     from zoneinfo import ZoneInfo
     london = ZoneInfo("Europe/London")
     # 14:00 London time (summer time) on 11 October 2026; the clocks go back on 25 October 2026
     start, end = "2026-10-11T13:00:00Z", "2026-10-11T14:00:00Z"
+    # The app runs in London time, so the repeat is kept in London time
     run = Run("T40", [{"op": "add_appointment", "fields": {"summary": "BENCH T40 weekly", "from": start, "to": end,
                                                          "repeat": "2", "repeatinterval": "1"}},
-                      sync(), {"op": "calendar_rows", "name": "t40"}, dump()]).execute()
+                      sync(), {"op": "calendar_rows", "name": "t40"}, dump()], tz="Europe/London").execute()
     r = run.dump_file("results.json")
     stored = [x for x in run.dump["appointments"] if x.get("summary") == "BENCH T40 weekly"]
     listed = [h for h in r.get("t40_hints", []) if stored and h.split("@")[0] == stored[0]["id"]]
