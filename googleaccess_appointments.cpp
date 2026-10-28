@@ -152,6 +152,23 @@ static QString googleUntilToIso(QString value)
     return when.toString(Qt::ISODate) ;
 }
 
+// An EXDATE line of a recurrence, as UTC: "EXDATE;TZID=Europe/London:20261117T140000", or "EXDATE:20261117T140000Z"
+static QDateTime googleExdateToUtc(QString line)
+{
+    int colon = line.indexOf(':') ;
+    if (colon<0) return QDateTime() ;
+    QString params = line.left(colon) ;
+    QString value = line.mid(colon+1).trimmed() ;
+    QDate day = QDate::fromString(value.left(8), "yyyyMMdd") ;
+    QTime time = QTime::fromString(value.mid(9, 6), "HHmmss") ;
+    if (!day.isValid() || !time.isValid()) return QDateTime() ;
+    if (value.endsWith('Z')) return QDateTime(day, time, Qt::UTC) ;
+    QString tzid = params.section("TZID=", 1) ;
+    QTimeZone zone = tzid.isEmpty() ? QTimeZone::systemTimeZone() : QTimeZone(tzid.toUtf8()) ;
+    if (!zone.isValid()) zone = QTimeZone::systemTimeZone() ;
+    return QDateTime(day, time, zone).toUTC() ;
+}
+
 bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QString account)
 {
     QString summary = item["summary"].toString().trimmed()  ;
@@ -224,6 +241,16 @@ bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QStrin
     // The zone the repeat is worked out in, as Google gives it on the start
     QString repeatzone = repeattype=="0" ? QString() : item["start"].toObject()["timeZone"].toString().trimmed() ;
     appt.setField(Appointment::RepeatZone, repeatzone) ;
+
+    // The occurrences Google leaves out of the repeat, which the app keeps as its exceptions
+    QList<QDateTime> excluded ;
+    foreach (const QJsonValue &rule, item["recurrence"].toArray()) {
+        QString text = rule.toString().trimmed() ;
+        if (!text.startsWith("EXDATE")) continue ;
+        QDateTime when = googleExdateToUtc(text) ;
+        if (when.isValid()) excluded.append(when) ;
+    }
+    appt.setExceptions(repeattype=="0" ? QList<QDateTime>() : excluded) ;
 
     if (!fromdatetime.isEmpty()) {
         appt.setField(Appointment::From, fromdatetime) ;
@@ -375,6 +402,12 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
                 rule += ";UNTIL=" + last.toString("yyyyMMdd'T'HHmmss'Z'") ;
             }
             rules.append(rule) ;
+
+            // The occurrences the repeat leaves out, as EXDATE lines in the zone of the repeat
+            QTimeZone zone = appt.repeatTimeZone() ;
+            foreach (const QDateTime &left, appt.exceptions()) {
+                rules.append("EXDATE;TZID=" + QString::fromUtf8(zone.id()) + ":" + left.toTimeZone(zone).toString("yyyyMMdd'T'HHmmss")) ;
+            }
         }
         root.insert("recurrence", rules) ;
 
