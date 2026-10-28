@@ -137,7 +137,9 @@ void AccessibleDateRangeEdit::keyPressEvent(QKeyEvent *event)
         // next value for current field
         QChar ch = format.at(pos) ;
         if (!ch.isNull()) {
-            while (pos>0 && !ch.isLetter()) ch=format.at(pos-1) ;
+            // The field is the letter at or before the cursor (the loop must move along, or it never ends)
+            int field = pos ;
+            while (field>0 && !ch.isLetter()) { field-- ; ch=format.at(field) ; }
             if (ch == 'd') newtime = datetime.addDays(-1) ;
             else if (ch == 'M') newtime = datetime.addMonths(-1) ;
             else if (ch == 'y') newtime = datetime.addYears(-1) ;
@@ -161,7 +163,9 @@ void AccessibleDateRangeEdit::keyPressEvent(QKeyEvent *event)
         // previous value for current field
         QChar ch = format.at(newpos) ;
         if (!ch.isNull()) {
-            while (newpos>0 && !ch.isLetter()) ch=format.at(newpos-1) ;
+            // The field is the letter at or before the cursor (the loop must move along, or it never ends)
+            int field = newpos ;
+            while (field>0 && !ch.isLetter()) { field-- ; ch=format.at(field) ; }
             if (ch == 'd') newtime = datetime.addDays(1) ;
             else if (ch == 'M') newtime = datetime.addMonths(1) ;
             else if (ch == 'y') newtime = datetime.addYears(1) ;
