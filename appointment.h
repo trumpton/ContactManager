@@ -3,6 +3,8 @@
 
 #include <QDateTime>
 #include <QTimeZone>
+#include <QList>
+#include <QStringList>
 
 
 class Appointment
@@ -56,6 +58,9 @@ public:
         // The time zone the repeat is worked out in (an IANA name, such as Europe/London), so it keeps its clock time
         RepeatZone,
 
+        // The occurrences the repeat leaves out (deleted, or changed into another appointment), as UTC starts
+        RepeatExceptions,
+
         NumberOfRecords
 
         //------------------------
@@ -107,7 +112,8 @@ public:
 
         { RepeatCount,         false,  true, false, true, "repeatcount" },
         { RepeatUntil,         false,  true, false, true, "repeatuntil" },
-        { RepeatZone,          false,  true, false, true, "repeatzone" }
+        { RepeatZone,          false,  true, false, true, "repeatzone" },
+        { RepeatExceptions,    false,  true, false, true, "repeatexceptions" }
     } ;
 
     // Match and Copy Masks (matype)
@@ -179,8 +185,27 @@ public:
     // The UTC instant of a wall-clock time in a zone.  A time the clocks skip (in spring) moves forward by an hour.
     static QDateTime wallClockToUtc(QDateTime local, QTimeZone zone) ;
 
-    // True if occurrence n exists: it is within the repeat count, and starts no later than the repeat's until date
+    // True if occurrence n exists: it is within the repeat count, starts no later than the repeat's until date, and is
+    // not one of the repeat's exceptions
     bool occurrenceExists(int n) ;
+
+    // True once occurrence n is past the repeat's count or until date (an exception does not end a repeat)
+    bool occurrenceEnded(int n) ;
+
+    // Exceptions: the occurrences the repeat leaves out, by their starts in UTC
+    bool isException(QDateTime start) ;
+    void addException(QDateTime start) ;
+    QList<QDateTime> exceptions() ;
+    void setExceptions(QList<QDateTime> starts) ;
+
+    // The number of the occurrence that starts at this time, or -1 if there is none
+    int indexOfOccurrence(QDateTime start) ;
+
+    // Ends the repeat before occurrence n, so that n and the later occurrences are not in it
+    void endBefore(int n) ;
+
+    // A copy of this appointment as a new one: a new ID, and none of the Google record of this one
+    Appointment copyAsNew() ;
 
     // The first occurrence that is still to come, or an invalid time when there is none
     QDateTime nextOccurrence() ;

@@ -28,6 +28,8 @@
 #include <QJsonArray>
 #include <QJsonValue>
 #include <QProcess>
+#include <QKeyEvent>
+#include "warningchoice.h"
 #include <functional>
 #include <cstdlib>
 #include "../Lib/alertsound.h"
@@ -42,6 +44,7 @@
 #include "appointment.h"
 
 static QString outdir ;
+static QString pendingChoice ;     // the letter the next choice dialog is answered with (empty cancels it)
 static int syncCount = 0 ;
 
 // Values the operations report back to the bench, in results.json in the run directory
@@ -243,6 +246,20 @@ int main(int argc, char *argv[])
         // The main window can be the active modal widget while login is finishing: leave it alone
         if (QString(m->metaObject()->className()) == "MainWindow") return ;
 
+        // A choice dialog is answered with the letter set by "choose", or cancelled when none is set
+        if (auto *choice = qobject_cast<WarningChoice*>(m)) {
+            QString letter = pendingChoice ;
+            pendingChoice.clear() ;
+            note(QString("choice dialog: %1").arg(letter.isEmpty() ? QString("cancelled") : letter)) ;
+            if (letter.isEmpty()) {
+                choice->reject() ;
+            } else {
+                QKeyEvent press(QEvent::KeyPress, 0, Qt::NoModifier, letter) ;
+                QApplication::sendEvent(choice, &press) ;
+            }
+            return ;
+        }
+
         QString text ;
         if (auto *box = qobject_cast<QMessageBox*>(m)) text = box->text() ;
         note(QString("dialog %1 \"%2\": %3").arg(m->metaObject()->className(), m->windowTitle(), text)) ;
@@ -433,6 +450,28 @@ int main(int argc, char *argv[])
             note(QString("calendar_click %1: row %2, focus %3").arg(name).arg(w.ui->listCalendar->currentIndex().row())
                  .arg(focus ? focus->objectName() : QString())) ;
 
+        } else if (kind == "choose") {
+            // The letter the next choice dialog is answered with
+            pendingChoice = op["letter"].toString() ;
+
+        } else if (kind == "repeat_delete") {
+            // Deletes one occurrence of a repeat, as the Delete action does, and any choice is answered by "choose"
+            w.LoadCalendarTab() ;
+            Appointment &origin = w.calendar.getAppointmentBy(Appointment::Summary, op["summary"].toString()) ;
+            if (!origin.isNull()) {
+                QDateTime occ = QDateTime::fromString(op["occurrence"].toString(), Qt::ISODate) ;
+                QString hint = (occ == origin.getDate(Appointment::From)) ? origin.getField(Appointment::ID)
+                                                                          : Calendar::occurrenceHint(origin.getField(Appointment::ID), occ) ;
+                QModelIndex index = w.calendarlist.find(hint) ;
+                note(QString("repeat_delete hint %1, row %2, rows %3").arg(hint).arg(index.row()).arg(w.calendarlist.rowCount())) ;
+                if (!index.isValid()) return ;
+                // The list only takes the index from setCurrentIndex when it has focus, which a bench window does not, so
+                // the view's own index is set
+                w.ui->listCalendar->QListView::setCurrentIndex(index) ;
+                note(QString("repeat_delete current row %1, model rows match %2").arg(w.ui->listCalendar->currentIndex().row()).arg(w.ui->listCalendar->model() == &w.calendarlist ? "yes" : "no")) ;
+                w.on_actionRemoveAppointment_triggered() ;
+            }
+
         } else if (kind == "repeat_edit") {
             // Saves an edit of a repeat, as the form does: the repeat's own day is moved by shiftdays, and the summary can
             // change.  The focus afterwards is recorded.
@@ -449,6 +488,9 @@ int main(int argc, char *argv[])
                 if (op.contains("newsummary")) result.setField(Appointment::Summary, op["newsummary"].toString()) ;
                 if (op.contains("count")) result.setField(Appointment::RepeatCount, op["count"].toString()) ;
                 w.storeAppointmentEdit(result, op["occurrence"].toString()) ;
+                // The list keeps the index it is given until it has focus, and a bench window does not get the focus back
+                // after a dialog.  So the index it kept is applied, as the list does when the user returns to it.
+                if (w.ui->listCalendar->curridx.isValid()) w.ui->listCalendar->QListView::setCurrentIndex(w.ui->listCalendar->curridx) ;
             }
             record(name + "_selected_hint", w.calendar.selectedHint()) ;
 
