@@ -221,6 +221,10 @@ bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QStrin
     appt.setField(Appointment::RepeatCount, repeattype=="0" ? QString() : repeatcount) ;
     appt.setField(Appointment::RepeatUntil, repeattype=="0" ? QString() : repeatuntil) ;
 
+    // The zone the repeat is worked out in, as Google gives it on the start
+    QString repeatzone = repeattype=="0" ? QString() : item["start"].toObject()["timeZone"].toString().trimmed() ;
+    appt.setField(Appointment::RepeatZone, repeatzone) ;
+
     if (!fromdatetime.isEmpty()) {
         appt.setField(Appointment::From, fromdatetime) ;
         appt.setField(Appointment::To, todatetime) ;
@@ -383,10 +387,14 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
             QJsonObject EndDateTime ;
             EndDateTime.insert("dateTime", appt.getField(Appointment::To)) ;
 
-            // A repeating event needs a time zone on its start and end, or Google refuses it
+            // A repeating event needs a time zone on its start and end, or Google refuses it.  It is sent in the repeat's
+            // own zone, with the clock time in that zone, so Google keeps the clock time across daylight saving changes.
             if (appt.isRepeating()) {
-                StartDateTime.insert("timeZone", "UTC") ;
-                EndDateTime.insert("timeZone", "UTC") ;
+                QTimeZone zone = appt.repeatTimeZone() ;
+                StartDateTime.insert("dateTime", appt.getDate(Appointment::From).toTimeZone(zone).toString(Qt::ISODate)) ;
+                EndDateTime.insert("dateTime", appt.getDate(Appointment::To).toTimeZone(zone).toString(Qt::ISODate)) ;
+                StartDateTime.insert("timeZone", QString::fromUtf8(zone.id())) ;
+                EndDateTime.insert("timeZone", QString::fromUtf8(zone.id())) ;
             }
 
             root.insert("start", StartDateTime) ;

@@ -1973,6 +1973,35 @@ def g40():
                   "rows %d, expected %d" % (len(listed), len(weeks)))]
 
 
+@scenario("T40", "#75: a weekly repeat keeps its 14:00 London time across the clocks going back (run with TZ=Europe/London)")
+def t40():
+    from zoneinfo import ZoneInfo
+    london = ZoneInfo("Europe/London")
+    # 14:00 London time (summer time) on 11 October 2026; the clocks go back on 25 October 2026
+    start, end = "2026-10-11T13:00:00Z", "2026-10-11T14:00:00Z"
+    run = Run("T40", [{"op": "add_appointment", "fields": {"summary": "BENCH T40 weekly", "from": start, "to": end,
+                                                         "repeat": "2", "repeatinterval": "1"}},
+                      sync(), {"op": "calendar_rows", "name": "t40"}, dump()]).execute()
+    r = run.dump_file("results.json")
+    stored = [x for x in run.dump["appointments"] if x.get("summary") == "BENCH T40 weekly"]
+    listed = [h for h in r.get("t40_hints", []) if stored and h.split("@")[0] == stored[0]["id"]]
+    # The first occurrence is listed by its bare id, so the times come from the occurrences that carry a start
+    local = [datetime.datetime.fromisoformat(h.split("@", 1)[1].replace("Z", "+00:00")).astimezone(london)
+             for h in listed if "@" in h]
+    clocks = sorted({t.strftime("%H:%M") for t in local})
+    change = datetime.datetime(2026, 10, 25, tzinfo=london)
+    events = api("GET", CALENDAR + "/events?q=" + urllib.parse.quote("BENCH T40 weekly")).get("items", [])
+    events = [e for e in events if e.get("summary") == "BENCH T40 weekly"]
+    gstart = events[0].get("start", {}) if events else {}
+    return [Check("the repeat is listed both before and after the clocks go back",
+                  any(t < change for t in local) and any(t > change for t in local),
+                  "%d rows" % len(listed)),
+            Check("every week is listed at 14:00 London time", clocks == ["14:00"], "clock times %r" % clocks),
+            Check("Google is sent the repeat in London time",
+                  gstart.get("timeZone") == "Europe/London" and gstart.get("dateTime", "").startswith("2026-10-11T14:00:00+01:00"),
+                  "start %r" % gstart)]
+
+
 @scenario("G41", "#30: an edit of a repeat in the app changes the Google event, and the event stays repeating")
 def g41():
     start, end = at_day(2, "09:00"), at_day(2, "10:00")

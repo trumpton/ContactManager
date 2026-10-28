@@ -2,6 +2,7 @@
 #define APPOINTMENT_H
 
 #include <QDateTime>
+#include <QTimeZone>
 
 
 class Appointment
@@ -51,6 +52,9 @@ public:
         // Repeat end: the number of times it repeats (counting this appointment), and the date it stops
         RepeatCount,
         RepeatUntil,
+
+        // The time zone the repeat is worked out in (an IANA name, such as Europe/London), so it keeps its clock time
+        RepeatZone,
 
         NumberOfRecords
 
@@ -102,7 +106,8 @@ public:
         { ToBeDownloaded,       true, false, false, false, "tobedownloaded" },
 
         { RepeatCount,         false,  true, false, true, "repeatcount" },
-        { RepeatUntil,         false,  true, false, true, "repeatuntil" }
+        { RepeatUntil,         false,  true, false, true, "repeatuntil" },
+        { RepeatZone,          false,  true, false, true, "repeatzone" }
     } ;
 
     // Match and Copy Masks (matype)
@@ -166,6 +171,13 @@ public:
     // occurrences are worked out from this appointment, and are not stored.  Occurrence 0 is this appointment.
     bool isRepeating() ;
     QDateTime occurrenceFrom(int n) ;
+
+    // The zone a repeat is worked out in: its RepeatZone, or this machine's zone when it has none (repeats made before
+    // the zone was stored).  A repeat keeps its clock time across daylight saving changes, as Google's does.
+    QTimeZone repeatTimeZone() ;
+
+    // The UTC instant of a wall-clock time in a zone.  A time the clocks skip (in spring) moves forward by an hour.
+    static QDateTime wallClockToUtc(QDateTime local, QTimeZone zone) ;
 
     // True if occurrence n exists: it is within the repeat count, and starts no later than the repeat's until date
     bool occurrenceExists(int n) ;
