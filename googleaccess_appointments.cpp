@@ -53,6 +53,7 @@ bool GoogleAccess::getCalendar(Calendar &googlecalendar, int startdays, int endd
     // page at a time (maxResults), so without this later events are missing.
     QString pagetoken ;
     int pagecount=0 ;
+    QList<QPair<QString, QDateTime>> deletedoccurrences ;     // (repeat's Google ID, occurrence start) Google has deleted
     do {
         QString pageurl = url ;
         if (!pagetoken.isEmpty()) pageurl = url + "&pageToken=" + QString(QUrl::toPercentEncoding(pagetoken)) ;
@@ -79,9 +80,16 @@ bool GoogleAccess::getCalendar(Calendar &googlecalendar, int startdays, int endd
                 Appointment appt ;
                 QJsonObject item = value.toObject() ;
 
-                // Add the changes, storing only non-deleted entries
-                // An exception to a repeat has a recurringEventId: the repeat is the entry, so it is not stored again
-                if (item["recurringEventId"].toString().isEmpty() && parseAppointment(item, appt, account)) {
+                // Add the changes, storing only non-deleted entries.  An exception to a repeat has a recurringEventId: the
+                // repeat is the entry, so it is not stored again.  A cancelled exception is an occurrence Google has deleted
+                // from the repeat, so it is kept, and made an exception of the repeat once every page is read.
+                QString repeatid = item["recurringEventId"].toString().trimmed() ;
+                if (!repeatid.isEmpty()) {
+                    QDateTime left = QDateTime::fromString(item["originalStartTime"].toObject()["dateTime"].toString(), Qt::ISODate) ;
+                    if (item["status"].toString()=="cancelled" && left.isValid()) {
+                        deletedoccurrences << QPair<QString, QDateTime>(repeatid, left) ;
+                    }
+                } else if (parseAppointment(item, appt, account)) {
                     if (!appt.isSet(Appointment::Deleted)) {
                         googlecalendar.addAppointment(appt, false) ;
                     }
@@ -93,6 +101,12 @@ bool GoogleAccess::getCalendar(Calendar &googlecalendar, int startdays, int endd
         pagecount++ ;
 
     } while (!pagetoken.isEmpty()) ;
+
+    // Google's deleted occurrences of a repeat are exceptions of the repeat, so the app leaves them out too
+    for (const QPair<QString, QDateTime> &occurrence : deletedoccurrences) {
+        Appointment &repeat = googlecalendar.getAppointmentBy(Appointment::GoogleRecordId, occurrence.first) ;
+        if (!repeat.isNull()) repeat.addException(occurrence.second) ;
+    }
 
     dbg(QString("TIMING getCalendar: %1 page(s), %2 events").arg(pagecount).arg(googlecalendar.size())) ;
     return true ;
