@@ -7,11 +7,9 @@ class SMS
 {
 public:
     // The SMS services that can send messages.  The agent name in the ini file selects one (see the constructor).
-    // TextAnywhere is the name Clockwork SMS now uses, so either name selects Clockwork.
     enum Agent {
         Unknown=0,
-        Clockwork=1,
-        Voodoo=2
+        Voodoo=1
     };
 
     // Returned by send and getBalance when the agent is not known
@@ -52,8 +50,6 @@ private:
     QString username ;
     QString password ;
     QString smsErrorData ;
-    int sendClockwork(QString number, QString from, QString message) ;
-    int getClockworkBalance() ;
     int sendVoodoo(QString number, QString from, QString message) ;
     int getVoodooBalance() ;
 };

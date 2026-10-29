@@ -235,7 +235,7 @@
     journal - Path to the journal files, and EasyNotepad command
     google - Google synchronisation options
     phone - Local and country dialling codes
-    sms - Access code for Clockwork SMS
+    sms - SMS agent (Voodoo) and its access details
     email - Email configuration for sending reminder messages, plus launching email application
     message - Email and SMS message files
 
@@ -269,7 +269,7 @@ localcode=01480
 countrycode=0044
 
 [sms-reminder]
-agent=clockwork
+agent=voodoo
 username=
 
 [email-reminder]
