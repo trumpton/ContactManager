@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "appointment.h"
 #include <QDateTime>
 #include <QUuid>
@@ -543,6 +544,10 @@ QList<QDateTime> Appointment::exceptions()
 
 void Appointment::setExceptions(QList<QDateTime> starts)
 {
+    // Kept in date order, as Google returns them, so that a copy of this appointment from Google matches it
+    std::sort(starts.begin(), starts.end()) ;
+    starts.erase(std::unique(starts.begin(), starts.end()), starts.end()) ;
+
     QStringList texts ;
     foreach (const QDateTime &when, starts) texts.append(when.toUTC().toString(Qt::ISODate)) ;
     setField(Appointment::RepeatExceptions, texts.join(QChar(','))) ;
