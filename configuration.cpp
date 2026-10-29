@@ -483,6 +483,12 @@ int Configuration::getWaitBeforeSendMinutes()
     return wholeNumberOrDefault(ini.get("reminders", "waitbeforesendmins"), 5) ;
 }
 
+// Whether an .ics appointment is attached to reminder and update emails (ini [reminders] attachics=yes/no, default no)
+bool Configuration::getAttachICS()
+{
+    return ini.get("reminders", "attachics").trimmed().compare("yes", Qt::CaseInsensitive)==0 ;
+}
+
 QTime Configuration::getSendWindowStart()
 {
     return timeOrDefault(ini.get("reminders", "sendfrom"), QTime(7, 0)) ;
