@@ -3,6 +3,7 @@
 
 #include <QDialog>
 #include <QSettings>
+#include <QTime>
 #include "contactdatabase.h"
 #include "googleaccess.h"
 #include "../Lib/iniconfig.h"
@@ -108,6 +109,15 @@ public:
     QString& getSMSPassword() ;
     DatabaseMaster getDatabaseMaster() ;
     bool getEnableReminders() ;
+
+    // Reminders are for appointments that start between these many hours from now (ini [reminders])
+    int getReminderWindowFromHours() ;
+    int getReminderWindowToHours() ;
+
+    // Reminders are sent from the start time, up to but not including the end time, in local time (ini [reminders])
+    QTime getSendWindowStart() ;
+    QTime getSendWindowEnd() ;
+
     void setLastGoogleContactSyncDate(QString syncDate) ;
     void setLastGoogleCalendarSyncDate(QString syncDate) ;
     void setLastGoogleContactSyncToken(QString syncToken) ;
