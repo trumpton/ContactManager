@@ -50,10 +50,6 @@ DEFINES += PWD='"\\\"$$PWD\\\""'
 
 DEFINES += QWIDGET_EXTRA_DEBUG
 
-CONFIG(debug, debug|release) {
-# When debugging, allow SMS and Email to be sent at night, and don't wait 2 mins
-# DEFINES += DEBUGTIMER
-}
 
 INCLUDE += $$PWD
 

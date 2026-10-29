@@ -452,12 +452,12 @@ bool Configuration::getEnableReminders()
     return (settingEnableReminders.compare("yes")==0) ;
 }
 
-// A whole number of hours from the ini file, or the default if it is missing or not a number
-static int hoursOrDefault(QString text, int defaultvalue)
+// A whole number (of hours or minutes) from the ini file, or the default if it is missing or not a number
+static int wholeNumberOrDefault(QString text, int defaultvalue)
 {
     bool ok ;
-    int hours = text.trimmed().toInt(&ok) ;
-    return (ok && hours>=0) ? hours : defaultvalue ;
+    int number = text.trimmed().toInt(&ok) ;
+    return (ok && number>=0) ? number : defaultvalue ;
 }
 
 // A time of day (h:mm) from the ini file, or the default if it is missing or not a time
@@ -469,12 +469,18 @@ static QTime timeOrDefault(QString text, QTime defaultvalue)
 
 int Configuration::getReminderWindowFromHours()
 {
-    return hoursOrDefault(ini.get("reminders", "windowfromhours"), 2) ;
+    return wholeNumberOrDefault(ini.get("reminders", "windowfromhours"), 2) ;
 }
 
 int Configuration::getReminderWindowToHours()
 {
-    return hoursOrDefault(ini.get("reminders", "windowtohours"), 24) ;
+    return wholeNumberOrDefault(ini.get("reminders", "windowtohours"), 24) ;
+}
+
+// Zero is allowed: a message is then sent on the next check, once the appointment is saved
+int Configuration::getWaitBeforeSendMinutes()
+{
+    return wholeNumberOrDefault(ini.get("reminders", "waitbeforesendmins"), 5) ;
 }
 
 QTime Configuration::getSendWindowStart()
