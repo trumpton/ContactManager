@@ -25,7 +25,7 @@
 
 #include "logform.h"
 
-#include "smtp.h"
+#include "email.h"
 #include "sms.h"
 
 #include <QFileDialog>
@@ -217,9 +217,6 @@ private:
     bool searchContactRecordSet(QString searchtext, Contact &contact, Contact::ContactRecord record) ;
 
     // EMail & SMS
-    int SendMail(QString from, QString emailaddress, QString subject, QString message) ;
-    int SendSMS(QString from, QString mobile, QString message) ;
-    int GetSMSBalance() ;
     bool loadMessage(QString filename, QString& from, QString& title,QString& message, Appointment& appt, Contact& contact) ;
 
 };

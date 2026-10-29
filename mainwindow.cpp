@@ -1152,7 +1152,8 @@ void MainWindow::tick()
 
          if ((++everyday)>86400) {
             everyday=0 ;
-            int balance = GetSMSBalance() ;
+            SMS sms(gConf->getSMSAgent(), gConf->getSMSUsername(), gConf->getSMSPassword()) ;
+            int balance = sms.getBalance() ;
             addLog(QString("SMS Balance = ") + QString::number(balance)) ;
             if (balance>=0 && balance<100) {
                 warningOkDialog(this,"Send SMS", "You have low SMS credit") ;

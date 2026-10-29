@@ -87,6 +87,7 @@ SOURCES += main.cpp\
     accessibledaterangeedit.cpp \
     sms.cpp \
     smtp.cpp \
+    email.cpp \
     mainwindow_menu_transaction.cpp \
     mainwindow_tab_calendar.cpp \
     mainwindow_timer_backup.cpp \
@@ -149,6 +150,7 @@ HEADERS  += mainwindow.h \
     accessibledaterangeedit.h \
     sms.h \
     smtp.h \
+    email.h \
     ../Lib/lineeditnavigator.h \
     todo.h \
     ../Lib/safelineedit.h \
