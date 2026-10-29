@@ -44,11 +44,9 @@ void MainWindow::sendMailSMS()
     static int mutex=0 ;
     QDateTime now = QDateTime::currentDateTimeUtc() ;
 
-#ifndef DEBUGTIMER
     // Don't be anti-social: only send within the sending window, in local time
     QTime localtime = now.toLocalTime().time() ;
     if (localtime<gConf->getSendWindowStart() || localtime>=gConf->getSendWindowEnd()) return ;
-#endif
 
     // Ensure non-reentrant
     if (mutex>0) return ;
@@ -83,13 +81,10 @@ void MainWindow::sendMailSMS()
             unsigned long int elapsed = ( now.toSecsSinceEpoch() - created.toSecsSinceEpoch() ) ;
             int messagecounter = appt.getField(Appointment::MessageCounter).toInt() ;
 
-#ifdef DEBUGTIMER
-            bool elapsed2min = (elapsed > 5) ;
-#else
-            bool elapsed2min = (elapsed > 120) ;
-#endif
+            // Wait before sending, so that a new appointment can be finished first (waitbeforesendmins in [reminders])
+            bool waitedenough = (elapsed >= (unsigned long int)gConf->getWaitBeforeSendMinutes() * 60) ;
 
-            if (elapsed2min && isinfuture && validcontact && messagecounter<MAXMESSAGERETRIES) {
+            if (waitedenough && isinfuture && validcontact && messagecounter<MAXMESSAGERETRIES) {
 
                 QString mobile = contact.getField(Contact::Mobile) ;
                 QString emailaddress = contact.getField(Contact::Email) ;

@@ -118,6 +118,9 @@ public:
     QTime getSendWindowStart() ;
     QTime getSendWindowEnd() ;
 
+    // A new appointment waits this many minutes before its messages are sent (ini [reminders], default 5)
+    int getWaitBeforeSendMinutes() ;
+
     void setLastGoogleContactSyncDate(QString syncDate) ;
     void setLastGoogleCalendarSyncDate(QString syncDate) ;
     void setLastGoogleContactSyncToken(QString syncToken) ;
