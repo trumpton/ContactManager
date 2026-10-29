@@ -475,7 +475,11 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
         Appointment apptresponse ;
         if (parseAppointment(jsonresponse, apptresponse, account)) {
 
-            if (apptresponse.matches(appt, Appointment::maDetails|Appointment::maId)) {
+            // Google returns the exceptions in date order, so compare the sent ones in that order too
+            Appointment sent = appt ;
+            sent.setExceptions(sent.exceptions()) ;
+
+            if (apptresponse.matches(sent, Appointment::maDetails|Appointment::maId)) {
                 apptresponse.copyTo(appt, Appointment::maDetails|Appointment::maGoogleAcct) ;
                 success=true ;
 
@@ -483,7 +487,7 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
                 // Returned info doesn't match sent
                 addLog(QString("ERROR GoogleAccess::UpdateAppointment: Upload mismatch (%1) - %2")
                        .arg(appt.getField(Appointment::ID))
-                       .arg(apptresponse.mismatch(appt, Appointment::maDetails|Appointment::maId, true))) ;
+                       .arg(apptresponse.mismatch(sent, Appointment::maDetails|Appointment::maId, true))) ;
                 success=false ;
             }
         }
