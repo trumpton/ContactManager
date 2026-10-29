@@ -153,8 +153,15 @@ void MainWindow::sendMailSMS()
                     } else {
 
                         int result ;
-                        if (sendsmtp) result = SendMail(from, emailaddress, title, message) ;
-                        else result = SendSMS(from, mobile, title) ;
+                        if (sendsmtp) {
+                            Email email(gConf->getSMTPServer(), gConf->getSMTPUsername(), gConf->getSMTPPassword(), gConf->getSMTPPort().toInt()) ;
+                            result = email.send(from, emailaddress, title, message) ;
+                            SMTPSMSErrorMessage = email.getErrorMessage() ;
+                        } else {
+                            SMS sms(gConf->getSMSAgent(), gConf->getSMSUsername(), gConf->getSMSPassword()) ;
+                            result = sms.send(mobile, from, title) ;
+                            SMTPSMSErrorMessage = sms.getErrorMessage() ;
+                        }
 
                         switch (result) {
                         case 1:
@@ -186,55 +193,6 @@ void MainWindow::sendMailSMS()
     }
     mutex-- ;
 
-}
-
-//
-// Sends SMTP / SMS Messages
-//
-// Status: -1 - Not Started Sending
-//         -2 - Network Error
-//         -3 - Error during transaction
-//         -4 - Unable to Send / Possibly Sent
-//          1 - Send OK
-//
-
-int MainWindow::SendMail(QString from, QString emailaddress, QString subject, QString message)
-{
-    int port ;
-    QString& user = gConf->getSMTPUsername() ;
-    QString& pass = gConf->getSMTPPassword() ;
-    QString& serv = gConf->getSMTPServer() ;
-
-    if (user.isEmpty() || pass.isEmpty() || serv.isEmpty()) return false ;
-
-    port = gConf->getSMTPPort().toInt() ;
-    if (port<25) port=25 ;
-
-    Smtp smtp(user, pass, serv, port) ;
-    QEventLoop eventLoop ;
-
-    QObject::connect(&smtp, SIGNAL(status(QString)), &eventLoop, SLOT(quit()));
-    smtp.sendMail(from, emailaddress, subject, message) ;
-    if (smtp.isConnected()) {
-        eventLoop.exec() ;
-        SMTPSMSErrorMessage = smtp.errorMessage() ;
-        return smtp.success() ;
-    }
-    return false ;
-}
-
-int MainWindow::SendSMS(QString from, QString mobile, QString message)
-{
-    SMS sms(gConf->getSMSAgent(), gConf->getSMSUsername(), gConf->getSMSPassword()) ;
-    int success = sms.send(mobile, from, message) ;
-    SMTPSMSErrorMessage =  sms.getErrorMessage() ;
-    return success ;
-}
-
-int MainWindow::GetSMSBalance()
-{
-    SMS sms(gConf->getSMSAgent(), gConf->getSMSUsername(), gConf->getSMSPassword()) ;
-    return sms.getBalance() ;
 }
 
 bool MainWindow::loadMessage(QString filename,
