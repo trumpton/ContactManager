@@ -21,5 +21,9 @@ Message variable substitutions are as follows:
     $MONTH - Month
     $YEAR  - Year
     $FDATE - Full Date: dd-MMM-yyyy
+    $APPOINTMENTS - The contact's next appointments (up to 10), soonest first,
+                    in the form "10:00 on Friday 30 October".  One per line in
+                    an email body.  On one line, separated by "; ", in the
+                    subject and in SMS messages.
 
 

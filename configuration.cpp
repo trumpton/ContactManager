@@ -452,6 +452,41 @@ bool Configuration::getEnableReminders()
     return (settingEnableReminders.compare("yes")==0) ;
 }
 
+// A whole number of hours from the ini file, or the default if it is missing or not a number
+static int hoursOrDefault(QString text, int defaultvalue)
+{
+    bool ok ;
+    int hours = text.trimmed().toInt(&ok) ;
+    return (ok && hours>=0) ? hours : defaultvalue ;
+}
+
+// A time of day (h:mm) from the ini file, or the default if it is missing or not a time
+static QTime timeOrDefault(QString text, QTime defaultvalue)
+{
+    QTime time = QTime::fromString(text.trimmed(), "H:mm") ;
+    return time.isValid() ? time : defaultvalue ;
+}
+
+int Configuration::getReminderWindowFromHours()
+{
+    return hoursOrDefault(ini.get("reminders", "windowfromhours"), 2) ;
+}
+
+int Configuration::getReminderWindowToHours()
+{
+    return hoursOrDefault(ini.get("reminders", "windowtohours"), 24) ;
+}
+
+QTime Configuration::getSendWindowStart()
+{
+    return timeOrDefault(ini.get("reminders", "sendfrom"), QTime(7, 0)) ;
+}
+
+QTime Configuration::getSendWindowEnd()
+{
+    return timeOrDefault(ini.get("reminders", "sendto"), QTime(22, 0)) ;
+}
+
 QString& Configuration::getBackupDate()
 {
     settingBackupDate = settings->value("backupdate").toString() ;

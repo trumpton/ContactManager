@@ -3,6 +3,41 @@
 #include "configuration.h"
 #include "../Lib/alertsound.h"
 
+#include <algorithm>
+
+// The upcoming appointments of a contact, one per line in the form "10:00 on Friday 30 October", soonest first, up to
+// ten.  Each occurrence of a repeat is listed.  Joined with the separator.  Used for $APPOINTMENTS in the messages.
+static QString upcomingAppointments(Calendar &calendar, QString contactid, QString separator)
+{
+    QDateTime now = QDateTime::currentDateTimeUtc() ;
+    QList<QDateTime> starts ;
+
+    for (int i=0, csz=calendar.size(); i<csz; i++) {
+        Appointment &appt = calendar.getAppointment(i) ;
+        if (appt.isTemp() || appt.isSet(Appointment::Deleted) || appt.getContactId()!=contactid) continue ;
+
+        // A single appointment has one occurrence; a repeat has an occurrence for each step, until it ends
+        bool repeating = appt.isRepeating() ;
+        int found=0 ;
+        for (int n=0; found<10 && (repeating || n==0) && !appt.occurrenceEnded(n); n++) {
+            if (!appt.occurrenceExists(n)) continue ;
+            QDateTime start = appt.occurrenceFrom(n) ;
+            if (start>now) {
+                starts.append(start) ;
+                found++ ;
+            }
+        }
+    }
+
+    std::sort(starts.begin(), starts.end()) ;
+
+    QStringList lines ;
+    for (int i=0; i<starts.size() && i<10; i++) {
+        lines.append(starts.at(i).toLocalTime().toString("hh:mm 'on' dddd d MMMM")) ;
+    }
+    return lines.join(separator) ;
+}
+
 void MainWindow::sendMailSMS()
 {
     QString from, title, message ;
@@ -10,23 +45,23 @@ void MainWindow::sendMailSMS()
     QDateTime now = QDateTime::currentDateTimeUtc() ;
 
 #ifndef DEBUGTIMER
-    // Don't be anti-social
-    int hour = now.toLocalTime().time().hour() ;
-    if (hour<8 || hour>22) return ;
+    // Don't be anti-social: only send within the sending window, in local time
+    QTime localtime = now.toLocalTime().time() ;
+    if (localtime<gConf->getSendWindowStart() || localtime>=gConf->getSendWindowEnd()) return ;
 #endif
 
     // Ensure non-reentrant
     if (mutex>0) return ;
     mutex++ ;
 
-    // Set a test window (now+2h -> now+24h)
+    // Set a test window (now+2h -> now+24h by default, from the ini file)
     // Used so that reminders are sent within this window
     Appointment testappt ;
     QDateTime fromt, tot ;
     fromt = now ;
-    fromt = fromt.addSecs(7200) ;
+    fromt = fromt.addSecs(gConf->getReminderWindowFromHours() * 3600) ;
     tot = now ;
-    tot = tot.addSecs(86400) ;
+    tot = tot.addSecs(gConf->getReminderWindowToHours() * 3600) ;
     testappt.setDate(Appointment::From, fromt) ;
     testappt.setDate(Appointment::To, tot) ;
 
@@ -228,6 +263,9 @@ bool MainWindow::loadMessage(QString filename,
     message.replace("$YEAR", start.toLocalTime().toString("yyyy")) ;
     message.replace("$FDATE", start.toLocalTime().toString("dd-MMM-yyyy")) ;
 
+    // One appointment per line in an email; SMS and subject lines get them on one line
+    message.replace("$APPOINTMENTS", upcomingAppointments(calendar, contact.getField(Contact::ID), "\n")) ;
+
     title.replace("$NAME", contact.getField(Contact::Names)) ;
     title.replace("$SURNAME", contact.getField(Contact::Surname)) ;
     title.replace("$TIME", start.toLocalTime().toString("hh:mm")) ;
@@ -236,6 +274,7 @@ bool MainWindow::loadMessage(QString filename,
     title.replace("$MONTH", start.toLocalTime().toString("MMMM")) ;
     title.replace("$YEAR", start.toLocalTime().toString("yyyy")) ;
     title.replace("$FDATE", start.toLocalTime().toString("dd-MMM-yyyy")) ;
+    title.replace("$APPOINTMENTS", upcomingAppointments(calendar, contact.getField(Contact::ID), "; ")) ;
 
     return !title.isEmpty() && !from.isEmpty();
 }
