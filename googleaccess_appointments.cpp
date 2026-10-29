@@ -475,9 +475,11 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
         Appointment apptresponse ;
         if (parseAppointment(jsonresponse, apptresponse, account)) {
 
-            // Google returns the exceptions in date order, so compare the sent ones in that order too
+            // Google returns the exceptions in date order, so compare the sent ones in that order too.  A single
+            // event has no repeat, so Google gives it a repeat interval of 0, whatever the local one was.
             Appointment sent = appt ;
             sent.setExceptions(sent.exceptions()) ;
+            if (!sent.isRepeating()) sent.setField(Appointment::RepeatInterval, "0") ;
 
             if (apptresponse.matches(sent, Appointment::maDetails|Appointment::maId)) {
                 apptresponse.copyTo(appt, Appointment::maDetails|Appointment::maGoogleAcct) ;
