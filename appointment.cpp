@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "appointment.h"
 #include <QDateTime>
 #include <QUuid>
@@ -538,11 +539,19 @@ QList<QDateTime> Appointment::exceptions()
         QDateTime when = QDateTime::fromString(text, Qt::ISODate) ;
         if (when.isValid()) list.append(when) ;
     }
+
+    // Kept in date order, whatever order they were stored in, so an upload matches Google's order
+    std::sort(list.begin(), list.end()) ;
+    list.erase(std::unique(list.begin(), list.end()), list.end()) ;
     return list ;
 }
 
 void Appointment::setExceptions(QList<QDateTime> starts)
 {
+    // Kept in date order, as Google returns them, so that a copy of this appointment from Google matches it
+    std::sort(starts.begin(), starts.end()) ;
+    starts.erase(std::unique(starts.begin(), starts.end()), starts.end()) ;
+
     QStringList texts ;
     foreach (const QDateTime &when, starts) texts.append(when.toUTC().toString(Qt::ISODate)) ;
     setField(Appointment::RepeatExceptions, texts.join(QChar(','))) ;

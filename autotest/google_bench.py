@@ -2151,6 +2151,38 @@ def x81g():
             Check("the other five occurrences are still listed", len(mine) == 5, "rows %d" % len(mine))]
 
 
+@scenario("X81H", "#81: a split that moves the time keeps Google's deleted occurrence on the right time, in London time")
+def x81h():
+    summary = "BENCH X81H weekly"
+    third = at_day(2 + 14, "13:45")
+    run1 = Run("X81H1", [{"op": "add_appointment", "fields": {"summary": summary, "from": at_day(2, "13:45"), "to": at_day(2, "14:45"),
+                                                         "repeat": "2", "repeatinterval": "1", "repeatcount": "5"}},
+                         sync()], session="x81h", tz="Europe/London").execute()
+    master = google_master(summary)
+    instances = [i for i in google_instances(master.get("id", "none"))
+                 if i.get("status") != "cancelled" and (i.get("originalStartTime") or {}).get("dateTime", "").startswith(
+                     datetime.datetime.utcnow().__add__(datetime.timedelta(days=16)).strftime("%Y-%m-%dT13"))]
+    if instances:
+        api("DELETE", CALENDAR + "/events/" + instances[0]["id"])
+    # Google is the master for this sync, as when the user brings Google's changes in
+    set_mode(1)
+    try:
+        Run("X81H2", [sync()], session="x81h", tz="Europe/London").execute()
+    finally:
+        set_mode(0)
+    Run("X81H3", [{"op": "choose", "letter": "b"},
+                  {"op": "repeat_edit", "name": "x81h", "summary": summary, "occurrence": at_day(2 + 7, "13:45"),
+                   "shiftdays": 0, "shiftminutes": 62, "newsummary": "BENCH X81H later"},
+                  sync(), {"op": "calendar_rows", "name": "x81h", "reload": True}, dump()], session="x81h", tz="Europe/London").execute()
+    later = google_master("BENCH X81H later")
+    exdates = [l for l in later.get("recurrence", []) if l.startswith("EXDATE")]
+    return [Check("Google deleted an occurrence", len(instances) == 1, "instances found %d" % len(instances)),
+            Check("the new part of the repeat is on Google", later.get("id") is not None, "later %r" % later.get("summary")),
+            Check("the deleted occurrence is left out at the new time (14:47), not the old (13:45)",
+                  any("T144700" in l for l in exdates) and not any("T134500" in l for l in exdates),
+                  "EXDATE lines %r" % exdates)]
+
+
 @scenario("G41", "#30: an edit of a repeat in the app changes the Google event, and the event stays repeating")
 def g41():
     start, end = at_day(2, "09:00"), at_day(2, "10:00")
