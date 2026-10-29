@@ -121,6 +121,9 @@ public:
     // A new appointment waits this many minutes before its messages are sent (ini [reminders], default 5)
     int getWaitBeforeSendMinutes() ;
 
+    // Whether an .ics appointment is attached to emails (ini [reminders], attachics=yes or no, default no)
+    bool getAttachICS() ;
+
     void setLastGoogleContactSyncDate(QString syncDate) ;
     void setLastGoogleCalendarSyncDate(QString syncDate) ;
     void setLastGoogleContactSyncToken(QString syncToken) ;
