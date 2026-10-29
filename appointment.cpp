@@ -539,6 +539,10 @@ QList<QDateTime> Appointment::exceptions()
         QDateTime when = QDateTime::fromString(text, Qt::ISODate) ;
         if (when.isValid()) list.append(when) ;
     }
+
+    // Kept in date order, whatever order they were stored in, so an upload matches Google's order
+    std::sort(list.begin(), list.end()) ;
+    list.erase(std::unique(list.begin(), list.end()), list.end()) ;
     return list ;
 }
 
