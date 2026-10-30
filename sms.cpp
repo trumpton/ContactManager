@@ -10,6 +10,9 @@
 #include <QUrl>
 #include <QUrlQuery>
 #include <QDir>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QDebug>
 
 // The longest a request to the SMS service may take.  Without this, a service that stops replying would leave the app
@@ -67,6 +70,7 @@ SMS::SMS(QString& agent, QString& username, QString& password)
 
     QString name = agent.trimmed().toLower() ;
     if (name.compare("voodoo")==0) this->agent=Voodoo ;
+    else if (name.compare("esendex")==0) this->agent=Esendex ;
     else {
         this->agent=Unknown ;
         smsErrorData = "Unknown SMS agent: '" + agent + "'" ;
@@ -114,6 +118,8 @@ int SMS::send(QString number, QString from, QString message)
     switch (agent) {
     case Voodoo:
         return sendVoodoo(number, from, message) ;
+    case Esendex:
+        return sendEsendex(number, from, message) ;
     case Unknown:
         break ;
     }
@@ -126,6 +132,8 @@ int SMS::getBalance()
     switch (agent) {
     case Voodoo:
         return getVoodooBalance() ;
+    case Esendex:
+        return getEsendexBalance() ;
     case Unknown:
         break ;
     }
@@ -299,5 +307,179 @@ int SMS::getVoodooBalance()
     }
 
     logSMSTransaction("balance", loggedRequest("GET", URL, query), status, body, reply->errorString(), code) ;
+    return code ;
+}
+
+//////////////////////////////////////////////////////////////
+//
+// Esendex SMS API (the REST API at developer.esendex.co.uk)
+//
+// The username is the account reference (My Account in the Esendex portal).  The password, set in Settings, is the
+// API key (Developer Tools in the portal).  Both are sent in headers, and the account reference in the balance request.
+
+// A request as it is written to a debug file.  The account reference is written whole; the API key is masked.
+static QString loggedEsendexRequest(const QString &method, const QString &url, const QString &accountref,
+                                    const QString &apikey, const QByteArray &body)
+{
+    return method + " " + url + "\n"
+         + "X-API-Key: " + maskedLogin(apikey) + "\n"
+         + "accountReference: " + accountref + "\n"
+         + "Content-Type: application/json\n\n"
+         + QString::fromUtf8(body) + "\n" ;
+}
+
+int SMS::sendEsendex(QString number, QString from, QString message)
+{
+    QString URL = "https://api.esendex.co.uk/v2/messages" ;
+    QString accountref = username.trimmed() ;
+
+    // The sender is not sent: Esendex uses the account's sender
+    Q_UNUSED(from) ;
+
+    if (accountref.isEmpty()) {
+        smsErrorData = "The Esendex account reference is blank. Set it as the username in the [sms-reminder] section of ContactManager.ini (from My Account in the Esendex portal)." ;
+        return -1 ;
+    }
+    if (password.isEmpty()) {
+        smsErrorData = "The Esendex API key is blank. Set it in Settings (the SMS password), from Developer Tools in the Esendex portal." ;
+        return -1 ;
+    }
+
+    // Esendex wants the number in international form with a leading +
+    number = number.remove(' ') ;
+    if (number.isEmpty()) {
+        smsErrorData = "There is no mobile number to send to." ;
+        return -1 ;
+    }
+    if (!number.startsWith("+")) number = "+" + number ;
+
+    QJsonObject recipient ;
+    recipient.insert("msisdn", number) ;
+
+    QJsonArray recipients ;
+    recipients.append(recipient) ;
+
+    QJsonObject text ;
+    text.insert("text", message) ;
+
+    QJsonObject root ;
+    root.insert("accountReference", accountref) ;
+    root.insert("channel", "SMS") ;
+    root.insert("body", text) ;
+    root.insert("recipients", recipients) ;
+
+    QByteArray json = QJsonDocument(root).toJson(QJsonDocument::Compact) ;
+
+    QUrl url(URL) ;
+    QNetworkRequest request(url) ;
+    QNetworkAccessManager manager ;
+    QEventLoop eventLoop ;
+    QNetworkReply *reply ;
+
+    QObject::connect(&manager, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("X-API-Key", password.toUtf8()) ;
+    request.setTransferTimeout(SMS_TIMEOUT_MS) ;
+
+    qDebug() << "SMS Connecting to " << URL ;
+
+    reply = manager.post(request, json) ;
+    eventLoop.exec() ;
+
+    int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() ;
+    QString body = QString::fromUtf8(reply->readAll()).trimmed() ;
+    int code ;
+
+    if (reply->error()!=QNetworkReply::NoError && status==0) {
+        // No reply: a timeout may still have been accepted by the service, so it is not sent again
+        if (reply->error()==QNetworkReply::OperationCanceledError || reply->error()==QNetworkReply::RemoteHostClosedError) {
+            smsErrorData = "No reply from Esendex in time, so the message may have been sent." ;
+            code = -4 ;
+        } else {
+            smsErrorData = "Could not reach Esendex: " + reply->errorString() ;
+            code = -1 ;
+        }
+
+    } else if (status==200 || status==201) {
+        smsErrorData = body ;
+        code = 1 ;
+
+    } else if (status==400) {
+        smsErrorData = "Esendex rejected the message (HTTP 400): " + body ;
+        code = -3 ;
+
+    } else if (status==401 || status==403) {
+        smsErrorData = "Esendex rejected the API key or account reference (HTTP " + QString::number(status) + "). Check the username and the Settings password. Esendex said: " + body ;
+        code = -3 ;
+
+    } else if (status>=500) {
+        // The service failed after receiving the request, so the message may have been sent
+        smsErrorData = QString("Esendex failed (HTTP %1): %2").arg(status).arg(body) ;
+        code = -4 ;
+
+    } else {
+        smsErrorData = QString("Esendex replied HTTP %1: %2").arg(status).arg(body) ;
+        code = -3 ;
+    }
+
+    logSMSTransaction("send", loggedEsendexRequest("POST", URL, accountref, password, json), status, body, reply->errorString(), code) ;
+    return code ;
+}
+
+int SMS::getEsendexBalance()
+{
+    QString URL = "https://api.esendex.co.uk/v2/balance" ;
+    QString accountref = username.trimmed() ;
+
+    if (accountref.isEmpty() || password.isEmpty()) {
+        smsErrorData = "The Esendex account reference or API key is blank, so the balance cannot be read." ;
+        return -2 ;
+    }
+
+    QUrl url(URL) ;
+    QNetworkRequest request(url) ;
+    QNetworkAccessManager manager ;
+    QEventLoop eventLoop ;
+    QNetworkReply *reply ;
+
+    QObject::connect(&manager, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("X-API-Key", password.toUtf8()) ;
+    request.setRawHeader("accountReference", accountref.toUtf8()) ;
+    request.setTransferTimeout(SMS_TIMEOUT_MS) ;
+
+    reply = manager.get(request) ;
+    eventLoop.exec() ;
+
+    int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() ;
+    QString body = QString::fromUtf8(reply->readAll()).trimmed() ;
+    int code ;
+
+    if (reply->error()!=QNetworkReply::NoError && status==0) {
+        smsErrorData = "Could not reach Esendex for the balance: " + reply->errorString() ;
+        code = -2 ;
+
+    } else if (status==200 || status==201) {
+        // The balance is in pounds, as a decimal string: {"available": "2951.73346", "reserved": "0"}
+        QJsonObject reply_json = QJsonDocument::fromJson(body.toUtf8()).object() ;
+        bool ok = false ;
+        double pounds = reply_json.value("available").toString().toDouble(&ok) ;
+        if (ok) {
+            code = qRound(pounds * 100) ;
+        } else {
+            smsErrorData = "Could not read the balance from the reply: " + body ;
+            code = -3 ;
+        }
+
+    } else if (status==401 || status==403) {
+        smsErrorData = "Esendex rejected the API key or account reference (HTTP " + QString::number(status) + ") for the balance. Esendex said: " + body ;
+        code = -2 ;
+
+    } else {
+        smsErrorData = QString("Esendex replied HTTP %1 for the balance: %2").arg(status).arg(body) ;
+        code = -4 ;
+    }
+
+    logSMSTransaction("balance", loggedEsendexRequest("GET", URL, accountref, password, QByteArray()), status, body, reply->errorString(), code) ;
     return code ;
 }
