@@ -54,8 +54,9 @@ void MainWindow::LoadCalendarTab()
         Row row ;
         row.start = start ;
         row.end = start.addSecs(from.secsTo(to)) ;
-        row.title = shown.asText(apptfor) ;
-        row.accessible = shown.asAccessibleText(apptfor) ;
+        // The day of the week, as three letters, comes before the date.  It is taken from the start the date is shown from.
+        row.title = start.toString("ddd ") + shown.asText(apptfor) ;
+        row.accessible = start.toString("ddd ") + shown.asAccessibleText(apptfor) ;
 
         // A deleted appointment is listed only when Show > Deleted Appointments is ticked, and then in braces
         if (appt.isSet(Appointment::Deleted)) {
