@@ -32,6 +32,7 @@
 #include <QTextStream>
 #include <QInputDialog>
 #include <QTextCodec>
+#include <QPointer>
 
 
 
@@ -170,6 +171,9 @@ private:
     bool remindersallowed ;
 
     QString SMTPSMSErrorMessage ;
+
+    // The log window, which is not modal: one is shown at a time, and it is cleared when it closes
+    QPointer<LogForm> logwindow ;
 
     // Manage dialog controls / enables etc.
     void UpdateContactsList() ;          // Update drop-down list

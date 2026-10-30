@@ -1130,10 +1130,18 @@ void MainWindow::on_actionImport_triggered()
 
 void MainWindow::on_actionShow_Log_triggered()
 {
-    LogForm form ;
-    form.setText(getLog()) ;
+    // The log is not modal, so the application can be used while it is open, and it keeps showing new entries.  If it is
+    // already open, it is brought to the front.
+    if (logwindow.isNull()) {
+        logwindow = new LogForm(this) ;
+        logwindow->setAttribute(Qt::WA_DeleteOnClose) ;
+        QString text = getLog() ;
+        logwindow->setText(text) ;
+    }
     play(Ok) ;
-    form.exec() ;
+    logwindow->show() ;
+    logwindow->raise() ;
+    logwindow->activateWindow() ;
 }
 
 
