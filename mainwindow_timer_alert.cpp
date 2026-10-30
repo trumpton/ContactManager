@@ -63,6 +63,17 @@ static QHash<QString, int> sendfailures ;
 // Appointments already reported as having no address to send to, so that the report is made once
 static QSet<QString> noaddressreported ;
 
+// The on-the-day reminder is sent by email and by text.  A channel that has been sent is kept here until both have
+// been, when the day's reminder is recorded on the appointment.
+static QSet<QString> daychannelsent ;
+
+// Whether a message with this key may be tried now (it has not been given up on, and its wait is over)
+static bool maySend(const QString &key, const QDateTime &now)
+{
+    if (sendfailures.value(key) >= MAXMESSAGERETRIES) return false ;
+    return !(sendretryafter.contains(key) && now<sendretryafter.value(key)) ;
+}
+
 // Result from sendMailSMS when the message file could not be loaded.  Other results are those of Email and SMS.
 static const int RESULT_NO_TEMPLATE = -6 ;
 
@@ -94,6 +105,65 @@ void MainWindow::sendMailSMS()
     for (int i=0, csz=calendar.size(); i<csz; i++) ids.append(calendar.getAppointment(i).getId()) ;
 
     bool saveneeded = false ;
+
+    // Sends one message through one channel, and records the outcome by key.  The appointment and contact are found by
+    // ID, as the send may have run an event loop.  Returns true if the message was sent, or may have been.
+    auto sendOnDay = [&](const QString &key, const QString &type, bool byemail, const QString &cfgfile,
+                         const QString &apptid, const QString &contactid, const QString &mobile,
+                         const QString &emailaddress) -> bool {
+        Appointment &appt = calendar.getAppointmentBy(Appointment::ID, apptid) ;
+        QString cid = contactid ;
+        Contact &contact = db.getContactById(cid) ;
+        if (appt.isNull() || contact.isNull()) return false ;
+
+        QString apptdate = appt.getDate(Appointment::From).toLocalTime().toString("dd-MMM-yyyy hh:mm") ;
+
+        from.clear() ;
+        title.clear() ;
+        message.clear() ;
+
+        int result = RESULT_NO_TEMPLATE ;
+        QString errortext ;
+        if (!loadMessage(cfgfile, from, title, message, appt, contact)) {
+            errortext = "could not load " + cfgfile + " (it is missing, or has no sender or subject line)" ;
+        } else if (byemail) {
+            Email email(gConf->getSMTPServer(), gConf->getSMTPUsername(), gConf->getSMTPPassword(), gConf->getSMTPPort().toInt()) ;
+            result = email.send(from, emailaddress, title, message) ;
+            errortext = email.getErrorMessage() ;
+        } else {
+            SMS sms(gConf->getSMSAgent(), gConf->getSMSUsername(), gConf->getSMSPassword()) ;
+            result = sms.send(SMS::internationalNumber(mobile, gConf->getCountryDiallingCode()), from, title) ;
+            errortext = sms.getErrorMessage() ;
+        }
+
+        if (result==1 || result==-4) {
+            sendfailures.remove(key) ;
+            sendretryafter.remove(key) ;
+            daychannelsent.insert(key) ;
+            if (result==1) {
+                addLog(QString("%1 - %2").arg(type,apptdate)) ;
+                msg(type) ;
+                play(Sent) ;
+            } else {
+                addLog(QString("WARNING: %1 - %2: no reply in time, so it may have been sent. It will not be sent again. %3")
+                       .arg(type,apptdate,errortext)) ;
+            }
+            return true ;
+        }
+
+        int failures = sendfailures.value(key) + 1 ;
+        sendfailures.insert(key, failures) ;
+        sendretryafter.insert(key, QDateTime::currentDateTimeUtc().addSecs(SENDRETRYMINS * 60)) ;
+        addLog(QString("Error %1 - %2: %3 (try %4 of %5, next try in %6 minutes)")
+               .arg(type,apptdate,errortext)
+               .arg(failures)
+               .arg(MAXMESSAGERETRIES)
+               .arg(SENDRETRYMINS)) ;
+        if (failures>=MAXMESSAGERETRIES) {
+            addLog(QString("Given up on %1 - %2 after %3 tries").arg(type,apptdate).arg(failures)) ;
+        }
+        return false ;
+    } ;
 
     for (int i=0; i<ids.size(); i++) {
 
@@ -220,7 +290,7 @@ void MainWindow::sendMailSMS()
             deleteremindermessagesent = true ;
         }
 
-        else if (textme && !deleted && istime && !remindermessagesent) {
+        else if (textme && !emailme && !deleted && istime && !remindermessagesent) {
             kind = "reminder" ;
             type = "Sending reminder sms message to " + mobile ;
             cfgfile = gConf->getMessageFile(MSG_SMS_REMINDER) ;
@@ -228,12 +298,40 @@ void MainWindow::sendMailSMS()
             updateremindermessagesent = true ;
         }
 
-        else if (!textme && emailme && !deleted && istime && !remindermessagesent) {
+        else if (emailme && !deleted && istime && !remindermessagesent) {
             kind = "reminder" ;
             type = "Sending reminder email to " + emailaddress ;
             cfgfile = gConf->getMessageFile(MSG_EMAIL_REMINDER) ;
             sendsmtp = true ;
             updateremindermessagesent = true ;
+        }
+
+        // The on-the-day reminder: when both email and text are set, the reminder on the day of the appointment goes by
+        // both.  It is sent once, after any other reminder for the appointment has gone.
+        if (kind.isEmpty() && emailme && textme && !deleted && isinfuture &&
+            !appt.getDate(Appointment::ReminderOnDaySent).isValid() &&
+            appt.getDate(Appointment::From).toLocalTime().date()==now.toLocalTime().date()) {
+
+            QString emailkey = id + "|dayemail" ;
+            QString textkey = id + "|daysms" ;
+
+            if (!daychannelsent.contains(emailkey) && maySend(emailkey, now)) {
+                sendOnDay(emailkey, "Sending on-the-day reminder email to " + emailaddress, true,
+                          gConf->getMessageFile(MSG_EMAIL_REMINDER), id, contactid, mobile, emailaddress) ;
+            }
+            if (!daychannelsent.contains(textkey) && maySend(textkey, now)) {
+                sendOnDay(textkey, "Sending on-the-day reminder sms message to " + mobile, false,
+                          gConf->getMessageFile(MSG_SMS_REMINDER), id, contactid, mobile, emailaddress) ;
+            }
+
+            if (daychannelsent.contains(emailkey) && daychannelsent.contains(textkey)) {
+                Appointment &after = calendar.getAppointmentBy(Appointment::ID, id) ;
+                if (!after.isNull()) after.setField(Appointment::ReminderOnDaySent, nowToIsoString()) ;
+                daychannelsent.remove(emailkey) ;
+                daychannelsent.remove(textkey) ;
+                if (!calendar.save()) addLog("ERROR: the calendar could not be saved after the on-the-day reminder") ;
+            }
+            continue ;
         }
 
         if (kind.isEmpty()) {
