@@ -1661,7 +1661,7 @@ p, li { white-space: pre-wrap; }
   <customwidget>
    <class>AccessibleDateTimeEdit</class>
    <extends>QLineEdit</extends>
-   <header>accessibledatetimeedit.h</header>
+   <header>../Lib/accessibledatetimeedit.h</header>
   </customwidget>
   <customwidget>
    <class>SafeListView</class>

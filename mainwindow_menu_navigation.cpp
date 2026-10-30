@@ -1,7 +1,7 @@
 
-#include <QRegularExpression>
 #include "mainwindow.h"
 #include "../Lib/alertsound.h"
+#include "../Lib/dateinputdialog.h"
 
 //
 // on_actionGotoMe_triggered
@@ -48,22 +48,6 @@ void MainWindow::on_actionGotoMe_triggered()
 }
 
 
-// The date typed for Goto Date, as day/month/year (25/01/2035, or 25/1/35).  Invalid if it is not a date.
-static QDate parseGotoDate(QString text)
-{
-    QStringList parts = text.trimmed().split(QRegularExpression("[/.-]")) ;
-    if (parts.size()!=3) return QDate() ;
-
-    bool okday, okmonth, okyear ;
-    int day = parts.at(0).toInt(&okday) ;
-    int month = parts.at(1).toInt(&okmonth) ;
-    int year = parts.at(2).toInt(&okyear) ;
-    if (!okday || !okmonth || !okyear) return QDate() ;
-
-    if (parts.at(2).length()<=2) year += 2000 ;
-    return QDate(year, month, day) ;
-}
-
 //
 // on_actionGotoDate_triggered
 //
@@ -73,15 +57,8 @@ static QDate parseGotoDate(QString text)
 void MainWindow::on_actionGotoDate_triggered()
 {
     bool ok = false ;
-    QString today = QDate::currentDate().toString("dd/MM/yyyy") ;
-    QString text = inputDialog(this, "Goto Date", "Date (day/month/year, for example 25/01/2035)", QLineEdit::Normal, today, &ok) ;
+    QDate wanted = dateInputDialog(this, "Goto Date", "Go to date", QDate::currentDate(), &ok) ;
     if (!ok) return ;
-
-    QDate wanted = parseGotoDate(text) ;
-    if (!wanted.isValid()) {
-        warningOkDialog(this, "Goto Date", "The date must be day/month/year, for example 25/01/2035.") ;
-        return ;
-    }
 
     if (ui->tabBar->currentIndex()!=CALENDARTABPOS) {
         dbg("tabBar->setCurrentIndex(CALENDARTABPOS)") ;
