@@ -148,6 +148,7 @@ int SMS::sendVoodoo(QString number, QString from, QString message)
         // The service refused the login (Qt reports a 401 as an authentication error)
         if (status==401 || reply->error()==QNetworkReply::AuthenticationRequiredError) {
             smsErrorData = "Voodoo rejected the SMS username or password (HTTP 401). Check them in ContactManager.ini and Settings." ;
+            if (!body.isEmpty()) smsErrorData += " Voodoo said: " + body ;
             return -3 ;
         }
 
