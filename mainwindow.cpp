@@ -60,6 +60,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     // Set the Default Codecs for Strings
     QTextCodec::setCodecForLocale(QTextCodec::codecForName(gConf->getCodec().toLatin1().constData()));
 
+    // Warn, once the window is up, if the SMS API key is due to expire
+    QTimer::singleShot(0, this, [this]() { checkSMSKeyExpiry() ; }) ;
+
     // Login if not already done so
     int count=0 ;
     if (!enc->loggedIn()) do {

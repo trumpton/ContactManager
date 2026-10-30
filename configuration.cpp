@@ -223,6 +223,11 @@ QString Configuration::getSMSSender()
     return ini.get("sms-reminder", "sender").trimmed() ;
 }
 
+QDate Configuration::getSMSKeyExpiry()
+{
+    return QDate::fromString(ini.get("sms-reminder", "apikeyexpires").trimmed(), "dd/MM/yyyy") ;
+}
+
 QString Configuration::getEmailSender()
 {
     return ini.get("email-reminder", "sender").trimmed() ;
