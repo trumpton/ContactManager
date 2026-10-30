@@ -432,13 +432,24 @@ QString Calendar::getOverview(enum CalendarOverviewType overviewtype, QString co
     return getOverviewResponse ;
 }
 
+// The appointment that clashes with appt: one whose listed occurrence overlaps appt's own time.  Removed occurrences of a
+// repeat are not compared, so a repeat is only in a clash through an occurrence the calendar shows.
 Appointment& Calendar::getAppointmentClash(Appointment& appt)
 {
+    if (appt.isTemp()) return getNull() ;
+
+    QDateTime from = appt.getDate(Appointment::From) ;     // copies: getDate shares one value
+    QDateTime to = appt.getDate(Appointment::To) ;
+
     for (int i=0; i<size(); i++) {
         Appointment& test = getAppointment(i) ;
-        if ( !test.isSet(Appointment::Deleted) &&
-                appt.getField(Appointment::ID).compare(test.getField(Appointment::ID))!=0 &&
-                appt.clashes(test)) return test ;
+        if ( test.isSet(Appointment::Deleted) || test.isTemp() ||
+                appt.getField(Appointment::ID).compare(test.getField(Appointment::ID))==0 ) continue ;
+
+        QList<QPair<QDateTime,QDateTime>> occurrences = test.listedOccurrences(from, to) ;
+        for (const QPair<QDateTime,QDateTime> &occurrence : occurrences) {
+            if (Appointment::periodsClash(from, to, occurrence.first, occurrence.second)) return test ;
+        }
     }
     return getNull() ;
 }

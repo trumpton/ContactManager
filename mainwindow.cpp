@@ -181,34 +181,49 @@ void MainWindow::on_initial_focus()
     reportClashes() ;
 }
 
-// Lists the pairs of appointments that overlap, so they can be fixed.  Nothing is changed.  Appointments are sorted by
-// their start, so an appointment is only compared with those that start before it ends.
+// Lists the pairs of appointments that overlap, so they can be fixed.  Nothing is changed.  The occurrences the calendar lists
+// within its window are compared, so a removed occurrence of a repeat, or a repeat with none left, is not.  The occurrences
+// are sorted by their start, so one is only compared with those that start before it ends.
 void MainWindow::reportClashes()
 {
-    QList<Appointment*> live ;
+    QDateTime now = QDateTime::currentDateTimeUtc() ;
+    QDateTime windowstart = now.addDays(-gConf->calendarWindowBefore()) ;
+    QDateTime windowend = now.addDays(gConf->calendarWindowAfter()) ;
+
+    // One entry for each listed occurrence: the appointment it is of, and its times
+    struct Listed {
+        Appointment *appt ;
+        QDateTime from ;
+        QDateTime to ;
+    } ;
+    QList<Listed> listed ;
     for (int i=0; i<calendar.size(); i++) {
         Appointment &appt = calendar.getAppointment(i) ;
-        if (!appt.isSet(Appointment::Deleted) && !appt.isTemp()) live << &appt ;
+        if (appt.isSet(Appointment::Deleted) || appt.isTemp()) continue ;
+        QList<QPair<QDateTime,QDateTime>> occurrences = appt.listedOccurrences(windowstart, windowend) ;
+        for (const QPair<QDateTime,QDateTime> &occurrence : occurrences) {
+            listed << Listed{ &appt, occurrence.first, occurrence.second } ;
+        }
     }
-    // getDate returns one shared value, so a date is copied before the next one is read
-    std::sort(live.begin(), live.end(), [](Appointment *a, Appointment *b) {
-        QDateTime afrom = a->getDate(Appointment::From) ;
-        return afrom < b->getDate(Appointment::From) ;
-    }) ;
 
-    // A line for an appointment: its summary, its day, and its times
-    auto describe = [](Appointment *appt) {
-        return QString("%1 (%2 - %3)").arg(appt->getField(Appointment::Summary),
-                                            appt->getDate(Appointment::From).toString("dd MMM yyyy HH:mm"),
-                                            appt->getDate(Appointment::To).toString("HH:mm")) ;
+    std::sort(listed.begin(), listed.end(), [](const Listed &a, const Listed &b) { return a.from < b.from ; }) ;
+
+    // A line for an occurrence: its summary, its day, and its times
+    auto describe = [](const Listed &item) {
+        return QString("%1 (%2 - %3)").arg(item.appt->getField(Appointment::Summary),
+                                            item.from.toLocalTime().toString("dd MMM yyyy HH:mm"),
+                                            item.to.toLocalTime().toString("HH:mm")) ;
     } ;
 
     QStringList lines ;
-    for (int i=0; i<live.size(); i++) {
-        QDateTime iend = live[i]->getDate(Appointment::To) ;
-        for (int j=i+1; j<live.size(); j++) {
-            if (live[j]->getDate(Appointment::From) >= iend) break ;
-            if (live[i]->clashes(*live[j])) lines << "    " + describe(live[i]) + " and " + describe(live[j]) ;
+    for (int i=0; i<listed.size(); i++) {
+        for (int j=i+1; j<listed.size(); j++) {
+            if (listed[j].from >= listed[i].to) break ;
+            // Occurrences of one repeat are not compared with each other
+            if (listed[i].appt==listed[j].appt) continue ;
+            if (Appointment::periodsClash(listed[i].from, listed[i].to, listed[j].from, listed[j].to)) {
+                lines << "    " + describe(listed[i]) + " and " + describe(listed[j]) ;
+            }
         }
     }
     if (lines.isEmpty()) return ;
