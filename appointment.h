@@ -239,6 +239,11 @@ public:
     bool isNotFor(QString& id) ;
 
     void setField(enum AppointmentRecord field, QString data) ;
+
+    // Sets a record of what has been messaged, without counting it as an edit: Updated is kept as it was, so that the
+    // wait after an edit is not restarted by the messages themselves
+    void setSentField(enum AppointmentRecord field, QString data) ;
+
     void setFlag(enum AppointmentRecord field, bool flag) ;
     void setDate(enum AppointmentRecord field, QDateTime data) ;
     QString& getField(enum AppointmentRecord field) const ;

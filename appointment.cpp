@@ -221,6 +221,15 @@ bool Appointment::isSet(enum Appointment::AppointmentRecord field) const
 }
 
 
+void Appointment::setSentField(enum Appointment::AppointmentRecord field, QString data)
+{
+    QString updated = filedata[Appointment::Updated] ;
+    QString dateupdated = filedata[Appointment::DateUpdated] ;
+    setField(field, data) ;
+    filedata[Appointment::Updated] = updated ;
+    filedata[Appointment::DateUpdated] = dateupdated ;
+}
+
 void Appointment::setFlag(enum Appointment::AppointmentRecord field, bool flag)
 {
     if (flag)  {
@@ -696,7 +705,7 @@ bool Appointment::mergeSentState(Appointment &remote)
     // Sets the record to the value, when that is different
     auto take = [&](Appointment::AppointmentRecord field, QString value) {
         if (value.compare(getField(field))!=0) {
-            setField(field, value) ;
+            setSentField(field, value) ;
             changed=true ;
         }
     } ;

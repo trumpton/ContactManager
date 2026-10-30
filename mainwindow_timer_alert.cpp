@@ -219,9 +219,9 @@ void MainWindow::sendMailSMS()
         Appointment &after = calendar.getAppointmentBy(Appointment::ID, id) ;
         if (after.isNull()) return ;
         if (done) {
-            after.setField(Appointment::LedgerPending, QString()) ;
+            after.setSentField(Appointment::LedgerPending, QString()) ;
         } else {
-            after.setField(Appointment::LedgerPending, "yes") ;
+            after.setSentField(Appointment::LedgerPending, "yes") ;
             addLog("Could not write the sent state of an appointment to Google, so the next sync writes it") ;
         }
     } ;
@@ -324,22 +324,19 @@ void MainWindow::sendMailSMS()
         QDateTime occ = appt.nextOccurrence() ;
         if (!occ.isValid()) continue ;
 
-        // Wait before sending, so that a new appointment can be finished first (waitbeforesendmins in [reminders])
-        QDateTime created = appt.getDate(Appointment::Created) ;
-        qint64 elapsed = now.toSecsSinceEpoch() - created.toSecsSinceEpoch() ;
-        if (elapsed < (qint64)gConf->getWaitBeforeSendMinutes() * 60) continue ;
+        // The hold: a new or changed appointment waits waitbeforesendmins after its last change, so that a run of edits, or a
+        // delete and re-create, is sent once, as its final details.  A cancellation is not held.
+        qint64 sincechange = now.toSecsSinceEpoch() - appt.getDate(Appointment::Updated).toSecsSinceEpoch() ;
+        if (!deleted && sincechange < (qint64)gConf->getWaitBeforeSendMinutes() * 60) continue ;
 
-        // What the message will say.  A change to it since the last confirmation or update is sent as an update, once it
-        // has stopped changing for waitbeforeupdatemins.
+        // What the message will say.  A change to it since the last confirmation or update is sent as an update.
         QString signature = messageSignature(appt) ;
         if (messagesent && !deleted && appt.getField(Appointment::MessageSignature).isEmpty()) {
             // Confirmed before the signature was kept: start from the current details, so no update is sent for them
-            appt.setField(Appointment::MessageSignature, signature) ;
+            appt.setSentField(Appointment::MessageSignature, signature) ;
             saveneeded = true ;
         }
-        qint64 sinceupdate = now.toSecsSinceEpoch() - appt.getDate(Appointment::Updated).toSecsSinceEpoch() ;
-        bool settled = sinceupdate >= (qint64)gConf->getWaitBeforeUpdateMinutes() * 60 ;
-        bool changed = messagesent && !deleted && settled && appt.getField(Appointment::MessageSignature)!=signature ;
+        bool changed = messagesent && !deleted && appt.getField(Appointment::MessageSignature)!=signature ;
 
         QString mobile = contact.getField(Contact::Mobile) ;
         QString emailaddress = contact.getField(Contact::Email) ;
@@ -350,10 +347,12 @@ void MainWindow::sendMailSMS()
         QString apptdate = occ.toLocalTime().toString("dd-MMM-yyyy hh:mm") ;
         bool remindermessagesent = reminderSentFor(appt, occ) ;
 
-        // A reminder is due when the occurrence is within the reminder window.  An appointment that starts sooner than
-        // the window's start (a short notice) is reminded of at once, rather than never.
-        QDateTime windowend = now.addSecs(gConf->getReminderWindowToHours() * 3600) ;
-        bool istime = occ < windowend ;
+        // A reminder is due when the appointment starts within remindhoursbefore.  One that is confirmed or changed less than
+        // confirmonlyhours before it starts gets its confirmation or update only: that message takes the reminder's place.
+        QDateTime remindend = now.addSecs(gConf->getRemindHoursBefore() * 3600) ;
+        QDateTime confirmonlyend = now.addSecs(gConf->getConfirmOnlyHours() * 3600) ;
+        bool istime = occ < remindend ;
+        bool confirmonly = occ < confirmonlyend ;
 
         QString kind ;
         QString cfgfile ;
@@ -371,7 +370,7 @@ void MainWindow::sendMailSMS()
             sendsmtp = true ;
             updatemessagesent = true ;
             setsignature = true ;
-            if (istime) updateremindermessagesent = true ;
+            if (confirmonly) updateremindermessagesent = true ;
         }
 
         else if (textme && !emailme && !deleted && !messagesent) {
@@ -380,7 +379,7 @@ void MainWindow::sendMailSMS()
             cfgfile = gConf->getMessageFile(MSG_SMS_CONFIRMATION) ;
             updatemessagesent = true ;
             setsignature = true ;
-            if (istime) updateremindermessagesent = true ;
+            if (confirmonly) updateremindermessagesent = true ;
         }
 
         else if (emailme && !deleted && changed) {
@@ -390,7 +389,7 @@ void MainWindow::sendMailSMS()
             sendsmtp = true ;
             updatemessagesent = true ;
             setsignature = true ;
-            if (istime) updateremindermessagesent = true ;
+            if (confirmonly) updateremindermessagesent = true ;
         }
 
         else if (textme && !emailme && !deleted && changed) {
@@ -399,7 +398,7 @@ void MainWindow::sendMailSMS()
             cfgfile = gConf->getMessageFile(MSG_SMS_UPDATE) ;
             updatemessagesent = true ;
             setsignature = true ;
-            if (istime) updateremindermessagesent = true ;
+            if (confirmonly) updateremindermessagesent = true ;
         }
 
         else if (emailme && deleted && messagesent) {
@@ -469,7 +468,7 @@ void MainWindow::sendMailSMS()
                                      gConf->getMessageFile(MSG_EMAIL_REMINDER), id, contactid, mobile, emailaddress, occ) ;
                 if (result==1 || result==-4) {
                     Appointment &after = calendar.getAppointmentBy(Appointment::ID, id) ;
-                    if (!after.isNull()) after.setField(Appointment::ReminderOnDaySent, dayChannelRecord(after.getField(Appointment::ReminderOnDaySent), today, "email")) ;
+                    if (!after.isNull()) after.setSentField(Appointment::ReminderOnDaySent, dayChannelRecord(after.getField(Appointment::ReminderOnDaySent), today, "email")) ;
                     pushSentState(id) ;
                     saveCalendar("the on-the-day reminder") ;
                 }
@@ -479,7 +478,7 @@ void MainWindow::sendMailSMS()
                                      gConf->getMessageFile(MSG_SMS_REMINDER), id, contactid, mobile, emailaddress, occ) ;
                 if (result==1 || result==-4) {
                     Appointment &after = calendar.getAppointmentBy(Appointment::ID, id) ;
-                    if (!after.isNull()) after.setField(Appointment::ReminderOnDaySent, dayChannelRecord(after.getField(Appointment::ReminderOnDaySent), today, "sms")) ;
+                    if (!after.isNull()) after.setSentField(Appointment::ReminderOnDaySent, dayChannelRecord(after.getField(Appointment::ReminderOnDaySent), today, "sms")) ;
                     pushSentState(id) ;
                     saveCalendar("the on-the-day reminder") ;
                 }
@@ -527,17 +526,26 @@ void MainWindow::sendMailSMS()
             Appointment &after = calendar.getAppointmentBy(Appointment::ID, id) ;
             if (!after.isNull()) {
                 if (deletemessagesent) {
-                    after.setField(Appointment::CancelSent, nowToIsoString()) ;
-                    after.setField(Appointment::MessageSent, "") ;
-                    after.setField(Appointment::MessageSignature, "") ;
-                    after.setField(Appointment::ReminderMessageSent, "") ;
-                    after.setField(Appointment::ReminderFor, "") ;
+                    after.setSentField(Appointment::CancelSent, nowToIsoString()) ;
+                    after.setSentField(Appointment::MessageSent, "") ;
+                    after.setSentField(Appointment::MessageSignature, "") ;
+                    after.setSentField(Appointment::ReminderMessageSent, "") ;
+                    after.setSentField(Appointment::ReminderFor, "") ;
                 }
-                if (updatemessagesent) after.setField(Appointment::MessageSent, nowToIsoString()) ;
-                if (setsignature) after.setField(Appointment::MessageSignature, signature) ;
+                if (updatemessagesent) {
+                    after.setSentField(Appointment::MessageSent, nowToIsoString()) ;
+
+                    // A confirmation or update given on the day of the appointment already gives the time, so the on-the-day
+                    // reminders for that day count as sent
+                    if (occ.toLocalTime().date()==now.toLocalTime().date()) {
+                        QString record = dayChannelRecord(after.getField(Appointment::ReminderOnDaySent), today, "email") ;
+                        after.setSentField(Appointment::ReminderOnDaySent, dayChannelRecord(record, today, "sms")) ;
+                    }
+                }
+                if (setsignature) after.setSentField(Appointment::MessageSignature, signature) ;
                 if (updateremindermessagesent) {
-                    after.setField(Appointment::ReminderMessageSent, nowToIsoString()) ;
-                    after.setField(Appointment::ReminderFor, occurrenceKey(occ)) ;
+                    after.setSentField(Appointment::ReminderMessageSent, nowToIsoString()) ;
+                    after.setSentField(Appointment::ReminderFor, occurrenceKey(occ)) ;
                 }
                 if (kind=="cancelocc") {
                     // Only cancellations still to come are kept, as a past one is never sent again, so the list stays short
@@ -547,7 +555,7 @@ void MainWindow::sendMailSMS()
                     for (const QString &when : notified) {
                         if (QDateTime::fromString(when, Qt::ISODate) > now) kept.append(when) ;
                     }
-                    after.setField(Appointment::CancelledOccurrences, kept.join(',')) ;
+                    after.setSentField(Appointment::CancelledOccurrences, kept.join(',')) ;
                 }
             }
             pushSentState(id) ;

@@ -45,6 +45,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     // Initialise and load configuration
     gConf = new Configuration(this) ;
 
+    // Reminder settings that are no longer used, or not valid, are written to the log, so that they can be corrected
+    for (const QString &warning : gConf->reminderSettingWarnings()) addLog(warning) ;
+
     // Initialise encryption i/o
     enc = new Encryption(QString("trumpton.uk"), QString("TextFileEncryption")) ;
     gConf->setEncryption(enc);
