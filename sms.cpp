@@ -22,13 +22,13 @@ static QString maskedLogin(const QString &value)
     return value.left(5) + QString(qMax(0, value.length()-5), QChar('*')) ;
 }
 
-// A request as it is written to a debug file.  The uid and pass parameters are masked.
+// A request as it is written to a debug file.  The uid is written whole; the pass is masked.
 static QString loggedRequest(const QString &method, const QString &url, const QUrlQuery &query)
 {
     QString text = method + " " + url + "\n" ;
     for (const auto &item : query.queryItems()) {
         QString value = item.second ;
-        if (item.first=="uid" || item.first=="pass") value = maskedLogin(value) ;
+        if (item.first=="pass") value = maskedLogin(value) ;
         text += item.first + "=" + value + "\n" ;
     }
     return text ;
