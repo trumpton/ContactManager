@@ -78,7 +78,8 @@ SOURCES += main.cpp\
     googleaccess_contacts.cpp \
     googleaccess_oauth2.cpp \
     googleaccess_network.cpp \
-    accessibledatetimeedit.cpp \
+    ../Lib/accessibledatetimeedit.cpp \
+    ../Lib/dateinputdialog.cpp \
     logform.cpp \
     accessibledaterangeedit.cpp \
     sms.cpp \
@@ -141,7 +142,8 @@ HEADERS  += mainwindow.h \
     ../Lib/warningok.h \
     ../Lib/warningchoice.h \
     contactdatabase.h \
-    accessibledatetimeedit.h \
+    ../Lib/accessibledatetimeedit.h \
+    ../Lib/dateinputdialog.h \
     logform.h \
     accessibledaterangeedit.h \
     sms.h \
