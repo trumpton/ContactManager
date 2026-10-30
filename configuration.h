@@ -94,6 +94,10 @@ public:
     // The sender for SMS, if set in ini [sms-reminder] sender (a registered name), overriding the template's sender line
     QString getSMSSender() ;
 
+    // The date the SMS API key expires, from ini [sms-reminder] apikeyexpires, written day/month/year (25/01/2035).
+    // Invalid if not set.
+    QDate getSMSKeyExpiry() ;
+
     // The From address of reminder emails, if set in ini [email-reminder] sender (as "Name <address>"), overriding the
     // template's first line
     QString getEmailSender() ;

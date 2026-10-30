@@ -209,6 +209,7 @@ private:
 
     void doBackup() ;
     void sendMailSMS() ;
+    void checkSMSKeyExpiry() ;
 
     void beep() ;
     void msg(QString msg) ;
