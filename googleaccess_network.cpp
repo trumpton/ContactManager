@@ -135,10 +135,6 @@ QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action
             // logfile can contain a contact name, so only its first part is printed
             dbg(QString("TIMING http %1 %2 status=%3 ms=%4").arg(actionname).arg(logfile.section('-',0,0)).arg(errorcode).arg(requesttimer.elapsed())) ;
 
-            // TODO: For some reason, google does not update the "updated"
-            //       this means that we will keep uploading the same records
-            //       again and again
-
             // if page load is OK, get details, else set error string
             switch (reply->error()) {
             case QNetworkReply::ConnectionRefusedError:
@@ -216,9 +212,6 @@ QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action
 }
 
 //*****************************************************************************************************
-
-// TODO: applies to all network connections - if the computer does not have an active network
-//       interface, the app segfaults
 
 // get - http get a web page, and return the resulting string
 
