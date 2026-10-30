@@ -4,6 +4,8 @@
 #include "../Lib/alertsound.h"
 
 #include <algorithm>
+#include <QHash>
+#include <QSet>
 
 // The upcoming appointments of a contact, one per line in the form "10:00 on Friday 30 October", soonest first, up to
 // ten.  Each occurrence of a repeat is listed.  Joined with the separator.  Used for $APPOINTMENTS in the messages.
@@ -38,6 +40,32 @@ static QString upcomingAppointments(Calendar &calendar, QString contactid, QStri
     return lines.join(separator) ;
 }
 
+// What a confirmation or update says about an appointment.  If it changes after one was sent, an update is sent.
+static QString messageSignature(Appointment &appt)
+{
+    const Appointment::AppointmentRecord fields[] = {
+        Appointment::From, Appointment::To, Appointment::Summary, Appointment::Description, Appointment::Location,
+        Appointment::Repeat, Appointment::RepeatInterval, Appointment::RepeatCount, Appointment::RepeatUntil,
+        Appointment::RepeatExceptions } ;
+
+    QStringList parts ;
+    for (Appointment::AppointmentRecord field : fields) parts.append(appt.getField(field)) ;
+    return parts.join(QChar(0x1f)) ;
+}
+
+// A message that has failed to send, in this session.  It waits SENDRETRYMINS minutes before it is tried again, and is
+// given up after MAXMESSAGERETRIES failures.  Kept per appointment and kind of message, so that a failed confirmation
+// does not use up the tries for a later cancellation.
+static const int SENDRETRYMINS = 5 ;
+static QHash<QString, QDateTime> sendretryafter ;
+static QHash<QString, int> sendfailures ;
+
+// Appointments already reported as having no address to send to, so that the report is made once
+static QSet<QString> noaddressreported ;
+
+// Result from sendMailSMS when the message file could not be loaded.  Other results are those of Email and SMS.
+static const int RESULT_NO_TEMPLATE = -6 ;
+
 void MainWindow::sendMailSMS()
 {
     QString from, title, message ;
@@ -55,172 +83,250 @@ void MainWindow::sendMailSMS()
     // Set a test window (now+2h -> now+24h by default, from the ini file)
     // Used so that reminders are sent within this window
     Appointment testappt ;
-    QDateTime fromt, tot ;
-    fromt = now ;
-    fromt = fromt.addSecs(gConf->getReminderWindowFromHours() * 3600) ;
-    tot = now ;
-    tot = tot.addSecs(gConf->getReminderWindowToHours() * 3600) ;
+    QDateTime fromt = now.addSecs(gConf->getReminderWindowFromHours() * 3600) ;
+    QDateTime tot = now.addSecs(gConf->getReminderWindowToHours() * 3600) ;
     testappt.setDate(Appointment::From, fromt) ;
     testappt.setDate(Appointment::To, tot) ;
 
-    for (int i=0, csz=calendar.size(); i<csz; i++) {
+    // Sending can run an event loop, which lets the user change the calendar.  So the appointments are listed by ID
+    // first, and each one is found again by ID after a send, rather than being held as a reference across it.
+    QStringList ids ;
+    for (int i=0, csz=calendar.size(); i<csz; i++) ids.append(calendar.getAppointment(i).getId()) ;
 
-        Appointment &appt = calendar.getAppointment(i) ;
+    bool saveneeded = false ;
+
+    for (int i=0; i<ids.size(); i++) {
+
+        // By position while the calendar is unchanged, otherwise by ID
+        Appointment *found = NULL ;
+        if (i<calendar.size() && calendar.getAppointment(i).getId()==ids.at(i)) {
+            found = &calendar.getAppointment(i) ;
+        } else {
+            Appointment &byid = calendar.getAppointmentBy(Appointment::ID, ids.at(i)) ;
+            if (!byid.isNull()) found = &byid ;
+        }
+        if (found==NULL) continue ;
+
+        Appointment &appt = *found ;
+        QString id = appt.getId() ;
+        QString contactid = appt.getContactId() ;
         bool istemp = appt.isTemp() ;
         bool deleted = appt.isSet(Appointment::Deleted) ;
-        QDateTime messagesentdate = appt.getDate(Appointment::MessageSent) ;
-        bool messagesent = messagesentdate.isValid()  ;
+        bool messagesent = appt.getDate(Appointment::MessageSent).isValid() ;
 
         // Only process non-temp and non-deleted or non-recently-deleted messages
-        if (!istemp && (!deleted || (deleted && messagesent))) {
+        if (istemp || (deleted && !messagesent)) continue ;
 
-            bool isinfuture = appt.isInFuture() ;
-            Contact& contact = db.getContactById(appt.getContactId()) ;
-            bool validcontact = !contact.isNull() && !contact.isSet(Contact::Deleted) && !contact.isSet(Contact::Hidden);
-            QDateTime created = appt.getDate(Appointment::Created) ;
-            unsigned long int elapsed = ( now.toSecsSinceEpoch() - created.toSecsSinceEpoch() ) ;
-            int messagecounter = appt.getField(Appointment::MessageCounter).toInt() ;
+        Contact &contact = db.getContactById(contactid) ;
+        bool validcontact = !contact.isNull() && !contact.isSet(Contact::Deleted) && !contact.isSet(Contact::Hidden);
+        bool isinfuture = appt.isInFuture() ;
+        QDateTime created = appt.getDate(Appointment::Created) ;
+        unsigned long int elapsed = ( now.toSecsSinceEpoch() - created.toSecsSinceEpoch() ) ;
 
-            // Wait before sending, so that a new appointment can be finished first (waitbeforesendmins in [reminders])
-            bool waitedenough = (elapsed >= (unsigned long int)gConf->getWaitBeforeSendMinutes() * 60) ;
+        // Wait before sending, so that a new appointment can be finished first (waitbeforesendmins in [reminders])
+        bool waitedenough = (elapsed >= (unsigned long int)gConf->getWaitBeforeSendMinutes() * 60) ;
 
-            if (waitedenough && isinfuture && validcontact && messagecounter<MAXMESSAGERETRIES) {
+        if (!waitedenough || !isinfuture || !validcontact) continue ;
 
-                QString mobile = contact.getField(Contact::Mobile) ;
-                QString emailaddress = contact.getField(Contact::Email) ;
+        // What the message will say.  A change to it since the last confirmation or update is sent as an update.
+        QString signature = messageSignature(appt) ;
+        if (messagesent && !deleted && appt.getField(Appointment::MessageSignature).isEmpty()) {
+            // Confirmed before the signature was kept: start from the current details, so no update is sent for them
+            appt.setField(Appointment::MessageSignature, signature) ;
+            saveneeded = true ;
+        }
 
-                bool textme = contact.isSet(Contact::TextMe)  && !mobile.isEmpty();
-                bool emailme = contact.isSet(Contact::EmailMe) && !emailaddress.isEmpty() ;
+        QString mobile = contact.getField(Contact::Mobile) ;
+        QString emailaddress = contact.getField(Contact::Email) ;
 
-                QString apptdate = appt.getDate(Appointment::From).toLocalTime().toString("dd-MMM-yyyy hh:mm") ;
-                QDateTime changedate = appt.getDate(Appointment::DateUpdated) ;
-                QDateTime remindermessagesentdate = appt.getDate(Appointment::ReminderMessageSent) ;
-                bool remindermessagesent = remindermessagesentdate.isValid() ;
+        bool textme = contact.isSet(Contact::TextMe)  && !mobile.isEmpty();
+        bool emailme = contact.isSet(Contact::EmailMe) && !emailaddress.isEmpty() ;
 
-                bool changed = (messagesent && (changedate > messagesentdate)) ||
-                        (remindermessagesent && (changedate > remindermessagesentdate)) ;
+        QString apptdate = appt.getDate(Appointment::From).toLocalTime().toString("dd-MMM-yyyy hh:mm") ;
+        bool remindermessagesent = appt.getDate(Appointment::ReminderMessageSent).isValid() ;
+        bool changed = messagesent && !deleted && appt.getField(Appointment::MessageSignature)!=signature ;
 
-                bool istime = appt.clashes(testappt) ;
+        // An appointment that starts within the lead time is reminded of at once (by its confirmation), not never
+        QDateTime start = appt.getDate(Appointment::From) ;
+        bool shortnotice = (start>now && start<fromt) ;
+        bool istime = appt.clashes(testappt) || shortnotice ;
 
-                QString cfgfile ;
-                QString type ;
-                bool sendsms = false ;
-                bool sendsmtp = false ;
-                bool deletemessagesent = false ;
-                bool deleteremindermessagesent = false ;
-                bool updatemessagesent = false ;
-                bool updateremindermessagesent = false ;
+        QString kind ;
+        QString cfgfile ;
+        QString type ;
+        bool sendsms = false ;
+        bool sendsmtp = false ;
+        bool setsignature = false ;
+        bool deletemessagesent = false ;
+        bool deleteremindermessagesent = false ;
+        bool updatemessagesent = false ;
+        bool updateremindermessagesent = false ;
 
-                if (emailme && !deleted && !messagesent) {
-                    type = "Sending confirmation email to " + emailaddress ;
-                    cfgfile = gConf->getMessageFile(MSG_EMAIL_CONFIRMATION) ;
-                    sendsmtp = true ;
-                    updatemessagesent = true ;
-                    if (istime) updateremindermessagesent = true ;
-                }
+        if (emailme && !deleted && !messagesent) {
+            kind = "confirm" ;
+            type = "Sending confirmation email to " + emailaddress ;
+            cfgfile = gConf->getMessageFile(MSG_EMAIL_CONFIRMATION) ;
+            sendsmtp = true ;
+            updatemessagesent = true ;
+            setsignature = true ;
+            if (istime) updateremindermessagesent = true ;
+        }
 
-                else if (textme && !emailme && !deleted && !messagesent) {
-                    type = "Sending confirmation SMS to " + mobile;
-                    cfgfile = gConf->getMessageFile(MSG_SMS_CONFIRMATION) ;
-                    sendsms = true ;
-                    updatemessagesent = true ;
-                    if (istime) updateremindermessagesent = true ;
-                }
+        else if (textme && !emailme && !deleted && !messagesent) {
+            kind = "confirm" ;
+            type = "Sending confirmation SMS to " + mobile;
+            cfgfile = gConf->getMessageFile(MSG_SMS_CONFIRMATION) ;
+            sendsms = true ;
+            updatemessagesent = true ;
+            setsignature = true ;
+            if (istime) updateremindermessagesent = true ;
+        }
 
-                else if (emailme && !deleted && changed && messagesent) {
-                    type = "Sending change email to " + emailaddress ;
-                    cfgfile = gConf->getMessageFile(MSG_EMAIL_UPDATE) ;
-                    sendsmtp = true ;
-                    updatemessagesent = true ;
-                    if (istime) updateremindermessagesent = true ;
-                }
+        else if (emailme && !deleted && changed) {
+            kind = "update" ;
+            type = "Sending change email to " + emailaddress ;
+            cfgfile = gConf->getMessageFile(MSG_EMAIL_UPDATE) ;
+            sendsmtp = true ;
+            updatemessagesent = true ;
+            setsignature = true ;
+            if (istime) updateremindermessagesent = true ;
+        }
 
-                else if (textme && !emailme && !deleted && changed && messagesent) {
-                    type = "Sending change sms to " + mobile ;
-                    cfgfile = gConf->getMessageFile(MSG_SMS_UPDATE) ;
-                    sendsms = true ;
-                    updatemessagesent = true ;
-                    if (istime) updateremindermessagesent = true ;
-                }
+        else if (textme && !emailme && !deleted && changed) {
+            kind = "update" ;
+            type = "Sending change sms to " + mobile ;
+            cfgfile = gConf->getMessageFile(MSG_SMS_UPDATE) ;
+            sendsms = true ;
+            updatemessagesent = true ;
+            setsignature = true ;
+            if (istime) updateremindermessagesent = true ;
+        }
 
-                else if (emailme && deleted && messagesent) {
-                    type = "Sending cancellation email to " + emailaddress ;
-                    cfgfile = gConf->getMessageFile(MSG_EMAIL_DELETION) ;
-                    sendsmtp = true ;
-                    deletemessagesent = true ;
-                    deleteremindermessagesent = true ;
-                }
+        else if (emailme && deleted && messagesent) {
+            kind = "cancel" ;
+            type = "Sending cancellation email to " + emailaddress ;
+            cfgfile = gConf->getMessageFile(MSG_EMAIL_DELETION) ;
+            sendsmtp = true ;
+            deletemessagesent = true ;
+            deleteremindermessagesent = true ;
+        }
 
-                else if (textme && !emailme && deleted && messagesent) {
-                    type = "Sending cancelled sms to " + mobile ;
-                    cfgfile = gConf->getMessageFile(MSG_SMS_DELETION) ;
-                    sendsms = true ;
-                    deletemessagesent = true ;
-                    deleteremindermessagesent = true ;
-                }
+        else if (textme && !emailme && deleted && messagesent) {
+            kind = "cancel" ;
+            type = "Sending cancelled sms to " + mobile ;
+            cfgfile = gConf->getMessageFile(MSG_SMS_DELETION) ;
+            sendsms = true ;
+            deletemessagesent = true ;
+            deleteremindermessagesent = true ;
+        }
 
-                else if (textme && !deleted && istime && !remindermessagesent) {
-                    type = "Sending reminder sms message to " + mobile ;
-                    cfgfile = gConf->getMessageFile(MSG_SMS_REMINDER) ;
-                    sendsms = true ;
-                    updateremindermessagesent = true ;
-                }
+        else if (textme && !deleted && istime && !remindermessagesent) {
+            kind = "reminder" ;
+            type = "Sending reminder sms message to " + mobile ;
+            cfgfile = gConf->getMessageFile(MSG_SMS_REMINDER) ;
+            sendsms = true ;
+            updateremindermessagesent = true ;
+        }
 
-                else if (!textme && emailme && !deleted && istime && !remindermessagesent) {
-                    type = "Sending reminder email to " + emailaddress ;
-                    cfgfile = gConf->getMessageFile(MSG_EMAIL_REMINDER) ;
-                    sendsmtp = true ;
-                    updateremindermessagesent = true ;
-                }
+        else if (!textme && emailme && !deleted && istime && !remindermessagesent) {
+            kind = "reminder" ;
+            type = "Sending reminder email to " + emailaddress ;
+            cfgfile = gConf->getMessageFile(MSG_EMAIL_REMINDER) ;
+            sendsmtp = true ;
+            updateremindermessagesent = true ;
+        }
 
+        if (kind.isEmpty()) {
+            // A contact who wants messages but has no address for them is reported once, rather than skipped in silence.
+            // This covers a confirmation that cannot be sent and a cancellation that cannot be sent.
+            bool wantsmessages = contact.isSet(Contact::EmailMe) || contact.isSet(Contact::TextMe) ;
+            bool needed = (!deleted && !messagesent) || (deleted && messagesent) ;
+            if (wantsmessages && !emailme && !textme && needed && !noaddressreported.contains(id)) {
+                noaddressreported.insert(id) ;
+                QString what = deleted ? "no cancellation was sent" : "no confirmation was sent" ;
+                addLog(QString("No email address or mobile number for %1, so %2 for the appointment at %3")
+                       .arg(contact.getFormattedName(), what, apptdate)) ;
+            }
+            continue ;
+        }
 
-                if (sendsmtp || sendsms) {
+        // A message that has failed recently, or too often, is left until its wait is over (or for ever, if given up)
+        QString key = id + "|" + kind ;
+        if (sendfailures.value(key) >= MAXMESSAGERETRIES) continue ;
+        if (sendretryafter.contains(key) && now<sendretryafter.value(key)) continue ;
 
-                    if (!loadMessage(cfgfile, from, title, message, appt, contact)) {
+        int result = RESULT_NO_TEMPLATE ;
+        QString errortext ;
 
-                        addLog(QString("Error loading: ") + cfgfile) ;
+        from.clear() ;
+        title.clear() ;
+        message.clear() ;
 
-                    } else {
+        if (!loadMessage(cfgfile, from, title, message, appt, contact)) {
+            errortext = "could not load " + cfgfile + " (it is missing, or has no sender or subject line)" ;
+        } else {
+            if (sendsmtp) {
+                Email email(gConf->getSMTPServer(), gConf->getSMTPUsername(), gConf->getSMTPPassword(), gConf->getSMTPPort().toInt()) ;
+                result = email.send(from, emailaddress, title, message) ;
+                errortext = email.getErrorMessage() ;
+            } else if (sendsms) {
+                // Voodoo wants the number in international form, without a leading + or 0
+                QString dest = SMS::internationalNumber(mobile, gConf->getCountryDiallingCode()) ;
+                SMS sms(gConf->getSMSAgent(), gConf->getSMSUsername(), gConf->getSMSPassword()) ;
+                result = sms.send(dest, from, title) ;
+                errortext = sms.getErrorMessage() ;
+            } else {
+                errortext = "no channel to send by" ;
+            }
+        }
 
-                        int result ;
-                        if (sendsmtp) {
-                            Email email(gConf->getSMTPServer(), gConf->getSMTPUsername(), gConf->getSMTPPassword(), gConf->getSMTPPort().toInt()) ;
-                            result = email.send(from, emailaddress, title, message) ;
-                            SMTPSMSErrorMessage = email.getErrorMessage() ;
-                        } else {
-                            SMS sms(gConf->getSMSAgent(), gConf->getSMSUsername(), gConf->getSMSPassword()) ;
-                            result = sms.send(mobile, from, title) ;
-                            SMTPSMSErrorMessage = sms.getErrorMessage() ;
-                        }
+        // The send may have run an event loop, so the appointment and contact are found again by ID
+        Appointment &after = calendar.getAppointmentBy(Appointment::ID, id) ;
+        Contact &aftercontact = db.getContactById(contactid) ;
 
-                        switch (result) {
-                        case 1:
-                            if (deletemessagesent) appt.setField(Appointment::MessageSent, "") ;
-                            if (deleteremindermessagesent) appt.setField(Appointment::ReminderMessageSent, "") ;
-                            if (updatemessagesent) appt.setField(Appointment::MessageSent, nowToIsoString()) ;
-                            if (updateremindermessagesent) appt.setField(Appointment::ReminderMessageSent, nowToIsoString()) ;
-                            addLog(QString("%1 - %2").arg(type,apptdate)) ;
-                            appendHistory(contact, QString("%1: %2").arg(type,apptdate)) ;
-                            msg(type) ;
-                            play(Sent) ;
-                            calendar.save() ;
-                            break ;
-                        case -1: // -1 - Not Started Sending
-                        case -2: // -2 - Network Error
-                            break ;
-                        case -3: // -3 - Error during transaction
-                        case -4: // -4 - Unable to Send / Possibly Sent
-                            appt.setField(Appointment::MessageCounter, QString::number(++messagecounter)) ;
-                            addLog(QString("Error %1: %2").arg(type,SMTPSMSErrorMessage)) ;
-                            break ;
-                        }
+        // A result of -4 means the message may have been sent, so it is recorded as sent, and is not sent again
+        if ((result==1 || result==-4) && !after.isNull()) {
+            if (deletemessagesent) after.setField(Appointment::MessageSent, "") ;
+            if (deletemessagesent) after.setField(Appointment::MessageSignature, "") ;
+            if (deleteremindermessagesent) after.setField(Appointment::ReminderMessageSent, "") ;
+            if (updatemessagesent) after.setField(Appointment::MessageSent, nowToIsoString()) ;
+            if (updateremindermessagesent) after.setField(Appointment::ReminderMessageSent, nowToIsoString()) ;
+            if (setsignature) after.setField(Appointment::MessageSignature, signature) ;
+            sendfailures.remove(key) ;
+            sendretryafter.remove(key) ;
 
-                    }
-                }
+            // Saved straight away, so that a message is not sent again after a restart
+            if (!calendar.save()) addLog("ERROR: the calendar could not be saved after sending: " + type) ;
+            saveneeded = false ;
+        }
 
+        if (result==1) {
+            addLog(QString("%1 - %2").arg(type,apptdate)) ;
+            if (!aftercontact.isNull()) appendHistory(aftercontact, QString("%1: %2").arg(type,apptdate)) ;
+            msg(type) ;
+            play(Sent) ;
+
+        } else if (result==-4) {
+            addLog(QString("WARNING: %1 - %2: no reply from the service in time, so it may have been sent. It will not be sent again. %3")
+                   .arg(type,apptdate,errortext)) ;
+
+        } else {
+            // The message was not sent: it is tried again after a wait, and given up after MAXMESSAGERETRIES tries
+            int failures = sendfailures.value(key) + 1 ;
+            sendfailures.insert(key, failures) ;
+            sendretryafter.insert(key, now.addSecs(SENDRETRYMINS * 60)) ;
+            addLog(QString("Error %1 - %2: %3 (try %4 of %5, next try in %6 minutes)")
+                   .arg(type,apptdate,errortext)
+                   .arg(failures)
+                   .arg(MAXMESSAGERETRIES)
+                   .arg(SENDRETRYMINS)) ;
+            if (failures>=MAXMESSAGERETRIES) {
+                addLog(QString("Given up on %1 - %2 after %3 tries").arg(type,apptdate).arg(failures)) ;
             }
         }
     }
+
+    if (saveneeded && !calendar.save()) addLog("ERROR: the calendar could not be saved") ;
     mutex-- ;
 
 }
