@@ -616,3 +616,61 @@ void Calendar::addBirthday(QString who, QString whoid, QString when)
 
     }
 }
+
+//=====================================================================================================
+//
+// Public: Calendar - tidyRepeatsWithNoOccurrences
+//
+//  A repeat with no occurrence left (every one removed) shows nothing, but it still takes part in the clash checks.  It is
+//  marked deleted, as deleting all of a repeat's occurrences does.  Returns how many, and describes each in removed.
+//
+int Calendar::tidyRepeatsWithNoOccurrences(QStringList &removed)
+{
+    int count=0 ;
+    for (int i=0; i<size(); i++) {
+        Appointment &appt = getAppointment(i) ;
+        if (appt.isSet(Appointment::Deleted) || appt.isTemp() || !appt.isRepeating()) continue ;
+
+        // An occurrence that exists ends the search.  The exceptions are finite, so the search always ends.
+        bool anyleft = false ;
+        for (int n=0; !anyleft && !appt.occurrenceEnded(n); n++) anyleft = appt.occurrenceExists(n) ;
+        if (anyleft) continue ;
+
+        removed << QString("%1, from %2").arg(appt.getField(Appointment::Summary),
+                                              appt.getDate(Appointment::From).toLocalTime().toString("dd MMM yyyy HH:mm")) ;
+        appt.setFlag(Appointment::Deleted, true) ;
+        count++ ;
+    }
+    return count ;
+}
+
+//=====================================================================================================
+//
+// Public: Calendar - orphanedEntries
+//
+//  The entries for a contact that is missing or deleted.  They are described and left as they are.  An entry for Me, and an
+//  entry with no contact (an event made on Google), is not an orphan.
+//
+QStringList Calendar::orphanedEntries(ContactDatabase &db)
+{
+    QStringList orphans ;
+    QString me = gConf->getMe() ;
+    for (int i=0; i<size(); i++) {
+        Appointment &appt = getAppointment(i) ;
+        if (appt.isSet(Appointment::Deleted) || appt.isTemp()) continue ;
+
+        QString contactid = appt.getField(Appointment::ContactId) ;
+        if (contactid.isEmpty() || contactid.compare(me)==0) continue ;
+
+        Contact &contact = db.getContactById(contactid) ;
+        QString reason ;
+        if (contact.isNull()) reason = "the contact is not in the database" ;
+        else if (contact.isSet(Contact::Deleted)) reason = "the contact is deleted" ;
+        else continue ;
+
+        orphans << QString("%1, from %2 (%3)").arg(appt.getField(Appointment::Summary),
+                                                    appt.getDate(Appointment::From).toLocalTime().toString("dd MMM yyyy HH:mm"),
+                                                    reason) ;
+    }
+    return orphans ;
+}

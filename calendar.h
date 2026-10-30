@@ -88,6 +88,14 @@ public:
     void purgeBirthdays() ;
     int tidyBirthdays(bool dryrun) ;
     int repointContact(QString fromid, QString toid) ;
+
+    // Tidy Records, for the calendar.  A repeat with no occurrences left (every one removed) shows nothing, so it is marked
+    // deleted, as deleting all of a repeat's occurrences does.  Returns how many, and describes each in removed.
+    int tidyRepeatsWithNoOccurrences(QStringList &removed) ;
+
+    // Entries whose contact is missing or deleted.  They are described, and are left as they are: which contact they belong
+    // to is for the user to decide.
+    QStringList orphanedEntries(ContactDatabase &db) ;
     void addBirthday(QString who, QString whoid, QString when) ;
 
 

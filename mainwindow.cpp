@@ -760,7 +760,7 @@ void MainWindow::on_actionTidyContacts_triggered()
 
     // Progress is shown in a window with a log, which also carries the summary at the end
     GoogleUpdateDialog progress(this) ;
-    progress.showProgress("Tidy Contacts") ;
+    progress.showProgress("Tidy Records") ;
 
     // Repeated history lines go first, in every contact
     int historylines=0, historycontacts=0 ;
@@ -916,7 +916,7 @@ void MainWindow::on_actionTidyContacts_triggered()
                     sections << "If merged, the entry will be:\n" + describe(merged, first, second).join("\n") ;
                     sections << "Merge them?" ;
                     bool dontask = false ;
-                    domerge = warningYesNoDialog(this, "Tidy Contacts", sections.join("\n\n"), "Merge", QChar('y'), "Skip", QChar('n'),
+                    domerge = warningYesNoDialog(this, "Tidy Records", sections.join("\n\n"), "Merge", QChar('y'), "Skip", QChar('n'),
                                                  "Do this for all future matches", false, dontask) ;
                     if (dontask) policy = domerge ? 1 : -1 ;
                 } else {
@@ -947,9 +947,15 @@ void MainWindow::on_actionTidyContacts_triggered()
         }
     }
 
+    // Calendar entries, checked after the contacts are tidied: a repeat with no occurrences left is marked deleted, and the
+    // entries whose contact is missing or deleted are listed, to be decided by the user.
+    QStringList repeatsremoved ;
+    int repeatcount = calendar.tidyRepeatsWithNoOccurrences(repeatsremoved) ;
+    QStringList orphans = calendar.orphanedEntries(db) ;
+
     if (automatic==0 && confirmed==0 && declined==0 && historylines==0 && emptied==0 && renamed==0 && unnamedleft.isEmpty()
-        && entrieschanged==0 && entriesunfixed.isEmpty()) {
-        progress.finishProgress(stopped ? "Stopped at your request." : "No duplicate contacts, repeated history lines or unnamed entries were found.") ;
+        && entrieschanged==0 && entriesunfixed.isEmpty() && repeatcount==0 && orphans.isEmpty()) {
+        progress.finishProgress(stopped ? "Stopped at your request." : "No duplicate contacts, repeated history lines, unnamed entries or calendar entries needing attention were found.") ;
         return ;
     }
 
@@ -989,6 +995,16 @@ void MainWindow::on_actionTidyContacts_triggered()
     if (linked>0) summary << QString("%1 removed entries are still on Google.").arg(linked) ;
     summary << "Run Google Sync to send the merged details, and to remove the others from Google." ;
     if (stopped) summary << "Stopped at your request, so the remaining contacts were not checked." ;
+
+    if (repeatcount>0) {
+        summary << QString("Repeats with no occurrences left, marked deleted (%1). Run Google Sync to remove them from Google.").arg(repeatcount) ;
+        foreach (const QString &line, repeatsremoved) summary << "    " + line ;
+    }
+    if (!orphans.isEmpty()) {
+        summary << QString("Calendar entries whose contact is missing or deleted, left as they are (%1):").arg(orphans.size()) ;
+        foreach (const QString &line, orphans) summary << "    " + line ;
+        summary << "Open each one in the Calendar tab and give it a contact, or delete it." ;
+    }
 
     summary << QString("Records changed by this merge (%1):").arg(changedlines.size()) ;
     foreach (const QString &line, changedlines) summary << "    " + line ;
