@@ -117,6 +117,16 @@ static QSet<QString> limitreported ;
 // message is not sent again because its record was lost.
 static bool saveFailed = false ;
 
+// A case that stops messages without a log line is logged once, until the case ends, so that the log says why a message
+// has not been sent.  The keys are removed when the case ends.
+static QSet<QString> reportedonce ;
+static void reportOnce(const QString &key, const QString &text)
+{
+    if (reportedonce.contains(key)) return ;
+    reportedonce.insert(key) ;
+    addLog(text) ;
+}
+
 // Result from sendMailSMS when the message file could not be loaded.  Other results are those of Email and SMS.
 static const int RESULT_NO_TEMPLATE = -6 ;
 
@@ -151,15 +161,28 @@ void MainWindow::sendMailSMS()
 
     // Don't be anti-social: only send within the sending window, in local time
     QTime localtime = now.toLocalTime().time() ;
-    if (!inSendWindow(localtime, gConf->getSendWindowStart(), gConf->getSendWindowEnd())) return ;
+    if (!inSendWindow(localtime, gConf->getSendWindowStart(), gConf->getSendWindowEnd())) {
+        reportOnce("window", QString("Messages are sent between %1 and %2, local time, so they wait until %1")
+                   .arg(gConf->getSendWindowStart().toString("hh:mm"), gConf->getSendWindowEnd().toString("hh:mm"))) ;
+        return ;
+    }
+    reportedonce.remove("window") ;
 
     // Only the copy of ContactManager that holds the data folder's lock sends messages
-    if (!remindersallowed) return ;
+    if (!remindersallowed) {
+        reportOnce("lock", "Another copy of ContactManager has the lock on this data folder, so this copy does not send messages") ;
+        return ;
+    }
+    reportedonce.remove("lock") ;
 
     // Nothing is sent until the calendar can be saved, so that a sent message is always recorded
     if (saveFailed) {
-        if (!calendar.save()) return ;
+        if (!calendar.save()) {
+            reportOnce("savefailed", "Messages are paused, as the calendar cannot be saved") ;
+            return ;
+        }
         saveFailed = false ;
+        reportedonce.remove("savefailed") ;
         addLog("The calendar has been saved again, so messages can be sent") ;
     }
 
@@ -206,6 +229,9 @@ void MainWindow::sendMailSMS()
         if (after.isNull()) return -1 ;
         if (after.mergeSentState(remote)) {
             saveCalendar("the sent state from Google") ;
+            addLog("The sent state on Google differs from this copy for the appointment at " +
+                   asked.getDate(Appointment::From).toLocalTime().toString("dd-MMM-yyyy hh:mm") +
+                   ", so it is read again before the message is decided") ;
             return 0 ;
         }
         return 1 ;
@@ -322,7 +348,14 @@ void MainWindow::sendMailSMS()
 
         Contact &contact = db.getContactById(contactid) ;
         bool validcontact = !contact.isNull() && !contact.isSet(Contact::Deleted) && !contact.isSet(Contact::Hidden);
-        if (!validcontact) continue ;
+        if (!validcontact) {
+            if (!contactid.isEmpty()) {
+                reportOnce("contact|" + id, "No message is sent for the appointment at " +
+                           appt.getDate(Appointment::From).toLocalTime().toString("dd-MMM-yyyy hh:mm") +
+                           ", as its contact is missing, deleted or hidden") ;
+            }
+            continue ;
+        }
 
         // The occurrence the messages are about: a repeat's first occurrence still to come (its stored start may be past).
         // Nothing is sent about an appointment with no occurrence to come.
@@ -332,7 +365,15 @@ void MainWindow::sendMailSMS()
         // The hold: a new or changed appointment waits waitbeforesendmins after its last change, so that a run of edits, or a
         // delete and re-create, is sent once, as its final details.  A cancellation is not held.
         qint64 sincechange = now.toSecsSinceEpoch() - appt.getDate(Appointment::Updated).toSecsSinceEpoch() ;
-        if (!deleted && isWithinHold(sincechange, gConf->getWaitBeforeSendMinutes())) continue ;
+        if (!deleted && isWithinHold(sincechange, gConf->getWaitBeforeSendMinutes())) {
+            if (contact.isSet(Contact::EmailMe) || contact.isSet(Contact::TextMe)) {
+                reportOnce("hold|" + id + "|" + appt.getField(Appointment::Updated),
+                           QString("The message for the appointment at %1 is held until the appointment has been unchanged for %2 minutes (waitbeforesendmins)")
+                           .arg(appt.getDate(Appointment::From).toLocalTime().toString("dd-MMM-yyyy hh:mm"),
+                                QString::number(gConf->getWaitBeforeSendMinutes()))) ;
+            }
+            continue ;
+        }
 
         // What the message will say.  A change to it since the last confirmation or update is sent as an update.
         QString signature = messageSignature(appt) ;
