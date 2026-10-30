@@ -90,6 +90,9 @@ public:
     bool contactManagerMaster() ;
     bool googleMaster() ;
     bool debugGoogleEnabled() ;
+
+    // Whether each transaction with the SMS service is written to a debug file (ini [sms-reminder] debug=yes or no)
+    bool debugSMSEnabled() ;
     bool encryptedEnabled() ;
     bool contactSyncEnabled() ;
     bool calendarSyncEnabled() ;
