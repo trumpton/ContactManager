@@ -1163,6 +1163,7 @@ p, li { white-space: pre-wrap; }
     <addaction name="actionGotoToDoList"/>
     <addaction name="actionGotoMyToDoList"/>
     <addaction name="actionGotoToday"/>
+    <addaction name="actionGotoDate"/>
     <addaction name="menuGoto_Contact_Details"/>
    </widget>
    <widget class="QMenu" name="menu_Find">
@@ -1310,6 +1311,14 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="shortcut">
     <string>Ctrl+T</string>
+   </property>
+  </action>
+  <action name="actionGotoDate">
+   <property name="text">
+    <string>Goto &amp;Date</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+D</string>
    </property>
   </action>
   <action name="actionEnableContactDetailsEdit">

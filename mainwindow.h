@@ -72,6 +72,7 @@ private slots:
 
     void on_actionGotoMe_triggered();
     void on_actionGotoToday_triggered();
+    void on_actionGotoDate_triggered();
 
     void on_actionNewMyAppointment_triggered();
     void on_actionNewAppointment_triggered();
@@ -160,6 +161,7 @@ private:
     Encryption *enc ;
     AdvancedFind *find ;
     QList<QDateTime> calendarrowends ;              // The end of each row in the calendar list, so Goto Today can find the nearest
+    QList<QDateTime> calendarrowstarts ;            // The start of each row in the calendar list, so Goto Date can find a date
     bool titledEntriesHeld ;                        // An email or phone entry was refused: the form is not reloaded until it is fixed
 
     // Only the copy of ContactManager holding the data folder's lock sends messages, so two copies cannot send the same
