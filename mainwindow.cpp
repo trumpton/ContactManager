@@ -1220,6 +1220,13 @@ void MainWindow::tick()
         }
 
         sendMailSMS() ;
+    } else {
+        // Reminders are off, so nothing is sent: said once, in the log
+        static bool reported = false ;
+        if (!reported) {
+            reported = true ;
+            addLog("Reminders are switched off in Settings, so no confirmations, updates, reminders or cancellations are sent") ;
+        }
     }
 }
 
