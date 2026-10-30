@@ -3,6 +3,7 @@
 
 #include <QDialog>
 #include <QSettings>
+#include <QTime>
 #include "contactdatabase.h"
 #include "googleaccess.h"
 #include "../Lib/iniconfig.h"
@@ -89,6 +90,23 @@ public:
     bool contactManagerMaster() ;
     bool googleMaster() ;
     bool debugGoogleEnabled() ;
+
+    // The sender for SMS, if set in ini [sms-reminder] sender (a registered name), overriding the template's sender line
+    QString getSMSSender() ;
+
+    // The date the SMS API key expires, kept in the settings store with the API key, written day/month/year
+    // (25/01/2035).  Invalid if not set.
+    QDate getSMSKeyExpiry() ;
+
+    // The From address of reminder emails, if set in ini [email-reminder] sender (as "Name <address>"), overriding the
+    // template's first line
+    QString getEmailSender() ;
+
+    // Whether each transaction with the SMS service is written to a debug file (ini [sms-reminder] debug=yes or no)
+    bool debugSMSEnabled() ;
+
+    // Whether each email conversation is written to a debug file (ini [email-reminder] debug=yes or no)
+    bool debugEmailEnabled() ;
     bool encryptedEnabled() ;
     bool contactSyncEnabled() ;
     bool calendarSyncEnabled() ;
@@ -108,6 +126,32 @@ public:
     QString& getSMSPassword() ;
     DatabaseMaster getDatabaseMaster() ;
     bool getEnableReminders() ;
+
+    // Reminders are for appointments that start between these many hours from now (ini [reminders])
+    int getReminderWindowFromHours() ;
+    int getReminderWindowToHours() ;
+
+    // Reminders are sent from the start time, up to but not including the end time, in local time (ini [reminders])
+    QTime getSendWindowStart() ;
+    QTime getSendWindowEnd() ;
+
+    // A new appointment waits this many minutes before its messages are sent (ini [reminders], default 5)
+    int getWaitBeforeSendMinutes() ;
+
+    // A changed appointment's update waits this many minutes after its last change, so that several quick edits send
+    // one update (waitbeforeupdatemins in [reminders], default 5)
+    int getWaitBeforeUpdateMinutes() ;
+
+    // The most messages sent to one contact in a day (maxmessagesperdaypercontact in [reminders], default 10)
+    int getMaxMessagesPerContactPerDay() ;
+
+    // The messages sent to a contact on a day (kept in the settings store), and adding one
+    int getContactMessagesToday(const QString &contactid, const QString &day) ;
+    void addContactMessageToday(const QString &contactid, const QString &day) ;
+
+    // Whether an .ics appointment is attached to emails (ini [reminders], attachics=yes or no, default no)
+    bool getAttachICS() ;
+
     void setLastGoogleContactSyncDate(QString syncDate) ;
     void setLastGoogleCalendarSyncDate(QString syncDate) ;
     void setLastGoogleContactSyncToken(QString syncToken) ;

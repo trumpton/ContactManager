@@ -341,6 +341,11 @@ int main(int argc, char *argv[])
                     break ;
                 }
             }
+            // An appointment with no contact is "Unnamed Contact", as the form sets it, and Google returns it that way
+            if (appt.getField(Appointment::For).isEmpty()) appt.setField(Appointment::For, QString("Unnamed Contact")) ;
+            // A repeat made in the form has the zone of this machine, as the form sets it
+            if (appt.isRepeating() && appt.getField(Appointment::RepeatZone).isEmpty())
+                appt.setField(Appointment::RepeatZone, QTimeZone::systemTimeZoneId()) ;
             w.calendar.addAppointment(appt, true) ;
             note("added appointment " + appt.getField(Appointment::Summary)) ;
 
@@ -481,7 +486,7 @@ int main(int argc, char *argv[])
             if (!origin.isNull()) {
                 QDateTime from = origin.getDate(Appointment::From) ;
                 QDateTime to = origin.getDate(Appointment::To) ;
-                qint64 shift = op["shiftdays"].toInt() * 86400 ;
+                qint64 shift = op["shiftdays"].toInt() * 86400 + op["shiftminutes"].toInt() * 60 ;
                 Appointment result = origin ;
                 result.setDate(Appointment::From, occ.addSecs(shift)) ;
                 result.setDate(Appointment::To, occ.addSecs(shift + from.secsTo(to))) ;

@@ -5,7 +5,7 @@
 #include "appointment.h"
 #include "calendar.h"
 #include "contactdatabase.h"
-#include "accessibledatetimeedit.h"
+#include "../Lib/accessibledatetimeedit.h"
 
 
 namespace Ui {

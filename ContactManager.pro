@@ -50,10 +50,6 @@ DEFINES += PWD='"\\\"$$PWD\\\""'
 
 DEFINES += QWIDGET_EXTRA_DEBUG
 
-CONFIG(debug, debug|release) {
-# When debugging, allow SMS and Email to be sent at night, and don't wait 2 mins
-# DEFINES += DEBUGTIMER
-}
 
 INCLUDE += $$PWD
 
@@ -82,11 +78,13 @@ SOURCES += main.cpp\
     googleaccess_contacts.cpp \
     googleaccess_oauth2.cpp \
     googleaccess_network.cpp \
-    accessibledatetimeedit.cpp \
+    ../Lib/accessibledatetimeedit.cpp \
+    ../Lib/dateinputdialog.cpp \
     logform.cpp \
     accessibledaterangeedit.cpp \
     sms.cpp \
     smtp.cpp \
+    email.cpp \
     mainwindow_menu_transaction.cpp \
     mainwindow_tab_calendar.cpp \
     mainwindow_timer_backup.cpp \
@@ -144,11 +142,13 @@ HEADERS  += mainwindow.h \
     ../Lib/warningok.h \
     ../Lib/warningchoice.h \
     contactdatabase.h \
-    accessibledatetimeedit.h \
+    ../Lib/accessibledatetimeedit.h \
+    ../Lib/dateinputdialog.h \
     logform.h \
     accessibledaterangeedit.h \
     sms.h \
     smtp.h \
+    email.h \
     ../Lib/lineeditnavigator.h \
     todo.h \
     ../Lib/safelineedit.h \
