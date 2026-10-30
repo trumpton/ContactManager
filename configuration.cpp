@@ -1,4 +1,5 @@
 #include "configuration.h"
+#include "messagedecision.h"
 #include "ui_configuration.h"
 
 #include "contactdatabase.h"
@@ -531,24 +532,14 @@ static QTime timeOrDefault(QString text, QTime defaultvalue)
 
 int Configuration::getRemindHoursBefore()
 {
-    int hours = wholeNumberOrDefault(ini.get("reminders", "remindhoursbefore"), 24) ;
-    return hours>=1 ? hours : 24 ;
+    return resolveRemindHours(ini.get("reminders", "remindhoursbefore")) ;
 }
 
 // The default is remindhoursbefore x 1.5, rounded to the hour.  A missing value gets it silently; a value that is not a
 // number, or less than remindhoursbefore, gets it too, and reminderSettingWarnings reports that at startup.
 int Configuration::getConfirmOnlyHours()
 {
-    int remind = getRemindHoursBefore() ;
-    int defaulthours = qRound(remind * 1.5) ;
-
-    QString text = ini.get("reminders", "confirmonlyhours").trimmed() ;
-    if (text.isEmpty()) return defaulthours ;
-
-    bool isnumber = false ;
-    int hours = text.toInt(&isnumber) ;
-    if (!isnumber || hours<remind) return defaulthours ;
-    return hours ;
+    return resolveConfirmOnlyHours(ini.get("reminders", "confirmonlyhours"), getRemindHoursBefore()) ;
 }
 
 // Zero is allowed: a message is then sent on the next check, once the appointment has had its last change
