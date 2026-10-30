@@ -1154,7 +1154,11 @@ void MainWindow::tick()
             everyday=0 ;
             SMS sms(gConf->getSMSAgent(), gConf->getSMSUsername(), gConf->getSMSPassword()) ;
             int balance = sms.getBalance() ;
-            addLog(QString("SMS Balance = ") + QString::number(balance)) ;
+            if (balance<0) {
+                addLog("SMS balance could not be read: " + sms.getErrorMessage()) ;
+            } else {
+                addLog(QString("SMS Balance = ") + QString::number(balance)) ;
+            }
             if (balance>=0 && balance<100) {
                 warningOkDialog(this,"Send SMS", "You have low SMS credit") ;
             }
@@ -1217,26 +1221,30 @@ void MainWindow::on_action_SMS_Contact_triggered()
     smsform.setRecipient(c.getFormattedName(false, true) + QString(" (") + c.getField(Contact::Mobile) + QString(")")) ;
     play(Query) ;
     if (smsform.exec()) {
-        // TODO: from should be gConf->getSMSFrom() ;
-        QString from = QString("") ;
+        // The sender is the first line of the SMS reminder template, as for the reminders (Voodoo needs 3 to 11 letters
+        // or digits).  There is no separate setting for it.
+        QString from ;
+        QFile senderfile(gConf->getMessageFile(MSG_SMS_REMINDER)) ;
+        if (senderfile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            from = QTextStream(&senderfile).readLine().trimmed() ;
+        }
         QString message = smsform.getMessage() ;
         if (message.isEmpty()) {
             warningOkDialog(this, "Unable to Send", "No Message Provided") ;
         } else {
             SMS sms(gConf->getSMSAgent(), gConf->getSMSUsername(), gConf->getSMSPassword()) ;
-            bool success = sms.send(mobile, from, message) ;
-            int balance = sms.getBalance() ;
-            if (!success) {
-                if (balance>=0 && balance<30) {
-                    warningOkDialog(this, "Unable to Send", "Low Balance / Out of Credit.") ;
-                } else {
-                    warningOkDialog(this, "Unable to Send", "Send Message Failed.") ;
-                }
+            // send returns 1 only when the message was accepted (any other code is a failure, and says why)
+            int result = sms.send(mobile, from, message) ;
+            if (result!=1) {
+                addLog(QString("SMS to %1 not sent (code %2): %3").arg(c.getFormattedName(false, true)).arg(result).arg(sms.getErrorMessage())) ;
+                warningOkDialog(this, "Unable to Send", "Send Message Failed.\n" + sms.getErrorMessage()) ;
             } else {
+                int balance = sms.getBalance() ;
                 if (balance<0) {
-                    warningOkDialog(this, "Message Sent", "Message sent successfully.  Unable to get balance.") ;
+                    addLog("SMS sent, but the balance could not be read: " + sms.getErrorMessage()) ;
+                    warningOkDialog(this, "Message Sent", "Message sent successfully.  Unable to get balance.\n" + sms.getErrorMessage()) ;
                 } else {
-                    warningOkDialog(this, "Message Sent", "Message sent successfully. Balance = £" + QString::number(balance/100) + QString(".") + QString::number(balance%100) ) ;
+                    warningOkDialog(this, "Message Sent", "Message sent successfully. Balance = £" + QString::number(balance/100) + QString(".") + QString::number(balance%100).rightJustified(2, '0') ) ;
                 }
                 c.getHistory().addEntry(QString("Sent SMS: ") + message) ;
                 LoadEditHistory() ;

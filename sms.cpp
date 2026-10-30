@@ -101,6 +101,20 @@ int SMS::sendVoodoo(QString number, QString from, QString message)
     from = from.remove(QRegularExpression("[^A-Za-z0-9]")).left(11) ;
     number = number.remove(' ') ;
 
+    // Checked here, so that the reason is reported rather than the service's refusal of it
+    if (username.trimmed().isEmpty() || password.isEmpty()) {
+        smsErrorData = "The SMS username or password is blank. Set the username in the [sms-reminder] section of ContactManager.ini, and the SMS password in Settings." ;
+        return -1 ;
+    }
+    if (number.isEmpty()) {
+        smsErrorData = "There is no mobile number to send to." ;
+        return -1 ;
+    }
+    if (from.length()<3) {
+        smsErrorData = "The sender needs to be 3 to 11 letters or digits, and there is none for this message." ;
+        return -1 ;
+    }
+
     QUrlQuery query ;
     query.addQueryItem("uid", username) ;
     query.addQueryItem("pass", password) ;
@@ -126,31 +140,46 @@ int SMS::sendVoodoo(QString number, QString from, QString message)
     reply = manager.post(request, query.query(QUrl::FullyEncoded).toUtf8()) ;
     eventLoop.exec() ;
 
+    int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() ;
+    QString body = QString::fromUtf8(reply->readAll()).trimmed() ;
+
     if (reply->error()!=QNetworkReply::NoError) {
-        smsErrorData = reply->errorString() ;
+
+        // The service refused the login (Qt reports a 401 as an authentication error)
+        if (status==401 || reply->error()==QNetworkReply::AuthenticationRequiredError) {
+            smsErrorData = "Voodoo rejected the SMS username or password (HTTP 401). Check them in ContactManager.ini and Settings." ;
+            return -3 ;
+        }
 
         // A reply that timed out, or a connection that dropped, may still have been accepted by the service, so the
         // message is not sent again.  Otherwise the message was not sent.
         if (reply->error()==QNetworkReply::OperationCanceledError || reply->error()==QNetworkReply::RemoteHostClosedError) {
+            smsErrorData = "No reply from Voodoo in time, so the message may have been sent." ;
             return -4 ;
         }
+
+        smsErrorData = "Could not reach Voodoo: " + reply->errorString() ;
+        if (!body.isEmpty()) smsErrorData += " (" + body + ")" ;
         return -1 ;
     }
 
-    smsErrorData = reply->readAll().trimmed() ;
-    int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() ;
+    smsErrorData = body ;
 
     // The XML response gives the result as <result>200</result> when the message is accepted
     QRegularExpression result("<result>\\s*([0-9]+)") ;
-    QRegularExpressionMatch resultmatch = result.match(smsErrorData) ;
+    QRegularExpressionMatch resultmatch = result.match(body) ;
     if (status==200 && resultmatch.hasMatch() && resultmatch.captured(1)=="200") {
         return 1 ;
     }
 
-    // The service answered with an error (including 401 Unauthorized)
-    if (status==200 || status==401) return -3 ;
+    // The service answered, but did not accept the message
+    if (status==200) {
+        smsErrorData = "Voodoo did not accept the message: " + body ;
+        return -3 ;
+    }
 
     // Not received 200 OK response
+    smsErrorData = QString("Voodoo replied HTTP %1: %2").arg(status).arg(body) ;
     return -4 ;
 }
 
@@ -174,21 +203,41 @@ int SMS::getVoodooBalance()
     reply = manager.get(request) ;
     eventLoop.exec() ;
 
+    // The reason for a failure is left in the error message, as for send
+    int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() ;
+    QString body = QString::fromUtf8(reply->readAll()).trimmed() ;
+
+    if (username.trimmed().isEmpty() || password.isEmpty()) {
+        smsErrorData = "The SMS username or password is blank, so the balance cannot be read." ;
+        return -2 ;
+    }
+
     // No reply, or the request timed out
-    if (reply->error()!=QNetworkReply::NoError) return -2 ;
+    if (reply->error()!=QNetworkReply::NoError) {
+        if (status==401 || reply->error()==QNetworkReply::AuthenticationRequiredError) {
+            smsErrorData = "Voodoo rejected the SMS username or password (HTTP 401) for the balance." ;
+        } else {
+            smsErrorData = "Could not reach Voodoo for the balance: " + reply->errorString() ;
+        }
+        return -2 ;
+    }
 
     // Error response returned
-    if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute)!=200) return -4 ;
+    if (status!=200) {
+        smsErrorData = QString("Voodoo replied HTTP %1 for the balance: %2").arg(status).arg(body) ;
+        return -4 ;
+    }
 
     // The balance is in <credit>, as a decimal, e.g. <credit>9928597.0680</credit>.  The API page does not say what
     // unit it is in.  It is taken as pounds here and converted to pennies.
     // CHECK this against the account before relying on the low-credit warning.
     QRegularExpression credit("<credit>\\s*([0-9]+(\\.[0-9]+)?)\\s*</credit>") ;
-    QRegularExpressionMatch creditmatch = credit.match(QString::fromUtf8(reply->readAll())) ;
+    QRegularExpressionMatch creditmatch = credit.match(body) ;
     if (creditmatch.hasMatch()) {
         return qRound(creditmatch.captured(1).toDouble() * 100) ;
     }
 
     // Unable to decode
+    smsErrorData = "Could not read the balance from the reply: " + body ;
     return -3 ;
 }
