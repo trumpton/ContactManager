@@ -37,6 +37,9 @@ static QString upcomingAppointments(Calendar &calendar, QString contactid, QStri
     for (int i=0; i<starts.size() && i<10; i++) {
         lines.append(starts.at(i).toLocalTime().toString("hh:mm 'on' dddd d MMMM")) ;
     }
+
+    // With no appointments to come, the list says so
+    if (lines.isEmpty()) return "none" ;
     return lines.join(separator) ;
 }
 
