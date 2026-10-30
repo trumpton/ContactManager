@@ -472,8 +472,10 @@ int SMS::getEsendexBalance()
         code = -2 ;
 
     } else if (status==200 || status==201) {
-        // The balance is in pounds, as a decimal string: {"available": "2951.73346", "reserved": "0"}
-        QJsonObject reply_json = QJsonDocument::fromJson(body.toUtf8()).object() ;
+        // The balance is in pounds, as a decimal string: {"data": {"available": "2.00000", "reserved": "0"}}
+        // The figures are inside "data" in the live reply (and at the top level in the documentation's example)
+        QJsonObject root = QJsonDocument::fromJson(body.toUtf8()).object() ;
+        QJsonObject reply_json = root.contains("data") ? root.value("data").toObject() : root ;
         bool ok = false ;
         double pounds = reply_json.value("available").toString().toDouble(&ok) ;
         if (ok) {
