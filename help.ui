@@ -199,6 +199,67 @@
   You can launch your favorite mail program with an email readied for the current
   contact with Control-M
 
+&gt;&gt; 6.3. AUTOMATIC MESSAGES
+  ContactManager emails or texts a contact by itself when an appointment is made,
+  changed or cancelled, and before it comes up.  The contact must have Email or Text
+  ticked, with an address or a mobile number, to be messaged.
+
+  Messages are only sent between earliestsend and latestsend (07:00 and 22:00 by
+  default, local time).  A new or changed appointment waits waitbeforesendmins (5
+  minutes) after its last change, so that mistakes can be corrected first.
+
+  Which message, and when:
+    Confirmation  When a new appointment is made.  Sent by email if Email is ticked,
+                  otherwise by text.  If both are ticked, it is sent by email.
+    Update        When an appointment is changed, once the wait has passed.  Sent
+                  on the same channel.
+    Reminder      remindhoursbefore hours before the appointment (24 by default).
+    Confirm only  An appointment made or changed less than confirmonlyhours before it
+                  starts (36 by default) gets its confirmation or update only.  That
+                  message takes the place of the reminder.
+    Cancellation  When an appointment is deleted, straight away, on the same channel
+                  (email if both are ticked).
+    On the day    If both Email and Text are ticked, the reminder on the day of the
+                  appointment is sent by email and by text, once each, from the time
+                  earliestsend.  A confirmation or update given that day already gives
+                  the time, so the on-the-day messages are not sent as well.
+
+  Limits: a contact is sent no more than limitperday messages (10) in any 24 hours,
+  and limitperhour (5) in any hour.  Messages over a limit wait until it allows them.
+
+  Examples.  The times are the defaults.
+
+  1. Made at 10:00 three days before, for 15:00 on the day.
+     Email only: confirmation email at 10:05.  Reminder email at 15:00 the day before.
+     Text only:  confirmation text at 10:05.  Reminder text at 15:00 the day before.
+     Both:       confirmation email at 10:05.  Reminder email at 15:00 the day before.
+                 On the day, from 07:00: an email, then a text.
+
+  2. As 1, but moved to 16:00 at 10:00 two days before.
+     The change is sent as an update at 10:05 two days before, on the same channel.
+     The reminder is then at 16:00 the day before, and the day's messages are as in 1.
+
+  3. Made at 15:00 the day before, for 16:00 the next day.
+     One confirmation at 15:05.  This is less than 36 hours before the appointment, so
+     it takes the place of the reminder.  Both: on the day, from 07:00, an email and a
+     text.
+
+  4. Made at 08:00 on the day, for 15:00.
+     One confirmation at 08:05, which also serves as the reminder.  Both: only the
+     confirmation email is sent, as it already gives the time.
+
+  5. Made at 08:00 on the day for 15:00, and cancelled at 14:00.
+     Confirmation at 08:05.  Cancellation at 14:00, straight away, on the same channel
+     (email if both are ticked).
+
+  6. Made at 08:00 on the day for 15:00, and moved to 15:00 the next day at 14:00.
+     Confirmation at 08:05.  Update at 14:05.  There is no reminder at 15:00 on the
+     first day, as the update is less than 36 hours before the new time.  Both: on the
+     new day, from 07:00, an email and a text.
+
+  Two copies of ContactManager on the same data folder do not both send messages.
+  Only the copy that holds the lock in the data folder sends them.
+
 &gt;&gt; 7. SYNCHRONISING
 
 &gt;&gt; 7.1. SYNCHRONISING AND CONFLICT MANAGEMENT
