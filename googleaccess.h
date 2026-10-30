@@ -141,6 +141,13 @@ public:
     // Update Appointment to Google Server
     bool updateAppointment(Appointment &appt, googleAction action) ;
 
+    // Writes the sent state of an appointment to its Google event, leaving the event itself as it is.  False if it could
+    // not be written.
+    bool updateSentState(Appointment &appt) ;
+
+    // Reads the event of an appointment from Google, for its sent state.  False if it could not be read.
+    bool getEventSentState(Appointment &appt, Appointment &googleappt) ;
+
     // Update group IDs from Google server
     bool getGroupIds() ;
     bool createGroupIds() ;

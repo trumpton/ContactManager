@@ -100,6 +100,9 @@ static const int SENDRETRYMINS = 5 ;
 static QHash<QString, QDateTime> sendretryafter ;
 static QHash<QString, int> sendfailures ;
 
+// Appointments whose sent state could not be read from Google, and the time it is tried again
+static QHash<QString, QDateTime> sentstateretryafter ;
+
 // Appointments already reported as having no address to send to, and contacts already reported as at their daily
 // limit, so that each report is made once
 static QSet<QString> noaddressreported ;
@@ -162,6 +165,55 @@ void MainWindow::sendMailSMS()
         if (!calendar.save()) {
             saveFailed = true ;
             addLog("ERROR: the calendar could not be saved after " + what + ". Messages are paused until it can be saved.") ;
+        }
+    } ;
+
+    // The sent state on the Google event is read before a message is sent, so that a message another copy of ContactManager
+    // on the same calendar has sent is not sent again.  Returns 1 to send, 0 when the sent state has changed (the message
+    // is decided again on the next check), or -1 when it cannot be read, in which case nothing is sent for a minute.
+    auto refreshSentState = [&](const QString &id) -> int {
+        Appointment &local = calendar.getAppointmentBy(Appointment::ID, id) ;
+        if (local.isNull() || local.getField(Appointment::GoogleRecordId).isEmpty() || local.getField(Appointment::ContactId).isEmpty()) return 1 ;
+
+        if (sentstateretryafter.contains(id) && now<sentstateretryafter.value(id)) return -1 ;
+
+        // Asked of a copy, as the calendar can change while the request runs
+        Appointment asked = local ;
+        google.setupRToken(gConf->getGoogleOauth2RefreshToken()) ;
+        Appointment remote ;
+        if (!google.getEventSentState(asked, remote)) {
+            sentstateretryafter.insert(id, QDateTime::currentDateTimeUtc().addSecs(60)) ;
+            addLog("Could not read the sent state of the appointment at " + asked.getDate(Appointment::From).toLocalTime().toString("dd-MMM-yyyy hh:mm") + " from Google, so it is not sent yet") ;
+            return -1 ;
+        }
+        sentstateretryafter.remove(id) ;
+
+        Appointment &after = calendar.getAppointmentBy(Appointment::ID, id) ;
+        if (after.isNull()) return -1 ;
+        if (after.mergeSentState(remote)) {
+            saveCalendar("the sent state from Google") ;
+            return 0 ;
+        }
+        return 1 ;
+    } ;
+
+    // The sent state is written to the Google event straight after a message, so the other copies see it.  If Google cannot
+    // take it, it is left pending, and the next sync writes it.
+    auto pushSentState = [&](const QString &id) {
+        Appointment &written = calendar.getAppointmentBy(Appointment::ID, id) ;
+        if (written.isNull() || written.getField(Appointment::GoogleRecordId).isEmpty()) return ;   // the first upload writes it
+
+        Appointment asked = written ;
+        google.setupRToken(gConf->getGoogleOauth2RefreshToken()) ;
+        bool done = google.updateSentState(asked) ;
+
+        Appointment &after = calendar.getAppointmentBy(Appointment::ID, id) ;
+        if (after.isNull()) return ;
+        if (done) {
+            after.setField(Appointment::LedgerPending, QString()) ;
+        } else {
+            after.setField(Appointment::LedgerPending, "yes") ;
+            addLog("Could not write the sent state of an appointment to Google, so the next sync writes it") ;
         }
     } ;
 
@@ -403,21 +455,23 @@ void MainWindow::sendMailSMS()
             QString emailkey = id + "|dayemail" ;
             QString textkey = id + "|daysms" ;
 
-            if (!emaildone && maySend(emailkey, now) && !atDailyLimit(contactid, today)) {
+            if (!emaildone && maySend(emailkey, now) && !atDailyLimit(contactid, today) && refreshSentState(id)==1) {
                 int result = deliver(emailkey, "Sending on-the-day reminder email to " + emailaddress, true,
                                      gConf->getMessageFile(MSG_EMAIL_REMINDER), id, contactid, mobile, emailaddress, occ) ;
                 if (result==1 || result==-4) {
                     Appointment &after = calendar.getAppointmentBy(Appointment::ID, id) ;
                     if (!after.isNull()) after.setField(Appointment::ReminderOnDaySent, dayChannelRecord(after.getField(Appointment::ReminderOnDaySent), today, "email")) ;
+                    pushSentState(id) ;
                     saveCalendar("the on-the-day reminder") ;
                 }
             }
-            if (!smsdone && maySend(textkey, now) && !atDailyLimit(contactid, today)) {
+            if (!smsdone && maySend(textkey, now) && !atDailyLimit(contactid, today) && refreshSentState(id)==1) {
                 int result = deliver(textkey, "Sending on-the-day reminder sms message to " + mobile, false,
                                      gConf->getMessageFile(MSG_SMS_REMINDER), id, contactid, mobile, emailaddress, occ) ;
                 if (result==1 || result==-4) {
                     Appointment &after = calendar.getAppointmentBy(Appointment::ID, id) ;
                     if (!after.isNull()) after.setField(Appointment::ReminderOnDaySent, dayChannelRecord(after.getField(Appointment::ReminderOnDaySent), today, "sms")) ;
+                    pushSentState(id) ;
                     saveCalendar("the on-the-day reminder") ;
                 }
             }
@@ -453,6 +507,9 @@ void MainWindow::sendMailSMS()
             continue ;
         }
 
+        // A cancellation is not held up by the sent state, as its appointment may already be gone from Google
+        if (!deleted && refreshSentState(id)!=1) continue ;
+
         int result = deliver(key, type, sendsmtp, cfgfile, id, contactid, mobile, emailaddress, occ) ;
 
         // Recorded straight away, so that the message is not sent again after a restart
@@ -460,6 +517,7 @@ void MainWindow::sendMailSMS()
             Appointment &after = calendar.getAppointmentBy(Appointment::ID, id) ;
             if (!after.isNull()) {
                 if (deletemessagesent) {
+                    after.setField(Appointment::CancelSent, nowToIsoString()) ;
                     after.setField(Appointment::MessageSent, "") ;
                     after.setField(Appointment::MessageSignature, "") ;
                     after.setField(Appointment::ReminderMessageSent, "") ;
@@ -472,11 +530,17 @@ void MainWindow::sendMailSMS()
                     after.setField(Appointment::ReminderFor, occurrenceKey(occ)) ;
                 }
                 if (kind=="cancelocc") {
+                    // Only cancellations still to come are kept, as a past one is never sent again, so the list stays short
                     QStringList notified = cancelledOccurrences(after) ;
                     notified.append(occurrenceKey(occ)) ;
-                    after.setField(Appointment::CancelledOccurrences, notified.join(',')) ;
+                    QStringList kept ;
+                    for (const QString &when : notified) {
+                        if (QDateTime::fromString(when, Qt::ISODate) > now) kept.append(when) ;
+                    }
+                    after.setField(Appointment::CancelledOccurrences, kept.join(',')) ;
                 }
             }
+            pushSentState(id) ;
             saveCalendar(type) ;
         }
     }
