@@ -61,6 +61,14 @@ static void logSMSTransaction(const QString &name, const QString &request, int s
     writeToFile(gConf->getDatabasePath() + "/" + filename, text) ;
 }
 
+// The sender of a message: the sender= in the ini file if set, otherwise the template's first line.  Letters and digits
+// only, and at most 11 of them.  Blank if there is neither.
+static QString smsSender(const QString &from)
+{
+    QString sender = (gConf && !gConf->getSMSSender().isEmpty()) ? gConf->getSMSSender() : from ;
+    return sender.remove(QRegularExpression("[^A-Za-z0-9]")).left(11) ;
+}
+
 // The agent is the name given in the ini file ("voodoo").  A blank or unknown name is Unknown, and send and getBalance
 // then return BadAgent.
 SMS::SMS(QString& agent, QString& username, QString& password)
@@ -150,8 +158,7 @@ int SMS::sendVoodoo(QString number, QString from, QString message)
 {
     QString URL = "https://www.voodoosms.com/vapi/server/sendSMS" ;
 
-    // The sender is letters and digits only, and at most 11 of them
-    from = from.remove(QRegularExpression("[^A-Za-z0-9]")).left(11) ;
+    from = smsSender(from) ;
     number = number.remove(' ') ;
 
     // Checked here, so that the reason is reported rather than the service's refusal of it
@@ -369,11 +376,8 @@ int SMS::sendEsendex(QString number, QString from, QString message)
     root.insert("body", text) ;
     root.insert("recipients", recipients) ;
 
-    // The sender: the ini sender if set (the name registered with Esendex), otherwise the template's sender line.  It is
-    // letters and digits only.  If there is none, Esendex uses the account's default sender.
-    QString sender = gConf ? gConf->getSMSSender() : QString() ;
-    if (sender.isEmpty()) sender = from ;
-    sender = sender.remove(QRegularExpression("[^A-Za-z0-9]")).left(11) ;
+    // The sender (see smsSender).  If there is none, Esendex uses the account's default sender.
+    QString sender = smsSender(from) ;
     if (!sender.isEmpty()) root.insert("from", sender) ;
 
     QByteArray json = QJsonDocument(root).toJson(QJsonDocument::Compact) ;

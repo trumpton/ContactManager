@@ -1,4 +1,4 @@
-bookings@sogfripp,com
+My Company Name <email@domain.com> - override with sender= in ContactManager.ini
 Sogfripp Enterprises Appointment Reminder for $TIME on $DOW
 
 Dear $NAME,

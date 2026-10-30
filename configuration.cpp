@@ -223,6 +223,11 @@ QString Configuration::getSMSSender()
     return ini.get("sms-reminder", "sender").trimmed() ;
 }
 
+QString Configuration::getEmailSender()
+{
+    return ini.get("email-reminder", "sender").trimmed() ;
+}
+
 bool Configuration::debugSMSEnabled()
 {
     QString m = ini.get("sms-reminder", "debug") ;
