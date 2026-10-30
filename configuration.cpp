@@ -506,6 +506,10 @@ QString& Configuration::getSMTPPassword()
 
 bool Configuration::getEnableReminders()
 {
+    // Reminders and confirmations are only sent from a database that ContactManager is master of.  With Google as master,
+    // a sync can bring back appointments that were messaged before, so they are not sent from here at all.
+    if (getDatabaseMaster()==GoogleMaster) return false ;
+
     QString settingEnableReminders = settings->value("enablereminders").toString() ;
     return (settingEnableReminders.compare("yes")==0) ;
 }
@@ -658,7 +662,7 @@ void Configuration::on_ResetLastSync_clicked()
 void Configuration::on_conflictGoogle_clicked()
 {
     ui->enableReminders->setEnabled(false) ;
-    ui->enableReminders->setChecked(true) ;
+    ui->enableReminders->setChecked(false) ;
 }
 
 void Configuration::on_conflictContactManager_clicked()

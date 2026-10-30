@@ -616,6 +616,17 @@ void MainWindow::on_actionRemoveAppointment_triggered()
         if (chosen==0 && n>=0) {
             appt.addException(occurrence) ;
         } else if (chosen==1 && n>0) {
+            // The occurrences removed from here on are cancelled to the contact, as exceptions, which the messages notify.
+            // Only the next ten are, the number the contact's list of upcoming appointments shows.
+            QDateTime now = QDateTime::currentDateTimeUtc() ;
+            int listed=0 ;
+            for (int k=n; listed<10 && !appt.occurrenceEnded(k); k++) {
+                QDateTime when = appt.occurrenceFrom(k) ;
+                if (when>now) {
+                    appt.addException(when) ;
+                    listed++ ;
+                }
+            }
             appt.endBefore(n) ;
         } else if (chosen==2 || (chosen==1 && n==0)) {
             appt.setFlag(Appointment::Deleted, true) ;
