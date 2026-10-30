@@ -45,7 +45,11 @@ void MainWindow::LoadCalendarTab()
         QString apptforid = appt.getField(Appointment::ContactId) ;
         if (!apptforid.isEmpty() && appt.isNotFor(gConf->getMe())) {
             Contact& contact = db.getContactById(apptforid) ;
-            apptfor = contact.getFormattedName(false, false) ;
+
+            // An appointment for a deleted contact, or one whose contact has been removed, is still listed, so that it is not
+            // lost.  Hidden contacts keep their names.
+            if (contact.isNull() || contact.isSet(Contact::Deleted)) apptfor = "Deleted contact" ;
+            else apptfor = contact.getFormattedName(false, false) ;
         }
         Row row ;
         row.start = start ;
