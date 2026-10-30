@@ -582,6 +582,25 @@ private slots:
         QCOMPARE(a.getField(Appointment::MessageSent), QString("2026-10-30T10:00:00Z")) ;
     }
 
+    void googleRecordCopyDoesNotRestartTheWait()
+    {
+        // After an upload, the Google record ID is copied in.  That must not move Updated, or the hold after the last edit
+        // would start again at the upload.  A plain copy does move it, which is what the test shows.
+        Appointment source = oneOff("a", QDate(2026, 10, 30)) ;
+        source.setField(Appointment::GoogleRecordId, "google-event-1") ;
+
+        Appointment kept = oneOff("a", QDate(2026, 10, 30)) ;
+        kept.setField(Appointment::Updated, "2026-10-30T09:00:00Z") ;
+        kept.copyFromKeepingUpdated(source, Appointment::maDetails|Appointment::maGoogleAcct) ;
+        QCOMPARE(kept.getField(Appointment::GoogleRecordId), QString("google-event-1")) ;
+        QCOMPARE(kept.getField(Appointment::Updated), QString("2026-10-30T09:00:00Z")) ;
+
+        Appointment plain = oneOff("a", QDate(2026, 10, 30)) ;
+        plain.setField(Appointment::Updated, "2026-10-30T09:00:00Z") ;
+        source.copyTo(plain, Appointment::maDetails|Appointment::maGoogleAcct) ;
+        QVERIFY(plain.getField(Appointment::Updated) != QString("2026-10-30T09:00:00Z")) ;
+    }
+
     void mergedSentStateDoesNotCountAsAnEdit()
     {
         Appointment a = oneOff("a", QDate(2026, 10, 30)) ;

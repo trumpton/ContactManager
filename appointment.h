@@ -274,6 +274,11 @@ public:
     // Copy selected fields to new contact
     bool copyTo(Appointment &other, int matype) ;
 
+    // Copies the fields of source selected by matype into this, as an upload does once the details match: the Google record
+    // details change, but that is not an edit, so Updated and DateUpdated are kept as they were.  Only use this when the
+    // copied details are the same as those already held.
+    void copyFromKeepingUpdated(Appointment &source, int matype) ;
+
     // Takes in the sent state held for the same appointment elsewhere (on Google), so that a message sent there is not
     // sent again from here.  Each kind of state keeps the later of the two, and the lists keep both.  Returns true if
     // anything changed.  Nothing is taken in while a sent state is pending, as the local one is then the newer.
