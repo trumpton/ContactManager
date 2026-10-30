@@ -217,6 +217,7 @@ int SMS::getVoodooBalance()
     if (reply->error()!=QNetworkReply::NoError) {
         if (status==401 || reply->error()==QNetworkReply::AuthenticationRequiredError) {
             smsErrorData = "Voodoo rejected the SMS username or password (HTTP 401) for the balance." ;
+            if (!body.isEmpty()) smsErrorData += " Voodoo said: " + body ;
         } else {
             smsErrorData = "Could not reach Voodoo for the balance: " + reply->errorString() ;
         }
