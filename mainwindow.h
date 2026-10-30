@@ -98,6 +98,9 @@ private slots:
     void on_actionExportAppointments_triggered();
     void on_actionImport_triggered();
     void on_actionShow_Log_triggered();
+    void on_actionShowDeletedAppointments_triggered(bool checked);
+    void on_actionShowDeletedContacts_triggered(bool checked);
+    void on_actionShowHiddenContacts_triggered(bool checked);
     void on_tabBar_currentChanged(int index);
     void on_action_Email_Contact_triggered();
     void on_action_SMS_Contact_triggered();
@@ -174,6 +177,12 @@ private:
 
     // The log window, which is not modal: one is shown at a time, and it is cleared when it closes
     QPointer<LogForm> logwindow ;
+
+    // Show menu.  Deleted appointments and contacts, and hidden contacts, are listed only when their option is ticked.  The
+    // ticks are not saved, so they are off each time the program starts.  A deleted entry is shown in braces.
+    bool showdeletedappointments ;
+    bool showdeletedcontacts ;
+    bool showhiddencontacts ;
 
     // Manage dialog controls / enables etc.
     void UpdateContactsList() ;          // Update drop-down list
