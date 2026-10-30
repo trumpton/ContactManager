@@ -529,7 +529,8 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
             if (!sent.isRepeating()) sent.setField(Appointment::RepeatInterval, "0") ;
 
             if (apptresponse.matches(sent, Appointment::maDetails|Appointment::maId)) {
-                apptresponse.copyTo(appt, Appointment::maDetails|Appointment::maGoogleAcct) ;
+                // The details match, so only the Google record details change: that does not restart the wait after an edit
+                appt.copyFromKeepingUpdated(apptresponse, Appointment::maDetails|Appointment::maGoogleAcct) ;
 
                 // The upload carries the sent state, so it is no longer pending
                 appt.setSentField(Appointment::LedgerPending, QString()) ;

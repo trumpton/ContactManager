@@ -741,6 +741,16 @@ bool Appointment::copyTo(Appointment &other, int matype)
     return copied ;
 }
 
+// Copy from source, keeping Updated and DateUpdated.  DateUpdated is set first, as setting it also sets Updated.
+void Appointment::copyFromKeepingUpdated(Appointment &source, int matype)
+{
+    QString updated = getField(Appointment::Updated) ;
+    QString dateupdated = getField(Appointment::DateUpdated) ;
+    source.copyTo(*this, matype) ;
+    setField(Appointment::DateUpdated, dateupdated) ;
+    setField(Appointment::Updated, updated) ;
+}
+
 // Compare this with 'with' and return true/false
 bool Appointment::matches(Appointment &with, int matype)
 {
