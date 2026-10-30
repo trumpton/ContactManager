@@ -9,7 +9,8 @@ public:
     // The SMS services that can send messages.  The agent name in the ini file selects one (see the constructor).
     enum Agent {
         Unknown=0,
-        Voodoo=1
+        Voodoo=1,
+        Esendex=2
     };
 
     // Returned by send and getBalance when the agent is not known
@@ -56,6 +57,8 @@ private:
     QString smsErrorData ;
     int sendVoodoo(QString number, QString from, QString message) ;
     int getVoodooBalance() ;
+    int sendEsendex(QString number, QString from, QString message) ;
+    int getEsendexBalance() ;
 };
 
 #endif // SMS_H
