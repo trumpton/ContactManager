@@ -122,6 +122,7 @@ bool Configuration::SetupForm(ContactDatabase *currentdatabase, GoogleAccess *ga
     }
     ui->smsAccount->setText(smsAccountName) ;
     ui->smsPassword->setText(getSMSPassword()) ;
+    ui->smsKeyExpiry->setText(settings->value("smsapikeyexpires").toString()) ;
 
     switch (getDatabaseMaster()) {
     default:
@@ -167,6 +168,13 @@ bool Configuration::SaveForm()
     settings->setValue("googleusername", ui->googleUsername->text()) ;
     settings->setValue("smtppassword", ui->emailPassword->text());
     settings->setValue("smspassword", ui->smsPassword->text()) ;
+
+    // The API key expiry date, day/month/year, or blank.  The warning at startup only shows if it is set.
+    QString keyexpiry = ui->smsKeyExpiry->text().trimmed() ;
+    if (!keyexpiry.isEmpty() && !QDate::fromString(keyexpiry, "dd/MM/yyyy").isValid()) {
+        warningOkDialog(this, "SMS API key expiry", "The expiry date must be day/month/year, for example 25/01/2035, or left blank.") ;
+    }
+    settings->setValue("smsapikeyexpires", keyexpiry) ;
 
     if (ui->conflictContactManager->isChecked())
         settings->setValue("databasemaster", ContactManagerMaster) ;
@@ -223,9 +231,10 @@ QString Configuration::getSMSSender()
     return ini.get("sms-reminder", "sender").trimmed() ;
 }
 
+// The API key expiry date, from the settings store alongside the API key (blank or invalid if not set)
 QDate Configuration::getSMSKeyExpiry()
 {
-    return QDate::fromString(ini.get("sms-reminder", "apikeyexpires").trimmed(), "dd/MM/yyyy") ;
+    return QDate::fromString(settings->value("smsapikeyexpires").toString().trimmed(), "dd/MM/yyyy") ;
 }
 
 QString Configuration::getEmailSender()
