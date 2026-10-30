@@ -675,13 +675,10 @@ int Configuration::getWaitBeforeUpdateMinutes()
     return wholeNumberOrDefault(ini.get("reminders", "waitbeforeupdatemins"), 5) ;
 }
 
-// The most messages sent to one contact in the last 24 hours.  maxmessagesperdaypercontact, the name it had before, is
-// still read when limitperday is not set.  A limit below 1 is not used, and the default applies.
+// The most messages sent to one contact in the last 24 hours.  A limit below 1 is not used, and the default applies.
 int Configuration::getLimitPerDay()
 {
-    QString text = ini.get("reminders", "limitperday") ;
-    if (text.isEmpty()) text = ini.get("reminders", "maxmessagesperdaypercontact") ;
-    int limit = wholeNumberOrDefault(text, 10) ;
+    int limit = wholeNumberOrDefault(ini.get("reminders", "limitperday"), 10) ;
     return limit>=1 ? limit : 10 ;
 }
 
