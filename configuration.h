@@ -94,6 +94,10 @@ public:
     // The sender for SMS, if set in ini [sms-reminder] sender (a registered name), overriding the template's sender line
     QString getSMSSender() ;
 
+    // The From address of reminder emails, if set in ini [email-reminder] sender (as "Name <address>"), overriding the
+    // template's first line
+    QString getEmailSender() ;
+
     // Whether each transaction with the SMS service is written to a debug file (ini [sms-reminder] debug=yes or no)
     bool debugSMSEnabled() ;
 

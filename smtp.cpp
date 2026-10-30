@@ -13,6 +13,15 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
  
 #include "smtp.h"
  
+// The address in a From value, which may be written "Name <address>"
+static QString envelopeAddress(const QString &from)
+{
+    int open = from.indexOf('<') ;
+    int close = from.indexOf('>') ;
+    if (open>=0 && close>open) return from.mid(open+1, close-open-1).trimmed() ;
+    return from.trimmed() ;
+}
+
 // A login as the transcript shows it: only its first 5 characters are kept
 static QString maskedLogin(const QString &value)
 {
@@ -64,7 +73,8 @@ void Smtp::sendMail(const QString &from, const QString &to, const QString &subje
     message.append(body);
     message.replace( QString::fromLatin1( "\n" ), QString::fromLatin1( "\r\n" ) );
     message.replace( QString::fromLatin1( "\r\n.\r\n" ), QString::fromLatin1( "\r\n..\r\n" ) );
-    this->from = from;
+    // The envelope sender is the address alone: a From of "Name <address>" gives just the address
+    this->from = envelopeAddress(from);
     rcpt = to;
     socket->connectToHostEncrypted(host, port); //"smtp.gmail.com" and 465 for gmail TLS
     if (!socket->waitForConnected(timeout)) {

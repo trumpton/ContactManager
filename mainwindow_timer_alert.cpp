@@ -128,7 +128,7 @@ void MainWindow::sendMailSMS()
             errortext = "could not load " + cfgfile + " (it is missing, or has no sender or subject line)" ;
         } else if (byemail) {
             Email email(gConf->getSMTPServer(), gConf->getSMTPUsername(), gConf->getSMTPPassword(), gConf->getSMTPPort().toInt()) ;
-            result = email.send(from, emailaddress, title, message) ;
+            result = email.send(gConf->getEmailSender().isEmpty() ? from : gConf->getEmailSender(), emailaddress, title, message) ;
             errortext = email.getErrorMessage() ;
         } else {
             SMS sms(gConf->getSMSAgent(), gConf->getSMSUsername(), gConf->getSMSPassword()) ;
@@ -365,7 +365,7 @@ void MainWindow::sendMailSMS()
         } else {
             if (sendsmtp) {
                 Email email(gConf->getSMTPServer(), gConf->getSMTPUsername(), gConf->getSMTPPassword(), gConf->getSMTPPort().toInt()) ;
-                result = email.send(from, emailaddress, title, message) ;
+                result = email.send(gConf->getEmailSender().isEmpty() ? from : gConf->getEmailSender(), emailaddress, title, message) ;
                 errortext = email.getErrorMessage() ;
             } else if (sendsms) {
                 // Voodoo wants the number in international form, without a leading + or 0
