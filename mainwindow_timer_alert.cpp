@@ -591,7 +591,8 @@ bool MainWindow::loadMessage(QString filename,
     file.close() ;
     message = message.trimmed() ;
 
-    QDateTime &start = appt.getDate(Appointment::From) ;
+    // A copy of the start, read before the list of upcoming appointments is made, which reads other dates
+    QDateTime start = appt.getDate(Appointment::From) ;
     message.replace("$NAME", contact.getField(Contact::Names)) ;
     message.replace("$SURNAME", contact.getField(Contact::Surname)) ;
     message.replace("$TIME", start.toLocalTime().toString("hh:mm")) ;

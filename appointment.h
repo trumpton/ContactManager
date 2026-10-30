@@ -248,7 +248,8 @@ public:
     void setFlag(enum AppointmentRecord field, bool flag) ;
     void setDate(enum AppointmentRecord field, QDateTime data) ;
     QString& getField(enum AppointmentRecord field) const ;
-    QDateTime& getDate(enum AppointmentRecord field) const ;
+    // Returns a copy, so that a date stays as it was read, however many other dates are read after it
+    QDateTime getDate(enum AppointmentRecord field) const ;
     bool isSet(enum AppointmentRecord field) const ;
 
     // ID Shortcuts
