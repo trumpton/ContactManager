@@ -11,6 +11,7 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QShortcut>
+#include <QLockFile>
 
 #include "mainwindow.h"
 #include "transfer.h"
@@ -28,6 +29,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     enc=NULL ;
     find=NULL ;
     titledEntriesHeld=false ;
+    datalock=NULL ;
+    remindersallowed=false ;
 
     ui->setupUi(this);
     setupTitledEntries() ;
@@ -56,6 +59,17 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     gSavePath = gConf->getDatabasePath() ;
     gContactSavePath = gSavePath + "contact" + QDir::toNativeSeparators("/")  ;
     gCalendarSavePath = gSavePath + "calendar" + QDir::toNativeSeparators("/")  ;
+
+    // Only one copy of ContactManager on a data folder sends messages: the copy that gets the lock.  The others show their
+    // data, but do not send, so that a message is not sent twice.  The lock is released when this copy closes.
+    QDir().mkpath(gSavePath) ;
+    datalock = new QLockFile(gSavePath + "ContactManager.lock") ;
+    remindersallowed = datalock->tryLock(0) ;
+    if (!remindersallowed) {
+        QTimer::singleShot(0, this, [this]() {
+            warningOkDialog(this, "Messages Not Sent", "Another copy of Contact Manager is open on this data folder, so this copy will not send confirmations, updates, cancellations or reminders.") ;
+        }) ;
+    }
 
     // Set the Default Codecs for Strings
     QTextCodec::setCodecForLocale(QTextCodec::codecForName(gConf->getCodec().toLatin1().constData()));
@@ -299,6 +313,10 @@ MainWindow::~MainWindow()
     if (timer) {
         delete timer ;
         timer=NULL ;
+    }
+    if (datalock) {
+        delete datalock ;
+        datalock=NULL ;
     }
     if (ui) {
         delete ui ;

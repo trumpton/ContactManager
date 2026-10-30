@@ -53,6 +53,12 @@ public:
         // Set when the on-the-day reminder has gone by both email and text
         ReminderOnDaySent,
 
+        // The occurrence (UTC start) the last reminder was for, so that each occurrence of a repeat gets its own
+        ReminderFor,
+
+        // The occurrences (UTC starts, comma separated) whose removal has been notified by a cancellation
+        CancelledOccurrences,
+
         // Flags
         ToBeUploaded,           // Used to track uploads
         ToBeDownloaded,         // Used to track downloads
@@ -114,6 +120,8 @@ public:
         { MessageCounter,      false, false, false, true, "messagecounter" },
         { MessageSignature,    false, false, false, true, "messagesignature" },
         { ReminderOnDaySent,   false, false, false, true, "reminderondaysent" },
+        { ReminderFor,         false, false, false, true, "reminderfor" },
+        { CancelledOccurrences, false, false, false, true, "cancelledoccurrences" },
 
         { ToBeUploaded,         true, false, false, false, "tobeuploaded" },
         { ToBeDownloaded,       true, false, false, false, "tobedownloaded" },

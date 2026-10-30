@@ -50,6 +50,8 @@ namespace Ui {
 class MainWindow;
 }
 
+class QLockFile ;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -159,6 +161,11 @@ private:
     AdvancedFind *find ;
     QList<QDateTime> calendarrowends ;              // The end of each row in the calendar list, so Goto Today can find the nearest
     bool titledEntriesHeld ;                        // An email or phone entry was refused: the form is not reloaded until it is fixed
+
+    // Only the copy of ContactManager holding the data folder's lock sends messages, so two copies cannot send the same
+    // one.  The lock is held until this copy closes.
+    QLockFile *datalock ;
+    bool remindersallowed ;
 
     QString SMTPSMSErrorMessage ;
 
