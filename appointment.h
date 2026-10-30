@@ -5,6 +5,7 @@
 #include <QTimeZone>
 #include <QList>
 #include <QStringList>
+#include <QPair>
 
 
 class Appointment
@@ -279,6 +280,13 @@ public:
 
     // Returns true if appointments clash
     bool clashes(Appointment& with) ;
+
+    // The clash test on a period: the period dFrom..dTo clashes with wFrom..wTo
+    static bool periodsClash(QDateTime dFrom, QDateTime dTo, QDateTime wFrom, QDateTime wTo) ;
+
+    // The occurrences of this appointment that the calendar lists, as their starts and ends (UTC), and which fall between
+    // from and to.  A repeat's occurrences are listed except those removed from it, and it has none once it has ended.
+    QList<QPair<QDateTime,QDateTime>> listedOccurrences(QDateTime from, QDateTime to) ;
 
     // Operators
     int operator==(const Appointment &rhs) const;
