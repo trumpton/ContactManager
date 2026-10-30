@@ -95,9 +95,11 @@ void MainWindow::LoadCalendarTab()
 
     // The entry on screen is kept.  If it is no longer listed, its appointment is, so the list is not left at the end.
     calendarrowends.clear() ;
+    calendarrowstarts.clear() ;
     for (int j=0; j<rows.size(); j++) {
         calendarlist.appendData(rows[j].title, rows[j].accessible, rows[j].hint) ;
         calendarrowends << rows[j].end ;
+        calendarrowstarts << rows[j].start ;
         if (matchid<0 && rows[j].hint.compare(selected)==0) matchid = j ;
     }
     // The entry on screen is no longer listed, as when a repeat is shortened.  The entry of the same appointment that is
@@ -410,11 +412,26 @@ void MainWindow::on_listCalendar_activated(const QModelIndex &index)
             play(NotFound) ;
         }
         if (!contactid.isEmpty()) {
-            populateDialog(contactid) ;
 
-            if (ui->tabBar->currentIndex()!=CALENDARTABPOS) {
-                dbg("tabBar->setCurrentIndex(CALENDARTABPOS)") ;
-                ui->tabBar->setCurrentIndex((CALENDARTABPOS));
+            // With a contact open, moving to the contact of this appointment is confirmed first.  On No, the open contact
+            // stays as it is.
+            bool switchto = true ;
+            Contact &open = db.getSelected() ;
+            QString openid = open.getField(Contact::ID) ;
+            bool contactopen = !open.isNull() && !openid.isEmpty() && openid.compare(SELECT_OVERVIEW)!=0 ;
+            if (contactopen && openid.compare(contactid)!=0) {
+                QString fromname = open.getFormattedName(false, false) ;
+                QString toname = db.getContactById(contactid).getFormattedName(false, false) ;
+                switchto = warningYesNoDialog(this, "Switch Contact", "Do you want to switch from " + fromname + " to " + toname + "?") ;
+            }
+
+            if (switchto) {
+                populateDialog(contactid) ;
+
+                if (ui->tabBar->currentIndex()!=CALENDARTABPOS) {
+                    dbg("tabBar->setCurrentIndex(CALENDARTABPOS)") ;
+                    ui->tabBar->setCurrentIndex((CALENDARTABPOS));
+                }
             }
 
             dbg("listCalendar->setFocus()") ;
