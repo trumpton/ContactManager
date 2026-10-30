@@ -221,6 +221,15 @@ bool Appointment::isSet(enum Appointment::AppointmentRecord field) const
 }
 
 
+void Appointment::setSentField(enum Appointment::AppointmentRecord field, QString data)
+{
+    QString updated = filedata[Appointment::Updated] ;
+    QString dateupdated = filedata[Appointment::DateUpdated] ;
+    setField(field, data) ;
+    filedata[Appointment::Updated] = updated ;
+    filedata[Appointment::DateUpdated] = dateupdated ;
+}
+
 void Appointment::setFlag(enum Appointment::AppointmentRecord field, bool flag)
 {
     if (flag)  {
@@ -237,12 +246,10 @@ void Appointment::setDate(enum AppointmentRecord field, QDateTime data)
     setField(field, datestr) ;
 }
 
-QDateTime& Appointment::getDate(enum AppointmentRecord field) const
+QDateTime Appointment::getDate(enum AppointmentRecord field) const
 {
-    static QDateTime dt ;
-    QString data = getField(field) ;
-    dt = isoStringToDateTime(data) ;
-    return dt ;
+    // A copy is taken: isoStringToDateTime returns a shared value, which the next call overwrites
+    return QDateTime(isoStringToDateTime(getField(field))) ;
 }
 
 QString& Appointment::getField(enum Appointment::AppointmentRecord field) const
@@ -696,7 +703,7 @@ bool Appointment::mergeSentState(Appointment &remote)
     // Sets the record to the value, when that is different
     auto take = [&](Appointment::AppointmentRecord field, QString value) {
         if (value.compare(getField(field))!=0) {
-            setField(field, value) ;
+            setSentField(field, value) ;
             changed=true ;
         }
     } ;
@@ -774,19 +781,45 @@ bool Appointment::clashes(Appointment& with)
     // 4   <------------------------->         = RHS is within this
     //
 
-    QDateTime dTo = getDate(Appointment::To) ;
+    // getDate shares one value, so each date is copied before the next is read
     QDateTime dFrom = getDate(Appointment::From) ;
-    QDateTime wTo = with.getDate(Appointment::To) ;
+    QDateTime dTo = getDate(Appointment::To) ;
     QDateTime wFrom = with.getDate(Appointment::From) ;
+    QDateTime wTo = with.getDate(Appointment::To) ;
+    return periodsClash(dFrom, dTo, wFrom, wTo) ;
+}
 
-    if (  (dTo > wFrom && dTo <= wTo) ||        // 1
-          (dFrom > wFrom  && dFrom < wTo) ||    // 2
-          (dFrom >= wFrom && dTo <= wTo) ||     // 3
-          (dFrom < wFrom && dTo > wTo))  {      // 4
-          return true ;
-     } else {
-        return false ;
+// The clash test of clashes, on periods
+bool Appointment::periodsClash(QDateTime dFrom, QDateTime dTo, QDateTime wFrom, QDateTime wTo)
+{
+    return (dTo > wFrom && dTo <= wTo) ||        // 1
+           (dFrom > wFrom  && dFrom < wTo) ||    // 2
+           (dFrom >= wFrom && dTo <= wTo) ||     // 3
+           (dFrom < wFrom && dTo > wTo) ;        // 4
+}
+
+// The occurrences that are listed, between from and to inclusive.  A single appointment has one.  A repeat has an
+// occurrence for each step that is not an exception and has not ended (see occurrenceExists).
+QList<QPair<QDateTime,QDateTime>> Appointment::listedOccurrences(QDateTime from, QDateTime to)
+{
+    QList<QPair<QDateTime,QDateTime>> listed ;
+    QDateTime start = getDate(Appointment::From) ;     // copies: getDate shares one value
+    QDateTime end = getDate(Appointment::To) ;
+    qint64 length = start.secsTo(end) ;
+
+    if (!isRepeating()) {
+        if (start <= to && end >= from) listed.append(qMakePair(start, end)) ;
+        return listed ;
     }
+
+    for (int n=0; !occurrenceEnded(n); n++) {
+        QDateTime when = occurrenceFrom(n) ;
+        if (when > to) break ;
+        if (!occurrenceExists(n)) continue ;
+        QDateTime whenend = when.addSecs(length) ;
+        if (whenend >= from) listed.append(qMakePair(when, whenend)) ;
+    }
+    return listed ;
 }
 
 int Appointment::operator==(const Appointment& rhs) const

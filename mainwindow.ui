@@ -1408,7 +1408,7 @@ p, li { white-space: pre-wrap; }
   </action>
   <action name="actionTidyContacts">
    <property name="text">
-    <string>&amp;Tidy Contacts</string>
+    <string>&amp;Tidy Records</string>
    </property>
   </action>
   <action name="action_Google_Sync">

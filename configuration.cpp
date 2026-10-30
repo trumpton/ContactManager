@@ -529,20 +529,63 @@ static QTime timeOrDefault(QString text, QTime defaultvalue)
     return time.isValid() ? time : defaultvalue ;
 }
 
-int Configuration::getReminderWindowFromHours()
+int Configuration::getRemindHoursBefore()
 {
-    return wholeNumberOrDefault(ini.get("reminders", "windowfromhours"), 2) ;
+    int hours = wholeNumberOrDefault(ini.get("reminders", "remindhoursbefore"), 24) ;
+    return hours>=1 ? hours : 24 ;
 }
 
-int Configuration::getReminderWindowToHours()
+// The default is remindhoursbefore x 1.5, rounded to the hour.  A missing value gets it silently; a value that is not a
+// number, or less than remindhoursbefore, gets it too, and reminderSettingWarnings reports that at startup.
+int Configuration::getConfirmOnlyHours()
 {
-    return wholeNumberOrDefault(ini.get("reminders", "windowtohours"), 24) ;
+    int remind = getRemindHoursBefore() ;
+    int defaulthours = qRound(remind * 1.5) ;
+
+    QString text = ini.get("reminders", "confirmonlyhours").trimmed() ;
+    if (text.isEmpty()) return defaulthours ;
+
+    bool isnumber = false ;
+    int hours = text.toInt(&isnumber) ;
+    if (!isnumber || hours<remind) return defaulthours ;
+    return hours ;
 }
 
-// Zero is allowed: a message is then sent on the next check, once the appointment is saved
+// Zero is allowed: a message is then sent on the next check, once the appointment has had its last change
 int Configuration::getWaitBeforeSendMinutes()
 {
     return wholeNumberOrDefault(ini.get("reminders", "waitbeforesendmins"), 5) ;
+}
+
+// The settings that were renamed or removed, which are still in the file, and a confirmonlyhours that is not used
+QStringList Configuration::reminderSettingWarnings()
+{
+    QStringList warnings ;
+
+    // Old name, and the setting that replaces it.  An old setting is not read, so the replacement's default applies.
+    const QStringList oldnames = { "windowtohours", "windowfromhours", "sendfrom", "sendto", "waitbeforeupdatemins",
+                                   "maxmessagesperdaypercontact" } ;
+    const QStringList replacements = { "remindhoursbefore", "confirmonlyhours, which is set from remindhoursbefore",
+                                       "earliestsend", "latestsend", "waitbeforesendmins, which also holds updates",
+                                       "limitperday" } ;
+    for (int i=0; i<oldnames.size(); i++) {
+        if (!ini.get("reminders", oldnames.at(i)).trimmed().isEmpty()) {
+            warnings << QString("[reminders] %1 is no longer used, so it is ignored. Use %2.").arg(oldnames.at(i), replacements.at(i)) ;
+        }
+    }
+
+    QString text = ini.get("reminders", "confirmonlyhours").trimmed() ;
+    if (!text.isEmpty()) {
+        bool isnumber = false ;
+        int hours = text.toInt(&isnumber) ;
+        int remind = getRemindHoursBefore() ;
+        if (!isnumber || hours<remind) {
+            warnings << QString("[reminders] confirmonlyhours=%1 is not a number of hours, or is less than remindhoursbefore=%2, so %3 is used.")
+                        .arg(text).arg(remind).arg(getConfirmOnlyHours()) ;
+        }
+    }
+
+    return warnings ;
 }
 
 // Whether an .ics appointment is attached to reminder and update emails (ini [reminders] attachics=yes/no, default no)
@@ -553,12 +596,12 @@ bool Configuration::getAttachICS()
 
 QTime Configuration::getSendWindowStart()
 {
-    return timeOrDefault(ini.get("reminders", "sendfrom"), QTime(7, 0)) ;
+    return timeOrDefault(ini.get("reminders", "earliestsend"), QTime(7, 0)) ;
 }
 
 QTime Configuration::getSendWindowEnd()
 {
-    return timeOrDefault(ini.get("reminders", "sendto"), QTime(22, 0)) ;
+    return timeOrDefault(ini.get("reminders", "latestsend"), QTime(22, 0)) ;
 }
 
 QString& Configuration::getBackupDate()
@@ -670,22 +713,38 @@ void Configuration::on_conflictContactManager_clicked()
     ui->enableReminders->setEnabled(true) ;
 }
 
-int Configuration::getWaitBeforeUpdateMinutes()
+// The most messages sent to one contact in the last 24 hours.  A limit below 1 is not used, and the default applies.
+int Configuration::getLimitPerDay()
 {
-    return wholeNumberOrDefault(ini.get("reminders", "waitbeforeupdatemins"), 5) ;
+    int limit = wholeNumberOrDefault(ini.get("reminders", "limitperday"), 10) ;
+    return limit>=1 ? limit : 10 ;
 }
 
-int Configuration::getMaxMessagesPerContactPerDay()
+// The most messages sent to one contact in the last hour
+int Configuration::getLimitPerHour()
 {
-    return wholeNumberOrDefault(ini.get("reminders", "maxmessagesperdaypercontact"), 10) ;
+    int limit = wholeNumberOrDefault(ini.get("reminders", "limitperhour"), 5) ;
+    return limit>=1 ? limit : 5 ;
 }
 
-int Configuration::getContactMessagesToday(const QString &contactid, const QString &day)
+// The times of the messages sent to a contact in the last 24 hours.  They are kept in the settings store, so that the
+// limits still hold after ContactManager is restarted.
+QList<QDateTime> Configuration::getContactMessageTimes(const QString &contactid)
 {
-    return settings->value("messagecount/" + contactid + "/" + day, 0).toInt() ;
+    QDateTime since = QDateTime::currentDateTimeUtc().addSecs(-24 * 3600) ;
+    QList<QDateTime> times ;
+    foreach (const QString &text, settings->value("messagelog/" + contactid).toStringList()) {
+        QDateTime when = QDateTime::fromString(text, Qt::ISODate) ;
+        if (when.isValid() && when>since) times.append(when) ;
+    }
+    return times ;
 }
 
-void Configuration::addContactMessageToday(const QString &contactid, const QString &day)
+// Records a message sent to a contact at this time.  Records older than 24 hours are dropped, as they no longer count.
+void Configuration::addContactMessage(const QString &contactid, QDateTime when)
 {
-    settings->setValue("messagecount/" + contactid + "/" + day, getContactMessagesToday(contactid, day) + 1) ;
+    QStringList texts ;
+    foreach (const QDateTime &earlier, getContactMessageTimes(contactid)) texts.append(earlier.toUTC().toString(Qt::ISODate)) ;
+    texts.append(when.toUTC().toString(Qt::ISODate)) ;
+    settings->setValue("messagelog/" + contactid, texts) ;
 }

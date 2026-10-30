@@ -4,6 +4,8 @@
 #include <QDialog>
 #include <QSettings>
 #include <QTime>
+#include <QDateTime>
+#include <QStringList>
 #include "contactdatabase.h"
 #include "googleaccess.h"
 #include "../Lib/iniconfig.h"
@@ -127,27 +129,35 @@ public:
     DatabaseMaster getDatabaseMaster() ;
     bool getEnableReminders() ;
 
-    // Reminders are for appointments that start between these many hours from now (ini [reminders])
-    int getReminderWindowFromHours() ;
-    int getReminderWindowToHours() ;
+    // The reminder is sent this many hours before an appointment (remindhoursbefore in [reminders], default 24)
+    int getRemindHoursBefore() ;
 
-    // Reminders are sent from the start time, up to but not including the end time, in local time (ini [reminders])
+    // An appointment made or changed less than this many hours before it starts gets its confirmation or update only, with
+    // no reminder (confirmonlyhours in [reminders]).  Default remindhoursbefore x 1.5, used when it is missing, not a
+    // number, or less than remindhoursbefore.
+    int getConfirmOnlyHours() ;
+
+    // Messages are sent from earliestsend up to but not including latestsend, in local time (default 07:00 and 22:00)
     QTime getSendWindowStart() ;
     QTime getSendWindowEnd() ;
 
-    // A new appointment waits this many minutes before its messages are sent (ini [reminders], default 5)
+    // A new or changed appointment is held this many minutes after its last change before its message is sent
+    // (waitbeforesendmins in [reminders], default 5).  Zero is allowed.
     int getWaitBeforeSendMinutes() ;
 
-    // A changed appointment's update waits this many minutes after its last change, so that several quick edits send
-    // one update (waitbeforeupdatemins in [reminders], default 5)
-    int getWaitBeforeUpdateMinutes() ;
+    // Warnings for the reminder settings, for the log at startup: a value that is not used, and a confirmonlyhours that
+    // is not valid.  Empty when there are none.
+    QStringList reminderSettingWarnings() ;
 
-    // The most messages sent to one contact in a day (maxmessagesperdaypercontact in [reminders], default 10)
-    int getMaxMessagesPerContactPerDay() ;
+    // The most messages sent to one contact in the last 24 hours, and in the last hour (limitperday and limitperhour in
+    // [reminders], defaults 10 and 5)
+    int getLimitPerDay() ;
+    int getLimitPerHour() ;
 
-    // The messages sent to a contact on a day (kept in the settings store), and adding one
-    int getContactMessagesToday(const QString &contactid, const QString &day) ;
-    void addContactMessageToday(const QString &contactid, const QString &day) ;
+    // The times of the messages sent to a contact in the last 24 hours (kept in the settings store, so they survive a
+    // restart), and recording one
+    QList<QDateTime> getContactMessageTimes(const QString &contactid) ;
+    void addContactMessage(const QString &contactid, QDateTime when) ;
 
     // Whether an .ics appointment is attached to emails (ini [reminders], attachics=yes or no, default no)
     bool getAttachICS() ;

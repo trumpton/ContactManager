@@ -532,7 +532,7 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
                 apptresponse.copyTo(appt, Appointment::maDetails|Appointment::maGoogleAcct) ;
 
                 // The upload carries the sent state, so it is no longer pending
-                appt.setField(Appointment::LedgerPending, QString()) ;
+                appt.setSentField(Appointment::LedgerPending, QString()) ;
                 success=true ;
 
             } else {
