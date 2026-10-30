@@ -59,6 +59,13 @@ public:
         // The occurrences (UTC starts, comma separated) whose removal has been notified by a cancellation
         CancelledOccurrences,
 
+        // Set when a cancellation has been sent, so that no copy of ContactManager sends it again
+        CancelSent,
+
+        // Set when the sent state could not be written to Google.  The Google copy is not read over the local one until
+        // it has been written, and the next sync uploads it.
+        LedgerPending,
+
         // Flags
         ToBeUploaded,           // Used to track uploads
         ToBeDownloaded,         // Used to track downloads
@@ -122,6 +129,8 @@ public:
         { ReminderOnDaySent,   false, false, false, true, "reminderondaysent" },
         { ReminderFor,         false, false, false, true, "reminderfor" },
         { CancelledOccurrences, false, false, false, true, "cancelledoccurrences" },
+        { CancelSent,          false, false, false, true, "cancelsent" },
+        { LedgerPending,       false, false, false, true, "ledgerpending" },
 
         { ToBeUploaded,         true, false, false, false, "tobeuploaded" },
         { ToBeDownloaded,       true, false, false, false, "tobedownloaded" },
@@ -141,6 +150,7 @@ public:
     static const int maFlag=0x20 ;
     static const int maControlFlags=0x100 ; // Uploaded / downloaded control flags
     static const int maSavedFields=0x200 ;  // All fields which are saved
+    static const int maSentState=0x400 ;    // The sent state of messages (see mergeSentState)
 
     bool appointmentrecordinfook ;
 
@@ -256,6 +266,11 @@ public:
 
     // Copy selected fields to new contact
     bool copyTo(Appointment &other, int matype) ;
+
+    // Takes in the sent state held for the same appointment elsewhere (on Google), so that a message sent there is not
+    // sent again from here.  Each kind of state keeps the later of the two, and the lists keep both.  Returns true if
+    // anything changed.  Nothing is taken in while a sent state is pending, as the local one is then the newer.
+    bool mergeSentState(Appointment &remote) ;
 
     // Returns true if appointments clash
     bool clashes(Appointment& with) ;

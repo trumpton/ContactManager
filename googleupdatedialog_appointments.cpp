@@ -72,7 +72,8 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
         } else {
             // Local Master.  Upload only what the app has changed since the last sync.  Everything else is downloaded,
             // so a change made on Google is kept, and an unchanged entry is not written back to Google.
-            upload = changedLocallySince(localappt, lastsync) ;
+            // A sent state the Google event could not take is uploaded now (see LedgerPending)
+            upload = changedLocallySince(localappt, lastsync) || localappt.getField(Appointment::LedgerPending).compare("yes")==0 ;
         }
 
         if (localappt.isTemp()) {
@@ -182,9 +183,12 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
             newlocal.setField(Appointment::To, googleappt.getField(Appointment::To)) ;
             newlocal.setField(Appointment::Summary, QString("--! Undefined !--")) ;
 
-            // Not confirmed again.  The appointment may have been messaged before its local record was lost, or was made
-            // elsewhere, so its confirmation is not sent.  Changes made to it after this are still sent as updates.
-            newlocal.setField(Appointment::MessageSent, nowToIsoString()) ;
+            // The sent state kept on Google is taken in.  An appointment with none is not confirmed, as it may have been
+            // messaged before its local record was lost, or was made elsewhere.  Changes made to it are still sent.
+            googleappt.copyTo(newlocal, Appointment::maSentState) ;
+            if (newlocal.getField(Appointment::MessageSent).isEmpty()) {
+                newlocal.setField(Appointment::MessageSent, nowToIsoString()) ;
+            }
 
             // Download only, and not uploaded.  An event made on Google has no ID stored there, but its local ID is
             // derived from its Google ID (see parseAppointment), so it is stable without an upload.  Uploading it
@@ -235,6 +239,9 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                  ( from <= towindow && to >= towindow) )  ) {
 
             Appointment& googleappt = googlecal.getAppointmentBy(Appointment::ID, localappt.getField(Appointment::ID)) ;
+
+            // The sent state kept on Google is taken in first, so a message sent from another copy is not sent again here
+            if (!googleappt.isNull() && !googleappt.isSet(Appointment::Deleted)) localappt.mergeSentState(googleappt) ;
 
             bool deletedlocaldeletedgoogle = (googleappt.isNull() || googleappt.isSet(Appointment::Deleted)) && (localappt.isSet(Appointment::Deleted)) ;
             bool googlematcheslocal = googleappt.matches(localappt, Appointment::maDetails|Appointment::maId) ;
