@@ -7,6 +7,9 @@
 #include "../Lib/iniconfig.h"
 
 #include <QStandardPaths>
+#include <QRegularExpression>
+
+static QDate parseExpiryDate(QString text) ;
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QTextStream>
@@ -170,11 +173,13 @@ bool Configuration::SaveForm()
     settings->setValue("smspassword", ui->smsPassword->text()) ;
 
     // The API key expiry date, day/month/year, or blank.  The warning at startup only shows if it is set.
+    // Stored in the standard form (25/01/2035), so 25/1/35 is kept as 25/01/2035
     QString keyexpiry = ui->smsKeyExpiry->text().trimmed() ;
-    if (!keyexpiry.isEmpty() && !QDate::fromString(keyexpiry, "dd/MM/yyyy").isValid()) {
+    QDate expiry = parseExpiryDate(keyexpiry) ;
+    if (!keyexpiry.isEmpty() && !expiry.isValid()) {
         warningOkDialog(this, "SMS API key expiry", "The expiry date must be day/month/year, for example 25/01/2035, or left blank.") ;
     }
-    settings->setValue("smsapikeyexpires", keyexpiry) ;
+    settings->setValue("smsapikeyexpires", expiry.isValid() ? expiry.toString("dd/MM/yyyy") : keyexpiry) ;
 
     if (ui->conflictContactManager->isChecked())
         settings->setValue("databasemaster", ContactManagerMaster) ;
@@ -231,10 +236,27 @@ QString Configuration::getSMSSender()
     return ini.get("sms-reminder", "sender").trimmed() ;
 }
 
-// The API key expiry date, from the settings store alongside the API key (blank or invalid if not set)
+// A date typed as day/month/year: the day and month may have one or two digits, and the year two or four (25/1/35,
+// 25/01/2035).  Invalid if it is not a date.
+static QDate parseExpiryDate(QString text)
+{
+    QStringList parts = text.trimmed().split(QRegularExpression("[/.-]")) ;
+    if (parts.size()!=3) return QDate() ;
+
+    bool okday, okmonth, okyear ;
+    int day = parts.at(0).toInt(&okday) ;
+    int month = parts.at(1).toInt(&okmonth) ;
+    int year = parts.at(2).toInt(&okyear) ;
+    if (!okday || !okmonth || !okyear) return QDate() ;
+
+    if (parts.at(2).length()<=2) year += 2000 ;
+    return QDate(year, month, day) ;
+}
+
+// The API key expiry date, from the settings store alongside the API key (invalid if not set)
 QDate Configuration::getSMSKeyExpiry()
 {
-    return QDate::fromString(settings->value("smsapikeyexpires").toString().trimmed(), "dd/MM/yyyy") ;
+    return parseExpiryDate(settings->value("smsapikeyexpires").toString()) ;
 }
 
 QString Configuration::getEmailSender()

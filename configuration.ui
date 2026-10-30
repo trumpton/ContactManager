@@ -237,7 +237,7 @@
           <string>SMS API key expiry date</string>
          </property>
          <property name="accessibleDescription">
-          <string>Optional. The date the SMS API key expires, as day/month/year, for example 25/01/2035. Leave blank if it does not expire.</string>
+          <string>Optional. The date the SMS API key expires, as day/month/year, for example 25/01/2035 or 25/1/35. Leave blank if it does not expire.</string>
          </property>
          <property name="placeholderText">
           <string>25/01/2035</string>
