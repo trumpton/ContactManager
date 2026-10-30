@@ -8,10 +8,10 @@
 #include "calendar.h"
 #include "configuration.h"
 #include "googleaccess.h"
-#include "accessiblestringlistmodel.h"
+#include "../Lib/accessiblestringlistmodel.h"
 
 #include "ui_mainwindow.h"
-#include "search.h"
+#include "../Lib/search.h"
 #include "about.h"
 #include "contactdatabase.h"
 #include "calendar.h"

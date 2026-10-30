@@ -36,7 +36,7 @@
 #define private public
 #include "mainwindow.h"
 #include "appointmentform.h"
-#include "accessibledaterangeedit.h"
+#include "../Lib/accessibledaterangeedit.h"
 #undef private
 #include "contact.h"
 #include "contactdatabase.h"

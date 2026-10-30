@@ -58,7 +58,7 @@ SOURCES += main.cpp\
     history.cpp \
     contact.cpp \
     fieldformat.cpp \
-    search.cpp \
+    ../Lib/search.cpp \
     about.cpp \
     calendar.cpp \
     appointment.cpp \
@@ -81,7 +81,7 @@ SOURCES += main.cpp\
     ../Lib/accessibledatetimeedit.cpp \
     ../Lib/dateinputdialog.cpp \
     logform.cpp \
-    accessibledaterangeedit.cpp \
+    ../Lib/accessibledaterangeedit.cpp \
     sms.cpp \
     smtp.cpp \
     email.cpp \
@@ -117,7 +117,7 @@ SOURCES += main.cpp\
     googleaccess_getcontact.cpp \
     advancedfind.cpp \
     mainwindow_test.cpp \
-    accessiblestringlistmodel.cpp \
+    ../Lib/accessiblestringlistmodel.cpp \
     safesave.cpp
 
 HEADERS  += mainwindow.h \
@@ -126,7 +126,7 @@ HEADERS  += mainwindow.h \
     history.h \
     contact.h \
     fieldformat.h \
-    search.h \
+    ../Lib/search.h \
     about.h \
     calendar.h \
     appointment.h \
@@ -145,7 +145,7 @@ HEADERS  += mainwindow.h \
     ../Lib/accessibledatetimeedit.h \
     ../Lib/dateinputdialog.h \
     logform.h \
-    accessibledaterangeedit.h \
+    ../Lib/accessibledaterangeedit.h \
     sms.h \
     smtp.h \
     email.h \
@@ -163,11 +163,11 @@ HEADERS  += mainwindow.h \
     ../Lib/encryption.h \
     ../Lib/aes.h \
     advancedfind.h \
-    accessiblestringlistmodel.h \
+    ../Lib/accessiblestringlistmodel.h \
     safesave.h
 
 FORMS    += mainwindow.ui \
-    search.ui \
+    ../Lib/search.ui \
     about.ui \
     appointmentform.ui \
     configuration.ui \

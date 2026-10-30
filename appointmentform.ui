@@ -354,7 +354,7 @@
   <customwidget>
    <class>AccessibleDateRangeEdit</class>
    <extends>QLineEdit</extends>
-   <header>accessibledaterangeedit.h</header>
+   <header>../Lib/accessibledaterangeedit.h</header>
    <slots>
     <signal>valueChanged(QDateTime,int)</signal>
    </slots>
