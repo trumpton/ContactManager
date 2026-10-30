@@ -93,6 +93,9 @@ public:
 
     // Whether each transaction with the SMS service is written to a debug file (ini [sms-reminder] debug=yes or no)
     bool debugSMSEnabled() ;
+
+    // Whether each email conversation is written to a debug file (ini [email-reminder] debug=yes or no)
+    bool debugEmailEnabled() ;
     bool encryptedEnabled() ;
     bool contactSyncEnabled() ;
     bool calendarSyncEnabled() ;

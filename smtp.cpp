@@ -13,6 +13,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
  
 #include "smtp.h"
  
+// A login as the transcript shows it: only its first 5 characters are kept
+static QString maskedLogin(const QString &value)
+{
+    return value.left(5) + QString(qMax(0, value.length()-5), QChar('*')) ;
+}
+
 Smtp::Smtp( const QString &user, const QString &pass, const QString &host, int port, int timeout )
 {   
     socket = new QSslSocket(this);
@@ -49,6 +55,7 @@ void Smtp::sendMail(const QString &from, const QString &to, const QString &subje
 {
     sendsuccess= -1 ;
     errmsg = "Connecting" ;
+    transcript = "" ;
 
     if (t!=NULL) { delete t ; t=NULL ; }
     message = "To: " + to + "\n";
@@ -64,6 +71,7 @@ void Smtp::sendMail(const QString &from, const QString &to, const QString &subje
         qDebug() << socket->errorString();
         state = ConnectFailure ;
         errmsg = QString("Connection Failure = ") + socket->errorString() ;
+        transcript += "Connection failed: " + socket->errorString() + "\n" ;
         sendsuccess = -2 ;
         emit status( socket->errorString() );
     } else {
@@ -110,6 +118,18 @@ bool Smtp::isConnected()
     return (state!=Disconnected && state!=ConnectFailure) ;
 }
 
+QString& Smtp::getTranscript()
+{
+    return transcript ;
+}
+
+// Sends a line as the server expects it, and records it in the transcript as logged
+void Smtp::sendLine(const QString &line, const QString &logged)
+{
+    *t << line << "\r\n" ;
+    transcript += "C: " + logged + "\n" ;
+}
+
 void Smtp::readyRead()
 {
  
@@ -130,6 +150,7 @@ void Smtp::readyRead()
         response += responseLine;
     }
     while ( socket->canReadLine() && responseLine[3] != ' ' );
+    transcript += "S: " + response.trimmed() + "\n" ;
  
     responseCode = responseLine ;
     responseCode.truncate( 3 );
@@ -141,7 +162,7 @@ void Smtp::readyRead()
     {
         // banner was okay, let's go on
         qDebug() << "EHLO localhost" ;
-        *t << "EHLO localhost" <<"\r\n";
+        sendLine("EHLO localhost", "EHLO localhost") ;
         t->flush();
  
         state = HandShake;
@@ -168,7 +189,7 @@ void Smtp::readyRead()
             //Send EHLO once again but now encrypted
  
             qDebug() << "EHLO localhost" ;
-            *t << "EHLO localhost" << "\r\n";
+            sendLine("EHLO localhost", "EHLO localhost") ;
             t->flush();
             state = Auth;
 
@@ -184,7 +205,7 @@ void Smtp::readyRead()
 
             // Trying AUTH
             qDebug() << "AUTH LOGIN";
-            *t << "AUTH LOGIN" << "\r\n";
+            sendLine("AUTH LOGIN", "AUTH LOGIN") ;
             t->flush();
             state = User;
         }
@@ -201,7 +222,7 @@ void Smtp::readyRead()
             qDebug() << user;
             //GMAIL is using XOAUTH2 protocol, which basically means that password and username has to be sent in base64 coding
             //https://developers.google.com/gmail/xoauth2_protocol
-            *t << QByteArray().append(user.toLatin1()).toBase64()  << "\r\n";
+            sendLine(QString::fromLatin1(QByteArray().append(user.toLatin1()).toBase64()), maskedLogin(user) + " (login, base64)") ;
             t->flush();
             state = Pass;
         }
@@ -217,7 +238,7 @@ void Smtp::readyRead()
 
             //Trying pass
             qDebug() << "PA**WORD";
-            *t << QByteArray().append(pass.toLatin1()).toBase64() << "\r\n";
+            sendLine(QString::fromLatin1(QByteArray().append(pass.toLatin1()).toBase64()), maskedLogin(pass) + " (password, base64)") ;
             t->flush();
             state = Mail;
 
@@ -235,7 +256,7 @@ void Smtp::readyRead()
             // HELO response was okay (well, it has to be)
             //Apperantly for Google it is mandatory to have MAIL FROM and RCPT email formated the following way -> <email@gmail.com>
             qDebug() << "MAIL FROM:<" << from << ">";
-            *t << "MAIL FROM:<" << from << ">\r\n";
+            sendLine("MAIL FROM:<" + from + ">", "MAIL FROM:<" + from + ">") ;
             t->flush();
             state = Rcpt;
 
@@ -252,7 +273,7 @@ void Smtp::readyRead()
 
             //Apperantly for Google it is mandatory to have MAIL FROM and RCPT email formated the following way -> <email@gmail.com>
             qDebug() << QString("RCPT TO:<") + rcpt + QString(">") ;
-            *t << "RCPT TO:<" << rcpt << ">\r\n"; //r
+            sendLine("RCPT TO:<" + rcpt + ">", "RCPT TO:<" + rcpt + ">") ;
             t->flush();
             state = Data;
         }
@@ -267,7 +288,7 @@ void Smtp::readyRead()
         } else {
  
             qDebug() << "DATA" ;
-            *t << "DATA\r\n";
+            sendLine("DATA", "DATA") ;
             t->flush();
             sendsuccess = -4 ;  // Maybe complete / sent
             state = Body;
@@ -284,6 +305,7 @@ void Smtp::readyRead()
  
             qDebug() << message ;
             *t << message << "\r\n.\r\n";
+            transcript += "C: " + message + "\n.\n" ;
             t->flush();
             state = Quit;
         }
@@ -298,7 +320,7 @@ void Smtp::readyRead()
         } else {
 
             qDebug() << "QUIT" ;
-            *t << "QUIT\r\n";
+            sendLine("QUIT", "QUIT") ;
             t->flush();
             // here, we just close.
             state = Success;
