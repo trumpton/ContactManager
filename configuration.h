@@ -4,6 +4,7 @@
 #include <QDialog>
 #include <QSettings>
 #include <QTime>
+#include <QDateTime>
 #include "contactdatabase.h"
 #include "googleaccess.h"
 #include "../Lib/iniconfig.h"
@@ -142,12 +143,15 @@ public:
     // one update (waitbeforeupdatemins in [reminders], default 5)
     int getWaitBeforeUpdateMinutes() ;
 
-    // The most messages sent to one contact in a day (maxmessagesperdaypercontact in [reminders], default 10)
-    int getMaxMessagesPerContactPerDay() ;
+    // The most messages sent to one contact in the last 24 hours, and in the last hour (limitperday and limitperhour in
+    // [reminders], defaults 10 and 5)
+    int getLimitPerDay() ;
+    int getLimitPerHour() ;
 
-    // The messages sent to a contact on a day (kept in the settings store), and adding one
-    int getContactMessagesToday(const QString &contactid, const QString &day) ;
-    void addContactMessageToday(const QString &contactid, const QString &day) ;
+    // The times of the messages sent to a contact in the last 24 hours (kept in the settings store, so they survive a
+    // restart), and recording one
+    QList<QDateTime> getContactMessageTimes(const QString &contactid) ;
+    void addContactMessage(const QString &contactid, QDateTime when) ;
 
     // Whether an .ics appointment is attached to emails (ini [reminders], attachics=yes or no, default no)
     bool getAttachICS() ;

@@ -103,10 +103,10 @@ static QHash<QString, int> sendfailures ;
 // Appointments whose sent state could not be read from Google, and the time it is tried again
 static QHash<QString, QDateTime> sentstateretryafter ;
 
-// Appointments already reported as having no address to send to, and contacts already reported as at their daily
-// limit, so that each report is made once
+// Appointments already reported as having no address to send to, and contacts already reported as at a limit (once an hour
+// for each contact), so that each report is made once
 static QSet<QString> noaddressreported ;
-static QSet<QString> dailylimitreported ;
+static QSet<QString> limitreported ;
 
 // Set when the calendar could not be saved after a send.  Nothing more is sent until it can be saved, so that a
 // message is not sent again because its record was lost.
@@ -122,10 +122,19 @@ static bool maySend(const QString &key, const QDateTime &now)
     return !(sendretryafter.contains(key) && now<sendretryafter.value(key)) ;
 }
 
-// Whether a contact has been sent its daily limit of messages
-static bool atDailyLimit(const QString &contactid, const QString &day)
+// The reason no more messages can be sent to a contact now, or an empty string if they can.  The limits are rolling: the
+// messages sent in the last hour, and in the last 24 hours (limitperhour and limitperday in [reminders]).
+static QString contactLimitReason(const QString &contactid, const QDateTime &now)
 {
-    return gConf->getContactMessagesToday(contactid, day) >= gConf->getMaxMessagesPerContactPerDay() ;
+    int hour = 0 ;
+    QList<QDateTime> sent = gConf->getContactMessageTimes(contactid) ;   // the last 24 hours
+    for (const QDateTime &when : sent) {
+        if (when > now.addSecs(-3600)) hour++ ;
+    }
+
+    if (hour >= gConf->getLimitPerHour()) return QString("the limit of %1 messages an hour").arg(gConf->getLimitPerHour()) ;
+    if (sent.size() >= gConf->getLimitPerDay()) return QString("the limit of %1 messages a day").arg(gConf->getLimitPerDay()) ;
+    return QString() ;
 }
 
 void MainWindow::sendMailSMS()
@@ -254,7 +263,7 @@ void MainWindow::sendMailSMS()
         }
 
         if (result==1 || result==-4) {
-            gConf->addContactMessageToday(contactid, today) ;
+            gConf->addContactMessage(contactid, now) ;
             sendfailures.remove(key) ;
             sendretryafter.remove(key) ;
 
@@ -455,7 +464,7 @@ void MainWindow::sendMailSMS()
             QString emailkey = id + "|dayemail" ;
             QString textkey = id + "|daysms" ;
 
-            if (!emaildone && maySend(emailkey, now) && !atDailyLimit(contactid, today) && refreshSentState(id)==1) {
+            if (!emaildone && maySend(emailkey, now) && contactLimitReason(contactid, now).isEmpty() && refreshSentState(id)==1) {
                 int result = deliver(emailkey, "Sending on-the-day reminder email to " + emailaddress, true,
                                      gConf->getMessageFile(MSG_EMAIL_REMINDER), id, contactid, mobile, emailaddress, occ) ;
                 if (result==1 || result==-4) {
@@ -465,7 +474,7 @@ void MainWindow::sendMailSMS()
                     saveCalendar("the on-the-day reminder") ;
                 }
             }
-            if (!smsdone && maySend(textkey, now) && !atDailyLimit(contactid, today) && refreshSentState(id)==1) {
+            if (!smsdone && maySend(textkey, now) && contactLimitReason(contactid, now).isEmpty() && refreshSentState(id)==1) {
                 int result = deliver(textkey, "Sending on-the-day reminder sms message to " + mobile, false,
                                      gConf->getMessageFile(MSG_SMS_REMINDER), id, contactid, mobile, emailaddress, occ) ;
                 if (result==1 || result==-4) {
@@ -496,13 +505,14 @@ void MainWindow::sendMailSMS()
         QString key = id + "|" + kind + (kind=="cancelocc" ? "|" + occurrenceKey(occ) : QString()) ;
         if (!maySend(key, now)) continue ;
 
-        // No more than the daily limit of messages is sent to one contact in a day
-        if (atDailyLimit(contactid, today)) {
-            QString limitkey = contactid + "|" + today ;
-            if (!dailylimitreported.contains(limitkey)) {
-                dailylimitreported.insert(limitkey) ;
-                addLog(QString("Daily limit of messages reached for %1, so %2 was not sent for the appointment at %3")
-                       .arg(contact.getFormattedName(), type, apptdate)) ;
+        // The limits on messages to one contact (per hour and per day) hold the message until they allow it
+        QString limit = contactLimitReason(contactid, now) ;
+        if (!limit.isEmpty()) {
+            QString limitkey = contactid + "|" + QString::number(now.toSecsSinceEpoch()/3600) ;
+            if (!limitreported.contains(limitkey)) {
+                limitreported.insert(limitkey) ;
+                addLog(QString("%1 has reached %2, so %3 was not sent for the appointment at %4")
+                       .arg(contact.getFormattedName(), limit, type, apptdate)) ;
             }
             continue ;
         }
