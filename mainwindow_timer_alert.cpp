@@ -416,7 +416,18 @@ void MainWindow::sendMailSMS()
             QString emailkey = id + "|dayemail" ;
             QString textkey = id + "|daysms" ;
 
-            if (!emaildone && maySend(emailkey, now) && contactLimitReason(contactid, now).isEmpty() && refreshSentState(id)==1) {
+            // The limit holds the on-the-day messages too, and is reported in the log as the others are
+            QString limit = contactLimitReason(contactid, now) ;
+            if (!limit.isEmpty()) {
+                QString limitkey = contactid + "|" + QString::number(now.toSecsSinceEpoch()/3600) ;
+                if (!limitreported.contains(limitkey)) {
+                    limitreported.insert(limitkey) ;
+                    addLog(QString("%1 has reached %2, so the on-the-day reminder was not sent for the appointment at %3")
+                           .arg(contact.getFormattedName(), limit, apptdate)) ;
+                }
+            }
+
+            if (!emaildone && maySend(emailkey, now) && limit.isEmpty() && refreshSentState(id)==1) {
                 int result = deliver(emailkey, "Sending on-the-day reminder email to " + emailaddress, true,
                                      gConf->getMessageFile(MSG_EMAIL_REMINDER), id, contactid, mobile, emailaddress, occ) ;
                 if (result==1 || result==-4) {
@@ -426,7 +437,7 @@ void MainWindow::sendMailSMS()
                     saveCalendar("the on-the-day reminder") ;
                 }
             }
-            if (!smsdone && maySend(textkey, now) && contactLimitReason(contactid, now).isEmpty() && refreshSentState(id)==1) {
+            if (!smsdone && maySend(textkey, now) && limit.isEmpty() && refreshSentState(id)==1) {
                 int result = deliver(textkey, "Sending on-the-day reminder sms message to " + mobile, false,
                                      gConf->getMessageFile(MSG_SMS_REMINDER), id, contactid, mobile, emailaddress, occ) ;
                 if (result==1 || result==-4) {
