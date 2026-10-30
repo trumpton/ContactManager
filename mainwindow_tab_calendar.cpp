@@ -9,6 +9,23 @@
 // Calendar Tab
 //
 
+// The text of an all-day entry, from its first day to the midnight that ends it, for example "Tue 03 Mar 2026 All Day: xxxx".
+// The end is midnight after the last day, so the last day is the one before it.  The accessible text leaves out the year
+// for dates in the current year, as the other entries do.
+static QString allDayText(QDateTime first, QDateTime end, QString who, QString summary, bool accessible)
+{
+    int thisyear = QDate::currentDate().year() ;
+    QString format = (accessible && first.date().year()==thisyear) ? "ddd dd MMM" : "ddd dd MMM yyyy" ;
+    QDate lastday = (end>first) ? end.date().addDays(-1) : first.date() ;
+
+    QString days = first.date().toString(format) ;
+    if (lastday!=first.date()) days += " - " + lastday.toString(format) ;
+
+    QString text = days + " All Day: " ;
+    if (!who.isEmpty()) text += who + " - " ;
+    return text + summary.replace("\n", ". ") ;
+}
+
 void MainWindow::LoadCalendarTab()
 {
     // The entry on screen: a repeat has its own hint, and an appointment has its ID
@@ -54,9 +71,16 @@ void MainWindow::LoadCalendarTab()
         Row row ;
         row.start = start ;
         row.end = start.addSecs(from.secsTo(to)) ;
-        // The day of the week, as three letters, comes before the date.  It is taken from the start the date is shown from.
-        row.title = start.toString("ddd ") + shown.asText(apptfor) ;
-        row.accessible = start.toString("ddd ") + shown.asAccessibleText(apptfor) ;
+
+        // An all-day entry starts and ends at midnight, so it is shown by its days, without times
+        if (start.time()==QTime(0,0) && row.end.time()==QTime(0,0)) {
+            row.title = allDayText(start, row.end, apptfor, appt.getField(Appointment::Summary), false) ;
+            row.accessible = allDayText(start, row.end, apptfor, appt.getField(Appointment::Summary), true) ;
+        } else {
+            // The day of the week, as three letters, comes before the date.  It is taken from the start the date is shown from.
+            row.title = start.toString("ddd ") + shown.asText(apptfor) ;
+            row.accessible = start.toString("ddd ") + shown.asAccessibleText(apptfor) ;
+        }
 
         // A deleted appointment is listed only when Show > Deleted Appointments is ticked, and then in braces
         if (appt.isSet(Appointment::Deleted)) {
