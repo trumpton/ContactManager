@@ -1,11 +1,32 @@
 
 #include "mainwindow.h"
 #include "configuration.h"
+#include "messagedecision.h"
 #include "../Lib/alertsound.h"
 
 #include <algorithm>
 #include <QHash>
 #include <QSet>
+
+// The text, message file and channel of a step, as the send loop logs and sends them
+static void messageForStep(const MessageStep &step, QString mobile, QString emailaddress,
+                           QString &type, QString &cfgfile, bool &sendsmtp)
+{
+    sendsmtp = step.email ;
+    if (step.kind=="confirm") {
+        type = step.email ? "Sending confirmation email to " + emailaddress : "Sending confirmation SMS to " + mobile ;
+        cfgfile = gConf->getMessageFile(step.email ? MSG_EMAIL_CONFIRMATION : MSG_SMS_CONFIRMATION) ;
+    } else if (step.kind=="update") {
+        type = step.email ? "Sending change email to " + emailaddress : "Sending change sms to " + mobile ;
+        cfgfile = gConf->getMessageFile(step.email ? MSG_EMAIL_UPDATE : MSG_SMS_UPDATE) ;
+    } else if (step.kind=="cancel" || step.kind=="cancelocc") {
+        type = step.email ? "Sending cancellation email to " + emailaddress : "Sending cancelled sms to " + mobile ;
+        cfgfile = gConf->getMessageFile(step.email ? MSG_EMAIL_DELETION : MSG_SMS_DELETION) ;
+    } else if (step.kind=="reminder") {
+        type = step.email ? "Sending reminder email to " + emailaddress : "Sending reminder sms message to " + mobile ;
+        cfgfile = gConf->getMessageFile(step.email ? MSG_EMAIL_REMINDER : MSG_SMS_REMINDER) ;
+    }
+}
 
 // The upcoming appointments of a contact, one per line in the form "10:00 on Friday 30 October", soonest first, up to
 // ten.  Each occurrence of a repeat is listed.  Joined with the separator.  Used for $APPOINTMENTS in the messages.
@@ -77,22 +98,6 @@ static QStringList cancelledOccurrences(Appointment &appt)
     return appt.getField(Appointment::CancelledOccurrences).split(',', Qt::SkipEmptyParts) ;
 }
 
-// The day's on-the-day reminder is recorded on the appointment, so that it is not sent again after a restart.  The record
-// is the day, and the channels sent that day, e.g. "2026-10-30 email sms".
-static bool dayChannelSent(const QString &record, const QString &day, const QString &channel)
-{
-    QStringList parts = record.split(' ', Qt::SkipEmptyParts) ;
-    return !parts.isEmpty() && parts.at(0)==day && parts.contains(channel) ;
-}
-
-static QString dayChannelRecord(const QString &record, const QString &day, const QString &channel)
-{
-    QStringList parts = record.split(' ', Qt::SkipEmptyParts) ;
-    if (parts.isEmpty() || parts.at(0)!=day) parts = QStringList() << day ;
-    if (!parts.contains(channel)) parts.append(channel) ;
-    return parts.join(' ') ;
-}
-
 // A message that has failed to send, in this session.  It waits SENDRETRYMINS minutes before it is tried again, and is
 // given up after MAXMESSAGERETRIES failures.  Kept per appointment and kind of message, so that a failed confirmation
 // does not use up the tries for a later cancellation.
@@ -146,7 +151,7 @@ void MainWindow::sendMailSMS()
 
     // Don't be anti-social: only send within the sending window, in local time
     QTime localtime = now.toLocalTime().time() ;
-    if (localtime<gConf->getSendWindowStart() || localtime>=gConf->getSendWindowEnd()) return ;
+    if (!inSendWindow(localtime, gConf->getSendWindowStart(), gConf->getSendWindowEnd())) return ;
 
     // Only the copy of ContactManager that holds the data folder's lock sends messages
     if (!remindersallowed) return ;
@@ -327,7 +332,7 @@ void MainWindow::sendMailSMS()
         // The hold: a new or changed appointment waits waitbeforesendmins after its last change, so that a run of edits, or a
         // delete and re-create, is sent once, as its final details.  A cancellation is not held.
         qint64 sincechange = now.toSecsSinceEpoch() - appt.getDate(Appointment::Updated).toSecsSinceEpoch() ;
-        if (!deleted && sincechange < (qint64)gConf->getWaitBeforeSendMinutes() * 60) continue ;
+        if (!deleted && isWithinHold(sincechange, gConf->getWaitBeforeSendMinutes())) continue ;
 
         // What the message will say.  A change to it since the last confirmation or update is sent as an update.
         QString signature = messageSignature(appt) ;
@@ -349,11 +354,41 @@ void MainWindow::sendMailSMS()
 
         // A reminder is due when the appointment starts within remindhoursbefore.  One that is confirmed or changed less than
         // confirmonlyhours before it starts gets its confirmation or update only: that message takes the reminder's place.
-        QDateTime remindend = now.addSecs(gConf->getRemindHoursBefore() * 3600) ;
-        QDateTime confirmonlyend = now.addSecs(gConf->getConfirmOnlyHours() * 3600) ;
-        bool istime = occ < remindend ;
-        bool confirmonly = occ < confirmonlyend ;
+        bool istime = isReminderDue(occ, now, gConf->getRemindHoursBefore()) ;
+        bool confirmonly = isConfirmOnly(occ, now, gConf->getConfirmOnlyHours()) ;
 
+        // The messages to send now, decided from the appointment's state (see decideMessages).  The on-the-day reminder is
+        // recorded per channel, so that it is not sent again after a restart.
+        QString dayrecord = appt.getField(Appointment::ReminderOnDaySent) ;
+        bool emaildone = dayChannelSent(dayrecord, today, "email") ;
+        bool smsdone = dayChannelSent(dayrecord, today, "sms") ;
+
+        MessageState state ;
+        state.deleted = deleted ;
+        state.messagesent = messagesent ;
+        state.changed = changed ;
+        state.emailme = emailme ;
+        state.textme = textme ;
+        state.remindersent = remindermessagesent ;
+        state.istime = istime ;
+        state.confirmonly = confirmonly ;
+        state.isrepeating = appt.isRepeating() ;
+        state.pendingcancel = QDateTime() ;
+        if (messagesent && !deleted && appt.isRepeating()) {
+            QStringList notified = cancelledOccurrences(appt) ;
+            for (const QDateTime &removed : appt.exceptions()) {
+                if (removed<=now || notified.contains(occurrenceKey(removed))) continue ;
+                state.pendingcancel = removed ;
+                break ;
+            }
+        }
+        state.onthisday = isOnTheDay(occ, now) ;
+        state.emaildone = emaildone ;
+        state.smsdone = smsdone ;
+        state.occurrence = occ ;
+        QList<MessageStep> steps = decideMessages(state) ;
+
+        // The first step is what the send is about.  The on-the-day steps are sent by their own code, below.
         QString kind ;
         QString cfgfile ;
         QString type ;
@@ -362,103 +397,21 @@ void MainWindow::sendMailSMS()
         bool deletemessagesent = false ;
         bool updatemessagesent = false ;
         bool updateremindermessagesent = false ;
-
-        if (emailme && !deleted && !messagesent) {
-            kind = "confirm" ;
-            type = "Sending confirmation email to " + emailaddress ;
-            cfgfile = gConf->getMessageFile(MSG_EMAIL_CONFIRMATION) ;
-            sendsmtp = true ;
-            updatemessagesent = true ;
-            setsignature = true ;
-            if (confirmonly) updateremindermessagesent = true ;
+        bool onday = !steps.isEmpty() && steps.first().kind=="onday" ;
+        if (!steps.isEmpty() && !onday) {
+            const MessageStep &step = steps.first() ;
+            kind = step.kind ;
+            occ = step.occurrence ;
+            apptdate = occ.toLocalTime().toString("dd-MMM-yyyy hh:mm") ;
+            messageForStep(step, mobile, emailaddress, type, cfgfile, sendsmtp) ;
+            setsignature = (kind=="confirm" || kind=="update") ;
+            updatemessagesent = setsignature ;
+            deletemessagesent = (kind=="cancel") ;
+            updateremindermessagesent = step.recordreminder ;
         }
 
-        else if (textme && !emailme && !deleted && !messagesent) {
-            kind = "confirm" ;
-            type = "Sending confirmation SMS to " + mobile;
-            cfgfile = gConf->getMessageFile(MSG_SMS_CONFIRMATION) ;
-            updatemessagesent = true ;
-            setsignature = true ;
-            if (confirmonly) updateremindermessagesent = true ;
-        }
-
-        else if (emailme && !deleted && changed) {
-            kind = "update" ;
-            type = "Sending change email to " + emailaddress ;
-            cfgfile = gConf->getMessageFile(MSG_EMAIL_UPDATE) ;
-            sendsmtp = true ;
-            updatemessagesent = true ;
-            setsignature = true ;
-            if (confirmonly) updateremindermessagesent = true ;
-        }
-
-        else if (textme && !emailme && !deleted && changed) {
-            kind = "update" ;
-            type = "Sending change sms to " + mobile ;
-            cfgfile = gConf->getMessageFile(MSG_SMS_UPDATE) ;
-            updatemessagesent = true ;
-            setsignature = true ;
-            if (confirmonly) updateremindermessagesent = true ;
-        }
-
-        else if (emailme && deleted && messagesent) {
-            kind = "cancel" ;
-            type = "Sending cancellation email to " + emailaddress ;
-            cfgfile = gConf->getMessageFile(MSG_EMAIL_DELETION) ;
-            sendsmtp = true ;
-            deletemessagesent = true ;
-        }
-
-        else if (textme && !emailme && deleted && messagesent) {
-            kind = "cancel" ;
-            type = "Sending cancelled sms to " + mobile ;
-            cfgfile = gConf->getMessageFile(MSG_SMS_DELETION) ;
-            deletemessagesent = true ;
-        }
-
-        else if (textme && !emailme && !deleted && istime && !remindermessagesent) {
-            kind = "reminder" ;
-            type = "Sending reminder sms message to " + mobile ;
-            cfgfile = gConf->getMessageFile(MSG_SMS_REMINDER) ;
-            updateremindermessagesent = true ;
-        }
-
-        else if (emailme && !deleted && istime && !remindermessagesent) {
-            kind = "reminder" ;
-            type = "Sending reminder email to " + emailaddress ;
-            cfgfile = gConf->getMessageFile(MSG_EMAIL_REMINDER) ;
-            sendsmtp = true ;
-            updateremindermessagesent = true ;
-        }
-
-        // An occurrence removed from a repeat (by "just this one") is cancelled, for the occurrence removed
-        if (kind.isEmpty() && messagesent && !deleted && appt.isRepeating()) {
-            QStringList notified = cancelledOccurrences(appt) ;
-            for (const QDateTime &removed : appt.exceptions()) {
-                if (removed<=now || notified.contains(occurrenceKey(removed))) continue ;
-                kind = "cancelocc" ;
-                occ = removed ;
-                apptdate = occ.toLocalTime().toString("dd-MMM-yyyy hh:mm") ;
-                if (emailme) {
-                    type = "Sending cancellation email to " + emailaddress ;
-                    cfgfile = gConf->getMessageFile(MSG_EMAIL_DELETION) ;
-                    sendsmtp = true ;
-                } else {
-                    type = "Sending cancelled sms to " + mobile ;
-                    cfgfile = gConf->getMessageFile(MSG_SMS_DELETION) ;
-                }
-                break ;
-            }
-        }
-
-        // The on-the-day reminder: when both email and text are set, the reminder on the day of the appointment goes by
-        // both.  Each channel is sent once, and recorded, so that it is not sent again after a restart.
-        QString dayrecord = appt.getField(Appointment::ReminderOnDaySent) ;
-        bool emaildone = dayChannelSent(dayrecord, today, "email") ;
-        bool smsdone = dayChannelSent(dayrecord, today, "sms") ;
-
-        if (kind.isEmpty() && emailme && textme && !deleted && !(emaildone && smsdone) &&
-            occ.toLocalTime().date()==now.toLocalTime().date()) {
+        // The on-the-day reminder, sent by the steps decided above: each channel once, and recorded
+        if (onday) {
 
             QString emailkey = id + "|dayemail" ;
             QString textkey = id + "|daysms" ;
@@ -537,7 +490,7 @@ void MainWindow::sendMailSMS()
 
                     // A confirmation or update given on the day of the appointment already gives the time, so the on-the-day
                     // reminders for that day count as sent
-                    if (occ.toLocalTime().date()==now.toLocalTime().date()) {
+                    if (isOnTheDay(occ, now)) {
                         QString record = dayChannelRecord(after.getField(Appointment::ReminderOnDaySent), today, "email") ;
                         after.setSentField(Appointment::ReminderOnDaySent, dayChannelRecord(record, today, "sms")) ;
                     }

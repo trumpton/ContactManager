@@ -89,6 +89,7 @@ SOURCES += main.cpp\
     mainwindow_tab_calendar.cpp \
     mainwindow_timer_backup.cpp \
     mainwindow_timer_alert.cpp \
+    messagedecision.cpp \
     mainwindow_menu_navigation.cpp \
     mainwindow_tab_journal.cpp \
     mainwindow_tab_overview.cpp \
@@ -147,6 +148,7 @@ HEADERS  += mainwindow.h \
     logform.h \
     ../Lib/accessibledaterangeedit.h \
     sms.h \
+    messagedecision.h \
     smtp.h \
     email.h \
     ../Lib/lineeditnavigator.h \
