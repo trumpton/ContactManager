@@ -333,9 +333,6 @@ int SMS::sendEsendex(QString number, QString from, QString message)
     QString URL = "https://api.esendex.co.uk/v2/messages" ;
     QString accountref = username.trimmed() ;
 
-    // The sender is not sent: Esendex uses the account's sender
-    Q_UNUSED(from) ;
-
     if (accountref.isEmpty()) {
         smsErrorData = "The Esendex account reference is blank. Set it as the username in the [sms-reminder] section of ContactManager.ini (from My Account in the Esendex portal)." ;
         return -1 ;
@@ -371,6 +368,13 @@ int SMS::sendEsendex(QString number, QString from, QString message)
     root.insert("channel", "SMS") ;
     root.insert("body", text) ;
     root.insert("recipients", recipients) ;
+
+    // The sender: the ini sender if set (the name registered with Esendex), otherwise the template's sender line.  It is
+    // letters and digits only.  If there is none, Esendex uses the account's default sender.
+    QString sender = gConf ? gConf->getSMSSender() : QString() ;
+    if (sender.isEmpty()) sender = from ;
+    sender = sender.remove(QRegularExpression("[^A-Za-z0-9]")).left(11) ;
+    if (!sender.isEmpty()) root.insert("from", sender) ;
 
     QByteArray json = QJsonDocument(root).toJson(QJsonDocument::Compact) ;
 

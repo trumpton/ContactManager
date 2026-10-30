@@ -218,6 +218,11 @@ bool Configuration::debugGoogleEnabled()
     return (m.compare("true", Qt::CaseInsensitive)==0 || m.compare("yes", Qt::CaseInsensitive)==0) ;
 }
 
+QString Configuration::getSMSSender()
+{
+    return ini.get("sms-reminder", "sender").trimmed() ;
+}
+
 bool Configuration::debugSMSEnabled()
 {
     QString m = ini.get("sms-reminder", "debug") ;
