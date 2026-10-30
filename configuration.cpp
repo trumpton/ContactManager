@@ -665,3 +665,23 @@ void Configuration::on_conflictContactManager_clicked()
 {
     ui->enableReminders->setEnabled(true) ;
 }
+
+int Configuration::getWaitBeforeUpdateMinutes()
+{
+    return wholeNumberOrDefault(ini.get("reminders", "waitbeforeupdatemins"), 5) ;
+}
+
+int Configuration::getMaxMessagesPerContactPerDay()
+{
+    return wholeNumberOrDefault(ini.get("reminders", "maxmessagesperdaypercontact"), 10) ;
+}
+
+int Configuration::getContactMessagesToday(const QString &contactid, const QString &day)
+{
+    return settings->value("messagecount/" + contactid + "/" + day, 0).toInt() ;
+}
+
+void Configuration::addContactMessageToday(const QString &contactid, const QString &day)
+{
+    settings->setValue("messagecount/" + contactid + "/" + day, getContactMessagesToday(contactid, day) + 1) ;
+}

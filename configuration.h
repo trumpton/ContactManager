@@ -138,6 +138,17 @@ public:
     // A new appointment waits this many minutes before its messages are sent (ini [reminders], default 5)
     int getWaitBeforeSendMinutes() ;
 
+    // A changed appointment's update waits this many minutes after its last change, so that several quick edits send
+    // one update (waitbeforeupdatemins in [reminders], default 5)
+    int getWaitBeforeUpdateMinutes() ;
+
+    // The most messages sent to one contact in a day (maxmessagesperdaypercontact in [reminders], default 10)
+    int getMaxMessagesPerContactPerDay() ;
+
+    // The messages sent to a contact on a day (kept in the settings store), and adding one
+    int getContactMessagesToday(const QString &contactid, const QString &day) ;
+    void addContactMessageToday(const QString &contactid, const QString &day) ;
+
     // Whether an .ics appointment is attached to emails (ini [reminders], attachics=yes or no, default no)
     bool getAttachICS() ;
 

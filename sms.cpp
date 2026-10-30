@@ -234,9 +234,9 @@ int SMS::sendVoodoo(QString number, QString from, QString message)
         QRegularExpression result("<result>\\s*([0-9]+)") ;
         QRegularExpressionMatch resultmatch = result.match(body) ;
 
-        if (status==200 && resultmatch.hasMatch() && resultmatch.captured(1)=="200") {
+        if (status>=200 && status<300 && resultmatch.hasMatch() && resultmatch.captured(1)=="200") {
             code = 1 ;
-        } else if (status==200) {
+        } else if (status>=200 && status<300) {
             // The service answered, but did not accept the message
             smsErrorData = "Voodoo did not accept the message: " + body ;
             code = -3 ;
@@ -412,8 +412,8 @@ int SMS::sendEsendex(QString number, QString from, QString message)
             code = -1 ;
         }
 
-    } else if (status==200 || status==201 || status==202) {
-        // 202 Accepted is the send's success reply: the message is queued, and its messageIds are in the reply
+    } else if (status>=200 && status<300) {
+        // Any 2xx is success: 202 Accepted is the send's usual reply, with the message's messageIds
         smsErrorData = body ;
         code = 1 ;
 
