@@ -246,12 +246,10 @@ void Appointment::setDate(enum AppointmentRecord field, QDateTime data)
     setField(field, datestr) ;
 }
 
-QDateTime& Appointment::getDate(enum AppointmentRecord field) const
+QDateTime Appointment::getDate(enum AppointmentRecord field) const
 {
-    static QDateTime dt ;
-    QString data = getField(field) ;
-    dt = isoStringToDateTime(data) ;
-    return dt ;
+    // A copy is taken: isoStringToDateTime returns a shared value, which the next call overwrites
+    return QDateTime(isoStringToDateTime(getField(field))) ;
 }
 
 QString& Appointment::getField(enum Appointment::AppointmentRecord field) const
