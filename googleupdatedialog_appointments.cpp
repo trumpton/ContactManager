@@ -182,6 +182,10 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
             newlocal.setField(Appointment::To, googleappt.getField(Appointment::To)) ;
             newlocal.setField(Appointment::Summary, QString("--! Undefined !--")) ;
 
+            // Not confirmed again.  The appointment may have been messaged before its local record was lost, or was made
+            // elsewhere, so its confirmation is not sent.  Changes made to it after this are still sent as updates.
+            newlocal.setField(Appointment::MessageSent, nowToIsoString()) ;
+
             // Download only, and not uploaded.  An event made on Google has no ID stored there, but its local ID is
             // derived from its Google ID (see parseAppointment), so it is stable without an upload.  Uploading it
             // rewrote the event on Google, adding the app's properties, and rewrote events the user never changed.
