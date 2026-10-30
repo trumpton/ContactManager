@@ -50,6 +50,9 @@ public:
         // What the last confirmation or update said, so that a change to it is sent as an update
         MessageSignature,
 
+        // Set when the on-the-day reminder has gone by both email and text
+        ReminderOnDaySent,
+
         // Flags
         ToBeUploaded,           // Used to track uploads
         ToBeDownloaded,         // Used to track downloads
@@ -110,6 +113,7 @@ public:
         { ReminderMessageSent, false, false, false, true, "remindermessagesentdate" },
         { MessageCounter,      false, false, false, true, "messagecounter" },
         { MessageSignature,    false, false, false, true, "messagesignature" },
+        { ReminderOnDaySent,   false, false, false, true, "reminderondaysent" },
 
         { ToBeUploaded,         true, false, false, false, "tobeuploaded" },
         { ToBeDownloaded,       true, false, false, false, "tobedownloaded" },
