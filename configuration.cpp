@@ -218,6 +218,12 @@ bool Configuration::debugGoogleEnabled()
     return (m.compare("true", Qt::CaseInsensitive)==0 || m.compare("yes", Qt::CaseInsensitive)==0) ;
 }
 
+bool Configuration::debugSMSEnabled()
+{
+    QString m = ini.get("sms-reminder", "debug") ;
+    return (m.compare("true", Qt::CaseInsensitive)==0 || m.compare("yes", Qt::CaseInsensitive)==0) ;
+}
+
 bool Configuration::encryptedEnabled()
 {
     QString m = ini.get("database", "encrypted") ;
