@@ -47,6 +47,9 @@ public:
         // Counters
         MessageCounter,         // Number of Message Sends
 
+        // What the last confirmation or update said, so that a change to it is sent as an update
+        MessageSignature,
+
         // Flags
         ToBeUploaded,           // Used to track uploads
         ToBeDownloaded,         // Used to track downloads
@@ -106,6 +109,7 @@ public:
         { MessageSent,         false, false, false, true, "messagesentdate" },
         { ReminderMessageSent, false, false, false, true, "remindermessagesentdate" },
         { MessageCounter,      false, false, false, true, "messagecounter" },
+        { MessageSignature,    false, false, false, true, "messagesignature" },
 
         { ToBeUploaded,         true, false, false, false, "tobeuploaded" },
         { ToBeDownloaded,       true, false, false, false, "tobedownloaded" },

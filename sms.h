@@ -44,6 +44,10 @@ public:
 
     bool checkCredits() ;
 
+    // A mobile number as Voodoo wants it: digits only, with the country code and no leading 0 or +.  A national number
+    // (starting with 0) gets the country code, e.g. 07700900000 with countrycode 0044 gives 447700900000.
+    static QString internationalNumber(QString number, QString countrycode) ;
+
 
 private:
     enum Agent agent ;

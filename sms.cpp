@@ -9,6 +9,10 @@
 #include <QUrlQuery>
 #include <QDebug>
 
+// The longest a request to the SMS service may take.  Without this, a service that stops replying would leave the app
+// waiting for ever.
+static const int SMS_TIMEOUT_MS = 30000 ;
+
 // The agent is the name given in the ini file ("voodoo").  A blank or unknown name is Unknown, and send and getBalance
 // then return BadAgent.
 SMS::SMS(QString& agent, QString& username, QString& password)
@@ -22,6 +26,24 @@ SMS::SMS(QString& agent, QString& username, QString& password)
         this->agent=Unknown ;
         smsErrorData = "Unknown SMS agent: '" + agent + "'" ;
     }
+}
+
+QString SMS::internationalNumber(QString number, QString countrycode)
+{
+    // Only digits and a leading + are kept, so spaces, dashes and brackets are dropped
+    QString digits = number.remove(QRegularExpression("[^0-9+]")) ;
+
+    if (digits.startsWith("+")) return digits.mid(1) ;
+    if (digits.startsWith("00")) return digits.mid(2) ;
+
+    // A national number: the country code replaces the leading 0 (the country code may be written 0044)
+    QString country = countrycode.remove(QRegularExpression("[^0-9]")) ;
+    if (digits.startsWith("0") && !country.isEmpty()) {
+        if (country.startsWith("00")) country = country.mid(2) ;
+        return country + digits.mid(1) ;
+    }
+
+    return digits ;
 }
 
 bool SMS::checkCredits()
@@ -96,6 +118,7 @@ int SMS::sendVoodoo(QString number, QString from, QString message)
 
     QObject::connect(&manager, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+    request.setTransferTimeout(SMS_TIMEOUT_MS) ;
 
     qDebug() << "SMS Connecting to " << URL ;
 
@@ -104,8 +127,13 @@ int SMS::sendVoodoo(QString number, QString from, QString message)
     eventLoop.exec() ;
 
     if (reply->error()!=QNetworkReply::NoError) {
-        // Unable to send
         smsErrorData = reply->errorString() ;
+
+        // A reply that timed out, or a connection that dropped, may still have been accepted by the service, so the
+        // message is not sent again.  Otherwise the message was not sent.
+        if (reply->error()==QNetworkReply::OperationCanceledError || reply->error()==QNetworkReply::RemoteHostClosedError) {
+            return -4 ;
+        }
         return -1 ;
     }
 
@@ -141,9 +169,13 @@ int SMS::getVoodooBalance()
     QNetworkReply *reply ;
 
     QObject::connect(&manager, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
+    request.setTransferTimeout(SMS_TIMEOUT_MS) ;
 
     reply = manager.get(request) ;
     eventLoop.exec() ;
+
+    // No reply, or the request timed out
+    if (reply->error()!=QNetworkReply::NoError) return -2 ;
 
     // Error response returned
     if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute)!=200) return -4 ;
