@@ -191,11 +191,12 @@ void MainWindow::on_actionGlobalFind_triggered()
           }
         }
 
-        // Finally search the hidden contact name, and journal
+        // Finally search the hidden contact name, and journal, and the deleted ones when they are shown
         numcontacts = db.size() ;
         for (int i=0; i<numcontacts; i++) {
           Contact &contact = db.getContact(i) ;
-          if (!contact.isSet(Contact::Deleted) && contact.isSet(Contact::Hidden)) {
+          bool deleted = contact.isSet(Contact::Deleted) ;
+          if ((!deleted && contact.isSet(Contact::Hidden)) || (deleted && showdeletedcontacts)) {
               Todo &todo = contact.getTodo() ;
               if (contact.find(searchtext)>=0 || todo.find(searchtext)>=0) {
                   QString ContactName = "{" + contact.getFormattedName(true, true) + "}";
@@ -303,7 +304,7 @@ void MainWindow::on_action_Advanced_Find_triggered()
 
                 Contact &contact = db.getContact(i) ;
 
-                if (!contact.isSet(Contact::Deleted)) {
+                if (!contact.isSet(Contact::Deleted) || showdeletedcontacts) {
 
                     bool match=true ;
 
@@ -335,6 +336,7 @@ void MainWindow::on_action_Advanced_Find_triggered()
 
                     if (match) {
                         QString ContactName = contact.getFormattedName(true, true) ;
+                        if (contact.isSet(Contact::Deleted) || contact.isSet(Contact::Hidden)) ContactName = "{" + ContactName + "}" ;
                         QString id = contact.getField(Contact::ID) ;
                         srch->addString(ContactName, id) ;
                         matches++ ;

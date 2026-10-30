@@ -93,6 +93,10 @@ public:
     // deleted, as deleting all of a repeat's occurrences does.  Returns how many, and describes each in removed.
     int tidyRepeatsWithNoOccurrences(QStringList &removed) ;
 
+    // Tidy Records, for the calendar.  Deleted entries that are not on Google are moved to the deleted folder.  Those still
+    // linked to Google are left for Google Sync to remove there.  Returns how many were moved, and how many were linked.
+    int tidyDeleted(int &linked) ;
+
     // Entries whose contact is missing or deleted.  They are described, and are left as they are: which contact they belong
     // to is for the user to decide.
     QStringList orphanedEntries(ContactDatabase &db) ;

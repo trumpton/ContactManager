@@ -56,6 +56,12 @@ void MainWindow::LoadCalendarTab()
         row.end = start.addSecs(from.secsTo(to)) ;
         row.title = shown.asText(apptfor) ;
         row.accessible = shown.asAccessibleText(apptfor) ;
+
+        // A deleted appointment is listed only when Show > Deleted Appointments is ticked, and then in braces
+        if (appt.isSet(Appointment::Deleted)) {
+            row.title = "{" + row.title + "}" ;
+            row.accessible = "Deleted, " + row.accessible ;
+        }
         row.hint = hint ;
         rows << row ;
     } ;
@@ -73,7 +79,7 @@ void MainWindow::LoadCalendarTab()
     int ne=calendar.size() ;
     for (int i=0; i<ne; i++) {
        Appointment &appt = calendar.getAppointment(i) ;
-       if (appt.isSet(Appointment::Deleted)) continue ;
+       if (appt.isSet(Appointment::Deleted) && !showdeletedappointments) continue ;
        QString apptid = appt.getField(Appointment::ID) ;
        // The first occurrence is not listed when the repeat leaves it out
        bool originlisted = !(appt.isRepeating() && appt.isException(appt.getDate(Appointment::From))) ;

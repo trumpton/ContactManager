@@ -646,6 +646,40 @@ int Calendar::tidyRepeatsWithNoOccurrences(QStringList &removed)
 
 //=====================================================================================================
 //
+// Public: Calendar - tidyDeleted
+//
+//  Moves the deleted entries that are not linked to Google to the deleted folder, as the contacts are.  An entry linked to
+//  Google is kept until Google Sync removes it there, which clears the link, so that a later tidy can move it.  Only the ID
+//  is logged.  Returns how many were moved, and how many are linked.
+//
+int Calendar::tidyDeleted(int &linked)
+{
+    int moved=0 ;
+    linked=0 ;
+
+    // Work backwards, so that removing an entry does not shift the ones still to check
+    for (int i=appointments.size()-1; i>=0; i--) {
+        Appointment &appt = appointments[i] ;
+        if (!appt.isSet(Appointment::Deleted)) continue ;
+
+        if (!appt.getField(Appointment::GoogleRecordId).isEmpty()) {
+            linked++ ;
+            continue ;
+        }
+
+        QString id = appt.getField(Appointment::ID) ;
+        addLog("Tidy: moving appointment " + id + " to deleted folder") ;
+        QString filename = id + ".appointment" ;
+        backupFile(gCalendarSavePath, filename) ;
+        appointments.removeAt(i) ;
+        moved++ ;
+    }
+
+    return moved ;
+}
+
+//=====================================================================================================
+//
 // Public: Calendar - orphanedEntries
 //
 //  The entries for a contact that is missing or deleted.  They are described and left as they are.  An entry for Me, and an
