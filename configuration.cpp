@@ -675,17 +675,41 @@ int Configuration::getWaitBeforeUpdateMinutes()
     return wholeNumberOrDefault(ini.get("reminders", "waitbeforeupdatemins"), 5) ;
 }
 
-int Configuration::getMaxMessagesPerContactPerDay()
+// The most messages sent to one contact in the last 24 hours.  maxmessagesperdaypercontact, the name it had before, is
+// still read when limitperday is not set.  A limit below 1 is not used, and the default applies.
+int Configuration::getLimitPerDay()
 {
-    return wholeNumberOrDefault(ini.get("reminders", "maxmessagesperdaypercontact"), 10) ;
+    QString text = ini.get("reminders", "limitperday") ;
+    if (text.isEmpty()) text = ini.get("reminders", "maxmessagesperdaypercontact") ;
+    int limit = wholeNumberOrDefault(text, 10) ;
+    return limit>=1 ? limit : 10 ;
 }
 
-int Configuration::getContactMessagesToday(const QString &contactid, const QString &day)
+// The most messages sent to one contact in the last hour
+int Configuration::getLimitPerHour()
 {
-    return settings->value("messagecount/" + contactid + "/" + day, 0).toInt() ;
+    int limit = wholeNumberOrDefault(ini.get("reminders", "limitperhour"), 5) ;
+    return limit>=1 ? limit : 5 ;
 }
 
-void Configuration::addContactMessageToday(const QString &contactid, const QString &day)
+// The times of the messages sent to a contact in the last 24 hours.  They are kept in the settings store, so that the
+// limits still hold after ContactManager is restarted.
+QList<QDateTime> Configuration::getContactMessageTimes(const QString &contactid)
 {
-    settings->setValue("messagecount/" + contactid + "/" + day, getContactMessagesToday(contactid, day) + 1) ;
+    QDateTime since = QDateTime::currentDateTimeUtc().addSecs(-24 * 3600) ;
+    QList<QDateTime> times ;
+    foreach (const QString &text, settings->value("messagelog/" + contactid).toStringList()) {
+        QDateTime when = QDateTime::fromString(text, Qt::ISODate) ;
+        if (when.isValid() && when>since) times.append(when) ;
+    }
+    return times ;
+}
+
+// Records a message sent to a contact at this time.  Records older than 24 hours are dropped, as they no longer count.
+void Configuration::addContactMessage(const QString &contactid, QDateTime when)
+{
+    QStringList texts ;
+    foreach (const QDateTime &earlier, getContactMessageTimes(contactid)) texts.append(earlier.toUTC().toString(Qt::ISODate)) ;
+    texts.append(when.toUTC().toString(Qt::ISODate)) ;
+    settings->setValue("messagelog/" + contactid, texts) ;
 }
