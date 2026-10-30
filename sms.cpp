@@ -340,6 +340,10 @@ int SMS::sendEsendex(QString number, QString from, QString message)
         smsErrorData = "The Esendex account reference is blank. Set it as the username in the [sms-reminder] section of ContactManager.ini (from My Account in the Esendex portal)." ;
         return -1 ;
     }
+    if (accountref.contains('@')) {
+        smsErrorData = "The Esendex account reference looks like an email address. Use the account code from My Account in the Esendex portal instead." ;
+        return -1 ;
+    }
     if (password.isEmpty()) {
         smsErrorData = "The Esendex API key is blank. Set it in Settings (the SMS password), from Developer Tools in the Esendex portal." ;
         return -1 ;
@@ -408,6 +412,10 @@ int SMS::sendEsendex(QString number, QString from, QString message)
         smsErrorData = "Esendex rejected the message (HTTP 400): " + body ;
         code = -3 ;
 
+    } else if (status==404) {
+        smsErrorData = "Esendex could not find the account reference. Use the account code from My Account in the Esendex portal. Esendex said: " + body ;
+        code = -3 ;
+
     } else if (status==401 || status==403) {
         smsErrorData = "Esendex rejected the API key or account reference (HTTP " + QString::number(status) + "). Check the username and the Settings password. Esendex said: " + body ;
         code = -3 ;
@@ -433,6 +441,10 @@ int SMS::getEsendexBalance()
 
     if (accountref.isEmpty() || password.isEmpty()) {
         smsErrorData = "The Esendex account reference or API key is blank, so the balance cannot be read." ;
+        return -2 ;
+    }
+    if (accountref.contains('@')) {
+        smsErrorData = "The Esendex account reference looks like an email address. Use the account code from My Account in the Esendex portal instead." ;
         return -2 ;
     }
 
@@ -473,6 +485,10 @@ int SMS::getEsendexBalance()
 
     } else if (status==401 || status==403) {
         smsErrorData = "Esendex rejected the API key or account reference (HTTP " + QString::number(status) + ") for the balance. Esendex said: " + body ;
+        code = -2 ;
+
+    } else if (status==404) {
+        smsErrorData = "Esendex could not find the account reference, for the balance. Use the account code from My Account in the Esendex portal. Esendex said: " + body ;
         code = -2 ;
 
     } else {
