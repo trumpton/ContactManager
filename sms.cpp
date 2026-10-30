@@ -412,7 +412,8 @@ int SMS::sendEsendex(QString number, QString from, QString message)
             code = -1 ;
         }
 
-    } else if (status==200 || status==201) {
+    } else if (status==200 || status==201 || status==202) {
+        // 202 Accepted is the send's success reply: the message is queued, and its messageIds are in the reply
         smsErrorData = body ;
         code = 1 ;
 

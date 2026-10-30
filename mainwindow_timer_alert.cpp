@@ -66,9 +66,21 @@ static QHash<QString, int> sendfailures ;
 // Appointments already reported as having no address to send to, so that the report is made once
 static QSet<QString> noaddressreported ;
 
-// The on-the-day reminder is sent by email and by text.  A channel that has been sent is kept here until both have
-// been, when the day's reminder is recorded on the appointment.
-static QSet<QString> daychannelsent ;
+// The on-the-day reminder is recorded on the appointment, so that it is not sent again after a restart.  The record is
+// the day, and the channels sent that day, e.g. "2026-10-30 email sms".
+static bool dayChannelSent(const QString &record, const QString &day, const QString &channel)
+{
+    QStringList parts = record.split(' ', Qt::SkipEmptyParts) ;
+    return !parts.isEmpty() && parts.at(0)==day && parts.contains(channel) ;
+}
+
+static QString dayChannelRecord(const QString &record, const QString &day, const QString &channel)
+{
+    QStringList parts = record.split(' ', Qt::SkipEmptyParts) ;
+    if (parts.isEmpty() || parts.at(0)!=day) parts = QStringList() << day ;
+    if (!parts.contains(channel)) parts.append(channel) ;
+    return parts.join(' ') ;
+}
 
 // Whether a message with this key may be tried now (it has not been given up on, and its wait is over)
 static bool maySend(const QString &key, const QDateTime &now)
@@ -142,7 +154,16 @@ void MainWindow::sendMailSMS()
         if (result==1 || result==-4) {
             sendfailures.remove(key) ;
             sendretryafter.remove(key) ;
-            daychannelsent.insert(key) ;
+
+            // Recorded and saved straight away, so that the message is not sent again after a restart
+            QString today = now.toLocalTime().date().toString("yyyy-MM-dd") ;
+            Appointment &after = calendar.getAppointmentBy(Appointment::ID, apptid) ;
+            if (!after.isNull()) {
+                after.setField(Appointment::ReminderOnDaySent,
+                               dayChannelRecord(after.getField(Appointment::ReminderOnDaySent), today, byemail ? "email" : "sms")) ;
+            }
+            if (!calendar.save()) addLog("ERROR: the calendar could not be saved after the on-the-day reminder") ;
+
             if (result==1) {
                 addLog(QString("%1 - %2").arg(type,apptdate)) ;
                 msg(type) ;
@@ -311,28 +332,24 @@ void MainWindow::sendMailSMS()
 
         // The on-the-day reminder: when both email and text are set, the reminder on the day of the appointment goes by
         // both.  It is sent once, after any other reminder for the appointment has gone.
-        if (kind.isEmpty() && emailme && textme && !deleted && isinfuture &&
-            !appt.getDate(Appointment::ReminderOnDaySent).isValid() &&
+        QString today = now.toLocalTime().date().toString("yyyy-MM-dd") ;
+        QString dayrecord = appt.getField(Appointment::ReminderOnDaySent) ;
+        bool emaildone = dayChannelSent(dayrecord, today, "email") ;
+        bool smsdone = dayChannelSent(dayrecord, today, "sms") ;
+
+        if (kind.isEmpty() && emailme && textme && !deleted && isinfuture && !(emaildone && smsdone) &&
             appt.getDate(Appointment::From).toLocalTime().date()==now.toLocalTime().date()) {
 
             QString emailkey = id + "|dayemail" ;
             QString textkey = id + "|daysms" ;
 
-            if (!daychannelsent.contains(emailkey) && maySend(emailkey, now)) {
+            if (!emaildone && maySend(emailkey, now)) {
                 sendOnDay(emailkey, "Sending on-the-day reminder email to " + emailaddress, true,
                           gConf->getMessageFile(MSG_EMAIL_REMINDER), id, contactid, mobile, emailaddress) ;
             }
-            if (!daychannelsent.contains(textkey) && maySend(textkey, now)) {
+            if (!smsdone && maySend(textkey, now)) {
                 sendOnDay(textkey, "Sending on-the-day reminder sms message to " + mobile, false,
                           gConf->getMessageFile(MSG_SMS_REMINDER), id, contactid, mobile, emailaddress) ;
-            }
-
-            if (daychannelsent.contains(emailkey) && daychannelsent.contains(textkey)) {
-                Appointment &after = calendar.getAppointmentBy(Appointment::ID, id) ;
-                if (!after.isNull()) after.setField(Appointment::ReminderOnDaySent, nowToIsoString()) ;
-                daychannelsent.remove(emailkey) ;
-                daychannelsent.remove(textkey) ;
-                if (!calendar.save()) addLog("ERROR: the calendar could not be saved after the on-the-day reminder") ;
             }
             continue ;
         }
