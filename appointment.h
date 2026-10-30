@@ -5,6 +5,7 @@
 #include <QTimeZone>
 #include <QList>
 #include <QStringList>
+#include <QPair>
 
 
 class Appointment
@@ -239,10 +240,16 @@ public:
     bool isNotFor(QString& id) ;
 
     void setField(enum AppointmentRecord field, QString data) ;
+
+    // Sets a record of what has been messaged, without counting it as an edit: Updated is kept as it was, so that the
+    // wait after an edit is not restarted by the messages themselves
+    void setSentField(enum AppointmentRecord field, QString data) ;
+
     void setFlag(enum AppointmentRecord field, bool flag) ;
     void setDate(enum AppointmentRecord field, QDateTime data) ;
     QString& getField(enum AppointmentRecord field) const ;
-    QDateTime& getDate(enum AppointmentRecord field) const ;
+    // Returns a copy, so that a date stays as it was read, however many other dates are read after it
+    QDateTime getDate(enum AppointmentRecord field) const ;
     bool isSet(enum AppointmentRecord field) const ;
 
     // ID Shortcuts
@@ -274,6 +281,13 @@ public:
 
     // Returns true if appointments clash
     bool clashes(Appointment& with) ;
+
+    // The clash test on a period: the period dFrom..dTo clashes with wFrom..wTo
+    static bool periodsClash(QDateTime dFrom, QDateTime dTo, QDateTime wFrom, QDateTime wTo) ;
+
+    // The occurrences of this appointment that the calendar lists, as their starts and ends (UTC), and which fall between
+    // from and to.  A repeat's occurrences are listed except those removed from it, and it has none once it has ended.
+    QList<QPair<QDateTime,QDateTime>> listedOccurrences(QDateTime from, QDateTime to) ;
 
     // Operators
     int operator==(const Appointment &rhs) const;

@@ -45,6 +45,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     // Initialise and load configuration
     gConf = new Configuration(this) ;
 
+    // Reminder settings that are no longer used, or not valid, are written to the log, so that they can be corrected
+    for (const QString &warning : gConf->reminderSettingWarnings()) addLog(warning) ;
+
     // Initialise encryption i/o
     enc = new Encryption(QString("trumpton.uk"), QString("TextFileEncryption")) ;
     gConf->setEncryption(enc);
@@ -178,34 +181,49 @@ void MainWindow::on_initial_focus()
     reportClashes() ;
 }
 
-// Lists the pairs of appointments that overlap, so they can be fixed.  Nothing is changed.  Appointments are sorted by
-// their start, so an appointment is only compared with those that start before it ends.
+// Lists the pairs of appointments that overlap, so they can be fixed.  Nothing is changed.  The occurrences the calendar lists
+// within its window are compared, so a removed occurrence of a repeat, or a repeat with none left, is not.  The occurrences
+// are sorted by their start, so one is only compared with those that start before it ends.
 void MainWindow::reportClashes()
 {
-    QList<Appointment*> live ;
+    QDateTime now = QDateTime::currentDateTimeUtc() ;
+    QDateTime windowstart = now.addDays(-gConf->calendarWindowBefore()) ;
+    QDateTime windowend = now.addDays(gConf->calendarWindowAfter()) ;
+
+    // One entry for each listed occurrence: the appointment it is of, and its times
+    struct Listed {
+        Appointment *appt ;
+        QDateTime from ;
+        QDateTime to ;
+    } ;
+    QList<Listed> listed ;
     for (int i=0; i<calendar.size(); i++) {
         Appointment &appt = calendar.getAppointment(i) ;
-        if (!appt.isSet(Appointment::Deleted) && !appt.isTemp()) live << &appt ;
+        if (appt.isSet(Appointment::Deleted) || appt.isTemp()) continue ;
+        QList<QPair<QDateTime,QDateTime>> occurrences = appt.listedOccurrences(windowstart, windowend) ;
+        for (const QPair<QDateTime,QDateTime> &occurrence : occurrences) {
+            listed << Listed{ &appt, occurrence.first, occurrence.second } ;
+        }
     }
-    // getDate returns one shared value, so a date is copied before the next one is read
-    std::sort(live.begin(), live.end(), [](Appointment *a, Appointment *b) {
-        QDateTime afrom = a->getDate(Appointment::From) ;
-        return afrom < b->getDate(Appointment::From) ;
-    }) ;
 
-    // A line for an appointment: its summary, its day, and its times
-    auto describe = [](Appointment *appt) {
-        return QString("%1 (%2 - %3)").arg(appt->getField(Appointment::Summary),
-                                            appt->getDate(Appointment::From).toString("dd MMM yyyy HH:mm"),
-                                            appt->getDate(Appointment::To).toString("HH:mm")) ;
+    std::sort(listed.begin(), listed.end(), [](const Listed &a, const Listed &b) { return a.from < b.from ; }) ;
+
+    // A line for an occurrence: its summary, its day, and its times
+    auto describe = [](const Listed &item) {
+        return QString("%1 (%2 - %3)").arg(item.appt->getField(Appointment::Summary),
+                                            item.from.toLocalTime().toString("dd MMM yyyy HH:mm"),
+                                            item.to.toLocalTime().toString("HH:mm")) ;
     } ;
 
     QStringList lines ;
-    for (int i=0; i<live.size(); i++) {
-        QDateTime iend = live[i]->getDate(Appointment::To) ;
-        for (int j=i+1; j<live.size(); j++) {
-            if (live[j]->getDate(Appointment::From) >= iend) break ;
-            if (live[i]->clashes(*live[j])) lines << "    " + describe(live[i]) + " and " + describe(live[j]) ;
+    for (int i=0; i<listed.size(); i++) {
+        for (int j=i+1; j<listed.size(); j++) {
+            if (listed[j].from >= listed[i].to) break ;
+            // Occurrences of one repeat are not compared with each other
+            if (listed[i].appt==listed[j].appt) continue ;
+            if (Appointment::periodsClash(listed[i].from, listed[i].to, listed[j].from, listed[j].to)) {
+                lines << "    " + describe(listed[i]) + " and " + describe(listed[j]) ;
+            }
         }
     }
     if (lines.isEmpty()) return ;
@@ -742,7 +760,7 @@ void MainWindow::on_actionTidyContacts_triggered()
 
     // Progress is shown in a window with a log, which also carries the summary at the end
     GoogleUpdateDialog progress(this) ;
-    progress.showProgress("Tidy Contacts") ;
+    progress.showProgress("Tidy Records") ;
 
     // Repeated history lines go first, in every contact
     int historylines=0, historycontacts=0 ;
@@ -898,7 +916,7 @@ void MainWindow::on_actionTidyContacts_triggered()
                     sections << "If merged, the entry will be:\n" + describe(merged, first, second).join("\n") ;
                     sections << "Merge them?" ;
                     bool dontask = false ;
-                    domerge = warningYesNoDialog(this, "Tidy Contacts", sections.join("\n\n"), "Merge", QChar('y'), "Skip", QChar('n'),
+                    domerge = warningYesNoDialog(this, "Tidy Records", sections.join("\n\n"), "Merge", QChar('y'), "Skip", QChar('n'),
                                                  "Do this for all future matches", false, dontask) ;
                     if (dontask) policy = domerge ? 1 : -1 ;
                 } else {
@@ -929,9 +947,15 @@ void MainWindow::on_actionTidyContacts_triggered()
         }
     }
 
+    // Calendar entries, checked after the contacts are tidied: a repeat with no occurrences left is marked deleted, and the
+    // entries whose contact is missing or deleted are listed, to be decided by the user.
+    QStringList repeatsremoved ;
+    int repeatcount = calendar.tidyRepeatsWithNoOccurrences(repeatsremoved) ;
+    QStringList orphans = calendar.orphanedEntries(db) ;
+
     if (automatic==0 && confirmed==0 && declined==0 && historylines==0 && emptied==0 && renamed==0 && unnamedleft.isEmpty()
-        && entrieschanged==0 && entriesunfixed.isEmpty()) {
-        progress.finishProgress(stopped ? "Stopped at your request." : "No duplicate contacts, repeated history lines or unnamed entries were found.") ;
+        && entrieschanged==0 && entriesunfixed.isEmpty() && repeatcount==0 && orphans.isEmpty()) {
+        progress.finishProgress(stopped ? "Stopped at your request." : "No duplicate contacts, repeated history lines, unnamed entries or calendar entries needing attention were found.") ;
         return ;
     }
 
@@ -971,6 +995,16 @@ void MainWindow::on_actionTidyContacts_triggered()
     if (linked>0) summary << QString("%1 removed entries are still on Google.").arg(linked) ;
     summary << "Run Google Sync to send the merged details, and to remove the others from Google." ;
     if (stopped) summary << "Stopped at your request, so the remaining contacts were not checked." ;
+
+    if (repeatcount>0) {
+        summary << QString("Repeats with no occurrences left, marked deleted (%1). Run Google Sync to remove them from Google.").arg(repeatcount) ;
+        foreach (const QString &line, repeatsremoved) summary << "    " + line ;
+    }
+    if (!orphans.isEmpty()) {
+        summary << QString("Calendar entries whose contact is missing or deleted, left as they are (%1):").arg(orphans.size()) ;
+        foreach (const QString &line, orphans) summary << "    " + line ;
+        summary << "Open each one in the Calendar tab and give it a contact, or delete it." ;
+    }
 
     summary << QString("Records changed by this merge (%1):").arg(changedlines.size()) ;
     foreach (const QString &line, changedlines) summary << "    " + line ;

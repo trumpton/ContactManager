@@ -103,10 +103,10 @@ static QHash<QString, int> sendfailures ;
 // Appointments whose sent state could not be read from Google, and the time it is tried again
 static QHash<QString, QDateTime> sentstateretryafter ;
 
-// Appointments already reported as having no address to send to, and contacts already reported as at their daily
-// limit, so that each report is made once
+// Appointments already reported as having no address to send to, and contacts already reported as at a limit (once an hour
+// for each contact), so that each report is made once
 static QSet<QString> noaddressreported ;
-static QSet<QString> dailylimitreported ;
+static QSet<QString> limitreported ;
 
 // Set when the calendar could not be saved after a send.  Nothing more is sent until it can be saved, so that a
 // message is not sent again because its record was lost.
@@ -122,10 +122,19 @@ static bool maySend(const QString &key, const QDateTime &now)
     return !(sendretryafter.contains(key) && now<sendretryafter.value(key)) ;
 }
 
-// Whether a contact has been sent its daily limit of messages
-static bool atDailyLimit(const QString &contactid, const QString &day)
+// The reason no more messages can be sent to a contact now, or an empty string if they can.  The limits are rolling: the
+// messages sent in the last hour, and in the last 24 hours (limitperhour and limitperday in [reminders]).
+static QString contactLimitReason(const QString &contactid, const QDateTime &now)
 {
-    return gConf->getContactMessagesToday(contactid, day) >= gConf->getMaxMessagesPerContactPerDay() ;
+    int hour = 0 ;
+    QList<QDateTime> sent = gConf->getContactMessageTimes(contactid) ;   // the last 24 hours
+    for (const QDateTime &when : sent) {
+        if (when > now.addSecs(-3600)) hour++ ;
+    }
+
+    if (hour >= gConf->getLimitPerHour()) return QString("the limit of %1 messages an hour").arg(gConf->getLimitPerHour()) ;
+    if (sent.size() >= gConf->getLimitPerDay()) return QString("the limit of %1 messages a day").arg(gConf->getLimitPerDay()) ;
+    return QString() ;
 }
 
 void MainWindow::sendMailSMS()
@@ -210,9 +219,9 @@ void MainWindow::sendMailSMS()
         Appointment &after = calendar.getAppointmentBy(Appointment::ID, id) ;
         if (after.isNull()) return ;
         if (done) {
-            after.setField(Appointment::LedgerPending, QString()) ;
+            after.setSentField(Appointment::LedgerPending, QString()) ;
         } else {
-            after.setField(Appointment::LedgerPending, "yes") ;
+            after.setSentField(Appointment::LedgerPending, "yes") ;
             addLog("Could not write the sent state of an appointment to Google, so the next sync writes it") ;
         }
     } ;
@@ -254,7 +263,7 @@ void MainWindow::sendMailSMS()
         }
 
         if (result==1 || result==-4) {
-            gConf->addContactMessageToday(contactid, today) ;
+            gConf->addContactMessage(contactid, now) ;
             sendfailures.remove(key) ;
             sendretryafter.remove(key) ;
 
@@ -315,22 +324,19 @@ void MainWindow::sendMailSMS()
         QDateTime occ = appt.nextOccurrence() ;
         if (!occ.isValid()) continue ;
 
-        // Wait before sending, so that a new appointment can be finished first (waitbeforesendmins in [reminders])
-        QDateTime created = appt.getDate(Appointment::Created) ;
-        qint64 elapsed = now.toSecsSinceEpoch() - created.toSecsSinceEpoch() ;
-        if (elapsed < (qint64)gConf->getWaitBeforeSendMinutes() * 60) continue ;
+        // The hold: a new or changed appointment waits waitbeforesendmins after its last change, so that a run of edits, or a
+        // delete and re-create, is sent once, as its final details.  A cancellation is not held.
+        qint64 sincechange = now.toSecsSinceEpoch() - appt.getDate(Appointment::Updated).toSecsSinceEpoch() ;
+        if (!deleted && sincechange < (qint64)gConf->getWaitBeforeSendMinutes() * 60) continue ;
 
-        // What the message will say.  A change to it since the last confirmation or update is sent as an update, once it
-        // has stopped changing for waitbeforeupdatemins.
+        // What the message will say.  A change to it since the last confirmation or update is sent as an update.
         QString signature = messageSignature(appt) ;
         if (messagesent && !deleted && appt.getField(Appointment::MessageSignature).isEmpty()) {
             // Confirmed before the signature was kept: start from the current details, so no update is sent for them
-            appt.setField(Appointment::MessageSignature, signature) ;
+            appt.setSentField(Appointment::MessageSignature, signature) ;
             saveneeded = true ;
         }
-        qint64 sinceupdate = now.toSecsSinceEpoch() - appt.getDate(Appointment::Updated).toSecsSinceEpoch() ;
-        bool settled = sinceupdate >= (qint64)gConf->getWaitBeforeUpdateMinutes() * 60 ;
-        bool changed = messagesent && !deleted && settled && appt.getField(Appointment::MessageSignature)!=signature ;
+        bool changed = messagesent && !deleted && appt.getField(Appointment::MessageSignature)!=signature ;
 
         QString mobile = contact.getField(Contact::Mobile) ;
         QString emailaddress = contact.getField(Contact::Email) ;
@@ -341,10 +347,12 @@ void MainWindow::sendMailSMS()
         QString apptdate = occ.toLocalTime().toString("dd-MMM-yyyy hh:mm") ;
         bool remindermessagesent = reminderSentFor(appt, occ) ;
 
-        // A reminder is due when the occurrence is within the reminder window.  An appointment that starts sooner than
-        // the window's start (a short notice) is reminded of at once, rather than never.
-        QDateTime windowend = now.addSecs(gConf->getReminderWindowToHours() * 3600) ;
-        bool istime = occ < windowend ;
+        // A reminder is due when the appointment starts within remindhoursbefore.  One that is confirmed or changed less than
+        // confirmonlyhours before it starts gets its confirmation or update only: that message takes the reminder's place.
+        QDateTime remindend = now.addSecs(gConf->getRemindHoursBefore() * 3600) ;
+        QDateTime confirmonlyend = now.addSecs(gConf->getConfirmOnlyHours() * 3600) ;
+        bool istime = occ < remindend ;
+        bool confirmonly = occ < confirmonlyend ;
 
         QString kind ;
         QString cfgfile ;
@@ -362,7 +370,7 @@ void MainWindow::sendMailSMS()
             sendsmtp = true ;
             updatemessagesent = true ;
             setsignature = true ;
-            if (istime) updateremindermessagesent = true ;
+            if (confirmonly) updateremindermessagesent = true ;
         }
 
         else if (textme && !emailme && !deleted && !messagesent) {
@@ -371,7 +379,7 @@ void MainWindow::sendMailSMS()
             cfgfile = gConf->getMessageFile(MSG_SMS_CONFIRMATION) ;
             updatemessagesent = true ;
             setsignature = true ;
-            if (istime) updateremindermessagesent = true ;
+            if (confirmonly) updateremindermessagesent = true ;
         }
 
         else if (emailme && !deleted && changed) {
@@ -381,7 +389,7 @@ void MainWindow::sendMailSMS()
             sendsmtp = true ;
             updatemessagesent = true ;
             setsignature = true ;
-            if (istime) updateremindermessagesent = true ;
+            if (confirmonly) updateremindermessagesent = true ;
         }
 
         else if (textme && !emailme && !deleted && changed) {
@@ -390,7 +398,7 @@ void MainWindow::sendMailSMS()
             cfgfile = gConf->getMessageFile(MSG_SMS_UPDATE) ;
             updatemessagesent = true ;
             setsignature = true ;
-            if (istime) updateremindermessagesent = true ;
+            if (confirmonly) updateremindermessagesent = true ;
         }
 
         else if (emailme && deleted && messagesent) {
@@ -455,22 +463,22 @@ void MainWindow::sendMailSMS()
             QString emailkey = id + "|dayemail" ;
             QString textkey = id + "|daysms" ;
 
-            if (!emaildone && maySend(emailkey, now) && !atDailyLimit(contactid, today) && refreshSentState(id)==1) {
+            if (!emaildone && maySend(emailkey, now) && contactLimitReason(contactid, now).isEmpty() && refreshSentState(id)==1) {
                 int result = deliver(emailkey, "Sending on-the-day reminder email to " + emailaddress, true,
                                      gConf->getMessageFile(MSG_EMAIL_REMINDER), id, contactid, mobile, emailaddress, occ) ;
                 if (result==1 || result==-4) {
                     Appointment &after = calendar.getAppointmentBy(Appointment::ID, id) ;
-                    if (!after.isNull()) after.setField(Appointment::ReminderOnDaySent, dayChannelRecord(after.getField(Appointment::ReminderOnDaySent), today, "email")) ;
+                    if (!after.isNull()) after.setSentField(Appointment::ReminderOnDaySent, dayChannelRecord(after.getField(Appointment::ReminderOnDaySent), today, "email")) ;
                     pushSentState(id) ;
                     saveCalendar("the on-the-day reminder") ;
                 }
             }
-            if (!smsdone && maySend(textkey, now) && !atDailyLimit(contactid, today) && refreshSentState(id)==1) {
+            if (!smsdone && maySend(textkey, now) && contactLimitReason(contactid, now).isEmpty() && refreshSentState(id)==1) {
                 int result = deliver(textkey, "Sending on-the-day reminder sms message to " + mobile, false,
                                      gConf->getMessageFile(MSG_SMS_REMINDER), id, contactid, mobile, emailaddress, occ) ;
                 if (result==1 || result==-4) {
                     Appointment &after = calendar.getAppointmentBy(Appointment::ID, id) ;
-                    if (!after.isNull()) after.setField(Appointment::ReminderOnDaySent, dayChannelRecord(after.getField(Appointment::ReminderOnDaySent), today, "sms")) ;
+                    if (!after.isNull()) after.setSentField(Appointment::ReminderOnDaySent, dayChannelRecord(after.getField(Appointment::ReminderOnDaySent), today, "sms")) ;
                     pushSentState(id) ;
                     saveCalendar("the on-the-day reminder") ;
                 }
@@ -496,13 +504,14 @@ void MainWindow::sendMailSMS()
         QString key = id + "|" + kind + (kind=="cancelocc" ? "|" + occurrenceKey(occ) : QString()) ;
         if (!maySend(key, now)) continue ;
 
-        // No more than the daily limit of messages is sent to one contact in a day
-        if (atDailyLimit(contactid, today)) {
-            QString limitkey = contactid + "|" + today ;
-            if (!dailylimitreported.contains(limitkey)) {
-                dailylimitreported.insert(limitkey) ;
-                addLog(QString("Daily limit of messages reached for %1, so %2 was not sent for the appointment at %3")
-                       .arg(contact.getFormattedName(), type, apptdate)) ;
+        // The limits on messages to one contact (per hour and per day) hold the message until they allow it
+        QString limit = contactLimitReason(contactid, now) ;
+        if (!limit.isEmpty()) {
+            QString limitkey = contactid + "|" + QString::number(now.toSecsSinceEpoch()/3600) ;
+            if (!limitreported.contains(limitkey)) {
+                limitreported.insert(limitkey) ;
+                addLog(QString("%1 has reached %2, so %3 was not sent for the appointment at %4")
+                       .arg(contact.getFormattedName(), limit, type, apptdate)) ;
             }
             continue ;
         }
@@ -517,17 +526,26 @@ void MainWindow::sendMailSMS()
             Appointment &after = calendar.getAppointmentBy(Appointment::ID, id) ;
             if (!after.isNull()) {
                 if (deletemessagesent) {
-                    after.setField(Appointment::CancelSent, nowToIsoString()) ;
-                    after.setField(Appointment::MessageSent, "") ;
-                    after.setField(Appointment::MessageSignature, "") ;
-                    after.setField(Appointment::ReminderMessageSent, "") ;
-                    after.setField(Appointment::ReminderFor, "") ;
+                    after.setSentField(Appointment::CancelSent, nowToIsoString()) ;
+                    after.setSentField(Appointment::MessageSent, "") ;
+                    after.setSentField(Appointment::MessageSignature, "") ;
+                    after.setSentField(Appointment::ReminderMessageSent, "") ;
+                    after.setSentField(Appointment::ReminderFor, "") ;
                 }
-                if (updatemessagesent) after.setField(Appointment::MessageSent, nowToIsoString()) ;
-                if (setsignature) after.setField(Appointment::MessageSignature, signature) ;
+                if (updatemessagesent) {
+                    after.setSentField(Appointment::MessageSent, nowToIsoString()) ;
+
+                    // A confirmation or update given on the day of the appointment already gives the time, so the on-the-day
+                    // reminders for that day count as sent
+                    if (occ.toLocalTime().date()==now.toLocalTime().date()) {
+                        QString record = dayChannelRecord(after.getField(Appointment::ReminderOnDaySent), today, "email") ;
+                        after.setSentField(Appointment::ReminderOnDaySent, dayChannelRecord(record, today, "sms")) ;
+                    }
+                }
+                if (setsignature) after.setSentField(Appointment::MessageSignature, signature) ;
                 if (updateremindermessagesent) {
-                    after.setField(Appointment::ReminderMessageSent, nowToIsoString()) ;
-                    after.setField(Appointment::ReminderFor, occurrenceKey(occ)) ;
+                    after.setSentField(Appointment::ReminderMessageSent, nowToIsoString()) ;
+                    after.setSentField(Appointment::ReminderFor, occurrenceKey(occ)) ;
                 }
                 if (kind=="cancelocc") {
                     // Only cancellations still to come are kept, as a past one is never sent again, so the list stays short
@@ -537,7 +555,7 @@ void MainWindow::sendMailSMS()
                     for (const QString &when : notified) {
                         if (QDateTime::fromString(when, Qt::ISODate) > now) kept.append(when) ;
                     }
-                    after.setField(Appointment::CancelledOccurrences, kept.join(',')) ;
+                    after.setSentField(Appointment::CancelledOccurrences, kept.join(',')) ;
                 }
             }
             pushSentState(id) ;
@@ -573,7 +591,8 @@ bool MainWindow::loadMessage(QString filename,
     file.close() ;
     message = message.trimmed() ;
 
-    QDateTime &start = appt.getDate(Appointment::From) ;
+    // A copy of the start, read before the list of upcoming appointments is made, which reads other dates
+    QDateTime start = appt.getDate(Appointment::From) ;
     message.replace("$NAME", contact.getField(Contact::Names)) ;
     message.replace("$SURNAME", contact.getField(Contact::Surname)) ;
     message.replace("$TIME", start.toLocalTime().toString("hh:mm")) ;

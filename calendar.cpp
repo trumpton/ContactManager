@@ -432,13 +432,24 @@ QString Calendar::getOverview(enum CalendarOverviewType overviewtype, QString co
     return getOverviewResponse ;
 }
 
+// The appointment that clashes with appt: one whose listed occurrence overlaps appt's own time.  Removed occurrences of a
+// repeat are not compared, so a repeat is only in a clash through an occurrence the calendar shows.
 Appointment& Calendar::getAppointmentClash(Appointment& appt)
 {
+    if (appt.isTemp()) return getNull() ;
+
+    QDateTime from = appt.getDate(Appointment::From) ;     // copies: getDate shares one value
+    QDateTime to = appt.getDate(Appointment::To) ;
+
     for (int i=0; i<size(); i++) {
         Appointment& test = getAppointment(i) ;
-        if ( !test.isSet(Appointment::Deleted) &&
-                appt.getField(Appointment::ID).compare(test.getField(Appointment::ID))!=0 &&
-                appt.clashes(test)) return test ;
+        if ( test.isSet(Appointment::Deleted) || test.isTemp() ||
+                appt.getField(Appointment::ID).compare(test.getField(Appointment::ID))==0 ) continue ;
+
+        QList<QPair<QDateTime,QDateTime>> occurrences = test.listedOccurrences(from, to) ;
+        for (const QPair<QDateTime,QDateTime> &occurrence : occurrences) {
+            if (Appointment::periodsClash(from, to, occurrence.first, occurrence.second)) return test ;
+        }
     }
     return getNull() ;
 }
@@ -604,4 +615,62 @@ void Calendar::addBirthday(QString who, QString whoid, QString when)
         appointments.append(*appt3) ;
 
     }
+}
+
+//=====================================================================================================
+//
+// Public: Calendar - tidyRepeatsWithNoOccurrences
+//
+//  A repeat with no occurrence left (every one removed) shows nothing, but it still takes part in the clash checks.  It is
+//  marked deleted, as deleting all of a repeat's occurrences does.  Returns how many, and describes each in removed.
+//
+int Calendar::tidyRepeatsWithNoOccurrences(QStringList &removed)
+{
+    int count=0 ;
+    for (int i=0; i<size(); i++) {
+        Appointment &appt = getAppointment(i) ;
+        if (appt.isSet(Appointment::Deleted) || appt.isTemp() || !appt.isRepeating()) continue ;
+
+        // An occurrence that exists ends the search.  The exceptions are finite, so the search always ends.
+        bool anyleft = false ;
+        for (int n=0; !anyleft && !appt.occurrenceEnded(n); n++) anyleft = appt.occurrenceExists(n) ;
+        if (anyleft) continue ;
+
+        removed << QString("%1, from %2").arg(appt.getField(Appointment::Summary),
+                                              appt.getDate(Appointment::From).toLocalTime().toString("dd MMM yyyy HH:mm")) ;
+        appt.setFlag(Appointment::Deleted, true) ;
+        count++ ;
+    }
+    return count ;
+}
+
+//=====================================================================================================
+//
+// Public: Calendar - orphanedEntries
+//
+//  The entries for a contact that is missing or deleted.  They are described and left as they are.  An entry for Me, and an
+//  entry with no contact (an event made on Google), is not an orphan.
+//
+QStringList Calendar::orphanedEntries(ContactDatabase &db)
+{
+    QStringList orphans ;
+    QString me = gConf->getMe() ;
+    for (int i=0; i<size(); i++) {
+        Appointment &appt = getAppointment(i) ;
+        if (appt.isSet(Appointment::Deleted) || appt.isTemp()) continue ;
+
+        QString contactid = appt.getField(Appointment::ContactId) ;
+        if (contactid.isEmpty() || contactid.compare(me)==0) continue ;
+
+        Contact &contact = db.getContactById(contactid) ;
+        QString reason ;
+        if (contact.isNull()) reason = "the contact is not in the database" ;
+        else if (contact.isSet(Contact::Deleted)) reason = "the contact is deleted" ;
+        else continue ;
+
+        orphans << QString("%1, from %2 (%3)").arg(appt.getField(Appointment::Summary),
+                                                    appt.getDate(Appointment::From).toLocalTime().toString("dd MMM yyyy HH:mm"),
+                                                    reason) ;
+    }
+    return orphans ;
 }

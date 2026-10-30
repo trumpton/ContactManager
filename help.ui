@@ -237,7 +237,7 @@
     phone - Local and country dialling codes
     sms - SMS agent (Voodoo or Esendex), its username and API key, the sender, and debug files. The Settings page also has the API key expiry date (day/month/year, for example 25/01/2035, optional). A warning appears at startup from 30 days before it.
     email - Email configuration for sending reminder messages (server, username, sender, debug files), plus launching email application
-    reminders - When messages are sent: the reminder window (windowfromhours, windowtohours), the sending window (sendfrom, sendto, local time), the waits before a new appointment's messages (waitbeforesendmins, 0 allowed) and before an update is sent (waitbeforeupdatemins), the most messages to one contact in a day (maxmessagesperdaypercontact), and whether an .ics is attached to emails (attachics, default no).  With Google sync, the sent state of each appointment with a contact is kept on its Google event, so copies of ContactManager on the same calendar do not send the same message twice
+    reminders - When messages are sent: the reminder (remindhoursbefore, default 24), the confirm-only window (confirmonlyhours, default remindhoursbefore x 1.5: an appointment made or changed this close to its start gets its confirmation or update only), the sending times (earliestsend and latestsend, local time), the hold before a message is sent after a change (waitbeforesendmins, default 5, 0 allowed), the most messages to one contact in any 24 hours (limitperday, default 10) and in any hour (limitperhour, default 5), counted over the last 24 hours and the last hour, so they hold across a restart, and whether an .ics is attached to emails (attachics, default no).  With Google sync, the sent state of each appointment with a contact is kept on its Google event, so copies of ContactManager on the same calendar do not send the same message twice
     message - Email and SMS message files. The first line is the sender: the sender key in sms-reminder or email-reminder overrides it when set.
 
    The ini file supports a number of variables
@@ -283,13 +283,13 @@ sender=
 debug=no
 
 [reminders]
-windowfromhours=2
-windowtohours=24
-sendfrom=7:00
-sendto=22:00
+remindhoursbefore=24
+confirmonlyhours=36
+earliestsend=07:00
+latestsend=22:00
 waitbeforesendmins=5
-waitbeforeupdatemins=5
-maxmessagesperdaypercontact=10
+limitperday=10
+limitperhour=5
 attachics=no
 
 [email]
