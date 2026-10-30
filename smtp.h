@@ -52,6 +52,10 @@ public:
     // Returns error message
     QString& errorMessage() ;
 
+    // The conversation with the server, line by line: "C:" for what was sent, "S:" for what came back.  Credentials
+    // are masked.  For the debug files.
+    QString& getTranscript() ;
+
 signals:
     void status( const QString &);
  
@@ -63,6 +67,10 @@ private slots:
     void readyRead();
  
 private:
+    // Sends one line to the server, and records it in the transcript as logged (credentials are logged masked)
+    void sendLine(const QString &line, const QString &logged) ;
+    QString transcript ;
+
     int timeout;
     QString message;
     QTextStream *t;

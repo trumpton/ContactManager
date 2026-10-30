@@ -224,6 +224,12 @@ bool Configuration::debugSMSEnabled()
     return (m.compare("true", Qt::CaseInsensitive)==0 || m.compare("yes", Qt::CaseInsensitive)==0) ;
 }
 
+bool Configuration::debugEmailEnabled()
+{
+    QString m = ini.get("email-reminder", "debug") ;
+    return (m.compare("true", Qt::CaseInsensitive)==0 || m.compare("yes", Qt::CaseInsensitive)==0) ;
+}
+
 bool Configuration::encryptedEnabled()
 {
     QString m = ini.get("database", "encrypted") ;
