@@ -13,6 +13,52 @@
 // Namespace for the local IDs made from Google event IDs (see parseAppointment)
 static const QUuid googleEventIdNamespace("6c0f3a52-9b1e-4d7a-8f2e-5a1c7d9e3b40") ;
 
+// The sent state, kept as private properties of the event, so that each copy of ContactManager on the calendar sees what
+// the others have sent.  Google keeps a property's value to 1024 characters, and its key to 44.
+static const struct { Appointment::AppointmentRecord record ; const char *key ; } sentStateKeys[] = {
+    { Appointment::MessageSent,          "MessageSent" },
+    { Appointment::MessageSignature,     "MessageSignature" },
+    { Appointment::ReminderMessageSent,  "ReminderMessageSent" },
+    { Appointment::ReminderFor,          "ReminderFor" },
+    { Appointment::ReminderOnDaySent,    "ReminderOnDaySent" },
+    { Appointment::CancelledOccurrences, "CancelledOccurrences" },
+    { Appointment::CancelSent,           "CancelSent" }
+} ;
+
+// The longest value Google keeps.  A list that would be longer keeps its newest items.
+static const int GOOGLE_PROPERTY_MAX = 1000 ;
+static QString fitPropertyValue(QString value)
+{
+    QStringList items = value.split(',') ;
+    while (value.length()>GOOGLE_PROPERTY_MAX && items.size()>1) {
+        items.removeFirst() ;
+        value = items.join(',') ;
+    }
+    return value ;
+}
+
+// The private properties of an event.  The sent state is kept only for an appointment with a contact, as only those are
+// messaged.  A signature is written with '|' for its separator, as Google may not keep the control character used in the
+// app (see parseAppointment).
+static QJsonObject privateProperties(Appointment &appt)
+{
+    QJsonObject props ;
+    props.insert("ID", appt.getField(Appointment::ID)) ;
+    props.insert("ContactID", appt.getField(Appointment::ContactId)) ;
+    props.insert("AppointmentFor", appt.getField(Appointment::For)) ;
+    props.insert("Uploaded", "yes") ;
+    props.insert("Flags", appt.getField(Appointment::Flags)) ;
+
+    if (!appt.getField(Appointment::ContactId).isEmpty()) {
+        for (const auto &sent : sentStateKeys) {
+            QString value = appt.getField(sent.record) ;
+            if (sent.record==Appointment::MessageSignature) value.replace(QChar(0x1f), '|') ;
+            props.insert(sent.key, fitPropertyValue(value)) ;
+        }
+    }
+    return props ;
+}
+
 //=====================================================================================================
 //
 // Public: GoogleAccess - getCalendar
@@ -277,6 +323,14 @@ bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QStrin
     if (!id.isEmpty()) appt.setField(Appointment::ID, id) ;
     appt.setField(Appointment::ContactId, contact) ;
 
+    // The sent state, as written by the copies of ContactManager that sent the messages (see privateProperties)
+    QJsonObject privateprops = item["extendedProperties"].toObject()["private"].toObject() ;
+    for (const auto &sent : sentStateKeys) {
+        QString value = privateprops[sent.key].toString() ;
+        if (sent.record==Appointment::MessageSignature) value.replace('|', QChar(0x1f)) ;
+        appt.setField(sent.record, value) ;
+    }
+
     // Get id, sequence from google.  Account not included in response, so
     // convert to % format for storage (just like contact)
     QString googleicaluid = item["iCalUID"].toString().replace("\n","") ;
@@ -449,14 +503,7 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
         }
 
         QJsonObject ExtendedProperties ;
-        QJsonObject PrivateExtendedProperties ;
-        PrivateExtendedProperties.insert("ID", appt.getField(Appointment::ID)) ;
-        PrivateExtendedProperties.insert("ContactID", appt.getField(Appointment::ContactId)) ;
-        PrivateExtendedProperties.insert("AppointmentFor", appt.getField(Appointment::For)) ;
-        PrivateExtendedProperties.insert("Uploaded", "yes") ;
-        PrivateExtendedProperties.insert("Flags", appt.getField(Appointment::Flags)) ;
-
-        ExtendedProperties.insert("private", PrivateExtendedProperties) ;
+        ExtendedProperties.insert("private", privateProperties(appt)) ;
         root.insert("extendedProperties", ExtendedProperties) ;
 
         doc.setObject(root) ;
@@ -475,15 +522,24 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
         Appointment apptresponse ;
         if (parseAppointment(jsonresponse, apptresponse, account)) {
 
-            if (apptresponse.matches(appt, Appointment::maDetails|Appointment::maId)) {
+            // Google returns the exceptions in date order, so compare the sent ones in that order too.  A single
+            // event has no repeat, so Google gives it a repeat interval of 0, whatever the local one was.
+            Appointment sent = appt ;
+            sent.setExceptions(sent.exceptions()) ;
+            if (!sent.isRepeating()) sent.setField(Appointment::RepeatInterval, "0") ;
+
+            if (apptresponse.matches(sent, Appointment::maDetails|Appointment::maId)) {
                 apptresponse.copyTo(appt, Appointment::maDetails|Appointment::maGoogleAcct) ;
+
+                // The upload carries the sent state, so it is no longer pending
+                appt.setField(Appointment::LedgerPending, QString()) ;
                 success=true ;
 
             } else {
                 // Returned info doesn't match sent
                 addLog(QString("ERROR GoogleAccess::UpdateAppointment: Upload mismatch (%1) - %2")
                        .arg(appt.getField(Appointment::ID))
-                       .arg(apptresponse.mismatch(appt, Appointment::maDetails|Appointment::maId, true))) ;
+                       .arg(apptresponse.mismatch(sent, Appointment::maDetails|Appointment::maId, true))) ;
                 success=false ;
             }
         }
@@ -493,3 +549,47 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
 }
 
 
+
+//=====================================================================================================
+//
+// Public: GoogleAccess - updateSentState
+//
+//  Writes the sent state of an appointment to its Google event, as the event's private properties.  The event itself is
+//  not changed.  Returns false if it could not be written; the caller then leaves the sent state pending.
+//
+bool GoogleAccess::updateSentState(Appointment &appt)
+{
+    QString googlerecordid = appt.getField(Appointment::GoogleRecordId) ;
+    if (googlerecordid.isEmpty() || appt.isSet(Appointment::InternetOwned)) return false ;
+
+    QString account = gConf->getGoogleUsername().toHtmlEscaped() ;
+    QString url = "https://www.googleapis.com/calendar/v3/calendars/" + account + "/events/" + googlerecordid ;
+
+    // A patch, so only the properties sent are changed
+    QJsonObject ExtendedProperties ;
+    ExtendedProperties.insert("private", privateProperties(appt)) ;
+    QJsonObject root ;
+    root.insert("extendedProperties", ExtendedProperties) ;
+
+    QJsonDocument doc ;
+    doc.setObject(root) ;
+    googlePutPostDelete(url, GoogleAccess::Patch, doc.toJson(), "updateSentState") ;
+    return getNetworkError().isEmpty() ;
+}
+
+//=====================================================================================================
+//
+// Public: GoogleAccess - getEventSentState
+//
+//  Reads the event of an appointment from Google into googleappt, for its sent state.  Returns false if it could not be
+//  read.
+//
+bool GoogleAccess::getEventSentState(Appointment &appt, Appointment &googleappt)
+{
+    QString account = gConf->getGoogleUsername().toHtmlEscaped() ;
+    QString url = "https://www.googleapis.com/calendar/v3/calendars/" + account + "/events/" + appt.getField(Appointment::GoogleRecordId) ;
+
+    QString json = googleGet(url, "getSentState") ;
+    if (!getNetworkError().isEmpty()) return false ;
+    return parseAppointment(json, googleappt, account) ;
+}

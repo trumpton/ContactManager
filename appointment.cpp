@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "appointment.h"
 #include <QDateTime>
 #include <QUuid>
@@ -538,11 +539,19 @@ QList<QDateTime> Appointment::exceptions()
         QDateTime when = QDateTime::fromString(text, Qt::ISODate) ;
         if (when.isValid()) list.append(when) ;
     }
+
+    // Kept in date order, whatever order they were stored in, so an upload matches Google's order
+    std::sort(list.begin(), list.end()) ;
+    list.erase(std::unique(list.begin(), list.end()), list.end()) ;
     return list ;
 }
 
 void Appointment::setExceptions(QList<QDateTime> starts)
 {
+    // Kept in date order, as Google returns them, so that a copy of this appointment from Google matches it
+    std::sort(starts.begin(), starts.end()) ;
+    starts.erase(std::unique(starts.begin(), starts.end()), starts.end()) ;
+
     QStringList texts ;
     foreach (const QDateTime &when, starts) texts.append(when.toUTC().toString(Qt::ISODate)) ;
     setField(Appointment::RepeatExceptions, texts.join(QChar(','))) ;
@@ -608,6 +617,15 @@ bool Appointment::isCurrent()
 }
 
 
+// The records that say what has been messaged, and when
+static bool isSentStateRecord(int i)
+{
+    return i==(int)Appointment::MessageSent || i==(int)Appointment::MessageSignature ||
+           i==(int)Appointment::ReminderMessageSent || i==(int)Appointment::ReminderFor ||
+           i==(int)Appointment::ReminderOnDaySent || i==(int)Appointment::CancelledOccurrences ||
+           i==(int)Appointment::CancelSent ;
+}
+
 // Return true if i is of type mctype
 bool Appointment::isAppointmentOfType(Appointment::AppointmentRecord i, int matype)
 {
@@ -620,6 +638,7 @@ bool Appointment::isAppointmentOfType(Appointment::AppointmentRecord i, int maty
     bool testdetails = ( (matype&Appointment::maDetails) !=0) ;
     bool testgoogleacct = ( (matype&Appointment::maGoogleAcct) !=0) ;
     bool testsaved = ( (matype&Appointment::maSavedFields) !=0) ;
+    bool testsentstate = ( (matype&Appointment::maSentState) !=0) ;
 
     return (
          (testid && i==(int)Appointment::ID) ||
@@ -629,7 +648,77 @@ bool Appointment::isAppointmentOfType(Appointment::AppointmentRecord i, int maty
          (testdetails && appointmentrecordinfo[i].isdetails) ||
          (testupdateddate && i==(int)Appointment::Updated) ||
          (testgoogleacct && appointmentrecordinfo[i].isgacct) ||
+         (testsentstate && isSentStateRecord(i)) ||
          (testsaved && appointmentrecordinfo[i].issaved)) ;
+}
+
+// The later of two dates held as ISO strings.  An empty or invalid date is earlier than any other.
+static QString laterDate(const QString &a, const QString &b)
+{
+    QDateTime da = QDateTime::fromString(a, Qt::ISODate) ;
+    QDateTime db = QDateTime::fromString(b, Qt::ISODate) ;
+    if (!db.isValid()) return a ;
+    if (!da.isValid()) return b ;
+    return db>da ? b : a ;
+}
+
+// The on-the-day record is "yyyy-MM-dd" followed by the channels sent that day.  The later day is kept, and on the same
+// day the channels of both.
+static QString laterDayRecord(const QString &a, const QString &b)
+{
+    QStringList pa = a.split(' ', Qt::SkipEmptyParts) ;
+    QStringList pb = b.split(' ', Qt::SkipEmptyParts) ;
+    if (pb.isEmpty()) return a ;
+    if (pa.isEmpty() || pb.at(0)>pa.at(0)) return b ;
+    if (pb.at(0)<pa.at(0)) return a ;
+    for (const QString &channel : pb) {
+        if (!pa.contains(channel)) pa.append(channel) ;
+    }
+    return pa.join(' ') ;
+}
+
+// A comma separated list with the items of both, once each
+static QString unionList(const QString &a, const QString &b)
+{
+    QStringList items = a.split(',', Qt::SkipEmptyParts) ;
+    for (const QString &item : b.split(',', Qt::SkipEmptyParts)) {
+        if (!items.contains(item)) items.append(item) ;
+    }
+    return items.join(',') ;
+}
+
+bool Appointment::mergeSentState(Appointment &remote)
+{
+    if (getField(Appointment::LedgerPending).compare("yes")==0) return false ;
+
+    bool changed=false ;
+
+    // Sets the record to the value, when that is different
+    auto take = [&](Appointment::AppointmentRecord field, QString value) {
+        if (value.compare(getField(field))!=0) {
+            setField(field, value) ;
+            changed=true ;
+        }
+    } ;
+
+    take(Appointment::MessageSent, laterDate(getField(Appointment::MessageSent), remote.getField(Appointment::MessageSent))) ;
+    take(Appointment::ReminderMessageSent, laterDate(getField(Appointment::ReminderMessageSent), remote.getField(Appointment::ReminderMessageSent))) ;
+    take(Appointment::ReminderFor, laterDate(getField(Appointment::ReminderFor), remote.getField(Appointment::ReminderFor))) ;
+    take(Appointment::ReminderOnDaySent, laterDayRecord(getField(Appointment::ReminderOnDaySent), remote.getField(Appointment::ReminderOnDaySent))) ;
+    take(Appointment::CancelledOccurrences, unionList(getField(Appointment::CancelledOccurrences), remote.getField(Appointment::CancelledOccurrences))) ;
+
+    // The signature is that of the last message sent, so the other copy's is kept when it has one
+    if (!remote.getField(Appointment::MessageSignature).isEmpty()) {
+        take(Appointment::MessageSignature, remote.getField(Appointment::MessageSignature)) ;
+    }
+
+    // A cancellation sent elsewhere is not sent again from here, so the confirmation is no longer waiting to be cancelled
+    if (!remote.getField(Appointment::CancelSent).isEmpty()) {
+        take(Appointment::CancelSent, remote.getField(Appointment::CancelSent)) ;
+        take(Appointment::MessageSent, QString()) ;
+    }
+
+    return changed ;
 }
 
 // Copy Fields to other

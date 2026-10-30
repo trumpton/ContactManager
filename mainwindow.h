@@ -25,7 +25,7 @@
 
 #include "logform.h"
 
-#include "smtp.h"
+#include "email.h"
 #include "sms.h"
 
 #include <QFileDialog>
@@ -50,6 +50,8 @@ namespace Ui {
 class MainWindow;
 }
 
+class QLockFile ;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -70,6 +72,7 @@ private slots:
 
     void on_actionGotoMe_triggered();
     void on_actionGotoToday_triggered();
+    void on_actionGotoDate_triggered();
 
     void on_actionNewMyAppointment_triggered();
     void on_actionNewAppointment_triggered();
@@ -158,7 +161,13 @@ private:
     Encryption *enc ;
     AdvancedFind *find ;
     QList<QDateTime> calendarrowends ;              // The end of each row in the calendar list, so Goto Today can find the nearest
+    QList<QDateTime> calendarrowstarts ;            // The start of each row in the calendar list, so Goto Date can find a date
     bool titledEntriesHeld ;                        // An email or phone entry was refused: the form is not reloaded until it is fixed
+
+    // Only the copy of ContactManager holding the data folder's lock sends messages, so two copies cannot send the same
+    // one.  The lock is held until this copy closes.
+    QLockFile *datalock ;
+    bool remindersallowed ;
 
     QString SMTPSMSErrorMessage ;
 
@@ -209,6 +218,7 @@ private:
 
     void doBackup() ;
     void sendMailSMS() ;
+    void checkSMSKeyExpiry() ;
 
     void beep() ;
     void msg(QString msg) ;
@@ -217,9 +227,6 @@ private:
     bool searchContactRecordSet(QString searchtext, Contact &contact, Contact::ContactRecord record) ;
 
     // EMail & SMS
-    int SendMail(QString from, QString emailaddress, QString subject, QString message) ;
-    int SendSMS(QString from, QString mobile, QString message) ;
-    int GetSMSBalance() ;
     bool loadMessage(QString filename, QString& from, QString& title,QString& message, Appointment& appt, Contact& contact) ;
 
 };

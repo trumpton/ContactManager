@@ -1,6 +1,7 @@
 
 #include "mainwindow.h"
 #include "../Lib/alertsound.h"
+#include "../Lib/dateinputdialog.h"
 
 //
 // on_actionGotoMe_triggered
@@ -46,6 +47,50 @@ void MainWindow::on_actionGotoMe_triggered()
      }
 }
 
+
+//
+// on_actionGotoDate_triggered
+//
+// Asks for a date, and shows its first entry in the calendar.  When the date has no entry, the entry is the first one on the
+// nearest date before it, or the top of the list when there is no entry before it.
+//
+void MainWindow::on_actionGotoDate_triggered()
+{
+    bool ok = false ;
+    QDate wanted = dateInputDialog(this, "Goto Date", "Go to date", QDate::currentDate(), &ok) ;
+    if (!ok) return ;
+
+    if (ui->tabBar->currentIndex()!=CALENDARTABPOS) {
+        dbg("tabBar->setCurrentIndex(CALENDARTABPOS)") ;
+        ui->tabBar->setCurrentIndex(CALENDARTABPOS);
+    }
+
+    dbg("listCalendar->setFocus()") ;
+    ui->listCalendar->setFocus();
+
+    // The rows are in start order, so the first row on the date is found first.  Otherwise the row is the first on the
+    // latest date before it.  Otherwise, row 0 (the top of the list).
+    int row = -1 ;
+    QDate before ;
+    for (int r=0; r<calendarrowstarts.size(); r++) {
+        QDate day = calendarrowstarts[r].toLocalTime().date() ;
+        if (day==wanted) {
+            row = r ;
+            break ;
+        }
+        if (day<wanted && (!before.isValid() || day>before)) {
+            before = day ;
+            row = r ;
+        }
+    }
+    if (row<0) row = 0 ;
+
+    QModelIndex index = calendarlist.index(row,0) ;
+    if (index.isValid()) {
+        dbg("listCalendar->setCurrentIndex()") ;
+        ui->listCalendar->setCurrentIndex(index) ;
+    }
+}
 
 // Jump to TODO List
 void MainWindow::on_actionGotoMyToDoList_triggered()

@@ -235,9 +235,10 @@
     journal - Path to the journal files, and EasyNotepad command
     google - Google synchronisation options
     phone - Local and country dialling codes
-    sms - Access code for Clockwork SMS
-    email - Email configuration for sending reminder messages, plus launching email application
-    message - Email and SMS message files
+    sms - SMS agent (Voodoo or Esendex), its username and API key, the sender, and debug files. The Settings page also has the API key expiry date (day/month/year, for example 25/01/2035, optional). A warning appears at startup from 30 days before it.
+    email - Email configuration for sending reminder messages (server, username, sender, debug files), plus launching email application
+    reminders - When messages are sent: the reminder window (windowfromhours, windowtohours), the sending window (sendfrom, sendto, local time), the waits before a new appointment's messages (waitbeforesendmins, 0 allowed) and before an update is sent (waitbeforeupdatemins), the most messages to one contact in a day (maxmessagesperdaypercontact), and whether an .ics is attached to emails (attachics, default no).  With Google sync, the sent state of each appointment with a contact is kept on its Google event, so copies of ContactManager on the same calendar do not send the same message twice
+    message - Email and SMS message files. The first line is the sender: the sender key in sms-reminder or email-reminder overrides it when set.
 
    The ini file supports a number of variables
     $HOME - The user's home directory
@@ -269,13 +270,27 @@ localcode=01480
 countrycode=0044
 
 [sms-reminder]
-agent=clockwork
+agent=voodoo
 username=
+sender=
+debug=no
 
 [email-reminder]
 server=smtp.gmail.com
 username=username@gmail.com
 port=465
+sender=
+debug=no
+
+[reminders]
+windowfromhours=2
+windowtohours=24
+sendfrom=7:00
+sendto=22:00
+waitbeforesendmins=5
+waitbeforeupdatemins=5
+maxmessagesperdaypercontact=10
+attachics=no
 
 [email]
 command=&quot;\&quot;C:\\Program Files (x86)\\Mozilla Thunderbird\\thunderbird.exe\&quot; -compose \&quot;subject='Message to $NAME',to='$TO'\&quot; &quot;
