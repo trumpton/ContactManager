@@ -235,7 +235,7 @@
     journal - Path to the journal files, and EasyNotepad command
     google - Google synchronisation options
     phone - Local and country dialling codes
-    sms - SMS agent (Voodoo or Esendex), its username and API key, the sender, and debug files
+    sms - SMS agent (Voodoo or Esendex), its username and API key, the sender, and debug files. The Settings page also has the API key expiry date (day/month/year, for example 25/01/2035, optional). A warning appears at startup from 30 days before it.
     email - Email configuration for sending reminder messages (server, username, sender, debug files), plus launching email application
     message - Email and SMS message files. The first line is the sender: the sender key in sms-reminder or email-reminder overrides it when set.
 
@@ -272,7 +272,6 @@ countrycode=0044
 agent=voodoo
 username=
 sender=
-apikeyexpires=
 debug=no
 
 [email-reminder]

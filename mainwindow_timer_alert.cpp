@@ -498,7 +498,7 @@ bool MainWindow::loadMessage(QString filename,
     return !title.isEmpty() && !from.isEmpty();
 }
 
-// On startup, warns when the SMS API key expires within 30 days (apikeyexpires in ini [sms-reminder])
+// On startup, warns when the SMS API key expires within 30 days (the expiry date is set in Settings)
 void MainWindow::checkSMSKeyExpiry()
 {
     QDate expiry = gConf->getSMSKeyExpiry() ;
