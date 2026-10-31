@@ -101,6 +101,7 @@ private slots:
     void on_actionShowDeletedAppointments_triggered(bool checked);
     void on_actionShowDeletedContacts_triggered(bool checked);
     void on_actionShowHiddenContacts_triggered(bool checked);
+    void toggleCalendarContactFilter() ;     // Space in the calendar list: all entries, or only the open contact's (issue #92)
     void on_tabBar_currentChanged(int index);
     void on_action_Email_Contact_triggered();
     void on_action_SMS_Contact_triggered();
@@ -183,6 +184,7 @@ private:
     bool showdeletedappointments ;
     bool showdeletedcontacts ;
     bool showhiddencontacts ;
+    bool calendarcontactonly ;          // The calendar list shows only the open contact's entries, while a contact is open
 
     // Manage dialog controls / enables etc.
     void UpdateContactsList() ;          // Update drop-down list

@@ -23,6 +23,10 @@ enum CalendarSearchType {
 
 class ContactDatabase ;
 
+// The row whose start is nearest to wanted, or -1 when there are no rows (issue #92).  Used to put the focus on the nearest
+// date when the list is rebuilt and the entry on screen is no longer listed.
+int nearestRowToDate(const QList<QDateTime> &starts, const QDateTime &wanted) ;
+
 class Calendar
 {
 private:
