@@ -45,6 +45,10 @@ private:
     Ui::GoogleUpdateDialog *ui;
     int state ;
 
+    // Each phase reports its progress from 0 to 1000 in its own terms.  The contacts take the first half of the bar, and the
+    // calendar the second half, so this is added to what a phase reports.
+    int progressoffset ;
+
     // Sets the progress bar, and lets the window process events so that it keeps responding
     void setProgress(int value) ;
 

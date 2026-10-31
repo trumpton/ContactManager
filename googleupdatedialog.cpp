@@ -17,6 +17,7 @@ GoogleUpdateDialog::GoogleUpdateDialog(QWidget *parent) :
     ui(new Ui::GoogleUpdateDialog)
 {
     state = 0 ;
+    progressoffset = 0 ;
     ui->setupUi(this);
 }
 
@@ -72,6 +73,8 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
     QString calendarsyncdatestr = gConf->getLastGoogleCalendarSyncDate() ;
     QDateTime calendarsyncdate = isoStringToDateTime(calendarsyncdatestr) ;
 
+    // The contacts take the first half of the bar: their 500 to 1000 is shown as 0 to 500
+    progressoffset = -500 ;
     bool consuccess = true ;
 
     ui->updateStatusReport->append(QString("\nSYNCHRONISING CONTACTS")) ;
@@ -109,6 +112,8 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
                                        .arg(kept).arg(named).arg(unnamed).arg(APPOINTMENT_UNNAMED_CONTACT)) ;
     }
 
+    // The calendar takes the second half of the bar: its 0 to 500 is shown as 500 to 1000
+    progressoffset = 500 ;
     bool calsuccess = true ;
 
     ui->updateStatusReport->append(QString("\nSYNCHRONISING CALENDAR")) ;
@@ -210,7 +215,7 @@ void GoogleUpdateDialog::on_pushButton_clicked()
 
 void GoogleUpdateDialog::setProgress(int value)
 {
-    ui->progressBar->setValue(value) ;
+    ui->progressBar->setValue(qBound(0, value + progressoffset, 1000)) ;
     QCoreApplication::processEvents() ;
 }
 
