@@ -34,6 +34,7 @@ static MessageState newState(bool email, bool text)
     s.isrepeating = false ;
     s.pendingcancel = QDateTime() ;
     s.onthisday = false ;
+    s.createdbeforeday = false ;
     s.emaildone = false ;
     s.smsdone = false ;
     s.occurrence = localAt(QDate(2026, 11, 2), QTime(15, 0)) ;
@@ -362,17 +363,18 @@ private slots:
         QVERIFY(decideMessages(s).isEmpty()) ;
     }
 
-    void onTheDayIsNotSentForASingleChannel()
+    void onTheDayIsSentForASingleChannel()
     {
+        // A contact with only one channel still gets its on-the-day message on that channel
         MessageState e = sentState(true, false) ;
         e.onthisday = true ;
         e.remindersent = true ;
-        QVERIFY(decideMessages(e).isEmpty()) ;
+        QCOMPARE(describeSteps(decideMessages(e)), QString("onday:email")) ;
 
         MessageState t = sentState(false, true) ;
         t.onthisday = true ;
         t.remindersent = true ;
-        QVERIFY(decideMessages(t).isEmpty()) ;
+        QCOMPARE(describeSteps(decideMessages(t)), QString("onday:sms")) ;
     }
 
     void onTheDayIsNotSentOnAnotherDay()
@@ -383,11 +385,11 @@ private slots:
         QVERIFY(decideMessages(s).isEmpty()) ;
     }
 
-    void sameDayBookingDoesNotRepeatTheMessageAsOnTheDay()
+    void sameDayBookingGivesItsEmailAndThenTheOnTheDayText()
     {
-        // Booked on the day, with both channels: the confirmation goes by email, and the on-the-day email and text are not
-        // sent, because the confirmation covers that day.  The record of the day then has both channels.
-        QString record = dayChannelRecord(dayChannelRecord(QString(), "2026-10-30", "email"), "2026-10-30", "sms") ;
+        // Booked on the day, with both channels: the confirmation goes by email, which covers the email for that day.  The
+        // on-the-day text is still sent, once, as the text was not given that day.
+        QString record = dayChannelRecord(QString(), "2026-10-30", "email") ;
         MessageState booked = newState(true, true) ;
         booked.onthisday = true ;
         QCOMPARE(describeSteps(decideMessages(booked)), QString("confirm:email")) ;
@@ -397,19 +399,116 @@ private slots:
         later.remindersent = true ;
         later.emaildone = dayChannelSent(record, "2026-10-30", "email") ;
         later.smsdone = dayChannelSent(record, "2026-10-30", "sms") ;
+        QCOMPARE(describeSteps(decideMessages(later)), QString("onday:sms")) ;
+
+        // Once the text has gone too, nothing more is sent that day
+        later.smsdone = true ;
+        QVERIFY(decideMessages(later).isEmpty()) ;
+    }
+
+    void sameDayTextBookingCoversTheDaysText()
+    {
+        // Booked on the day, by text only: the confirmation text gives the day's text, so no on-the-day text follows
+        QString record = dayChannelRecord(QString(), "2026-10-30", "sms") ;
+        MessageState booked = newState(false, true) ;
+        booked.onthisday = true ;
+        QCOMPARE(describeSteps(decideMessages(booked)), QString("confirm:sms")) ;
+
+        MessageState later = sentState(false, true) ;
+        later.onthisday = true ;
+        later.remindersent = true ;
+        later.smsdone = dayChannelSent(record, "2026-10-30", "sms") ;
         QVERIFY(decideMessages(later).isEmpty()) ;
     }
 
     void sameDaySmsIsSentWhenBookedEarlierAndTheDayComes()
     {
         // Booked the day before with both channels, so the confirmation and the reminder have gone.  On the day, the
-        // on-the-day text goes (and the email), once.
+        // on-the-day email and text both go, once each, email first.
         MessageState s = sentState(true, true) ;
         s.onthisday = true ;
         s.remindersent = true ;
+        QCOMPARE(describeSteps(decideMessages(s)), QString("onday:email, onday:sms")) ;
+    }
+
+    // ---- The cases in the messaging rules document, decided one message at a time ----
+
+    void caseSevenEmailIsTheConfirmationWhenWindowOpensLate()
+    {
+        // Made at 23:30 the day before, for 12:00 on the day.  At 07:00 on the day, the email is the confirmation, and it
+        // gives the day's email.
+        MessageState s = newState(true, false) ;
+        s.onthisday = true ;
+        s.createdbeforeday = true ;
+        s.istime = true ;
+        s.confirmonly = true ;
         QList<MessageStep> steps = decideMessages(s) ;
-        QVERIFY(!steps.isEmpty()) ;
-        QVERIFY(steps.last().kind=="onday" && !steps.last().email) ;
+        QCOMPARE(describeSteps(steps), QString("confirm:email")) ;
+        QVERIFY(steps.first().recordreminder) ;
+
+        s.messagesent = true ;
+        s.emaildone = true ;
+        s.remindersent = true ;
+        QVERIFY(decideMessages(s).isEmpty()) ;
+    }
+
+    void caseSevenTextIsTheOnTheDayTextWhenWindowOpensLate()
+    {
+        // The same appointment, for a text-only contact: no confirmation text, but the on-the-day text at 07:00
+        MessageState s = newState(false, true) ;
+        s.onthisday = true ;
+        s.createdbeforeday = true ;
+        s.istime = true ;
+        s.confirmonly = true ;
+        QCOMPARE(describeSteps(decideMessages(s)), QString("onday:sms")) ;
+    }
+
+    void caseSevenBothIsEmailThenTheOnTheDayText()
+    {
+        // The same appointment, with both channels: the confirmation email first, then the on-the-day text
+        MessageState s = newState(true, true) ;
+        s.onthisday = true ;
+        s.createdbeforeday = true ;
+        s.istime = true ;
+        s.confirmonly = true ;
+        QCOMPARE(describeSteps(decideMessages(s)), QString("confirm:email")) ;
+
+        s.messagesent = true ;
+        s.emaildone = true ;
+        s.remindersent = true ;
+        QCOMPARE(describeSteps(decideMessages(s)), QString("onday:sms")) ;
+    }
+
+    void caseEightNoReminderOnTheDay()
+    {
+        // The reminder that was due the day before, while ContactManager was off, is not sent on the day: the on-the-day
+        // messages take its place
+        MessageState s = sentState(true, true) ;
+        s.onthisday = true ;
+        s.istime = true ;
+        s.remindersent = false ;
+        QCOMPARE(describeSteps(decideMessages(s)), QString("onday:email, onday:sms")) ;
+    }
+
+    void reminderOnTheDayIsReplacedByTheOnTheDayText()
+    {
+        MessageState s = sentState(false, true) ;
+        s.onthisday = true ;
+        s.istime = true ;
+        s.remindersent = false ;
+        QCOMPARE(describeSteps(decideMessages(s)), QString("onday:sms")) ;
+    }
+
+    void channelSwitchedToTextSendsOnlyWhatIsPending()
+    {
+        // Confirmed by email, and then switched to text only: nothing is sent again, but the reminder by text is pending
+        MessageState s = sentState(false, true) ;
+        s.istime = true ;
+        s.remindersent = false ;
+        QCOMPARE(describeSteps(decideMessages(s)), QString("reminder:sms")) ;
+
+        MessageState none = sentState(false, true) ;
+        QVERIFY(decideMessages(none).isEmpty()) ;
     }
 
     // ---- The timing and the messages together, at the 24 and 36 hour boundaries ----
