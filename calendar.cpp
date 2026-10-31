@@ -830,6 +830,25 @@ bool parseCalendarDate(const QString &text, QDate today, QDate *result)
     spaced.replace(QRegularExpression("(?<=\\d)(?=[a-z])|(?<=[a-z])(?=\\d)"), " ") ;
     QStringList words = spaced.simplified().split(' ', Qt::SkipEmptyParts) ;
 
+    // A day name on its own, as "mon" or "monday", is the next such day after today: on a Monday, "mon" is the Monday a week on
+    static const QStringList daynames = { "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday" } ;
+    if (words.size()==1 && words.at(0).size()>=3) {
+        int matches = 0 ;
+        int weekday = 0 ;
+        for (int d=0; d<daynames.size(); d++) {
+            if (daynames.at(d).startsWith(words.at(0))) {
+                matches++ ;
+                weekday = d+1 ;      // Qt numbers the days from Monday, as 1
+            }
+        }
+        if (matches==1) {
+            int ahead = (weekday - today.dayOfWeek() + 7) % 7 ;
+            if (ahead==0) ahead = 7 ;
+            *result = today.addDays(ahead) ;
+            return true ;
+        }
+    }
+
     int day=0, month=0, year=0 ;
     bool hasday=false, hasmonth=false, hasyear=false, twodigityear=false ;
 
