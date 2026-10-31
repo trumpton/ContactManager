@@ -23,6 +23,16 @@ enum CalendarSearchType {
 
 class ContactDatabase ;
 
+// The row whose start is nearest to wanted, or -1 when there are no rows (issue #92).  Used to put the focus on the nearest
+// date when the list is rebuilt and the entry on screen is no longer listed.
+int nearestRowToDate(const QList<QDateTime> &starts, const QDateTime &wanted) ;
+
+// A date typed into the calendar list (issue #92): a day, a month name and an optional year, in either order, such as
+// "10 oct 2026", "1 nov 2027" or "2 march".  A month can be typed in full or as the start of its name, of at least three
+// letters ("septe", "sep").  Without a year, the date is the next one with that day and month, on or after today.  Returns
+// false, and leaves result alone, when the text is not a date.
+bool parseCalendarDate(const QString &text, QDate today, QDate *result) ;
+
 class Calendar
 {
 private:
@@ -87,11 +97,24 @@ public:
 
     void purgeBirthdays() ;
     int tidyBirthdays(bool dryrun) ;
+
+    // Archived appointments (issue #96).  An archived appointment is kept in the archive folder, which start-up does not read.
+    // archiveExpired moves each expired appointment that is not changed since lastsync, and has nothing waiting to be
+    // uploaded or downloaded, into the archive, and returns how many.  Its IDs are added to archived.
+    int archiveExpired(QDateTime lower, QDateTime lastsync, QStringList &archived) ;
+    static QList<Appointment> loadArchive() ;
+    bool restoreFromArchive(Appointment &appt) ;
+    bool updateArchived(Appointment &appt) ;
+    bool removeFromArchive(QString id) ;
     int repointContact(QString fromid, QString toid) ;
 
     // Tidy Records, for the calendar.  A repeat with no occurrences left (every one removed) shows nothing, so it is marked
     // deleted, as deleting all of a repeat's occurrences does.  Returns how many, and describes each in removed.
     int tidyRepeatsWithNoOccurrences(QStringList &removed) ;
+
+    // Tidy Records, for the calendar.  Deleted entries that are not on Google are moved to the deleted folder.  Those still
+    // linked to Google are left for Google Sync to remove there.  Returns how many were moved, and how many were linked.
+    int tidyDeleted(int &linked) ;
 
     // Entries whose contact is missing or deleted.  They are described, and are left as they are: which contact they belong
     // to is for the user to decide.

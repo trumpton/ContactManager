@@ -3,12 +3,24 @@
 
 #include <QDialog>
 #include <QProgressBar>
+#include <QSet>
 #include "googleaccess.h"
 #include "contactdatabase.h"
 
 namespace Ui {
 class GoogleUpdateDialog;
 }
+
+// Uploads are saved as they happen, and a checkpoint is reported every SYNC_UPLOAD_CHUNK uploads.  A sync that stops
+// part-way keeps what it has uploaded, and the next sync does not upload those items again.
+#define SYNC_UPLOAD_CHUNK 100
+
+// The uploads of one phase ("calendar" or "contacts"), kept in a file, so that a sync that stops part-way does not repeat
+// them.  The file belongs to one last-sync date, and is removed when the phase completes.
+QSet<QString> loadUploadProgress(const QString &phase, const QString &lastsync) ;
+void recordUploadProgress(const QString &phase, const QString &lastsync, const QString &key) ;
+void clearUploadProgress(const QString &phase) ;
+QString uploadProgressKey(const QString &id, const QString &updated) ;
 
 class GoogleUpdateDialog : public QDialog
 {
@@ -33,6 +45,10 @@ private:
     Ui::GoogleUpdateDialog *ui;
     int state ;
 
+    // Each phase reports its progress from 0 to 1000 in its own terms.  The contacts take the first half of the bar, and the
+    // calendar the second half, so this is added to what a phase reports.
+    int progressoffset ;
+
     // Sets the progress bar, and lets the window process events so that it keeps responding
     void setProgress(int value) ;
 
@@ -42,6 +58,13 @@ private:
 
     // Update the contacts
     bool processContactUpdate(QDateTime& lastsyncdate, GoogleAccess& google, ContactDatabase &db) ;
+
+    // Once the contacts are synchronised, each appointment's linked contact is checked against them (issue #95)
+    void settleAppointmentContacts(Calendar &cal, ContactDatabase &db, int &kept, int &named, int &unnamed, int &nocontact) ;
+
+    // Archived appointments, checked against Google (issue #96)
+    void reconcileArchive(Calendar &cal, Calendar &googlecal, const QStringList &deletedids, QDateTime fromwindow, QDateTime towindow,
+                          QSet<QString> &archivedids, int &restored, int &updated, int &removed) ;
 
     // Upload contact to Google
     bool uploadContact(Contact& contact, GoogleAccess& google, Contact& googlecontact) ;

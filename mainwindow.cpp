@@ -31,9 +31,16 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     titledEntriesHeld=false ;
     datalock=NULL ;
     remindersallowed=false ;
+    showdeletedappointments=false ;
+    showdeletedcontacts=false ;
+    showhiddencontacts=false ;
+    calendarcontactonly=false ;
 
     ui->setupUi(this);
     setupTitledEntries() ;
+
+    // The keys T, D and Space work from the calendar list (issue #92)
+    ui->listCalendar->installEventFilter(this) ;
 
     // Enable debug
     setupdebug();
@@ -561,11 +568,9 @@ void MainWindow::populateDialog(QString id, bool switchtooverview)
         db.selectContact(id) ;
         LoadTabs() ;
 
-        // And refresh the menus
+        // And refresh the menus.  The calendar list keeps the focus on the entry nearest in date (issue #92), so it is not
+        // sent to today here.
         refreshMenus(db.getSelected(), false, false, true) ;
-
-        // Goto Today
-        on_actionGotoToday_triggered() ;
 
     } else if (id.compare(SELECT_ADDENTRY)==0) {
 
@@ -947,21 +952,26 @@ void MainWindow::on_actionTidyContacts_triggered()
         }
     }
 
-    // Calendar entries, checked after the contacts are tidied: a repeat with no occurrences left is marked deleted, and the
-    // entries whose contact is missing or deleted are listed, to be decided by the user.
+    // Calendar entries, checked after the contacts are tidied: a repeat with no occurrences left is marked deleted.
     QStringList repeatsremoved ;
     int repeatcount = calendar.tidyRepeatsWithNoOccurrences(repeatsremoved) ;
+
+    // Deleted entries, and the merged-away contacts, that are not on Google go to the deleted folder now.  The others are
+    // still linked to Google, and follow after the next sync.  This runs on every tidy, not only when something else changed.
+    int contactslinked=0, appointmentslinked=0 ;
+    int contactsarchived = db.tidyDeleted(contactslinked) ;
+    int appointmentsarchived = calendar.tidyDeleted(appointmentslinked) ;
+
+    // The entries whose contact is missing or deleted are listed, to be decided by the user.
     QStringList orphans = calendar.orphanedEntries(db) ;
 
     if (automatic==0 && confirmed==0 && declined==0 && historylines==0 && emptied==0 && renamed==0 && unnamedleft.isEmpty()
-        && entrieschanged==0 && entriesunfixed.isEmpty() && repeatcount==0 && orphans.isEmpty()) {
-        progress.finishProgress(stopped ? "Stopped at your request." : "No duplicate contacts, repeated history lines, unnamed entries or calendar entries needing attention were found.") ;
+        && entrieschanged==0 && entriesunfixed.isEmpty() && repeatcount==0 && orphans.isEmpty()
+        && contactsarchived==0 && appointmentsarchived==0) {
+        progress.finishProgress(stopped ? "Stopped at your request." : "No duplicate contacts, repeated history lines, unnamed entries, deleted entries or calendar entries needing attention were found.") ;
         return ;
     }
 
-    // Removed entries that are not on Google go to the deleted folder now.  The others follow at the next sync.
-    int linked=0 ;
-    int archived = db.tidyDeleted(linked) ;
     calendar.save() ;
 
     // The contact on screen stays loaded, unless tidying removed it.  The form is reloaded from the database, which the
@@ -991,8 +1001,12 @@ void MainWindow::on_actionTidyContacts_triggered()
     summary << QString("Summary: merged %1 automatically and %2 after you confirmed; %3 not merged (you chose Skip).")
                .arg(automatic).arg(confirmed).arg(declined) ;
     if (repeated>0) summary << QString("%1 of the confirmed or skipped matches were decided by \"Do this for all future matches\".").arg(repeated) ;
-    summary << QString("Moved %1 removed entries to the deleted folder.").arg(archived) ;
-    if (linked>0) summary << QString("%1 removed entries are still on Google.").arg(linked) ;
+    summary << QString("Moved %1 deleted or merged contacts to the deleted folder.").arg(contactsarchived) ;
+    summary << QString("Moved %1 deleted appointments to the deleted folder.").arg(appointmentsarchived) ;
+    if (contactslinked+appointmentslinked>0) {
+        summary << QString("%1 deleted contacts and %2 deleted appointments are still on Google. Run Google Sync to remove them there, then Tidy Records moves them.")
+                   .arg(contactslinked).arg(appointmentslinked) ;
+    }
     summary << "Run Google Sync to send the merged details, and to remove the others from Google." ;
     if (stopped) summary << "Stopped at your request, so the remaining contacts were not checked." ;
 
@@ -1130,10 +1144,36 @@ void MainWindow::on_actionImport_triggered()
 
 void MainWindow::on_actionShow_Log_triggered()
 {
-    LogForm form ;
-    form.setText(getLog()) ;
+    // The log is not modal, so the application can be used while it is open, and it keeps showing new entries.  If it is
+    // already open, it is brought to the front.
+    if (logwindow.isNull()) {
+        logwindow = new LogForm(this) ;
+        logwindow->setAttribute(Qt::WA_DeleteOnClose) ;
+        QString text = getLog() ;
+        logwindow->setText(text) ;
+    }
     play(Ok) ;
-    form.exec() ;
+    logwindow->show() ;
+    logwindow->raise() ;
+    logwindow->activateWindow() ;
+}
+
+// Show menu: the calendar is listed again, so that the deleted appointments come and go with the tick
+void MainWindow::on_actionShowDeletedAppointments_triggered(bool checked)
+{
+    showdeletedappointments = checked ;
+    LoadCalendarTab() ;
+}
+
+// The contact lists are built when they are opened, so the new setting is used the next time one is
+void MainWindow::on_actionShowDeletedContacts_triggered(bool checked)
+{
+    showdeletedcontacts = checked ;
+}
+
+void MainWindow::on_actionShowHiddenContacts_triggered(bool checked)
+{
+    showhiddencontacts = checked ;
 }
 
 
@@ -1151,8 +1191,14 @@ void MainWindow::on_actionOpen_triggered()
     list.setTitle("Contact Manager Open", "Load Contact");
     for (int i=0, sz=db.size(); i<sz; i++) {
         Contact& c=db.getContact(i) ;
-        if (!c.isSet(Contact::Deleted) && !c.isSet(Contact::Hidden)) {
+        bool deleted = c.isSet(Contact::Deleted) ;
+        bool hidden = c.isSet(Contact::Hidden) ;
+
+        // Deleted and hidden contacts are listed only when their option is ticked, and then in braces
+        bool listed = deleted ? showdeletedcontacts : (!hidden || showhiddencontacts) ;
+        if (listed) {
             QString name = c.getFormattedName() ;
+            if (deleted || hidden) name = "{" + name + "}" ;
             QString data = c.getField(Contact::ID) ;
             list.addEntry(name, data) ;
         }
@@ -1220,6 +1266,13 @@ void MainWindow::tick()
         }
 
         sendMailSMS() ;
+    } else {
+        // Reminders are off, so nothing is sent: said once, in the log
+        static bool reported = false ;
+        if (!reported) {
+            reported = true ;
+            addLog("Reminders are switched off in Settings, so no confirmations, updates, reminders or cancellations are sent") ;
+        }
     }
 }
 

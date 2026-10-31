@@ -41,7 +41,25 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     setProgress(0) ;
     QElapsedTimer phasetimer ;
     phasetimer.start() ;
-    networkok &= google.getCalendar(googlecal, qMax(windowbefore, GOOGLE_APPOINTMENT_LOOKBACK_DAYS), windowafter) ;
+    // The changes since the last listing, when the sync token was given for these windows (issue #96).  Otherwise everything is listed.
+    QString tokenkey = QString("%1,%2").arg(windowbefore).arg(windowafter) ;
+    QString stored = gConf->getLastGoogleCalendarSyncToken() ;
+    QString syncToken = stored.startsWith(tokenkey + "|") ? stored.mid(tokenkey.size() + 1) : QString() ;
+    bool incremental = !syncToken.isEmpty() ;
+    QStringList deletedids ;
+    networkok &= google.getCalendar(googlecal, &deletedids, &syncToken) ;
+    // Google refuses a sync token it no longer holds (410), or one it does not recognise (400): the listing is then done again in full
+    if (!networkok && incremental && (google.getNetworkErrorCode()==410 || google.getNetworkErrorCode()==400)) {
+        // Google no longer accepts the sync token, so everything is listed again
+        ui->updateStatusReport->append(QString("  Google did not accept the sync token (HTTP %1), so every appointment is listed again.").arg(google.getNetworkErrorCode())) ;
+        networkok = true ;
+        incremental = false ;
+        syncToken.clear() ;
+        googlecal.clear() ;
+        deletedids.clear() ;
+        networkok &= google.getCalendar(googlecal, &deletedids, &syncToken) ;
+    }
+    ui->updateStatusReport->append(incremental ? QString("  Listing: the changes since the last sync.") : QString("  Listing: every appointment.")) ;
     PHASE_DONE("download appointments") ;
     googlecal.dumpEntries("google", db) ;
     int googlesize = googlecal.size() ;
@@ -50,6 +68,25 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
         ui->updateStatusReport->append(QString("    ") + googleappt.asText()) ;
     }
     ui->updateStatusReport->append(QString("    Downloaded: ") + QString::number(googlesize) + QString(" entries")) ;
+
+    // Archived appointments are checked against Google first (issue #96): one Google has cancelled is removed from the archive,
+    // one now in the window is restored, and one still outside it is kept up to date.  The IDs still archived are not downloaded
+    // as new local appointments.
+    QSet<QString> archivedids ;
+    int restored=0, archivedupdated=0, archivedremoved=0 ;
+    reconcileArchive(cal, googlecal, deletedids, fromwindow, towindow, archivedids, restored, archivedupdated, archivedremoved) ;
+    ui->updateStatusReport->append(QString("  Archive: %1 restored, %2 updated, %3 removed as cancelled on Google.")
+                                   .arg(restored).arg(archivedupdated).arg(archivedremoved)) ;
+
+    // Repeats that have passed the lower edge of the window start at their first occurrence still in it (issue #96).  The start
+    // changes, so the change is uploaded with this sync.
+    int trimmed=0 ;
+    for (int i=0; i<cal.size(); i++) {
+        Appointment &appt = cal.getAppointment(i) ;
+        if (appt.isTemp() || appt.isSet(Appointment::Deleted) || !appt.isRepeating()) continue ;
+        if (appt.trimRepeatBefore(fromwindow)) trimmed++ ;
+    }
+    if (trimmed>0) ui->updateStatusReport->append(QString("  Repeats starting in the window: %1 moved on to their first occurrence in it.").arg(trimmed)) ;
 
     if (state<0) return false ;
 
@@ -93,6 +130,23 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     //
     // 3. Fix broken ID links
     //
+    // An appointment that has not changed is not in an incremental listing.  Its Google copy is taken to be its local copy, so that
+    // nothing is downloaded for it.  A change made locally is still uploaded: see the upload test in step 6.
+    if (incremental) {
+        for (int i=0; i<cal.size(); i++) {
+            Appointment &localappt = cal.getAppointment(i) ;
+            QString id = localappt.getField(Appointment::ID) ;
+            if (localappt.isTemp() || localappt.isSet(Appointment::Deleted) || localappt.getField(Appointment::GoogleRecordId).isEmpty()) continue ;
+            if (deletedids.contains(id)) continue ;
+            QDateTime from = localappt.getDate(Appointment::From) ;
+            QDateTime to = localappt.getDate(Appointment::To) ;
+            bool inwindow = (from <= fromwindow && to >= fromwindow) || (from >= fromwindow && to <= towindow) || (from <= towindow && to >= towindow) ;
+            if (!inwindow || !googlecal.getAppointmentBy(Appointment::ID, id).isNull()) continue ;
+            Appointment copy = localappt ;
+            googlecal.addAppointment(copy, false) ;
+        }
+    }
+
     setProgress(150) ;
     ui->updateStatusReport->append(QString("  Repairing Broken Local Google Record IDs:")) ;
     for (int i=0, size=googlecal.size(); i<size; i++) {
@@ -176,7 +230,9 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
 
         // Google birthdays are not stored: they are shown from the contacts list.  Storing
         // them made a new copy on every sync, as their IDs are not kept by Google.
-        if (localappt.isNull() && !googleappt.isSet(Appointment::Deleted) && !googleappt.isBirthday()) {
+        // An appointment that has expired is not created here: it is only on Google (issue #96)
+        if (localappt.isNull() && !googleappt.isSet(Appointment::Deleted) && !googleappt.isBirthday()
+                && !archivedids.contains(googleappt.getField(Appointment::ID)) && !googleappt.isExpiredBefore(fromwindow)) {
             Appointment newlocal ;
             newlocal.setField(Appointment::ID, googleappt.getField(Appointment::ID)) ;
             newlocal.setField(Appointment::From, googleappt.getField(Appointment::From)) ;
@@ -215,6 +271,10 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     synctimer.start() ;
     int uploadcount=0 ;
     qint64 uploadms=0 ;
+
+    // Uploads done by an earlier sync that stopped part-way are not repeated
+    QString lastsyncstr = lastsync.toString(Qt::ISODate) ;
+    QSet<QString> doneuploads = loadUploadProgress("calendar", lastsyncstr) ;
     for (int i=0, size=cal.size(); i<size; i++) {
 
         if (i % 50 == 0) {
@@ -252,7 +312,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                 localappt.setFlag(Appointment::ToBeUploaded, false) ;
                 localappt.setFlag(Appointment::ToBeDownloaded, false) ;
 
-            } else if (!googlematcheslocal) {
+            } else if (!googlematcheslocal || localappt.isSet(Appointment::ToBeUploaded)) {
 
                 QString changes ;
                 QString summary ;
@@ -271,7 +331,9 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                     ui->updateStatusReport->append(QString("    ") + localappt.asText() + QString(" - Updating Local Appointment (%1)").arg(summary)) ;
                 }
 
-                // Update Details on Google
+                // Update Details on Google.  An upload that an earlier sync made is not repeated.
+                QString uploadkey = uploadProgressKey(localappt.getField(Appointment::ID), localappt.getField(Appointment::Updated)) ;
+                if (doneuploads.contains(uploadkey)) localappt.setFlag(Appointment::ToBeUploaded, false) ;
                 if (localappt.isSet(Appointment::ToBeUploaded)) {
                     if (localappt.isSet(Appointment::Deleted)) {
                         changes = QString("Deleted.") ;
@@ -283,6 +345,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                     ui->updateStatusReport->append(QString("    ") + localappt.asText() + QString(" - Updating Google Appointment (%1)").arg(summary)) ;
 
                     bool status ;
+                    bool hadgoogleid = !localappt.getField(Appointment::GoogleRecordId).isEmpty() ;
                     if (localappt.getField(Appointment::GoogleRecordId).isEmpty()) {
                         QElapsedTimer uploadtimer ;
                         uploadtimer.start() ;
@@ -300,10 +363,31 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                     }
                     networkok &= status ;
 
+                    // A Google event that has been created is linked straight away, even if its reply did not match, so that
+                    // a later sync updates it rather than creating it again
+                    if (!hadgoogleid && !localappt.getField(Appointment::GoogleRecordId).isEmpty()) localappt.save(gCalendarSavePath) ;
+
                     if (status) {
                         addLog(QString("    ") + localappt.asText() + QString(" - Uploading Google Appointment Details: %1").arg(changes)) ;
                         localappt.copyTo(googleappt, Appointment::maDetails|Appointment::maId|Appointment::maGoogleId) ;
+
+                        // Saved as it is uploaded, so that a Google event that was created is linked, and not created again
+                        // if the sync stops.  The checkpoint below saves the calendar every SYNC_UPLOAD_CHUNK uploads.
+                        localappt.save(gCalendarSavePath) ;
+                        recordUploadProgress("calendar", lastsyncstr, uploadkey) ;
+                        if (uploadcount % SYNC_UPLOAD_CHUNK == 0) {
+                            if (!cal.save()) {
+                                ui->updateStatusReport->append(QString("  Could not save the calendar at upload %1, so the sync stops here.").arg(uploadcount)) ;
+                                return false ;
+                            }
+                            ui->updateStatusReport->append(QString("  Checkpoint: %1 uploads saved.").arg(uploadcount)) ;
+                        }
                     } else {
+                        // The reason is the network error if there was one, otherwise the last log entry from the upload, which says
+                        // what did not match.  It is read before this failure is logged.
+                        QStringList recent = QString(getLog()).split("\n", Qt::SkipEmptyParts) ;
+                        QString reason = google.getNetworkError().isEmpty() ? (recent.isEmpty() ? QString() : recent.last().trimmed()) : google.getNetworkError() ;
+                        ui->updateStatusReport->append(QString("    ") + localappt.asText() + QString(" - FAILED Uploading Google Appointment: ") + reason) ;
                         addLog(QString("    ") + localappt.asText() + QString(" - FAILED Uploading Google Appointment Details: %1").arg(changes)) ;
                         networkok = false ;
                     }
@@ -325,10 +409,22 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
 
     if (state<0) return false ;
 
+    // Expired appointments move to the archive, once they are uploaded and not changed (issue #96).  Saved, so that the moves and
+    // the repeats that were moved on are kept.
+    QStringList archivednow ;
+    int archivedcount = cal.archiveExpired(fromwindow, lastsync, archivednow) ;
+    if (!cal.save()) ui->updateStatusReport->append(QString("  The calendar could not be saved after archiving."))  ;
+    ui->updateStatusReport->append(QString("  Archived %1 expired appointments.").arg(archivedcount)) ;
+
     PHASE_DONE("synchronising appointments") ;
     dbg(QString("TIMING sync appointments done: %1 uploads, %2 ms uploading, %3 ms in sync loop")
         .arg(uploadcount).arg(uploadms).arg(synctimer.elapsed())) ;
     if (networkok) {
+        clearUploadProgress("calendar") ;
+
+        // The token for the next listing is kept only when the phase completes, so that a sync which stops part-way lists these
+        // changes again (issue #96)
+        if (!syncToken.isEmpty()) gConf->setLastGoogleCalendarSyncToken(tokenkey + "|" + syncToken) ;
         ui->updateStatusReport->append(QString("  Appointment Synchronisation: OK")) ;
     } else {
         ui->updateStatusReport->append(QString("  Appointment Synchronisation: FAILED - Please resync")) ;
@@ -337,3 +433,113 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     setProgress(500) ;
     return networkok ;
 }
+
+//=====================================================================================================
+//
+// Appointments and their contacts (issue #95).  Run only after the contacts have synchronised, as the contact list is then
+// complete.  A link to a contact that exists is kept, and a blank For name is filled from the contact.  A link to no contact
+// is matched by name, when exactly one contact has that name; otherwise the link is removed and For is set to "Unnamed Contact".
+// An appointment with no linked contact, or linked to Me, is not changed.
+//
+
+void GoogleUpdateDialog::settleAppointmentContacts(Calendar &cal, ContactDatabase &db, int &kept, int &named, int &unnamed, int &nocontact)
+{
+    QSet<QString> ids ;
+    QHash<QString, QStringList> idsbyname ;
+    QHash<QString, QString> namebyid ;
+    for (int i=0; i<db.size(); i++) {
+        Contact &c = db.getContact(i) ;
+        QString id = c.getField(Contact::ID) ;
+        if (id.isEmpty()) continue ;
+        QString name = c.getFormattedName(false, false).trimmed() ;
+        ids.insert(id) ;
+        namebyid.insert(id, name) ;
+        if (!name.isEmpty()) idsbyname[name.toLower()] << id ;
+    }
+
+    QString me = gConf->getMe() ;
+    kept=0 ;
+    named=0 ;
+    unnamed=0 ;
+    nocontact=0 ;
+    for (int i=0; i<cal.size(); i++) {
+        Appointment &appt = cal.getAppointment(i) ;
+        if (appt.isTemp()) continue ;
+        QString contactid = appt.getField(Appointment::ContactId) ;
+
+        // No contact at all (the Me entries have Me as their contact, so they are not here): For is "Unnamed Contact", as
+        // Google's reply gives it when there is no name stored
+        if (contactid.isEmpty()) {
+            if (appt.getField(Appointment::For).isEmpty()) {
+                nocontact++ ;
+                appt.setField(Appointment::For, QString(APPOINTMENT_UNNAMED_CONTACT)) ;
+            }
+            continue ;
+        }
+        if (contactid.compare(me)==0) continue ;
+
+        QString resolved ;
+        AppointmentContactRule rule = matchAppointmentContact(contactid, appt.getField(Appointment::For), ids, idsbyname, resolved) ;
+        switch (rule) {
+        case ContactKept:
+            kept++ ;
+            if (appt.getField(Appointment::For).isEmpty()) appt.setField(Appointment::For, namebyid.value(resolved)) ;
+            break ;
+        case ContactNamed:
+            named++ ;
+            appt.setField(Appointment::ContactId, resolved) ;
+            break ;
+        case ContactUnnamed:
+            unnamed++ ;
+            appt.setField(Appointment::ContactId, QString()) ;
+            appt.setField(Appointment::For, QString(APPOINTMENT_UNNAMED_CONTACT)) ;
+            break ;
+        }
+    }
+}
+
+//=====================================================================================================
+//
+// Archived appointments, checked against Google (issue #96).  An archived appointment that Google has cancelled is removed from
+// the archive.  One that Google holds inside the window is restored to the calendar, with Google's details and its Updated time
+// kept, so that it is not uploaded again.  One that Google holds outside the window has its archived copy brought up to date.
+// Every appointment left archived is in archivedids, so that the download does not make a new local copy of it.
+//
+
+void GoogleUpdateDialog::reconcileArchive(Calendar &cal, Calendar &googlecal, const QStringList &deletedids, QDateTime fromwindow, QDateTime towindow,
+                                          QSet<QString> &archivedids, int &restored, int &updated, int &removed)
+{
+    restored=0 ;
+    updated=0 ;
+    removed=0 ;
+
+    QList<Appointment> archive = Calendar::loadArchive() ;
+    for (Appointment &archived : archive) {
+        QString id = archived.getField(Appointment::ID) ;
+
+        if (deletedids.contains(id)) {
+            if (cal.removeFromArchive(id)) removed++ ;
+            continue ;
+        }
+
+        // Not in this listing: left as it is, and not downloaded
+        Appointment &googleappt = googlecal.getAppointmentBy(Appointment::ID, id) ;
+        if (googleappt.isNull() || googleappt.isSet(Appointment::Deleted)) {
+            archivedids.insert(id) ;
+            continue ;
+        }
+
+        archived.copyFromKeepingUpdated(googleappt, Appointment::maDetails|Appointment::maGoogleAcct) ;
+
+        QDateTime from = googleappt.getDate(Appointment::From) ;
+        QDateTime to = googleappt.getDate(Appointment::To) ;
+        bool inwindow = (from <= towindow && to >= fromwindow) ;
+        if (inwindow) {
+            if (cal.restoreFromArchive(archived)) restored++ ;
+        } else {
+            if (cal.updateArchived(archived)) updated++ ;
+            archivedids.insert(id) ;
+        }
+    }
+}
+

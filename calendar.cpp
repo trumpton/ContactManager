@@ -1,3 +1,4 @@
+#include <QRegularExpression>
 #include "calendar.h"
 #include "appointment.h"
 #include "configuration.h"
@@ -646,6 +647,40 @@ int Calendar::tidyRepeatsWithNoOccurrences(QStringList &removed)
 
 //=====================================================================================================
 //
+// Public: Calendar - tidyDeleted
+//
+//  Moves the deleted entries that are not linked to Google to the deleted folder, as the contacts are.  An entry linked to
+//  Google is kept until Google Sync removes it there, which clears the link, so that a later tidy can move it.  Only the ID
+//  is logged.  Returns how many were moved, and how many are linked.
+//
+int Calendar::tidyDeleted(int &linked)
+{
+    int moved=0 ;
+    linked=0 ;
+
+    // Work backwards, so that removing an entry does not shift the ones still to check
+    for (int i=appointments.size()-1; i>=0; i--) {
+        Appointment &appt = appointments[i] ;
+        if (!appt.isSet(Appointment::Deleted)) continue ;
+
+        if (!appt.getField(Appointment::GoogleRecordId).isEmpty()) {
+            linked++ ;
+            continue ;
+        }
+
+        QString id = appt.getField(Appointment::ID) ;
+        addLog("Tidy: moving appointment " + id + " to deleted folder") ;
+        QString filename = id + ".appointment" ;
+        backupFile(gCalendarSavePath, filename) ;
+        appointments.removeAt(i) ;
+        moved++ ;
+    }
+
+    return moved ;
+}
+
+//=====================================================================================================
+//
 // Public: Calendar - orphanedEntries
 //
 //  The entries for a contact that is missing or deleted.  They are described and left as they are.  An entry for Me, and an
@@ -674,3 +709,179 @@ QStringList Calendar::orphanedEntries(ContactDatabase &db)
     }
     return orphans ;
 }
+
+//=====================================================================================================
+//
+// Public: Calendar - archive (issue #96)
+//
+//  An expired appointment is moved from the calendar folder to the archive folder, which is not read at start-up.  Its Google
+//  ID is kept, so that a later sync does not make a second copy of it.  Only an appointment that is not changed since the last
+//  sync, and is not waiting to be uploaded, is archived, so that no change is moved out of reach.
+//
+
+static QString calendarArchivePath()
+{
+    return gCalendarSavePath + "archive/" ;
+}
+
+int Calendar::archiveExpired(QDateTime lower, QDateTime lastsync, QStringList &archived)
+{
+    int count=0 ;
+    QString path = calendarArchivePath() ;
+    QDir().mkpath(path) ;
+
+    // Work backwards, so that removing an entry does not shift the ones still to check
+    for (int i=appointments.size()-1; i>=0; i--) {
+        Appointment &appt = appointments[i] ;
+        if (appt.isTemp() || appt.isSet(Appointment::Deleted)) continue ;
+        // Waiting to be uploaded: it stays until it is.  (Unchanged entries are always flagged to be downloaded, so that is not checked.)
+        if (appt.isSet(Appointment::ToBeUploaded)) continue ;
+
+        // Changed since the last sync: it waits for the upload
+        QDateTime updated = appt.getDate(Appointment::Updated) ;
+        if (!lastsync.isValid() || updated >= lastsync) continue ;
+
+        if (!appt.isExpiredBefore(lower)) continue ;
+
+        QString id = appt.getField(Appointment::ID) ;
+        appt.markAsDirty() ;
+        if (!appt.save(path)) continue ;
+        QFile::remove(gCalendarSavePath + id + ".appointment") ;
+        archived << id ;
+        appointments.removeAt(i) ;
+        count++ ;
+    }
+    return count ;
+}
+
+QList<Appointment> Calendar::loadArchive()
+{
+    QList<Appointment> list ;
+    QString path = calendarArchivePath() ;
+    QDir dir(path) ;
+    dir.setNameFilters(QStringList() << "*.appointment") ;
+    foreach (const QString &file, dir.entryList(QDir::Files)) {
+        QString id = file ;
+        id.chop(QString(".appointment").size()) ;
+        Appointment appt ;
+        if (appt.load(path, id)) list << appt ;
+    }
+    return list ;
+}
+
+// Restores an archived appointment to the calendar.  Its archived file is removed.
+bool Calendar::restoreFromArchive(Appointment &appt)
+{
+    QString id = appt.getField(Appointment::ID) ;
+    appt.markAsDirty() ;
+    if (!appt.save(gCalendarSavePath)) return false ;
+    QFile::remove(calendarArchivePath() + id + ".appointment") ;
+    addAppointment(appt) ;
+    return true ;
+}
+
+// Brings the archived copy of an appointment up to date, without restoring it
+bool Calendar::updateArchived(Appointment &appt)
+{
+    appt.markAsDirty() ;
+    return appt.save(calendarArchivePath()) ;
+}
+
+// Removes an archived appointment, which Google has cancelled.  It is moved to the archive's deleted folder, not deleted.
+bool Calendar::removeFromArchive(QString id)
+{
+    QString path = calendarArchivePath() ;
+    QString filename = id + ".appointment" ;
+    return backupFile(path, filename) ;
+}
+
+int nearestRowToDate(const QList<QDateTime> &starts, const QDateTime &wanted)
+{
+    int nearest = -1 ;
+    qint64 gap = 0 ;
+    for (int i=0; i<starts.size(); i++) {
+        qint64 g = qAbs(starts.at(i).secsTo(wanted)) ;
+        if (nearest<0 || g<gap) {
+            nearest = i ;
+            gap = g ;
+        }
+    }
+    return nearest ;
+}
+
+bool parseCalendarDate(const QString &text, QDate today, QDate *result)
+{
+    static const QStringList monthnames = { "january", "february", "march", "april", "may", "june", "july", "august",
+                                            "september", "october", "november", "december" } ;
+    static const QStringList ordinals = { "st", "nd", "rd", "th" } ;
+
+    auto allDigits = [](const QString &s) {
+        if (s.isEmpty()) return false ;
+        for (QChar c : s) if (c<'0' || c>'9') return false ;
+        return true ;
+    } ;
+
+    QString spaced = text.toLower() ;
+    spaced.replace(',', ' ') ;
+
+    // An ordinal ending on a day is taken off ("10th"), and a day, month or year that runs into another part is split from it
+    // ("10oct2026" is "10 oct 2026")
+    spaced.replace(QRegularExpression("(\\d)(st|nd|rd|th)(?![a-z])"), "\\1") ;
+    spaced.replace(QRegularExpression("(?<=\\d)(?=[a-z])|(?<=[a-z])(?=\\d)"), " ") ;
+    QStringList words = spaced.simplified().split(' ', Qt::SkipEmptyParts) ;
+
+    int day=0, month=0, year=0 ;
+    bool hasday=false, hasmonth=false, hasyear=false ;
+    for (const QString &word : words) {
+
+        // A day may have an ordinal ending, as in "10th"
+        QString number = word ;
+        for (const QString &ordinal : ordinals) {
+            if (number.endsWith(ordinal) && allDigits(number.left(number.size()-ordinal.size()))) {
+                number = number.left(number.size()-ordinal.size()) ;
+                break ;
+            }
+        }
+
+        if (allDigits(number) && number.size()<=2 && !hasday) {
+            day = number.toInt() ;
+            hasday = true ;
+        } else if (allDigits(number) && number.size()==4 && !hasyear) {
+            year = number.toInt() ;
+            hasyear = true ;
+        } else if (word.size()>=3 && !hasmonth) {
+            // The month must be the start of exactly one month name
+            int matches = 0 ;
+            for (int m=0; m<monthnames.size(); m++) {
+                if (monthnames.at(m).startsWith(word)) {
+                    matches++ ;
+                    month = m+1 ;
+                }
+            }
+            if (matches!=1) return false ;
+            hasmonth = true ;
+        } else {
+            return false ;
+        }
+    }
+    if (!hasday || !hasmonth) return false ;
+
+    if (hasyear) {
+        QDate date(year, month, day) ;
+        if (!date.isValid()) return false ;
+        *result = date ;
+        return true ;
+    }
+
+    // No year: the next date with that day and month, on or after today.  A date such as 29 February is found in a later year
+    // (within eight years), and 31 November is never found.
+    for (int y=today.year(); y<=today.year()+8; y++) {
+        QDate date(y, month, day) ;
+        if (date.isValid() && date>=today) {
+            *result = date ;
+            return true ;
+        }
+    }
+    return false ;
+}
+

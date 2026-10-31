@@ -7,6 +7,9 @@
 #include "contactdatabase.h"
 #include "calendar.h"
 #include "contact.h"
+#include "configuration.h"
+#include <QFile>
+#include <QTextStream>
 
 
 GoogleUpdateDialog::GoogleUpdateDialog(QWidget *parent) :
@@ -14,6 +17,7 @@ GoogleUpdateDialog::GoogleUpdateDialog(QWidget *parent) :
     ui(new Ui::GoogleUpdateDialog)
 {
     state = 0 ;
+    progressoffset = 0 ;
     ui->setupUi(this);
 }
 
@@ -69,6 +73,47 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
     QString calendarsyncdatestr = gConf->getLastGoogleCalendarSyncDate() ;
     QDateTime calendarsyncdate = isoStringToDateTime(calendarsyncdatestr) ;
 
+    // The contacts take the first half of the bar: their 500 to 1000 is shown as 0 to 500
+    progressoffset = -500 ;
+    bool consuccess = true ;
+
+    ui->updateStatusReport->append(QString("\nSYNCHRONISING CONTACTS")) ;
+
+    if (gConf->contactSyncEnabled()) {
+
+        ui->updateStatusReport->append(QString("Last Contact Synchronisation Date: ") + contactsyncdatestr ) ;
+        consuccess = processContactUpdate(contactsyncdate, google, db) ;
+        if (!consuccess) {
+            ui->updateStatusReport->append(QString("CONTACTS SYNCHRONISATION FAILED: ") + google.getNetworkError()) ;
+        } else {
+            // next syncdate after sync means anything changed on google during the sync may be lost
+            qSleep(1000) ;
+            QString nextsyncdate = nowToIsoString() ;
+            gConf->setLastGoogleContactSyncDate(nextsyncdate) ;
+
+            // And store sync token for next time
+//            gConf->setLastGoogleContactSyncToken(google.getContactSyncToken());
+
+            ui->updateStatusReport->append(QString("CONTACTS SYCHRONISATION SUCCESS.")) ;
+        }
+
+    } else {
+
+        ui->updateStatusReport->append(QString("Calendar Synchronisation disabled in configuration.")) ;
+
+    }
+
+    // Once the contacts have synchronised, each appointment's linked contact is checked against them (issue #95).  Not done when
+    // the contacts sync failed: the contact list is then incomplete, so the matches would be wrong.
+    if (consuccess && gConf->contactSyncEnabled()) {
+        int kept=0, named=0, unnamed=0, nocontact=0 ;
+        settleAppointmentContacts(cal, db, kept, named, unnamed, nocontact) ;
+        ui->updateStatusReport->append(QString("Appointment contacts: %1 kept, %2 matched by name, %3 set to %4 with the contact removed, %5 with no contact set to %4.")
+                                       .arg(kept).arg(named).arg(unnamed).arg(APPOINTMENT_UNNAMED_CONTACT).arg(nocontact)) ;
+    }
+
+    // The calendar takes the second half of the bar: its 0 to 500 is shown as 500 to 1000
+    progressoffset = 500 ;
     bool calsuccess = true ;
 
     ui->updateStatusReport->append(QString("\nSYNCHRONISING CALENDAR")) ;
@@ -102,34 +147,6 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
     }
 
     setProgress(500) ;
-
-    bool consuccess = true ;
-
-    ui->updateStatusReport->append(QString("\nSYNCHRONISING CONTACTS")) ;
-
-    if (gConf->contactSyncEnabled()) {
-
-        ui->updateStatusReport->append(QString("Last Contact Synchronisation Date: ") + contactsyncdatestr ) ;
-        consuccess = processContactUpdate(contactsyncdate, google, db) ;
-        if (!consuccess) {
-            ui->updateStatusReport->append(QString("CONTACTS SYNCHRONISATION FAILED: ") + google.getNetworkError()) ;
-        } else {
-            // next syncdate after sync means anything changed on google during the sync may be lost
-            qSleep(1000) ;
-            QString nextsyncdate = nowToIsoString() ;
-            gConf->setLastGoogleContactSyncDate(nextsyncdate) ;
-
-            // And store sync token for next time
-//            gConf->setLastGoogleContactSyncToken(google.getContactSyncToken());
-
-            ui->updateStatusReport->append(QString("CONTACTS SYCHRONISATION SUCCESS.")) ;
-        }
-
-    } else {
-
-        ui->updateStatusReport->append(QString("Calendar Synchronisation disabled in configuration.")) ;
-
-    }
 
     ui->updateStatusReport->append(QString("")) ;
     // Last step: move deleted contacts with no Google link to the deleted folder.  A deleted
@@ -198,7 +215,7 @@ void GoogleUpdateDialog::on_pushButton_clicked()
 
 void GoogleUpdateDialog::setProgress(int value)
 {
-    ui->progressBar->setValue(value) ;
+    ui->progressBar->setValue(qBound(0, value + progressoffset, 1000)) ;
     QCoreApplication::processEvents() ;
 }
 
@@ -237,4 +254,75 @@ void GoogleUpdateDialog::finishProgress(QString summary)
     ui->pushButton->setText("Close") ;
     ui->pushButton->setFocus() ;
     exec() ;
+}
+
+
+//=====================================================================================================
+//
+// Upload progress.  The file for a phase starts with the last-sync date it belongs to, then one line for each item that
+// has been uploaded in that phase, as its ID and its Updated date.  A file for another last-sync date is ignored.
+//
+
+static QString uploadProgressFile(const QString &phase)
+{
+    return gSavePath + "sync-" + phase + ".progress" ;
+}
+
+QString uploadProgressKey(const QString &id, const QString &updated)
+{
+    return id + "|" + updated ;
+}
+
+QSet<QString> loadUploadProgress(const QString &phase, const QString &lastsync)
+{
+    QSet<QString> done ;
+    QFile file(uploadProgressFile(phase)) ;
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return done ;
+
+    QTextStream in(&file) ;
+    in.setEncoding(QStringConverter::Utf8) ;
+    QString header = in.readLine() ;
+    if (header.compare("lastsync=" + lastsync)!=0) return done ;
+
+    while (!in.atEnd()) {
+        QString line = in.readLine().trimmed() ;
+        if (!line.isEmpty()) done.insert(line) ;
+    }
+    return done ;
+}
+
+void recordUploadProgress(const QString &phase, const QString &lastsync, const QString &key)
+{
+    QString name = uploadProgressFile(phase) ;
+
+    // A new file, or one for another last-sync date, is started again.  Only the header is read, as the file grows.
+    bool fresh = true ;
+    QFile existing(name) ;
+    if (existing.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream in(&existing) ;
+        in.setEncoding(QStringConverter::Utf8) ;
+        fresh = (in.readLine().compare("lastsync=" + lastsync)!=0) ;
+    }
+    if (fresh) {
+        QFile file(name) ;
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) return ;
+        QTextStream out(&file) ;
+        out.setEncoding(QStringConverter::Utf8) ;
+        out << "lastsync=" << lastsync << "\n" ;
+        out.flush() ;
+        file.close() ;
+    }
+
+    QFile file(name) ;
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Append)) return ;
+    QTextStream out(&file) ;
+    out.setEncoding(QStringConverter::Utf8) ;
+    out << key << "\n" ;
+    out.flush() ;
+    file.close() ;
+}
+
+void clearUploadProgress(const QString &phase)
+{
+    QFile::remove(uploadProgressFile(phase)) ;
 }

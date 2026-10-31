@@ -160,6 +160,10 @@ bool Appointment::load(QString path, QString idname)
         QTextStream in(&file);
         in.setEncoding(QStringConverter::Utf8) ;
 
+        // The saved times are kept for after the loop: setField stamps the appointment with the time it is loaded
+        QString loadedUpdated ;
+        QString loadedDateUpdated ;
+
         while (!in.atEnd()) {
             Line = in.readLine();
             ParsedLine =  Line.split(sep);
@@ -173,6 +177,8 @@ bool Appointment::load(QString path, QString idname)
                     if (ParsedLine.at(0).compare(appointmentrecordinfo[i].name)==0) {
                         QString entrytext = ParsedLine.at(1) ;
                         entrytext = entrytext.replace("\\n","\n").replace("\r","") ;
+                        if (i==Appointment::Updated) loadedUpdated = entrytext.trimmed() ;
+                        if (i==Appointment::DateUpdated) loadedDateUpdated = entrytext.trimmed() ;
                         setField((enum AppointmentRecord)i, entrytext) ;
                     }
 
@@ -180,6 +186,10 @@ bool Appointment::load(QString path, QString idname)
             }
         }
         file.close() ;
+
+        // Loading is not an edit, so the times are the ones that were saved (empty for a file that has none)
+        filedata[Appointment::Updated] = loadedUpdated.isEmpty() ? QString() : dateTimeStringToZulu(loadedUpdated) ;
+        filedata[Appointment::DateUpdated] = loadedDateUpdated.isEmpty() ? QString() : dateTimeStringToZulu(loadedDateUpdated) ;
 
         isdirty = false ;
         return true ;
@@ -741,6 +751,16 @@ bool Appointment::copyTo(Appointment &other, int matype)
     return copied ;
 }
 
+// Copy from source, keeping Updated and DateUpdated.  DateUpdated is set first, as setting it also sets Updated.
+void Appointment::copyFromKeepingUpdated(Appointment &source, int matype)
+{
+    QString updated = getField(Appointment::Updated) ;
+    QString dateupdated = getField(Appointment::DateUpdated) ;
+    source.copyTo(*this, matype) ;
+    setField(Appointment::DateUpdated, dateupdated) ;
+    setField(Appointment::Updated, updated) ;
+}
+
 // Compare this with 'with' and return true/false
 bool Appointment::matches(Appointment &with, int matype)
 {
@@ -884,3 +904,95 @@ int Appointment::operator<(const Appointment &rhs) const
 
     }
 }
+
+// The rule for an appointment's linked contact (issue #95).  A link to a contact that exists is kept.  Otherwise a For name
+// that matches exactly one contact (case-insensitive) sets the link to that contact.  Anything else removes the link.
+AppointmentContactRule matchAppointmentContact(const QString &contactid, const QString &forname, const QSet<QString> &ids,
+                                               const QHash<QString, QStringList> &idsbyname, QString &resolvedid)
+{
+    if (ids.contains(contactid)) {
+        resolvedid = contactid ;
+        return ContactKept ;
+    }
+
+    QString name = forname.trimmed().toLower() ;
+    QStringList matches = name.isEmpty() ? QStringList() : idsbyname.value(name) ;
+    if (matches.size()==1) {
+        resolvedid = matches.first() ;
+        return ContactNamed ;
+    }
+
+    resolvedid.clear() ;
+    return ContactUnnamed ;
+}
+
+//=====================================================================================================
+//
+// Expired appointments, and repeats that have passed the lower edge of the window (issue #96)
+//
+
+// The first occurrence that is not removed and ends at or after lower, or -1 if none is left.  Only for a repeat.
+static int firstOccurrenceEndingFrom(Appointment &appt, QDateTime lower)
+{
+    QDateTime start = appt.getDate(Appointment::From) ;
+    QDateTime end = appt.getDate(Appointment::To) ;
+    qint64 length = start.secsTo(end) ;
+    for (int n=0; n<100000 && !appt.occurrenceEnded(n); n++) {
+        QDateTime occurrence = appt.occurrenceFrom(n) ;
+        if (occurrence.addSecs(length) >= lower && !appt.isException(occurrence)) return n ;
+    }
+    return -1 ;
+}
+
+bool Appointment::isExpiredBefore(QDateTime lower)
+{
+    if (!isRepeating()) {
+        QDateTime end = getDate(Appointment::To) ;
+        return end < lower ;
+    }
+    return firstOccurrenceEndingFrom(*this, lower) < 0 ;
+}
+
+// Moves the start of a repeat to its first occurrence that is still in the window, so the occurrences before it are no longer
+// part of the appointment.  The repeat count is reduced by the occurrences passed, and exceptions before the new start are
+// dropped.  The stored message signature takes the new start and end, so that the change is not messaged to the contact: the
+// occurrences still to come are the same.  Returns true if the start moved.
+bool Appointment::trimRepeatBefore(QDateTime lower)
+{
+    if (!isRepeating()) return false ;
+
+    int n0 = firstOccurrenceEndingFrom(*this, lower) ;
+    if (n0<=0) return false ;          // nothing before the window, or no occurrence left (handled as expired)
+
+    QDateTime start = getDate(Appointment::From) ;
+    QDateTime end = getDate(Appointment::To) ;
+    qint64 length = start.secsTo(end) ;
+    QDateTime newstart = occurrenceFrom(n0) ;
+
+    QList<QDateTime> kept ;
+    foreach (const QDateTime &when, exceptions()) {
+        if (when >= newstart) kept.append(when) ;
+    }
+
+    int count = getField(Appointment::RepeatCount).toInt() ;
+
+    QString signature = getField(Appointment::MessageSignature) ;
+    bool messaged = getDate(Appointment::MessageSent).isValid() && !signature.isEmpty() ;
+
+    setDate(Appointment::From, newstart) ;
+    setDate(Appointment::To, newstart.addSecs(length)) ;
+    if (count>0) setField(Appointment::RepeatCount, QString::number(qMax(1, count - n0))) ;
+    setExceptions(kept) ;
+
+    // The signature is the start, end, repeat and interval, so it takes the new start and end
+    if (messaged) {
+        QStringList parts = signature.split(QChar(0x1f)) ;
+        if (parts.size()==4) {
+            parts[0] = getField(Appointment::From) ;
+            parts[1] = getField(Appointment::To) ;
+            setSentField(Appointment::MessageSignature, parts.join(QChar(0x1f))) ;
+        }
+    }
+    return true ;
+}
+

@@ -6,6 +6,21 @@
 #include <QList>
 #include <QStringList>
 #include <QPair>
+#include <QHash>
+#include <QSet>
+
+// The For value of an appointment whose contact is not known (issue #95).  The sync sets it, and reads it back when Google
+// has no name for the contact.
+#define APPOINTMENT_UNNAMED_CONTACT "Unnamed Contact"
+
+// What is done with an appointment's linked contact ID once the contacts are synchronised (issue #95)
+enum AppointmentContactRule { ContactKept, ContactNamed, ContactUnnamed } ;
+
+// The rule for an appointment with a linked contact ID.  ids holds every contact ID (hidden and deleted included), and
+// idsbyname the contact IDs with each name, in lower case.  resolvedid is the ID to keep, or to set; it is empty when the
+// link is to be removed.
+AppointmentContactRule matchAppointmentContact(const QString &contactid, const QString &forname, const QSet<QString> &ids,
+                                               const QHash<QString, QStringList> &idsbyname, QString &resolvedid) ;
 
 
 class Appointment
@@ -225,6 +240,12 @@ public:
     QList<QDateTime> exceptions() ;
     void setExceptions(QList<QDateTime> starts) ;
 
+    // Expired and archiving (issue #96).  An appointment is expired when it ends before the lower edge of the window, or,
+    // for a repeat, when no occurrence that is not removed ends at or after it.  A repeat that has expired occurrences
+    // before the edge has its start moved to the first occurrence that is still in the window.
+    bool isExpiredBefore(QDateTime lower) ;
+    bool trimRepeatBefore(QDateTime lower) ;
+
     // The number of the occurrence that starts at this time, or -1 if there is none
     int indexOfOccurrence(QDateTime start) ;
 
@@ -273,6 +294,11 @@ public:
 
     // Copy selected fields to new contact
     bool copyTo(Appointment &other, int matype) ;
+
+    // Copies the fields of source selected by matype into this, as an upload does once the details match: the Google record
+    // details change, but that is not an edit, so Updated and DateUpdated are kept as they were.  Only use this when the
+    // copied details are the same as those already held.
+    void copyFromKeepingUpdated(Appointment &source, int matype) ;
 
     // Takes in the sent state held for the same appointment elsewhere (on Google), so that a message sent there is not
     // sent again from here.  Each kind of state keeps the later of the two, and the lists keep both.  Returns true if

@@ -32,6 +32,7 @@
 #include <QTextStream>
 #include <QInputDialog>
 #include <QTextCodec>
+#include <QPointer>
 
 
 
@@ -97,6 +98,13 @@ private slots:
     void on_actionExportAppointments_triggered();
     void on_actionImport_triggered();
     void on_actionShow_Log_triggered();
+    void on_actionShowDeletedAppointments_triggered(bool checked);
+    void on_actionShowDeletedContacts_triggered(bool checked);
+    void on_actionShowHiddenContacts_triggered(bool checked);
+    void toggleCalendarContactFilter() ;     // Space in the calendar list: all entries, or only the open contact's (issue #92)
+    void calendarFilterOff() ;               // Moving the date shows all entries again, when the contact filter is on (issue #92)
+    void gotoCalendarDate(QDate wanted) ;    // Goes to a date in the calendar list, or the nearest date before it
+    void gotoTypedCalendarDate(QString typed) ;   // A digit in the calendar list: a date typed after it (issue #92)
     void on_tabBar_currentChanged(int index);
     void on_action_Email_Contact_triggered();
     void on_action_SMS_Contact_triggered();
@@ -170,6 +178,16 @@ private:
     bool remindersallowed ;
 
     QString SMTPSMSErrorMessage ;
+
+    // The log window, which is not modal: one is shown at a time, and it is cleared when it closes
+    QPointer<LogForm> logwindow ;
+
+    // Show menu.  Deleted appointments and contacts, and hidden contacts, are listed only when their option is ticked.  The
+    // ticks are not saved, so they are off each time the program starts.  A deleted entry is shown in braces.
+    bool showdeletedappointments ;
+    bool showdeletedcontacts ;
+    bool showhiddencontacts ;
+    bool calendarcontactonly ;          // The calendar list shows only the open contact's entries, while a contact is open
 
     // Manage dialog controls / enables etc.
     void UpdateContactsList() ;          // Update drop-down list

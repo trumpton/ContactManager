@@ -1185,6 +1185,16 @@ p, li { white-space: pre-wrap; }
      <addaction name="actionChangePassword"/>
      <addaction name="actionLogout"/>
     </widget>
+    <widget class="QMenu" name="menuShow">
+     <property name="title">
+      <string>&amp;Show</string>
+     </property>
+     <addaction name="actionShow_Log"/>
+     <addaction name="separator"/>
+     <addaction name="actionShowDeletedAppointments"/>
+     <addaction name="actionShowDeletedContacts"/>
+     <addaction name="actionShowHiddenContacts"/>
+    </widget>
     <addaction name="actionOpen"/>
     <addaction name="actionSave"/>
     <addaction name="separator"/>
@@ -1197,7 +1207,7 @@ p, li { white-space: pre-wrap; }
     <addaction name="separator"/>
     <addaction name="menuKeyandPassword"/>
     <addaction name="actionSetup"/>
-    <addaction name="actionShow_Log"/>
+    <addaction name="menuShow"/>
     <addaction name="actionTest_Function"/>
    </widget>
    <widget class="QMenu" name="menu_Help">
@@ -1457,7 +1467,31 @@ p, li { white-space: pre-wrap; }
   </action>
   <action name="actionShow_Log">
    <property name="text">
-    <string>Show &amp;Log</string>
+    <string>&amp;Logs</string>
+   </property>
+  </action>
+  <action name="actionShowDeletedAppointments">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Deleted Appointments</string>
+   </property>
+  </action>
+  <action name="actionShowDeletedContacts">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Deleted &amp;Contacts</string>
+   </property>
+  </action>
+  <action name="actionShowHiddenContacts">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Hidden Contacts</string>
    </property>
   </action>
   <action name="actionGotoToDoList">

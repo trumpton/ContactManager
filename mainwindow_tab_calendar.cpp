@@ -9,11 +9,52 @@
 // Calendar Tab
 //
 
+// The text of an all-day entry, from its first day to the midnight that ends it, for example "Tue 03 Mar 2026 All Day: xxxx".
+// The end is midnight after the last day, so the last day is the one before it.  The accessible text leaves out the year
+// for dates in the current year, as the other entries do.
+static QString allDayText(QDateTime first, QDateTime end, QString who, QString summary, bool accessible)
+{
+    int thisyear = QDate::currentDate().year() ;
+    QString format = (accessible && first.date().year()==thisyear) ? "ddd dd MMM" : "ddd dd MMM yyyy" ;
+    QDate lastday = (end>first) ? end.date().addDays(-1) : first.date() ;
+
+    QString days = first.date().toString(format) ;
+    if (lastday!=first.date()) days += " - " + lastday.toString(format) ;
+
+    QString text = days + " All Day: " ;
+    if (!who.isEmpty()) text += who + " - " ;
+    return text + summary.replace("\n", ". ") ;
+}
+
+// Space in the calendar list (issue #92).  Shows all entries, or only those of the open contact.  With no contact open there is no
+// contact to show, so it beeps.
+void MainWindow::toggleCalendarContactFilter()
+{
+    Contact &open = db.getSelected() ;
+    QString openid = open.getField(Contact::ID) ;
+    bool contactopen = !open.isNull() && !openid.isEmpty() && openid.compare(SELECT_OVERVIEW)!=0 ;
+    if (!contactopen) {
+        play(Error) ;
+        msg("Open a contact to show only its appointments") ;
+        return ;
+    }
+
+    calendarcontactonly = !calendarcontactonly ;
+    play(calendarcontactonly ? SwitchOn : SwitchOff) ;
+    LoadCalendarTab() ;
+    msg(calendarcontactonly ? "Showing only this contact's appointments" : "Showing all appointments") ;
+}
+
 void MainWindow::LoadCalendarTab()
 {
     // The entry on screen: a repeat has its own hint, and an appointment has its ID
     QString selected = calendar.selectedHint().isEmpty() ? calendar.getSelected().getField(Appointment::ID) : calendar.selectedHint() ;
     int matchid=-1 ;
+
+    // Only the open contact's entries are listed while the list is limited to them, and only while a contact is open
+    Contact &open = db.getSelected() ;
+    QString openid = open.getField(Contact::ID) ;
+    QString filterid = (calendarcontactonly && !open.isNull() && !openid.isEmpty() && openid.compare(SELECT_OVERVIEW)!=0) ? openid : QString() ;
 
     // Refresh birthdays (all but mine), and sort ready for load
     calendar.purgeBirthdays();
@@ -36,6 +77,7 @@ void MainWindow::LoadCalendarTab()
     struct Row { QDateTime start ; QDateTime end ; QString title ; QString accessible ; QString hint ; } ;
     QList<Row> rows ;
     auto addRow = [&](Appointment &appt, QDateTime start, QString hint) {
+        if (!filterid.isEmpty() && appt.getField(Appointment::ContactId).compare(filterid)!=0) return ;
         QDateTime from = appt.getDate(Appointment::From) ;          // getDate shares one value, so copy each date
         QDateTime to = appt.getDate(Appointment::To) ;
         Appointment shown = appt ;
@@ -45,13 +87,31 @@ void MainWindow::LoadCalendarTab()
         QString apptforid = appt.getField(Appointment::ContactId) ;
         if (!apptforid.isEmpty() && appt.isNotFor(gConf->getMe())) {
             Contact& contact = db.getContactById(apptforid) ;
-            apptfor = contact.getFormattedName(false, false) ;
+
+            // An appointment for a deleted contact, or one whose contact has been removed, is still listed, so that it is not
+            // lost.  Hidden contacts keep their names.
+            if (contact.isNull() || contact.isSet(Contact::Deleted)) apptfor = "Deleted contact" ;
+            else apptfor = contact.getFormattedName(false, false) ;
         }
         Row row ;
         row.start = start ;
         row.end = start.addSecs(from.secsTo(to)) ;
-        row.title = shown.asText(apptfor) ;
-        row.accessible = shown.asAccessibleText(apptfor) ;
+
+        // An all-day entry starts and ends at midnight, so it is shown by its days, without times
+        if (start.time()==QTime(0,0) && row.end.time()==QTime(0,0)) {
+            row.title = allDayText(start, row.end, apptfor, appt.getField(Appointment::Summary), false) ;
+            row.accessible = allDayText(start, row.end, apptfor, appt.getField(Appointment::Summary), true) ;
+        } else {
+            // The day of the week, as three letters, comes before the date.  It is taken from the start the date is shown from.
+            row.title = start.toString("ddd ") + shown.asText(apptfor) ;
+            row.accessible = start.toString("ddd ") + shown.asAccessibleText(apptfor) ;
+        }
+
+        // A deleted appointment is listed only when Show > Deleted Appointments is ticked, and then in braces
+        if (appt.isSet(Appointment::Deleted)) {
+            row.title = "{" + row.title + "}" ;
+            row.accessible = "Deleted, " + row.accessible ;
+        }
         row.hint = hint ;
         rows << row ;
     } ;
@@ -69,7 +129,7 @@ void MainWindow::LoadCalendarTab()
     int ne=calendar.size() ;
     for (int i=0; i<ne; i++) {
        Appointment &appt = calendar.getAppointment(i) ;
-       if (appt.isSet(Appointment::Deleted)) continue ;
+       if (appt.isSet(Appointment::Deleted) && !showdeletedappointments) continue ;
        QString apptid = appt.getField(Appointment::ID) ;
        // The first occurrence is not listed when the repeat leaves it out
        bool originlisted = !(appt.isRepeating() && appt.isException(appt.getDate(Appointment::From))) ;
@@ -119,6 +179,16 @@ void MainWindow::LoadCalendarTab()
     }
 
     calendarlist.appendData(" -- Add New Appointment for Me (Control-Shift-N) -- ", "Add New Appointment for Me", "ADD") ;
+    // Still nothing: the focus goes to the nearest date to the entry that was on screen, as the list may have been limited to a
+    // contact, or the contact changed (issue #92)
+    if (matchid<0 && !rows.isEmpty()) {
+        QDateTime wanted = QDateTime::fromString(selected.section('@', 1), Qt::ISODate) ;
+        if (!wanted.isValid()) wanted = calendar.getSelected().getDate(Appointment::From) ;
+        QList<QDateTime> starts ;
+        for (const Row &row : rows) starts << row.start ;
+        matchid = nearestRowToDate(starts, wanted) ;
+    }
+
     if (matchid<0) {
         matchid=calendarlist.rowCount() - 1 ;
         dbg(QString("listCalendar->setCurrentIndex(endoflist))")) ;
