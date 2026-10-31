@@ -854,6 +854,28 @@ private slots:
         QVERIFY(!parseCalendarDate("1 2 aug x", QDate(2030, 6, 1), &d)) ;
     }
 
+    void dayNamesAreTheNextSuchDay()
+    {
+        // Issue #92: a day name is the next such day after today.  Today is Monday 30 November 2026, so "mon" is 7 December
+        const QDate monday(2026, 11, 30) ;
+        QCOMPARE(monday.dayOfWeek(), 1) ;
+        QDate d ;
+        QVERIFY(parseCalendarDate("mon", monday, &d)) ;
+        QCOMPARE(d, QDate(2026, 12, 7)) ;
+        QVERIFY(parseCalendarDate("Monday", monday, &d)) ;
+        QCOMPARE(d, QDate(2026, 12, 7)) ;
+        QVERIFY(parseCalendarDate("thu", monday, &d)) ;
+        QCOMPARE(d, QDate(2026, 12, 3)) ;
+        QVERIFY(parseCalendarDate("sun", monday, &d)) ;
+        QCOMPARE(d, QDate(2026, 12, 6)) ;
+        QVERIFY(parseCalendarDate("tues", monday, &d)) ;
+        QCOMPARE(d, QDate(2026, 12, 1)) ;
+        QVERIFY(!parseCalendarDate("mo", monday, &d)) ;             // Too short
+        QVERIFY(!parseCalendarDate("monx", monday, &d)) ;
+        QVERIFY(!parseCalendarDate("mon 10", monday, &d)) ;
+        QVERIFY(!parseCalendarDate("2 mon", monday, &d)) ;
+    }
+
     void numericDatesAreParsed()
     {
         // Issue #92: a date typed as numbers, day first: 2/12, 2-12, 2-12-26, 2/12/2026 and 2/12/26.  Today is 25 November 2026.
