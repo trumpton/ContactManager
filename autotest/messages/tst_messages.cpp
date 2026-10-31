@@ -834,18 +834,20 @@ private slots:
         QCOMPARE(nearestRowToDate(QList<QDateTime>(), localAt(QDate(2026, 11, 3), QTime(0, 0))), -1) ;
     }
 
-    void twoDigitYearsUseTheYearFromLastYear()
+    void twoDigitYearsUseTheCenturyOfThisYear()
     {
-        // Issue #92: a year given by its last two digits is the first year from last year that ends in them
+        // Issue #92: a year given by its last two digits has the first two digits of this year
         QDate d ;
         QVERIFY(parseCalendarDate("1aug28", QDate(2029, 6, 1), &d)) ;
+        QCOMPARE(d, QDate(2028, 8, 1)) ;
+        QVERIFY(parseCalendarDate("1aug28", QDate(2030, 6, 1), &d)) ;
         QCOMPARE(d, QDate(2028, 8, 1)) ;
         QVERIFY(parseCalendarDate("1aug29", QDate(2029, 6, 1), &d)) ;
         QCOMPARE(d, QDate(2029, 8, 1)) ;
         QVERIFY(parseCalendarDate("1aug40", QDate(2029, 6, 1), &d)) ;
         QCOMPARE(d, QDate(2040, 8, 1)) ;
         QVERIFY(parseCalendarDate("1 aug 28", QDate(2030, 6, 1), &d)) ;
-        QCOMPARE(d, QDate(2128, 8, 1)) ;
+        QCOMPARE(d, QDate(2028, 8, 1)) ;
         QVERIFY(parseCalendarDate("1aug2028", QDate(2030, 6, 1), &d)) ;   // four digits are still the year
         QCOMPARE(d, QDate(2028, 8, 1)) ;
         QVERIFY(!parseCalendarDate("1aug2", QDate(2030, 6, 1), &d)) ;
