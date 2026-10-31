@@ -882,6 +882,24 @@ private slots:
         QVERIFY(parseCalendarDate("  10   oct  2026 ", today, &d)) ;
         QCOMPARE(d, QDate(2026, 10, 10)) ;
 
+        // Dates with no spaces between their parts
+        QVERIFY(parseCalendarDate("10oct2026", today, &d)) ;
+        QCOMPARE(d, QDate(2026, 10, 10)) ;
+        QVERIFY(parseCalendarDate("1nov2027", today, &d)) ;
+        QCOMPARE(d, QDate(2027, 11, 1)) ;
+        QVERIFY(parseCalendarDate("2march", today, &d)) ;
+        QCOMPARE(d, QDate(2027, 3, 2)) ;
+        QVERIFY(parseCalendarDate("10oct", today, &d)) ;
+        QCOMPARE(d, QDate(2027, 10, 10)) ;
+        QVERIFY(parseCalendarDate("oct10", today, &d)) ;
+        QCOMPARE(d, QDate(2027, 10, 10)) ;
+        QVERIFY(parseCalendarDate("5septe2027", today, &d)) ;
+        QCOMPARE(d, QDate(2027, 9, 5)) ;
+        QVERIFY(parseCalendarDate("10th oct 2026", today, &d)) ;
+        QCOMPARE(d, QDate(2026, 10, 10)) ;
+        QVERIFY(!parseCalendarDate("10oct2026x", today, &d)) ;
+        QVERIFY(!parseCalendarDate("10oct20", today, &d)) ;
+
         // Not dates: a day that does not exist, a month that is not one, a month too short, no day or no month, and extra words
         QVERIFY(!parseCalendarDate("31 nov", today, &d)) ;           // November has thirty days
         QVERIFY(!parseCalendarDate("31 nov 2026", today, &d)) ;

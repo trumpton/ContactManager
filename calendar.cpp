@@ -1,3 +1,4 @@
+#include <QRegularExpression>
 #include "calendar.h"
 #include "appointment.h"
 #include "configuration.h"
@@ -822,6 +823,11 @@ bool parseCalendarDate(const QString &text, QDate today, QDate *result)
 
     QString spaced = text.toLower() ;
     spaced.replace(',', ' ') ;
+
+    // An ordinal ending on a day is taken off ("10th"), and a day, month or year that runs into another part is split from it
+    // ("10oct2026" is "10 oct 2026")
+    spaced.replace(QRegularExpression("(\\d)(st|nd|rd|th)(?![a-z])"), "\\1") ;
+    spaced.replace(QRegularExpression("(?<=\\d)(?=[a-z])|(?<=[a-z])(?=\\d)"), " ") ;
     QStringList words = spaced.simplified().split(' ', Qt::SkipEmptyParts) ;
 
     int day=0, month=0, year=0 ;
