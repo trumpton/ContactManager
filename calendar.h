@@ -27,9 +27,10 @@ class ContactDatabase ;
 // date when the list is rebuilt and the entry on screen is no longer listed.
 int nearestRowToDate(const QList<QDateTime> &starts, const QDateTime &wanted) ;
 
-// A date typed into the calendar list (issue #92): a day and a month in numbers, then an optional year, as 2/12, 2-12,
-// 2-12-26, 2/12/2026 or 2/12/26.  Without a year, the next date with that day and month, on or after today, is used.  A two-digit
-// year takes the century of this year.  Returns false, and leaves result alone, when the text is not a date.
+// A date typed into the calendar list (issue #92): a day, a month name and an optional year, in either order, such as
+// "10 oct 2026", "1 nov 2027" or "2 march".  A month can be typed in full or as the start of its name, of at least three
+// letters ("septe", "sep").  Without a year, the date is the next one with that day and month, on or after today.  Returns
+// false, and leaves result alone, when the text is not a date.
 bool parseCalendarDate(const QString &text, QDate today, QDate *result) ;
 
 class Calendar
