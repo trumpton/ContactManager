@@ -872,12 +872,8 @@ bool parseCalendarDate(const QString &text, QDate today, QDate *result)
     if (!hasday || !hasmonth) return false ;
 
     if (hasyear) {
-        // Two digits are the first year from last year that ends in them: "28" is 2028 in 2029, and 2128 in 2030
-        if (twodigityear) {
-            int from = today.year() - 1 ;
-            year = from - (from % 100) + year ;
-            if (year < from) year += 100 ;
-        }
+        // Two digits are added to the first two digits of this year: "28" is 2028, in 2029 or in 2030
+        if (twodigityear) year = (today.year()/100)*100 + year ;
         QDate date(year, month, day) ;
         if (!date.isValid()) return false ;
         *result = date ;
