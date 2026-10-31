@@ -364,16 +364,9 @@ void MainWindow::sendMailSMS()
 
         // The hold: a new or changed appointment waits waitbeforesendmins after its last change, so that a run of edits, or a
         // delete and re-create, is sent once, as its final details.  A cancellation is not held.
+        // The hold is applied once the messages are known (below), so that only a message that is due is reported as held.
         qint64 sincechange = now.toSecsSinceEpoch() - appt.getDate(Appointment::Updated).toSecsSinceEpoch() ;
-        if (!deleted && isWithinHold(sincechange, gConf->getWaitBeforeSendMinutes())) {
-            if (contact.isSet(Contact::EmailMe) || contact.isSet(Contact::TextMe)) {
-                reportOnce("hold|" + id + "|" + appt.getField(Appointment::Updated),
-                           QString("The message for the appointment at %1 is held until the appointment has been unchanged for %2 minutes (waitbeforesendmins)")
-                           .arg(appt.getDate(Appointment::From).toLocalTime().toString("dd-MMM-yyyy hh:mm"),
-                                QString::number(gConf->getWaitBeforeSendMinutes()))) ;
-            }
-            continue ;
-        }
+        bool held = !deleted && isWithinHold(sincechange, gConf->getWaitBeforeSendMinutes()) ;
 
         // What the message will say.  A change to it since the last confirmation or update is sent as an update.
         QString signature = messageSignature(appt) ;
@@ -430,6 +423,18 @@ void MainWindow::sendMailSMS()
         state.smsdone = smsdone ;
         state.occurrence = occ ;
         QList<MessageStep> steps = decideMessages(state) ;
+
+        // A message that is due waits out the hold, and is reported once for this change.  An appointment with no message due
+        // is not reported, however recently it changed.
+        if (held) {
+            if (!steps.isEmpty()) {
+                int wait = gConf->getWaitBeforeSendMinutes() ;
+                reportOnce("hold|" + id + "|" + appt.getField(Appointment::Updated),
+                           QString("The message for the appointment at %1 is held until the appointment has been unchanged for %2 %3 (waitbeforesendmins)")
+                           .arg(apptdate, QString::number(wait), wait==1 ? "minute" : "minutes")) ;
+            }
+            continue ;
+        }
 
         // The first step is what the send is about.  The on-the-day steps are sent by their own code, below.
         QString kind ;

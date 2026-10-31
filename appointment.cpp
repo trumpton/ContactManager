@@ -160,6 +160,10 @@ bool Appointment::load(QString path, QString idname)
         QTextStream in(&file);
         in.setEncoding(QStringConverter::Utf8) ;
 
+        // The saved times are kept for after the loop: setField stamps the appointment with the time it is loaded
+        QString loadedUpdated ;
+        QString loadedDateUpdated ;
+
         while (!in.atEnd()) {
             Line = in.readLine();
             ParsedLine =  Line.split(sep);
@@ -173,6 +177,8 @@ bool Appointment::load(QString path, QString idname)
                     if (ParsedLine.at(0).compare(appointmentrecordinfo[i].name)==0) {
                         QString entrytext = ParsedLine.at(1) ;
                         entrytext = entrytext.replace("\\n","\n").replace("\r","") ;
+                        if (i==Appointment::Updated) loadedUpdated = entrytext.trimmed() ;
+                        if (i==Appointment::DateUpdated) loadedDateUpdated = entrytext.trimmed() ;
                         setField((enum AppointmentRecord)i, entrytext) ;
                     }
 
@@ -180,6 +186,10 @@ bool Appointment::load(QString path, QString idname)
             }
         }
         file.close() ;
+
+        // Loading is not an edit, so the times are the ones that were saved (empty for a file that has none)
+        filedata[Appointment::Updated] = loadedUpdated.isEmpty() ? QString() : dateTimeStringToZulu(loadedUpdated) ;
+        filedata[Appointment::DateUpdated] = loadedDateUpdated.isEmpty() ? QString() : dateTimeStringToZulu(loadedDateUpdated) ;
 
         isdirty = false ;
         return true ;

@@ -3,6 +3,8 @@
 // that the calendar lists.  Run with run-messages-tests.sh, which links these tests with the application's own objects.
 
 #include <QtTest>
+#include <QTemporaryDir>
+#include <QTextStream>
 #include "messagedecision.h"
 #include "appointment.h"
 #include "calendar.h"
@@ -698,6 +700,34 @@ private slots:
         plain.setField(Appointment::Updated, "2026-10-30T09:00:00Z") ;
         source.copyTo(plain, Appointment::maDetails|Appointment::maGoogleAcct) ;
         QVERIFY(plain.getField(Appointment::Updated) != QString("2026-10-30T09:00:00Z")) ;
+    }
+
+    void loadKeepsTheSavedUpdatedDate()
+    {
+        // Loading an appointment is not an edit: its saved Updated and DateUpdated are kept, so the hold and the sync do not
+        // treat every appointment as changed each time the program starts
+        QTemporaryDir dir ;
+        QVERIFY(dir.isValid()) ;
+        QString path = dir.path() + "/" ;
+        QFile file(path + "loaded.appointment") ;
+        QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Text)) ;
+        QTextStream out(&file) ;
+        out << "[appointment]\n"
+            << "ID=loaded\n"
+            << "ContactId=contact-1\n"
+            << "Summary=Saved\n"
+            << "From=2026-11-01T13:15:00Z\n"
+            << "To=2026-11-01T14:15:00Z\n"
+            << "createddate=2026-10-20T10:00:00Z\n"
+            << "updateddate=2026-10-20T10:05:00Z\n"
+            << "dateupdateddate=2026-10-20T10:00:00Z\n"
+            << "messagesentdate=2026-10-20T10:06:00Z\n" ;
+        file.close() ;
+
+        Appointment appt ;
+        QVERIFY(appt.load(path, "loaded")) ;
+        QCOMPARE(appt.getDate(Appointment::Updated), QDateTime(QDate(2026, 10, 20), QTime(10, 5), Qt::UTC)) ;
+        QCOMPARE(appt.getDate(Appointment::DateUpdated), QDateTime(QDate(2026, 10, 20), QTime(10, 0), Qt::UTC)) ;
     }
 
     void mergedSentStateDoesNotCountAsAnEdit()
