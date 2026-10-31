@@ -811,103 +811,17 @@ int nearestRowToDate(const QList<QDateTime> &starts, const QDateTime &wanted)
 
 bool parseCalendarDate(const QString &text, QDate today, QDate *result)
 {
-    static const QStringList monthnames = { "january", "february", "march", "april", "may", "june", "july", "august",
-                                            "september", "october", "november", "december" } ;
-    static const QStringList ordinals = { "st", "nd", "rd", "th" } ;
-
-    auto allDigits = [](const QString &s) {
-        if (s.isEmpty()) return false ;
-        for (QChar c : s) if (c<'0' || c>'9') return false ;
-        return true ;
-    } ;
-
-    QString spaced = text.toLower() ;
-    spaced.replace(',', ' ') ;
-
-    // An ordinal ending on a day is taken off ("10th"), and a day, month or year that runs into another part is split from it
-    // ("10oct2026" is "10 oct 2026")
-    spaced.replace(QRegularExpression("(\\d)(st|nd|rd|th)(?![a-z])"), "\\1") ;
-    spaced.replace(QRegularExpression("(?<=\\d)(?=[a-z])|(?<=[a-z])(?=\\d)"), " ") ;
-    QStringList words = spaced.simplified().split(' ', Qt::SkipEmptyParts) ;
-
-    // A day name on its own, as "mon" or "monday", is the next such day after today: on a Monday, "mon" is the Monday a week on
-    static const QStringList daynames = { "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday" } ;
-    if (words.size()==1 && words.at(0).size()>=3) {
-        int matches = 0 ;
-        int weekday = 0 ;
-        for (int d=0; d<daynames.size(); d++) {
-            if (daynames.at(d).startsWith(words.at(0))) {
-                matches++ ;
-                weekday = d+1 ;      // Qt numbers the days from Monday, as 1
-            }
-        }
-        if (matches==1) {
-            int ahead = (weekday - today.dayOfWeek() + 7) % 7 ;
-            if (ahead==0) ahead = 7 ;
-            *result = today.addDays(ahead) ;
-            return true ;
-        }
-    }
-
-    int day=0, month=0, year=0 ;
-    bool hasday=false, hasmonth=false, hasyear=false, twodigityear=false ;
-
-    // Numbers: a day and a month, then an optional year, as 2/12, 2-12, 2-12-26, 2/12/2026 or 2/12/26
+    // A day and a month, then an optional year, as 2/12, 2-12, 2-12-26, 2/12/2026 or 2/12/26.  Two digits of a year take the
+    // century of this year.
     QRegularExpressionMatch numbers = QRegularExpression("^(\\d{1,2})[/-](\\d{1,2})(?:[/-](\\d{4}|\\d{2}))?$").match(text.trimmed()) ;
-    if (numbers.hasMatch()) {
-        day = numbers.captured(1).toInt() ;
-        month = numbers.captured(2).toInt() ;
-        hasday = true ;
-        hasmonth = true ;
-        if (numbers.hasCaptured(3)) {
-            year = numbers.captured(3).toInt() ;
-            hasyear = true ;
-            twodigityear = (numbers.captured(3).size()==2) ;
-        }
-    }
+    if (!numbers.hasMatch()) return false ;
 
-    if (!numbers.hasMatch()) for (const QString &word : words) {
+    int day = numbers.captured(1).toInt() ;
+    int month = numbers.captured(2).toInt() ;
 
-        // A day may have an ordinal ending, as in "10th"
-        QString number = word ;
-        for (const QString &ordinal : ordinals) {
-            if (number.endsWith(ordinal) && allDigits(number.left(number.size()-ordinal.size()))) {
-                number = number.left(number.size()-ordinal.size()) ;
-                break ;
-            }
-        }
-
-        if (allDigits(number) && number.size()<=2 && !hasday) {
-            day = number.toInt() ;
-            hasday = true ;
-        } else if (allDigits(number) && number.size()==2 && !hasyear) {
-            // A year given by its last two digits, as in "1aug28"
-            year = number.toInt() ;
-            hasyear = true ;
-            twodigityear = true ;
-        } else if (allDigits(number) && number.size()==4 && !hasyear) {
-            year = number.toInt() ;
-            hasyear = true ;
-        } else if (word.size()>=3 && !hasmonth) {
-            // The month must be the start of exactly one month name
-            int matches = 0 ;
-            for (int m=0; m<monthnames.size(); m++) {
-                if (monthnames.at(m).startsWith(word)) {
-                    matches++ ;
-                    month = m+1 ;
-                }
-            }
-            if (matches!=1) return false ;
-            hasmonth = true ;
-        } else {
-            return false ;
-        }
-    }
-    if (!hasday || !hasmonth) return false ;
-
-    if (hasyear) {
-        // Two digits are added to the first two digits of this year: "28" is 2028, in 2029 or in 2030
-        if (twodigityear) year = (today.year()/100)*100 + year ;
+    if (numbers.hasCaptured(3)) {
+        int year = numbers.captured(3).toInt() ;
+        if (numbers.captured(3).size()==2) year = (today.year()/100)*100 + year ;
         QDate date(year, month, day) ;
         if (!date.isValid()) return false ;
         *result = date ;
