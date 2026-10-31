@@ -128,7 +128,7 @@ void MainWindow::on_actionGotoDate_triggered()
 //
 void MainWindow::gotoTypedCalendarDate(QString typed)
 {
-    QString prompt = "Type a date in numbers, day first, such as 2/12, 2-12-26 or 2/12/2026.  Press Enter to go to it." ;
+    QString prompt = "Type a date, such as 10 oct 2026, 1 nov 2027, or 2 march for the next one.  Press Enter to go to it." ;
 
     // The entry is shown with its cursor at the end and no text selected, so the next key adds to the digits typed
     QInputDialog dialog(this) ;
