@@ -375,7 +375,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
 // An appointment with no linked contact, or linked to Me, is not changed.
 //
 
-void GoogleUpdateDialog::settleAppointmentContacts(Calendar &cal, ContactDatabase &db, int &kept, int &named, int &unnamed)
+void GoogleUpdateDialog::settleAppointmentContacts(Calendar &cal, ContactDatabase &db, int &kept, int &named, int &unnamed, int &nocontact)
 {
     QSet<QString> ids ;
     QHash<QString, QStringList> idsbyname ;
@@ -394,10 +394,22 @@ void GoogleUpdateDialog::settleAppointmentContacts(Calendar &cal, ContactDatabas
     kept=0 ;
     named=0 ;
     unnamed=0 ;
+    nocontact=0 ;
     for (int i=0; i<cal.size(); i++) {
         Appointment &appt = cal.getAppointment(i) ;
+        if (appt.isTemp()) continue ;
         QString contactid = appt.getField(Appointment::ContactId) ;
-        if (appt.isTemp() || contactid.isEmpty() || contactid.compare(me)==0) continue ;
+
+        // No contact at all (the Me entries have Me as their contact, so they are not here): For is "Unnamed Contact", as
+        // Google's reply gives it when there is no name stored
+        if (contactid.isEmpty()) {
+            if (appt.getField(Appointment::For).isEmpty()) {
+                nocontact++ ;
+                appt.setField(Appointment::For, QString(APPOINTMENT_UNNAMED_CONTACT)) ;
+            }
+            continue ;
+        }
+        if (contactid.compare(me)==0) continue ;
 
         QString resolved ;
         AppointmentContactRule rule = matchAppointmentContact(contactid, appt.getField(Appointment::For), ids, idsbyname, resolved) ;

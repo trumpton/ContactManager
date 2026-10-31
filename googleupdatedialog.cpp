@@ -106,10 +106,10 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
     // Once the contacts have synchronised, each appointment's linked contact is checked against them (issue #95).  Not done when
     // the contacts sync failed: the contact list is then incomplete, so the matches would be wrong.
     if (consuccess && gConf->contactSyncEnabled()) {
-        int kept=0, named=0, unnamed=0 ;
-        settleAppointmentContacts(cal, db, kept, named, unnamed) ;
-        ui->updateStatusReport->append(QString("Appointment contacts: %1 kept, %2 matched by name, %3 set to %4 with the contact removed.")
-                                       .arg(kept).arg(named).arg(unnamed).arg(APPOINTMENT_UNNAMED_CONTACT)) ;
+        int kept=0, named=0, unnamed=0, nocontact=0 ;
+        settleAppointmentContacts(cal, db, kept, named, unnamed, nocontact) ;
+        ui->updateStatusReport->append(QString("Appointment contacts: %1 kept, %2 matched by name, %3 set to %4 with the contact removed, %5 with no contact set to %4.")
+                                       .arg(kept).arg(named).arg(unnamed).arg(APPOINTMENT_UNNAMED_CONTACT).arg(nocontact)) ;
     }
 
     // The calendar takes the second half of the bar: its 0 to 500 is shown as 500 to 1000
