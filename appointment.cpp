@@ -530,6 +530,20 @@ bool Appointment::occurrenceEnded(int n)
     return false ;
 }
 
+bool Appointment::hasNoOccurrences()
+{
+    if (!isRepeating()) return false ;
+
+    // Each exception leaves out one occurrence, so among the first (exceptions + 1) occurrences one is left, unless the
+    // repeat has ended before then
+    int count = exceptions().size() + 1 ;
+    for (int n=0; n<count; n++) {
+        if (occurrenceEnded(n)) return true ;
+        if (occurrenceExists(n)) return false ;
+    }
+    return true ;
+}
+
 bool Appointment::occurrenceExists(int n)
 {
     return !occurrenceEnded(n) && !isException(occurrenceFrom(n)) ;
