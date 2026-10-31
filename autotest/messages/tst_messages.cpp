@@ -834,6 +834,24 @@ private slots:
         QCOMPARE(nearestRowToDate(QList<QDateTime>(), localAt(QDate(2026, 11, 3), QTime(0, 0))), -1) ;
     }
 
+    void twoDigitYearsUseTheYearFromLastYear()
+    {
+        // Issue #92: a year given by its last two digits is the first year from last year that ends in them
+        QDate d ;
+        QVERIFY(parseCalendarDate("1aug28", QDate(2029, 6, 1), &d)) ;
+        QCOMPARE(d, QDate(2028, 8, 1)) ;
+        QVERIFY(parseCalendarDate("1aug29", QDate(2029, 6, 1), &d)) ;
+        QCOMPARE(d, QDate(2029, 8, 1)) ;
+        QVERIFY(parseCalendarDate("1aug40", QDate(2029, 6, 1), &d)) ;
+        QCOMPARE(d, QDate(2040, 8, 1)) ;
+        QVERIFY(parseCalendarDate("1 aug 28", QDate(2030, 6, 1), &d)) ;
+        QCOMPARE(d, QDate(2128, 8, 1)) ;
+        QVERIFY(parseCalendarDate("1aug2028", QDate(2030, 6, 1), &d)) ;   // four digits are still the year
+        QCOMPARE(d, QDate(2028, 8, 1)) ;
+        QVERIFY(!parseCalendarDate("1aug2", QDate(2030, 6, 1), &d)) ;
+        QVERIFY(!parseCalendarDate("1 2 aug x", QDate(2030, 6, 1), &d)) ;
+    }
+
     void typedDatesAreParsed()
     {
         // Issue #92: a date typed in the calendar list.  Today is 25 November 2026 for the years left out.
@@ -898,7 +916,6 @@ private slots:
         QVERIFY(parseCalendarDate("10th oct 2026", today, &d)) ;
         QCOMPARE(d, QDate(2026, 10, 10)) ;
         QVERIFY(!parseCalendarDate("10oct2026x", today, &d)) ;
-        QVERIFY(!parseCalendarDate("10oct20", today, &d)) ;
 
         // Not dates: a day that does not exist, a month that is not one, a month too short, no day or no month, and extra words
         QVERIFY(!parseCalendarDate("31 nov", today, &d)) ;           // November has thirty days
@@ -912,7 +929,6 @@ private slots:
         QVERIFY(!parseCalendarDate("10 2026", today, &d)) ;
         QVERIFY(!parseCalendarDate("oct 2026", today, &d)) ;
         QVERIFY(!parseCalendarDate("10 oct 2026 extra", today, &d)) ;
-        QVERIFY(!parseCalendarDate("10 oct 26", today, &d)) ;
         QVERIFY(!parseCalendarDate("", today, &d)) ;
         QVERIFY(!parseCalendarDate("   ", today, &d)) ;
     }
