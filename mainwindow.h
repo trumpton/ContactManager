@@ -102,6 +102,9 @@ private slots:
     void on_actionShowDeletedContacts_triggered(bool checked);
     void on_actionShowHiddenContacts_triggered(bool checked);
     void toggleCalendarContactFilter() ;     // Space in the calendar list: all entries, or only the open contact's (issue #92)
+    void calendarFilterOff() ;               // Moving the date shows all entries again, when the contact filter is on (issue #92)
+    void gotoCalendarDate(QDate wanted) ;    // Goes to a date in the calendar list, or the nearest date before it
+    void gotoTypedCalendarDate(QString typed) ;   // A digit in the calendar list: a date typed after it (issue #92)
     void on_tabBar_currentChanged(int index);
     void on_action_Email_Contact_triggered();
     void on_action_SMS_Contact_triggered();

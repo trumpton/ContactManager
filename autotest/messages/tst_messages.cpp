@@ -834,6 +834,71 @@ private slots:
         QCOMPARE(nearestRowToDate(QList<QDateTime>(), localAt(QDate(2026, 11, 3), QTime(0, 0))), -1) ;
     }
 
+    void typedDatesAreParsed()
+    {
+        // Issue #92: a date typed in the calendar list.  Today is 25 November 2026 for the years left out.
+        const QDate today(2026, 11, 25) ;
+        QDate d ;
+
+        // With a year
+        QVERIFY(parseCalendarDate("10 oct 2026", today, &d)) ;
+        QCOMPARE(d, QDate(2026, 10, 10)) ;
+        QVERIFY(parseCalendarDate("1 nov 2027", today, &d)) ;
+        QCOMPARE(d, QDate(2027, 11, 1)) ;
+        QVERIFY(parseCalendarDate("2 MARCH 2019", today, &d)) ;      // Case does not matter, and a past year is allowed
+        QCOMPARE(d, QDate(2019, 3, 2)) ;
+        QVERIFY(parseCalendarDate("29 feb 2028", today, &d)) ;
+        QCOMPARE(d, QDate(2028, 2, 29)) ;
+
+        // A month typed as the start of its name, of at least three letters
+        QVERIFY(parseCalendarDate("5 septe 2027", today, &d)) ;
+        QCOMPARE(d, QDate(2027, 9, 5)) ;
+        QVERIFY(parseCalendarDate("5 sep 2027", today, &d)) ;
+        QCOMPARE(d, QDate(2027, 9, 5)) ;
+        QVERIFY(parseCalendarDate("5 may 2027", today, &d)) ;        // May is not March, though both start with "ma"
+        QCOMPARE(d, QDate(2027, 5, 5)) ;
+        QVERIFY(parseCalendarDate("5 jun 2027", today, &d)) ;
+        QCOMPARE(d, QDate(2027, 6, 5)) ;
+        QVERIFY(parseCalendarDate("5 jul 2027", today, &d)) ;
+        QCOMPARE(d, QDate(2027, 7, 5)) ;
+
+        // Without a year: the next date with that day and month, on or after today
+        QVERIFY(parseCalendarDate("2 march", today, &d)) ;
+        QCOMPARE(d, QDate(2027, 3, 2)) ;
+        QVERIFY(parseCalendarDate("25 nov", today, &d)) ;           // Today itself
+        QCOMPARE(d, QDate(2026, 11, 25)) ;
+        QVERIFY(parseCalendarDate("24 nov", today, &d)) ;           // Yesterday is next year
+        QCOMPARE(d, QDate(2027, 11, 24)) ;
+        QVERIFY(parseCalendarDate("29 feb", today, &d)) ;           // The next leap day
+        QCOMPARE(d, QDate(2028, 2, 29)) ;
+
+        // The day and month can come in either order, and the day can have an ending
+        QVERIFY(parseCalendarDate("oct 10 2026", today, &d)) ;
+        QCOMPARE(d, QDate(2026, 10, 10)) ;
+        QVERIFY(parseCalendarDate("10th oct", today, &d)) ;
+        QCOMPARE(d, QDate(2027, 10, 10)) ;
+        QVERIFY(parseCalendarDate("10 oct, 2026", today, &d)) ;
+        QCOMPARE(d, QDate(2026, 10, 10)) ;
+        QVERIFY(parseCalendarDate("  10   oct  2026 ", today, &d)) ;
+        QCOMPARE(d, QDate(2026, 10, 10)) ;
+
+        // Not dates: a day that does not exist, a month that is not one, a month too short, no day or no month, and extra words
+        QVERIFY(!parseCalendarDate("31 nov", today, &d)) ;           // November has thirty days
+        QVERIFY(!parseCalendarDate("31 nov 2026", today, &d)) ;
+        QVERIFY(!parseCalendarDate("30 feb 2027", today, &d)) ;
+        QVERIFY(!parseCalendarDate("0 oct 2026", today, &d)) ;
+        QVERIFY(!parseCalendarDate("10 foo 2026", today, &d)) ;
+        QVERIFY(!parseCalendarDate("10 ma 2026", today, &d)) ;       // March or May
+        QVERIFY(!parseCalendarDate("10 ju 2026", today, &d)) ;       // June or July
+        QVERIFY(!parseCalendarDate("10 au 2026", today, &d)) ;       // Too short, though only August starts with "au"
+        QVERIFY(!parseCalendarDate("10 2026", today, &d)) ;
+        QVERIFY(!parseCalendarDate("oct 2026", today, &d)) ;
+        QVERIFY(!parseCalendarDate("10 oct 2026 extra", today, &d)) ;
+        QVERIFY(!parseCalendarDate("10 oct 26", today, &d)) ;
+        QVERIFY(!parseCalendarDate("", today, &d)) ;
+        QVERIFY(!parseCalendarDate("   ", today, &d)) ;
+    }
+
     void loadKeepsTheSavedUpdatedDate()
     {
         // Loading an appointment is not an edit: its saved Updated and DateUpdated are kept, so the hold and the sync do not
