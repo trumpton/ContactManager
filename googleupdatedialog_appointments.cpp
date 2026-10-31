@@ -41,7 +41,8 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     setProgress(0) ;
     QElapsedTimer phasetimer ;
     phasetimer.start() ;
-    networkok &= google.getCalendar(googlecal, qMax(windowbefore, GOOGLE_APPOINTMENT_LOOKBACK_DAYS), windowafter) ;
+    QStringList deletedids ;
+    networkok &= google.getCalendar(googlecal, qMax(windowbefore, GOOGLE_APPOINTMENT_LOOKBACK_DAYS), windowafter, &deletedids) ;
     PHASE_DONE("download appointments") ;
     googlecal.dumpEntries("google", db) ;
     int googlesize = googlecal.size() ;
@@ -50,6 +51,25 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
         ui->updateStatusReport->append(QString("    ") + googleappt.asText()) ;
     }
     ui->updateStatusReport->append(QString("    Downloaded: ") + QString::number(googlesize) + QString(" entries")) ;
+
+    // Archived appointments are checked against Google first (issue #96): one Google has cancelled is removed from the archive,
+    // one now in the window is restored, and one still outside it is kept up to date.  The IDs still archived are not downloaded
+    // as new local appointments.
+    QSet<QString> archivedids ;
+    int restored=0, archivedupdated=0, archivedremoved=0 ;
+    reconcileArchive(cal, googlecal, deletedids, fromwindow, towindow, archivedids, restored, archivedupdated, archivedremoved) ;
+    ui->updateStatusReport->append(QString("  Archive: %1 restored, %2 updated, %3 removed as cancelled on Google.")
+                                   .arg(restored).arg(archivedupdated).arg(archivedremoved)) ;
+
+    // Repeats that have passed the lower edge of the window start at their first occurrence still in it (issue #96).  The start
+    // changes, so the change is uploaded with this sync.
+    int trimmed=0 ;
+    for (int i=0; i<cal.size(); i++) {
+        Appointment &appt = cal.getAppointment(i) ;
+        if (appt.isTemp() || appt.isSet(Appointment::Deleted) || !appt.isRepeating()) continue ;
+        if (appt.trimRepeatBefore(fromwindow)) trimmed++ ;
+    }
+    if (trimmed>0) ui->updateStatusReport->append(QString("  Repeats starting in the window: %1 moved on to their first occurrence in it.").arg(trimmed)) ;
 
     if (state<0) return false ;
 
@@ -176,7 +196,8 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
 
         // Google birthdays are not stored: they are shown from the contacts list.  Storing
         // them made a new copy on every sync, as their IDs are not kept by Google.
-        if (localappt.isNull() && !googleappt.isSet(Appointment::Deleted) && !googleappt.isBirthday()) {
+        if (localappt.isNull() && !googleappt.isSet(Appointment::Deleted) && !googleappt.isBirthday()
+                && !archivedids.contains(googleappt.getField(Appointment::ID))) {
             Appointment newlocal ;
             newlocal.setField(Appointment::ID, googleappt.getField(Appointment::ID)) ;
             newlocal.setField(Appointment::From, googleappt.getField(Appointment::From)) ;
@@ -353,6 +374,13 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
 
     if (state<0) return false ;
 
+    // Expired appointments move to the archive, once they are uploaded and not changed (issue #96).  Saved, so that the moves and
+    // the repeats that were moved on are kept.
+    QStringList archivednow ;
+    int archivedcount = cal.archiveExpired(fromwindow, lastsync, archivednow) ;
+    if (!cal.save()) ui->updateStatusReport->append(QString("  The calendar could not be saved after archiving."))  ;
+    ui->updateStatusReport->append(QString("  Archived %1 expired appointments.").arg(archivedcount)) ;
+
     PHASE_DONE("synchronising appointments") ;
     dbg(QString("TIMING sync appointments done: %1 uploads, %2 ms uploading, %3 ms in sync loop")
         .arg(uploadcount).arg(uploadms).arg(synctimer.elapsed())) ;
@@ -427,6 +455,51 @@ void GoogleUpdateDialog::settleAppointmentContacts(Calendar &cal, ContactDatabas
             appt.setField(Appointment::ContactId, QString()) ;
             appt.setField(Appointment::For, QString(APPOINTMENT_UNNAMED_CONTACT)) ;
             break ;
+        }
+    }
+}
+
+//=====================================================================================================
+//
+// Archived appointments, checked against Google (issue #96).  An archived appointment that Google has cancelled is removed from
+// the archive.  One that Google holds inside the window is restored to the calendar, with Google's details and its Updated time
+// kept, so that it is not uploaded again.  One that Google holds outside the window has its archived copy brought up to date.
+// Every appointment left archived is in archivedids, so that the download does not make a new local copy of it.
+//
+
+void GoogleUpdateDialog::reconcileArchive(Calendar &cal, Calendar &googlecal, const QStringList &deletedids, QDateTime fromwindow, QDateTime towindow,
+                                          QSet<QString> &archivedids, int &restored, int &updated, int &removed)
+{
+    restored=0 ;
+    updated=0 ;
+    removed=0 ;
+
+    QList<Appointment> archive = Calendar::loadArchive() ;
+    for (Appointment &archived : archive) {
+        QString id = archived.getField(Appointment::ID) ;
+
+        if (deletedids.contains(id)) {
+            if (cal.removeFromArchive(id)) removed++ ;
+            continue ;
+        }
+
+        // Not in this listing: left as it is, and not downloaded
+        Appointment &googleappt = googlecal.getAppointmentBy(Appointment::ID, id) ;
+        if (googleappt.isNull() || googleappt.isSet(Appointment::Deleted)) {
+            archivedids.insert(id) ;
+            continue ;
+        }
+
+        archived.copyFromKeepingUpdated(googleappt, Appointment::maDetails|Appointment::maGoogleAcct) ;
+
+        QDateTime from = googleappt.getDate(Appointment::From) ;
+        QDateTime to = googleappt.getDate(Appointment::To) ;
+        bool inwindow = (from <= towindow && to >= fromwindow) ;
+        if (inwindow) {
+            if (cal.restoreFromArchive(archived)) restored++ ;
+        } else {
+            if (cal.updateArchived(archived)) updated++ ;
+            archivedids.insert(id) ;
         }
     }
 }

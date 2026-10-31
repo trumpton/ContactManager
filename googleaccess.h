@@ -133,7 +133,8 @@ public:
     bool isConnectionError() ;
 
     // Get all calendar from Google server
-    bool getCalendar(Calendar &googlecalendar, int startdays, int enddays) ;
+    // deletedids, if given, receives the ID of each event Google has cancelled in the listing (issue #96)
+    bool getCalendar(Calendar &googlecalendar, int startdays, int enddays, QStringList *deletedids = NULL) ;
 
     // Download the appointment based on Google Details
     bool getAppointment(Appointment& appt) ;

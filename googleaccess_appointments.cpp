@@ -68,7 +68,7 @@ static QJsonObject privateProperties(Appointment &appt)
 //  which have changed since the last sync.
 //
 
-bool GoogleAccess::getCalendar(Calendar &googlecalendar, int startdays, int enddays)
+bool GoogleAccess::getCalendar(Calendar &googlecalendar, int startdays, int enddays, QStringList *deletedids)
 {
     QJsonParseError err;
     QJsonDocument doc ;
@@ -138,6 +138,8 @@ bool GoogleAccess::getCalendar(Calendar &googlecalendar, int startdays, int endd
                 } else if (parseAppointment(item, appt, account)) {
                     if (!appt.isSet(Appointment::Deleted)) {
                         googlecalendar.addAppointment(appt, false) ;
+                    } else if (deletedids) {
+                        *deletedids << appt.getField(Appointment::ID) ;
                     }
                 }
             }
