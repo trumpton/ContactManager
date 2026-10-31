@@ -446,7 +446,10 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
         root.insert("status", "confirmed") ;
 
         QString summary = appt.getField(Appointment::Summary) ;
-        if (!appt.getField(Appointment::ContactId).isEmpty() && appt.getField(Appointment::ContactId).compare(gConf->getMe())!=0) {
+        // The contact's name is added in braces when there is one, as the reply strips it off again (see the parse).  An
+        // empty name is not added, or the reply would not match what was sent.
+        if (!appt.getField(Appointment::ContactId).isEmpty() && appt.getField(Appointment::ContactId).compare(gConf->getMe())!=0
+                && !appt.getField(Appointment::For).isEmpty()) {
             summary = summary + " {" + appt.getField(Appointment::For) + "}" ;
         }
 

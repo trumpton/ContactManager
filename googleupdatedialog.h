@@ -3,12 +3,24 @@
 
 #include <QDialog>
 #include <QProgressBar>
+#include <QSet>
 #include "googleaccess.h"
 #include "contactdatabase.h"
 
 namespace Ui {
 class GoogleUpdateDialog;
 }
+
+// Uploads are saved as they happen, and a checkpoint is reported every SYNC_UPLOAD_CHUNK uploads.  A sync that stops
+// part-way keeps what it has uploaded, and the next sync does not upload those items again.
+#define SYNC_UPLOAD_CHUNK 100
+
+// The uploads of one phase ("calendar" or "contacts"), kept in a file, so that a sync that stops part-way does not repeat
+// them.  The file belongs to one last-sync date, and is removed when the phase completes.
+QSet<QString> loadUploadProgress(const QString &phase, const QString &lastsync) ;
+void recordUploadProgress(const QString &phase, const QString &lastsync, const QString &key) ;
+void clearUploadProgress(const QString &phase) ;
+QString uploadProgressKey(const QString &id, const QString &updated) ;
 
 class GoogleUpdateDialog : public QDialog
 {

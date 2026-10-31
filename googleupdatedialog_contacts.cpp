@@ -9,6 +9,7 @@
 #include "configuration.h"
 #include "../Lib/supportfunctions.h"
 #include <QElapsedTimer>
+#include <QHash>
 
 // TIMING: prints how long each sync phase took.  Uses phasetimer, which is
 // declared where the download starts.
@@ -97,6 +98,45 @@ bool GoogleUpdateDialog::uploadContact(Contact& contact, GoogleAccess &google, C
     return success ;
 }
 
+// A local contact with no Google link is linked to the Google contact with the same name and the same email address.  An
+// earlier sync may have created the Google contact and stopped before the link was saved.  Only a pair that matches
+// exactly one-to-one is linked, so nothing is guessed.  Returns how many were linked.
+static int relinkUnlinkedContacts(ContactDatabase &db, ContactDatabase &googledb)
+{
+    QHash<QString, QList<int>> googlebyemail ;
+    for (int j=0; j<googledb.size(); j++) {
+        Contact &g = googledb.getContact(j) ;
+        if (g.isSet(Contact::Deleted)) continue ;
+        googlebyemail[g.getField(Contact::Email).trimmed().toLower()] << j ;
+    }
+
+    QHash<QString, int> unlinkedbyemail ;
+    for (int i=0; i<db.size(); i++) {
+        Contact &c = db.getContact(i) ;
+        if (c.isSet(Contact::Deleted) || !c.getField(Contact::GoogleRecordId).isEmpty()) continue ;
+        unlinkedbyemail[c.getField(Contact::Email).trimmed().toLower()]++ ;
+    }
+
+    int linked = 0 ;
+    for (int i=0; i<db.size(); i++) {
+        Contact &c = db.getContact(i) ;
+        if (c.isSet(Contact::Deleted) || !c.getField(Contact::GoogleRecordId).isEmpty()) continue ;
+
+        QString email = c.getField(Contact::Email).trimmed().toLower() ;
+        if (email.isEmpty() || googlebyemail.value(email).size()!=1 || unlinkedbyemail.value(email)!=1) continue ;
+
+        Contact &g = googledb.getContact(googlebyemail.value(email).first()) ;
+        bool samename = c.getField(Contact::Names).trimmed().compare(g.getField(Contact::Names).trimmed(), Qt::CaseInsensitive)==0 &&
+                        c.getField(Contact::Surname).trimmed().compare(g.getField(Contact::Surname).trimmed(), Qt::CaseInsensitive)==0 ;
+        if (!samename) continue ;
+
+        c.setField(Contact::GoogleRecordId, g.getField(Contact::GoogleRecordId)) ;
+        c.setField(Contact::GoogleEtag, g.getField(Contact::GoogleEtag)) ;
+        linked++ ;
+    }
+    return linked ;
+}
+
 bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess& google, class ContactDatabase& db)
 {
     bool networkok = true ;
@@ -127,6 +167,13 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     networkok &= google.getContacts(googledb) ;
     PHASE_DONE("download contacts") ;
     ui->updateStatusReport->append(QString("  Downloaded ") + QString::number(googledb.size()) + QString(" Contacts from Google.")) ;
+
+    // Contacts created by an earlier sync that stopped before their link was saved are linked again, rather than being
+    // downloaded as new contacts and created on Google a second time
+    if (networkok) {
+        int relinked = relinkUnlinkedContacts(db, googledb) ;
+        ui->updateStatusReport->append(QString("  Linked ") + QString::number(relinked) + QString(" local contacts to their Google contacts, by name and email.")) ;
+    }
 
     // ------------------------------------------------------------------------------------
     //
@@ -265,7 +312,12 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
                 localcontact.setField(Contact::GoogleRecordId, googlecontact.getField(Contact::GoogleRecordId)) ;
                 QElapsedTimer uploadtimer ;
                 uploadtimer.start() ;
+                bool hadgoogleid = !localcontact.getField(Contact::GoogleRecordId).isEmpty() ;
                 bool uploaded = uploadContact(localcontact, google, googlecontact) ;
+
+                // A Google contact that has been created is linked straight away, even if its reply did not match, so that
+                // a later sync updates it rather than creating it again
+                if (!hadgoogleid && !localcontact.getField(Contact::GoogleRecordId).isEmpty()) localcontact.save(gContactSavePath) ;
                 dbg(QString("TIMING upload (new local) %1 ms ok=%2").arg(uploadtimer.elapsed()).arg(uploaded)) ;
                 if (uploaded) {
                     ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false,false)) ;
@@ -409,6 +461,11 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
     synctimer.start() ;
     int uploadcount=0 ;
     qint64 uploadms=0 ;
+
+    // Uploads done by an earlier sync that stopped part-way are not repeated
+    QString lastsyncstr = lastsync.toString(Qt::ISODate) ;
+    QSet<QString> doneuploads = loadUploadProgress("contacts", lastsyncstr) ;
+
     for (int i=0; i<size9; i++) {
 
         if (i % 50 == 0) {
@@ -478,7 +535,9 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
                 ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false, false)  + QString(" - Updating Local Contact Details (%1)").arg(summary)) ;
             }
 
-            // Update Details on Google
+            // Update Details on Google.  An upload that an earlier sync made is not repeated.
+            QString uploadkey = uploadProgressKey(localcontact.getField(Contact::ID), localcontact.getField(Contact::Updated)) ;
+            if (doneuploads.contains(uploadkey)) localcontact.setFlag(Contact::ToBeUploaded, false) ;
             if (localcontact.isSet(Contact::ToBeUploaded)) {
                 if (localcontact.isSet(Contact::Deleted)) {
                     changes = QString("Deleted.") ;
@@ -492,7 +551,12 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
                 }
                 QElapsedTimer uploadtimer ;
                 uploadtimer.start() ;
+                bool hadgoogleid = !localcontact.getField(Contact::GoogleRecordId).isEmpty() ;
                 bool uploaded = uploadContact(localcontact, google, googlecontact) ;
+
+                // A Google contact that has been created is linked straight away, even if its reply did not match, so that
+                // a later sync updates it rather than creating it again
+                if (!hadgoogleid && !localcontact.getField(Contact::GoogleRecordId).isEmpty()) localcontact.save(gContactSavePath) ;
                 uploadcount++ ;
                 uploadms += uploadtimer.elapsed() ;
                 dbg(QString("TIMING upload #%1 %2 ms ok=%3").arg(uploadcount).arg(uploadtimer.elapsed()).arg(uploaded)) ;
@@ -500,6 +564,14 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
                     ui->updateStatusReport->append(QString("    ") + localcontact.getFormattedName(false, false)  + QString(" - Updating Google Contact Details (%1)").arg(summary)) ;
                     localcontact.copyTo(googlecontact, Contact::mcDetails|Contact::mcId|Contact::mcGoogleId) ;
                     localcontact.setFlag(Contact::MergePending, false) ;
+
+                    // Saved as it is uploaded, so that a Google contact that was created is linked, and not created again if
+                    // the sync stops.  Progress is reported every SYNC_UPLOAD_CHUNK uploads.
+                    localcontact.save(gContactSavePath) ;
+                    recordUploadProgress("contacts", lastsyncstr, uploadkey) ;
+                    if (uploadcount % SYNC_UPLOAD_CHUNK == 0) {
+                        ui->updateStatusReport->append(QString("  Checkpoint: %1 uploads saved.").arg(uploadcount)) ;
+                    }
                 } else {
                     // The reason is the network error if there was one, otherwise the last log entry, which says
                     // what did not match (for example, after Google returned the contact)
@@ -585,6 +657,7 @@ bool GoogleUpdateDialog::processContactUpdate(QDateTime &lastsync, GoogleAccess&
         .arg(uploadcount).arg(uploadms).arg(synctimer.elapsed())) ;
     setProgress(1000) ;
     if (networkok) {
+        clearUploadProgress("contacts") ;
         ui->updateStatusReport->append(QString("  Contact Synchronisation: OK")) ;
     } else {
         ui->updateStatusReport->append(QString("  Contact Synchronisation: FAILED - Please resync")) ;

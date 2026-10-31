@@ -7,6 +7,9 @@
 #include "contactdatabase.h"
 #include "calendar.h"
 #include "contact.h"
+#include "configuration.h"
+#include <QFile>
+#include <QTextStream>
 
 
 GoogleUpdateDialog::GoogleUpdateDialog(QWidget *parent) :
@@ -237,4 +240,75 @@ void GoogleUpdateDialog::finishProgress(QString summary)
     ui->pushButton->setText("Close") ;
     ui->pushButton->setFocus() ;
     exec() ;
+}
+
+
+//=====================================================================================================
+//
+// Upload progress.  The file for a phase starts with the last-sync date it belongs to, then one line for each item that
+// has been uploaded in that phase, as its ID and its Updated date.  A file for another last-sync date is ignored.
+//
+
+static QString uploadProgressFile(const QString &phase)
+{
+    return gSavePath + "sync-" + phase + ".progress" ;
+}
+
+QString uploadProgressKey(const QString &id, const QString &updated)
+{
+    return id + "|" + updated ;
+}
+
+QSet<QString> loadUploadProgress(const QString &phase, const QString &lastsync)
+{
+    QSet<QString> done ;
+    QFile file(uploadProgressFile(phase)) ;
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return done ;
+
+    QTextStream in(&file) ;
+    in.setEncoding(QStringConverter::Utf8) ;
+    QString header = in.readLine() ;
+    if (header.compare("lastsync=" + lastsync)!=0) return done ;
+
+    while (!in.atEnd()) {
+        QString line = in.readLine().trimmed() ;
+        if (!line.isEmpty()) done.insert(line) ;
+    }
+    return done ;
+}
+
+void recordUploadProgress(const QString &phase, const QString &lastsync, const QString &key)
+{
+    QString name = uploadProgressFile(phase) ;
+
+    // A new file, or one for another last-sync date, is started again.  Only the header is read, as the file grows.
+    bool fresh = true ;
+    QFile existing(name) ;
+    if (existing.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream in(&existing) ;
+        in.setEncoding(QStringConverter::Utf8) ;
+        fresh = (in.readLine().compare("lastsync=" + lastsync)!=0) ;
+    }
+    if (fresh) {
+        QFile file(name) ;
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) return ;
+        QTextStream out(&file) ;
+        out.setEncoding(QStringConverter::Utf8) ;
+        out << "lastsync=" << lastsync << "\n" ;
+        out.flush() ;
+        file.close() ;
+    }
+
+    QFile file(name) ;
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Append)) return ;
+    QTextStream out(&file) ;
+    out.setEncoding(QStringConverter::Utf8) ;
+    out << key << "\n" ;
+    out.flush() ;
+    file.close() ;
+}
+
+void clearUploadProgress(const QString &phase)
+{
+    QFile::remove(uploadProgressFile(phase)) ;
 }
