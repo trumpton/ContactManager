@@ -68,7 +68,7 @@ static QJsonObject privateProperties(Appointment &appt)
 //  which have changed since the last sync.
 //
 
-bool GoogleAccess::getCalendar(Calendar &googlecalendar, int startdays, int enddays, QStringList *deletedids)
+bool GoogleAccess::getCalendar(Calendar &googlecalendar, QStringList *deletedids, QString *syncToken)
 {
     QJsonParseError err;
     QJsonDocument doc ;
@@ -84,15 +84,12 @@ bool GoogleAccess::getCalendar(Calendar &googlecalendar, int startdays, int endd
     QString url = "https://www.googleapis.com/calendar/v3/calendars/" +
             account + "/events?v=3.0" ;
 
-    // Full refresh, so get everything that covers dates from startdays ago to enddays
-    QDateTime startwindow = QDateTime::currentDateTimeUtc().addDays(-1 * startdays) ;
-    QDateTime endwindow = QDateTime::currentDateTimeUtc().addDays(enddays) ;
-    QString startwindowstr = dateTimeToIsoString(startwindow) ;
-    QString startwindowstrz = dateTimeStringToZulu(startwindowstr) ;
-    QString endwindowstr = dateTimeToIsoString(endwindow) ;
-    QString endwindowstrz = dateTimeStringToZulu(endwindowstr) ;
-
-    url = url + "&showDeleted=true&showHidden=true&timeMin=" + startwindowstrz + "&timeMax=" + endwindowstrz + "&maxResults=2500" ;
+    // Every event is listed, cancelled ones included.  The date limits cannot be combined with a sync token (issue #96), so the
+    // listing is not limited to a window.  With a sync token, only the events changed since it was given are listed.
+    url = url + "&showDeleted=true&showHidden=true&maxResults=2500" ;
+    if (syncToken && !syncToken->isEmpty()) url = url + "&syncToken=" + QString(QUrl::toPercentEncoding(*syncToken)) ;
+    bool incremental = syncToken && !syncToken->isEmpty() ;
+    QString newtoken ;
 
 
     // Page through the events, following nextPageToken.  Google returns one
@@ -145,10 +142,25 @@ bool GoogleAccess::getCalendar(Calendar &googlecalendar, int startdays, int endd
             }
         }
 
+        // The sync token for the next listing is on the last page
+        QString next = obj["nextSyncToken"].toString() ;
+        if (!next.isEmpty()) newtoken = next ;
+
         pagetoken = obj["nextPageToken"].toString() ;
         pagecount++ ;
 
     } while (!pagetoken.isEmpty()) ;
+
+    // A repeat that Google has changed only through one of its occurrences is not in an incremental listing.  It is fetched, so
+    // that the occurrence can be made an exception of it.
+    for (const QPair<QString, QDateTime> &occurrence : deletedoccurrences) {
+        if (!googlecalendar.getAppointmentBy(Appointment::GoogleRecordId, occurrence.first).isNull()) continue ;
+        Appointment repeat ;
+        repeat.setField(Appointment::GoogleRecordId, occurrence.first) ;
+        if (getAppointment(repeat) && !repeat.getField(Appointment::ID).isEmpty() && !repeat.isSet(Appointment::Deleted)) {
+            googlecalendar.addAppointment(repeat, false) ;
+        }
+    }
 
     // Google's deleted occurrences of a repeat are exceptions of the repeat, so the app leaves them out too
     for (const QPair<QString, QDateTime> &occurrence : deletedoccurrences) {
@@ -156,7 +168,9 @@ bool GoogleAccess::getCalendar(Calendar &googlecalendar, int startdays, int endd
         if (!repeat.isNull()) repeat.addException(occurrence.second) ;
     }
 
-    dbg(QString("TIMING getCalendar: %1 page(s), %2 events").arg(pagecount).arg(googlecalendar.size())) ;
+    dbg(QString("TIMING getCalendar: %1 page(s), %2 events, %3 cancelled, %4 listing").arg(pagecount).arg(googlecalendar.size())
+        .arg(deletedids ? deletedids->size() : 0).arg(incremental ? QString("incremental") : QString("full"))) ;
+    if (syncToken) *syncToken = newtoken ;
     return true ;
 }
 

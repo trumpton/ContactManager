@@ -133,8 +133,10 @@ public:
     bool isConnectionError() ;
 
     // Get all calendar from Google server
-    // deletedids, if given, receives the ID of each event Google has cancelled in the listing (issue #96)
-    bool getCalendar(Calendar &googlecalendar, int startdays, int enddays, QStringList *deletedids = NULL) ;
+    // The events on the calendar (issue #96).  Without a sync token, every event is listed, and the token for the next listing is
+    // returned in syncToken.  With one, only the events that have changed since that token was given are listed.  deletedids, if
+    // given, receives the ID of each event Google has cancelled.  A token Google no longer accepts gives error code 410.
+    bool getCalendar(Calendar &googlecalendar, QStringList *deletedids = NULL, QString *syncToken = NULL) ;
 
     // Download the appointment based on Google Details
     bool getAppointment(Appointment& appt) ;
