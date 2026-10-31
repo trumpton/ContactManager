@@ -854,6 +854,33 @@ private slots:
         QVERIFY(!parseCalendarDate("1 2 aug x", QDate(2030, 6, 1), &d)) ;
     }
 
+    void numericDatesAreParsed()
+    {
+        // Issue #92: a date typed as numbers, day first: 2/12, 2-12, 2-12-26, 2/12/2026 and 2/12/26.  Today is 25 November 2026.
+        const QDate today(2026, 11, 25) ;
+        QDate d ;
+        QVERIFY(parseCalendarDate("2/12", today, &d)) ;
+        QCOMPARE(d, QDate(2026, 12, 2)) ;
+        QVERIFY(parseCalendarDate("2-12", today, &d)) ;
+        QCOMPARE(d, QDate(2026, 12, 2)) ;
+        QVERIFY(parseCalendarDate("2/11", today, &d)) ;             // 2 November has passed, so it is next year
+        QCOMPARE(d, QDate(2027, 11, 2)) ;
+        QVERIFY(parseCalendarDate("2-12-26", today, &d)) ;
+        QCOMPARE(d, QDate(2026, 12, 2)) ;
+        QVERIFY(parseCalendarDate("2/12/2026", today, &d)) ;
+        QCOMPARE(d, QDate(2026, 12, 2)) ;
+        QVERIFY(parseCalendarDate("2/12/26", today, &d)) ;
+        QCOMPARE(d, QDate(2026, 12, 2)) ;
+        QVERIFY(parseCalendarDate(" 29/2/2028 ", today, &d)) ;
+        QCOMPARE(d, QDate(2028, 2, 29)) ;
+        QVERIFY(!parseCalendarDate("31/11/2026", today, &d)) ;       // November has thirty days
+        QVERIFY(!parseCalendarDate("2/13", today, &d)) ;             // No thirteenth month
+        QVERIFY(!parseCalendarDate("0/12/2026", today, &d)) ;
+        QVERIFY(!parseCalendarDate("2/12/202", today, &d)) ;         // Three digits are not a year
+        QVERIFY(!parseCalendarDate("2/12/2026 extra", today, &d)) ;
+        QVERIFY(!parseCalendarDate("2/12/", today, &d)) ;
+    }
+
     void typedDatesAreParsed()
     {
         // Issue #92: a date typed in the calendar list.  Today is 25 November 2026 for the years left out.

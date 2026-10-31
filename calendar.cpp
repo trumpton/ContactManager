@@ -832,7 +832,22 @@ bool parseCalendarDate(const QString &text, QDate today, QDate *result)
 
     int day=0, month=0, year=0 ;
     bool hasday=false, hasmonth=false, hasyear=false, twodigityear=false ;
-    for (const QString &word : words) {
+
+    // Numbers: a day and a month, then an optional year, as 2/12, 2-12, 2-12-26, 2/12/2026 or 2/12/26
+    QRegularExpressionMatch numbers = QRegularExpression("^(\\d{1,2})[/-](\\d{1,2})(?:[/-](\\d{4}|\\d{2}))?$").match(text.trimmed()) ;
+    if (numbers.hasMatch()) {
+        day = numbers.captured(1).toInt() ;
+        month = numbers.captured(2).toInt() ;
+        hasday = true ;
+        hasmonth = true ;
+        if (numbers.hasCaptured(3)) {
+            year = numbers.captured(3).toInt() ;
+            hasyear = true ;
+            twodigityear = (numbers.captured(3).size()==2) ;
+        }
+    }
+
+    if (!numbers.hasMatch()) for (const QString &word : words) {
 
         // A day may have an ordinal ending, as in "10th"
         QString number = word ;
