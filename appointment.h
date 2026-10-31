@@ -240,6 +240,12 @@ public:
     QList<QDateTime> exceptions() ;
     void setExceptions(QList<QDateTime> starts) ;
 
+    // Expired and archiving (issue #96).  An appointment is expired when it ends before the lower edge of the window, or,
+    // for a repeat, when no occurrence that is not removed ends at or after it.  A repeat that has expired occurrences
+    // before the edge has its start moved to the first occurrence that is still in the window.
+    bool isExpiredBefore(QDateTime lower) ;
+    bool trimRepeatBefore(QDateTime lower) ;
+
     // The number of the occurrence that starts at this time, or -1 if there is none
     int indexOfOccurrence(QDateTime start) ;
 

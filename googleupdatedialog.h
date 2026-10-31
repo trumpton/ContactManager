@@ -62,6 +62,10 @@ private:
     // Once the contacts are synchronised, each appointment's linked contact is checked against them (issue #95)
     void settleAppointmentContacts(Calendar &cal, ContactDatabase &db, int &kept, int &named, int &unnamed, int &nocontact) ;
 
+    // Archived appointments, checked against Google (issue #96)
+    void reconcileArchive(Calendar &cal, Calendar &googlecal, const QStringList &deletedids, QDateTime fromwindow, QDateTime towindow,
+                          QSet<QString> &archivedids, int &restored, int &updated, int &removed) ;
+
     // Upload contact to Google
     bool uploadContact(Contact& contact, GoogleAccess& google, Contact& googlecontact) ;
 

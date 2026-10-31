@@ -87,6 +87,15 @@ public:
 
     void purgeBirthdays() ;
     int tidyBirthdays(bool dryrun) ;
+
+    // Archived appointments (issue #96).  An archived appointment is kept in the archive folder, which start-up does not read.
+    // archiveExpired moves each expired appointment that is not changed since lastsync, and has nothing waiting to be
+    // uploaded or downloaded, into the archive, and returns how many.  Its IDs are added to archived.
+    int archiveExpired(QDateTime lower, QDateTime lastsync, QStringList &archived) ;
+    static QList<Appointment> loadArchive() ;
+    bool restoreFromArchive(Appointment &appt) ;
+    bool updateArchived(Appointment &appt) ;
+    bool removeFromArchive(QString id) ;
     int repointContact(QString fromid, QString toid) ;
 
     // Tidy Records, for the calendar.  A repeat with no occurrences left (every one removed) shows nothing, so it is marked

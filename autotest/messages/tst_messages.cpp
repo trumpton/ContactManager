@@ -747,6 +747,80 @@ private slots:
         QCOMPARE(matchAppointmentContact("gone", "", ids, byname, resolved), ContactUnnamed) ;
     }
 
+    // ---- Expired appointments and repeats that have passed the edge of the window (issue #96) ----
+
+    static Appointment repeatFrom(QDateTime start, int count)
+    {
+        Appointment a ;
+        a.setField(Appointment::ID, "repeat-test") ;
+        a.setField(Appointment::ContactId, "contact-1") ;
+        a.setField(Appointment::Summary, "Weekly check") ;
+        a.setDate(Appointment::From, start) ;
+        a.setDate(Appointment::To, start.addSecs(3600)) ;
+        a.setField(Appointment::Repeat, "1") ;
+        a.setField(Appointment::RepeatInterval, "1") ;
+        a.setField(Appointment::RepeatCount, QString::number(count)) ;
+        return a ;
+    }
+
+    void singleAppointmentEndedBeforeTheEdgeIsExpired()
+    {
+        Appointment ended = oneOff("ended", QDate(2026, 10, 27)) ;
+        QVERIFY(ended.isExpiredBefore(localAt(QDate(2026, 10, 28), QTime(0, 0)))) ;
+        Appointment current = oneOff("current", QDate(2026, 10, 29)) ;
+        QVERIFY(!current.isExpiredBefore(localAt(QDate(2026, 10, 28), QTime(0, 0)))) ;
+    }
+
+    void repeatStartMovesToTheFirstOccurrenceInTheWindow()
+    {
+        // Daily from 21 Oct 16:00, 20 occurrences, and the window starts 28 Oct: the start moves to 28 Oct, and the count drops
+        // by the seven occurrences passed
+        Appointment a = repeatFrom(localAt(QDate(2026, 10, 21), QTime(16, 0)), 20) ;
+        QDateTime lower = localAt(QDate(2026, 10, 28), QTime(0, 0)) ;
+        QVERIFY(!a.isExpiredBefore(lower)) ;
+        QVERIFY(a.trimRepeatBefore(lower)) ;
+        QCOMPARE(a.getDate(Appointment::From), localAt(QDate(2026, 10, 28), QTime(16, 0))) ;
+        QCOMPARE(a.getDate(Appointment::To), localAt(QDate(2026, 10, 28), QTime(17, 0))) ;
+        QCOMPARE(a.getField(Appointment::RepeatCount), QString("13")) ;
+    }
+
+    void repeatTrimKeepsOnlyTheExceptionsStillToCome()
+    {
+        Appointment a = repeatFrom(localAt(QDate(2026, 10, 21), QTime(16, 0)), 20) ;
+        a.setExceptions(QList<QDateTime>() << localAt(QDate(2026, 10, 25), QTime(16, 0))
+                                             << localAt(QDate(2026, 10, 30), QTime(16, 0))) ;
+        QVERIFY(a.trimRepeatBefore(localAt(QDate(2026, 10, 28), QTime(0, 0)))) ;
+        QList<QDateTime> left = a.exceptions() ;
+        QCOMPARE(left.size(), 1) ;
+        QCOMPARE(left.first(), localAt(QDate(2026, 10, 30), QTime(16, 0))) ;
+    }
+
+    void repeatWithNoOccurrenceLeftIsExpired()
+    {
+        // Three occurrences, 21 to 23 Oct, all before 28 Oct: the series has expired and is not trimmed
+        Appointment a = repeatFrom(localAt(QDate(2026, 10, 21), QTime(16, 0)), 3) ;
+        QDateTime lower = localAt(QDate(2026, 10, 28), QTime(0, 0)) ;
+        QVERIFY(a.isExpiredBefore(lower)) ;
+        QVERIFY(!a.trimRepeatBefore(lower)) ;
+    }
+
+    void trimKeepsTheMessageSignatureSoTheContactIsNotMessaged()
+    {
+        // A repeat already messaged: moving its start changes the stored signature to match, so no update is sent
+        Appointment a = repeatFrom(localAt(QDate(2026, 10, 21), QTime(16, 0)), 20) ;
+        QString fromtext = a.getField(Appointment::From) ;
+        QString totext = a.getField(Appointment::To) ;
+        a.setField(Appointment::MessageSent, "2026-10-21T16:10:00Z") ;
+        a.setField(Appointment::MessageSignature, fromtext + QChar(0x1f) + totext + QChar(0x1f) + "1" + QChar(0x1f) + "1") ;
+        QVERIFY(a.trimRepeatBefore(localAt(QDate(2026, 10, 28), QTime(0, 0)))) ;
+        QStringList parts = a.getField(Appointment::MessageSignature).split(QChar(0x1f)) ;
+        QCOMPARE(parts.size(), 4) ;
+        QCOMPARE(parts.at(0), a.getField(Appointment::From)) ;
+        QCOMPARE(parts.at(1), a.getField(Appointment::To)) ;
+        QCOMPARE(parts.at(2), QString("1")) ;
+        QCOMPARE(parts.at(3), QString("1")) ;
+    }
+
     void loadKeepsTheSavedUpdatedDate()
     {
         // Loading an appointment is not an edit: its saved Updated and DateUpdated are kept, so the hold and the sync do not

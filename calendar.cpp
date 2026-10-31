@@ -708,3 +708,89 @@ QStringList Calendar::orphanedEntries(ContactDatabase &db)
     }
     return orphans ;
 }
+
+//=====================================================================================================
+//
+// Public: Calendar - archive (issue #96)
+//
+//  An expired appointment is moved from the calendar folder to the archive folder, which is not read at start-up.  Its Google
+//  ID is kept, so that a later sync does not make a second copy of it.  Only an appointment that is not changed since the last
+//  sync, and is not waiting to be uploaded, is archived, so that no change is moved out of reach.
+//
+
+static QString calendarArchivePath()
+{
+    return gCalendarSavePath + "archive/" ;
+}
+
+int Calendar::archiveExpired(QDateTime lower, QDateTime lastsync, QStringList &archived)
+{
+    int count=0 ;
+    QString path = calendarArchivePath() ;
+    QDir().mkpath(path) ;
+
+    // Work backwards, so that removing an entry does not shift the ones still to check
+    for (int i=appointments.size()-1; i>=0; i--) {
+        Appointment &appt = appointments[i] ;
+        if (appt.isTemp() || appt.isSet(Appointment::Deleted)) continue ;
+        // Waiting to be uploaded: it stays until it is.  (Unchanged entries are always flagged to be downloaded, so that is not checked.)
+        if (appt.isSet(Appointment::ToBeUploaded)) continue ;
+
+        // Changed since the last sync: it waits for the upload
+        QDateTime updated = appt.getDate(Appointment::Updated) ;
+        if (!lastsync.isValid() || updated >= lastsync) continue ;
+
+        if (!appt.isExpiredBefore(lower)) continue ;
+
+        QString id = appt.getField(Appointment::ID) ;
+        appt.markAsDirty() ;
+        if (!appt.save(path)) continue ;
+        QFile::remove(gCalendarSavePath + id + ".appointment") ;
+        archived << id ;
+        appointments.removeAt(i) ;
+        count++ ;
+    }
+    return count ;
+}
+
+QList<Appointment> Calendar::loadArchive()
+{
+    QList<Appointment> list ;
+    QString path = calendarArchivePath() ;
+    QDir dir(path) ;
+    dir.setNameFilters(QStringList() << "*.appointment") ;
+    foreach (const QString &file, dir.entryList(QDir::Files)) {
+        QString id = file ;
+        id.chop(QString(".appointment").size()) ;
+        Appointment appt ;
+        if (appt.load(path, id)) list << appt ;
+    }
+    return list ;
+}
+
+// Restores an archived appointment to the calendar.  Its archived file is removed.
+bool Calendar::restoreFromArchive(Appointment &appt)
+{
+    QString id = appt.getField(Appointment::ID) ;
+    appt.markAsDirty() ;
+    if (!appt.save(gCalendarSavePath)) return false ;
+    QFile::remove(calendarArchivePath() + id + ".appointment") ;
+    addAppointment(appt) ;
+    return true ;
+}
+
+// Brings the archived copy of an appointment up to date, without restoring it
+bool Calendar::updateArchived(Appointment &appt)
+{
+    appt.markAsDirty() ;
+    return appt.save(calendarArchivePath()) ;
+}
+
+// Removes an archived appointment, which Google has cancelled.  It is moved to the archive's deleted folder, not deleted.
+bool Calendar::removeFromArchive(QString id)
+{
+    QString path = calendarArchivePath() ;
+    QString filename = id + ".appointment" ;
+    return backupFile(path, filename) ;
+}
+

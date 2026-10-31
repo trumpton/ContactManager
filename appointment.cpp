@@ -926,3 +926,73 @@ AppointmentContactRule matchAppointmentContact(const QString &contactid, const Q
     return ContactUnnamed ;
 }
 
+//=====================================================================================================
+//
+// Expired appointments, and repeats that have passed the lower edge of the window (issue #96)
+//
+
+// The first occurrence that is not removed and ends at or after lower, or -1 if none is left.  Only for a repeat.
+static int firstOccurrenceEndingFrom(Appointment &appt, QDateTime lower)
+{
+    QDateTime start = appt.getDate(Appointment::From) ;
+    QDateTime end = appt.getDate(Appointment::To) ;
+    qint64 length = start.secsTo(end) ;
+    for (int n=0; n<100000 && !appt.occurrenceEnded(n); n++) {
+        QDateTime occurrence = appt.occurrenceFrom(n) ;
+        if (occurrence.addSecs(length) >= lower && !appt.isException(occurrence)) return n ;
+    }
+    return -1 ;
+}
+
+bool Appointment::isExpiredBefore(QDateTime lower)
+{
+    if (!isRepeating()) {
+        QDateTime end = getDate(Appointment::To) ;
+        return end < lower ;
+    }
+    return firstOccurrenceEndingFrom(*this, lower) < 0 ;
+}
+
+// Moves the start of a repeat to its first occurrence that is still in the window, so the occurrences before it are no longer
+// part of the appointment.  The repeat count is reduced by the occurrences passed, and exceptions before the new start are
+// dropped.  The stored message signature takes the new start and end, so that the change is not messaged to the contact: the
+// occurrences still to come are the same.  Returns true if the start moved.
+bool Appointment::trimRepeatBefore(QDateTime lower)
+{
+    if (!isRepeating()) return false ;
+
+    int n0 = firstOccurrenceEndingFrom(*this, lower) ;
+    if (n0<=0) return false ;          // nothing before the window, or no occurrence left (handled as expired)
+
+    QDateTime start = getDate(Appointment::From) ;
+    QDateTime end = getDate(Appointment::To) ;
+    qint64 length = start.secsTo(end) ;
+    QDateTime newstart = occurrenceFrom(n0) ;
+
+    QList<QDateTime> kept ;
+    foreach (const QDateTime &when, exceptions()) {
+        if (when >= newstart) kept.append(when) ;
+    }
+
+    int count = getField(Appointment::RepeatCount).toInt() ;
+
+    QString signature = getField(Appointment::MessageSignature) ;
+    bool messaged = getDate(Appointment::MessageSent).isValid() && !signature.isEmpty() ;
+
+    setDate(Appointment::From, newstart) ;
+    setDate(Appointment::To, newstart.addSecs(length)) ;
+    if (count>0) setField(Appointment::RepeatCount, QString::number(qMax(1, count - n0))) ;
+    setExceptions(kept) ;
+
+    // The signature is the start, end, repeat and interval, so it takes the new start and end
+    if (messaged) {
+        QStringList parts = signature.split(QChar(0x1f)) ;
+        if (parts.size()==4) {
+            parts[0] = getField(Appointment::From) ;
+            parts[1] = getField(Appointment::To) ;
+            setSentField(Appointment::MessageSignature, parts.join(QChar(0x1f))) ;
+        }
+    }
+    return true ;
+}
+
