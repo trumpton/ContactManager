@@ -60,7 +60,7 @@ private:
     bool processContactUpdate(QDateTime& lastsyncdate, GoogleAccess& google, ContactDatabase &db) ;
 
     // Once the contacts are synchronised, each appointment's linked contact is checked against them (issue #95)
-    void settleAppointmentContacts(Calendar &cal, ContactDatabase &db, int &kept, int &named, int &unnamed) ;
+    void settleAppointmentContacts(Calendar &cal, ContactDatabase &db, int &kept, int &named, int &unnamed, int &nocontact) ;
 
     // Upload contact to Google
     bool uploadContact(Contact& contact, GoogleAccess& google, Contact& googlecontact) ;
