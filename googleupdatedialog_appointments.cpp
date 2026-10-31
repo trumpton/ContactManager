@@ -215,6 +215,10 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     synctimer.start() ;
     int uploadcount=0 ;
     qint64 uploadms=0 ;
+
+    // Uploads done by an earlier sync that stopped part-way are not repeated
+    QString lastsyncstr = lastsync.toString(Qt::ISODate) ;
+    QSet<QString> doneuploads = loadUploadProgress("calendar", lastsyncstr) ;
     for (int i=0, size=cal.size(); i<size; i++) {
 
         if (i % 50 == 0) {
@@ -271,7 +275,9 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                     ui->updateStatusReport->append(QString("    ") + localappt.asText() + QString(" - Updating Local Appointment (%1)").arg(summary)) ;
                 }
 
-                // Update Details on Google
+                // Update Details on Google.  An upload that an earlier sync made is not repeated.
+                QString uploadkey = uploadProgressKey(localappt.getField(Appointment::ID), localappt.getField(Appointment::Updated)) ;
+                if (doneuploads.contains(uploadkey)) localappt.setFlag(Appointment::ToBeUploaded, false) ;
                 if (localappt.isSet(Appointment::ToBeUploaded)) {
                     if (localappt.isSet(Appointment::Deleted)) {
                         changes = QString("Deleted.") ;
@@ -283,6 +289,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                     ui->updateStatusReport->append(QString("    ") + localappt.asText() + QString(" - Updating Google Appointment (%1)").arg(summary)) ;
 
                     bool status ;
+                    bool hadgoogleid = !localappt.getField(Appointment::GoogleRecordId).isEmpty() ;
                     if (localappt.getField(Appointment::GoogleRecordId).isEmpty()) {
                         QElapsedTimer uploadtimer ;
                         uploadtimer.start() ;
@@ -300,10 +307,31 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                     }
                     networkok &= status ;
 
+                    // A Google event that has been created is linked straight away, even if its reply did not match, so that
+                    // a later sync updates it rather than creating it again
+                    if (!hadgoogleid && !localappt.getField(Appointment::GoogleRecordId).isEmpty()) localappt.save(gCalendarSavePath) ;
+
                     if (status) {
                         addLog(QString("    ") + localappt.asText() + QString(" - Uploading Google Appointment Details: %1").arg(changes)) ;
                         localappt.copyTo(googleappt, Appointment::maDetails|Appointment::maId|Appointment::maGoogleId) ;
+
+                        // Saved as it is uploaded, so that a Google event that was created is linked, and not created again
+                        // if the sync stops.  The checkpoint below saves the calendar every SYNC_UPLOAD_CHUNK uploads.
+                        localappt.save(gCalendarSavePath) ;
+                        recordUploadProgress("calendar", lastsyncstr, uploadkey) ;
+                        if (uploadcount % SYNC_UPLOAD_CHUNK == 0) {
+                            if (!cal.save()) {
+                                ui->updateStatusReport->append(QString("  Could not save the calendar at upload %1, so the sync stops here.").arg(uploadcount)) ;
+                                return false ;
+                            }
+                            ui->updateStatusReport->append(QString("  Checkpoint: %1 uploads saved.").arg(uploadcount)) ;
+                        }
                     } else {
+                        // The reason is the network error if there was one, otherwise the last log entry from the upload, which says
+                        // what did not match.  It is read before this failure is logged.
+                        QStringList recent = QString(getLog()).split("\n", Qt::SkipEmptyParts) ;
+                        QString reason = google.getNetworkError().isEmpty() ? (recent.isEmpty() ? QString() : recent.last().trimmed()) : google.getNetworkError() ;
+                        ui->updateStatusReport->append(QString("    ") + localappt.asText() + QString(" - FAILED Uploading Google Appointment: ") + reason) ;
                         addLog(QString("    ") + localappt.asText() + QString(" - FAILED Uploading Google Appointment Details: %1").arg(changes)) ;
                         networkok = false ;
                     }
@@ -329,6 +357,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     dbg(QString("TIMING sync appointments done: %1 uploads, %2 ms uploading, %3 ms in sync loop")
         .arg(uploadcount).arg(uploadms).arg(synctimer.elapsed())) ;
     if (networkok) {
+        clearUploadProgress("calendar") ;
         ui->updateStatusReport->append(QString("  Appointment Synchronisation: OK")) ;
     } else {
         ui->updateStatusReport->append(QString("  Appointment Synchronisation: FAILED - Please resync")) ;
