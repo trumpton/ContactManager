@@ -48,9 +48,10 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     bool incremental = !syncToken.isEmpty() ;
     QStringList deletedids ;
     networkok &= google.getCalendar(googlecal, &deletedids, &syncToken) ;
-    if (!networkok && google.getNetworkErrorCode()==410) {
+    // Google refuses a sync token it no longer holds (410), or one it does not recognise (400): the listing is then done again in full
+    if (!networkok && incremental && (google.getNetworkErrorCode()==410 || google.getNetworkErrorCode()==400)) {
         // Google no longer accepts the sync token, so everything is listed again
-        ui->updateStatusReport->append(QString("  The Google sync token has expired, so every appointment is listed again.")) ;
+        ui->updateStatusReport->append(QString("  Google did not accept the sync token (HTTP %1), so every appointment is listed again.").arg(google.getNetworkErrorCode())) ;
         networkok = true ;
         incremental = false ;
         syncToken.clear() ;
