@@ -18,48 +18,60 @@ void MainWindow::on_actionGotoMe_triggered()
 }
 
 //
-// on_actionGotoToday_triggered
+// calendarFilterOff
 //
- void MainWindow::on_actionGotoToday_triggered()
- {
-     if (ui->tabBar->currentIndex()!=CALENDARTABPOS) {
-         dbg("tabBar->setCurrentIndex(CALENDARTABPOS)") ;
-         ui->tabBar->setCurrentIndex(CALENDARTABPOS);
-     }
-
-     dbg("listCalendar->setFocus()") ;
-     ui->listCalendar->setFocus();
-
-     dbg("listCalendar->setCurrentIndex()") ;
-     ui->listCalendar->setCurrentIndex(calendarlist.index(0,0)) ;
-
-     // The nearest entry is the first one in the list that has not ended, repeats included.  If there is none, the end.
-     QDateTime now = QDateTime::currentDateTimeUtc() ;
-     int nearestrow = -1 ;
-     for (int r=0; r<calendarrowends.size() && nearestrow<0; r++) {
-         if (calendarrowends[r] > now) nearestrow = r ;
-     }
-     QModelIndex index = calendarlist.index(nearestrow>=0 ? nearestrow : calendarlist.rowCount()-1, 0) ;
-
-     if (index.isValid()) {
-         dbg("listCalendar->setCurrentIndex()") ;
-         ui->listCalendar->setCurrentIndex(index) ;
-     }
+// Moving the date turns off the contact filter (issue #92), so the list shows all entries again.  The switch sound is played
+// when the filter was on.
+//
+void MainWindow::calendarFilterOff()
+{
+    if (!calendarcontactonly) return ;
+    calendarcontactonly = false ;
+    play(SwitchOff) ;
+    LoadCalendarTab() ;
+    msg("Showing all appointments") ;
 }
 
-
 //
-// on_actionGotoDate_triggered
+// on_actionGotoToday_triggered
 //
-// Asks for a date, and shows its first entry in the calendar.  When the date has no entry, the entry is the first one on the
-// nearest date before it, or the top of the list when there is no entry before it.
-//
-void MainWindow::on_actionGotoDate_triggered()
+void MainWindow::on_actionGotoToday_triggered()
 {
-    bool ok = false ;
-    QDate wanted = dateInputDialog(this, "Goto Date", "Go to date", QDate::currentDate(), &ok) ;
-    if (!ok) return ;
+    calendarFilterOff() ;
 
+    if (ui->tabBar->currentIndex()!=CALENDARTABPOS) {
+        dbg("tabBar->setCurrentIndex(CALENDARTABPOS)") ;
+        ui->tabBar->setCurrentIndex(CALENDARTABPOS);
+    }
+
+    dbg("listCalendar->setFocus()") ;
+    ui->listCalendar->setFocus();
+
+    dbg("listCalendar->setCurrentIndex()") ;
+    ui->listCalendar->setCurrentIndex(calendarlist.index(0,0)) ;
+
+    // The nearest entry is the first one in the list that has not ended, repeats included.  If there is none, the end.
+    QDateTime now = QDateTime::currentDateTimeUtc() ;
+    int nearestrow = -1 ;
+    for (int r=0; r<calendarrowends.size() && nearestrow<0; r++) {
+        if (calendarrowends[r] > now) nearestrow = r ;
+    }
+    QModelIndex index = calendarlist.index(nearestrow>=0 ? nearestrow : calendarlist.rowCount()-1, 0) ;
+
+    if (index.isValid()) {
+        dbg("listCalendar->setCurrentIndex()") ;
+        ui->listCalendar->setCurrentIndex(index) ;
+    }
+}
+
+//
+// gotoCalendarDate
+//
+// Shows the first entry on a date in the calendar.  When the date has no entry, the entry is the first one on the nearest
+// date before it, or the top of the list when there is no entry before it.
+//
+void MainWindow::gotoCalendarDate(QDate wanted)
+{
     if (ui->tabBar->currentIndex()!=CALENDARTABPOS) {
         dbg("tabBar->setCurrentIndex(CALENDARTABPOS)") ;
         ui->tabBar->setCurrentIndex(CALENDARTABPOS);
@@ -90,6 +102,50 @@ void MainWindow::on_actionGotoDate_triggered()
         dbg("listCalendar->setCurrentIndex()") ;
         ui->listCalendar->setCurrentIndex(index) ;
     }
+}
+
+//
+// on_actionGotoDate_triggered
+//
+// Asks for a date with the date dialog (Control-D, or D in the calendar list), and goes to it.
+//
+void MainWindow::on_actionGotoDate_triggered()
+{
+    bool ok = false ;
+    QDate wanted = dateInputDialog(this, "Goto Date", "Go to date", QDate::currentDate(), &ok) ;
+    if (!ok) return ;
+
+    calendarFilterOff() ;
+    gotoCalendarDate(wanted) ;
+}
+
+//
+// gotoTypedCalendarDate
+//
+// A digit typed in the calendar list opens a text entry with the digit in it, and the rest of the date is typed after it
+// (issue #92).  Enter goes to the date.  A date that is not understood is beeped, and the entry is shown again with the text
+// kept, so it can be put right.  Escape leaves the list where it was.
+//
+void MainWindow::gotoTypedCalendarDate(QString typed)
+{
+    QString text = typed ;
+    QString prompt = "Type a date, such as 10 oct 2026, 1 nov 2027, or 2 march for the next one.  Press Enter to go to it." ;
+    QDate today = QDate::currentDate() ;
+    QDate wanted ;
+
+    play(Query) ;
+    for (;;) {
+        bool ok = false ;
+        text = QInputDialog::getText(this, "Go to date", prompt, QLineEdit::Normal, text, &ok) ;
+        if (!ok) return ;
+        if (parseCalendarDate(text, today, &wanted)) break ;
+
+        play(Error) ;
+        prompt = QString("\"%1\" is not a date.  Type a day, a month name and a year, such as 10 oct 2026, or leave the year out.").arg(text) ;
+    }
+
+    calendarFilterOff() ;
+    gotoCalendarDate(wanted) ;
 }
 
 // Jump to TODO List

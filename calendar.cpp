@@ -808,3 +808,74 @@ int nearestRowToDate(const QList<QDateTime> &starts, const QDateTime &wanted)
     return nearest ;
 }
 
+bool parseCalendarDate(const QString &text, QDate today, QDate *result)
+{
+    static const QStringList monthnames = { "january", "february", "march", "april", "may", "june", "july", "august",
+                                            "september", "october", "november", "december" } ;
+    static const QStringList ordinals = { "st", "nd", "rd", "th" } ;
+
+    auto allDigits = [](const QString &s) {
+        if (s.isEmpty()) return false ;
+        for (QChar c : s) if (c<'0' || c>'9') return false ;
+        return true ;
+    } ;
+
+    QString spaced = text.toLower() ;
+    spaced.replace(',', ' ') ;
+    QStringList words = spaced.simplified().split(' ', Qt::SkipEmptyParts) ;
+
+    int day=0, month=0, year=0 ;
+    bool hasday=false, hasmonth=false, hasyear=false ;
+    for (const QString &word : words) {
+
+        // A day may have an ordinal ending, as in "10th"
+        QString number = word ;
+        for (const QString &ordinal : ordinals) {
+            if (number.endsWith(ordinal) && allDigits(number.left(number.size()-ordinal.size()))) {
+                number = number.left(number.size()-ordinal.size()) ;
+                break ;
+            }
+        }
+
+        if (allDigits(number) && number.size()<=2 && !hasday) {
+            day = number.toInt() ;
+            hasday = true ;
+        } else if (allDigits(number) && number.size()==4 && !hasyear) {
+            year = number.toInt() ;
+            hasyear = true ;
+        } else if (word.size()>=3 && !hasmonth) {
+            // The month must be the start of exactly one month name
+            int matches = 0 ;
+            for (int m=0; m<monthnames.size(); m++) {
+                if (monthnames.at(m).startsWith(word)) {
+                    matches++ ;
+                    month = m+1 ;
+                }
+            }
+            if (matches!=1) return false ;
+            hasmonth = true ;
+        } else {
+            return false ;
+        }
+    }
+    if (!hasday || !hasmonth) return false ;
+
+    if (hasyear) {
+        QDate date(year, month, day) ;
+        if (!date.isValid()) return false ;
+        *result = date ;
+        return true ;
+    }
+
+    // No year: the next date with that day and month, on or after today.  A date such as 29 February is found in a later year
+    // (within eight years), and 31 November is never found.
+    for (int y=today.year(); y<=today.year()+8; y++) {
+        QDate date(y, month, day) ;
+        if (date.isValid() && date>=today) {
+            *result = date ;
+            return true ;
+        }
+    }
+    return false ;
+}
+

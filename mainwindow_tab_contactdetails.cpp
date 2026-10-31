@@ -181,8 +181,8 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
             if (key->key()==Qt::Key_T) { on_actionGotoToday_triggered() ; return true ; }
             if (key->key()==Qt::Key_D) { on_actionGotoDate_triggered() ; return true ; }
 
-            // A digit opens the date entry, as D does (the typed digit is not yet carried into it)
-            if (key->key()>=Qt::Key_0 && key->key()<=Qt::Key_9) { on_actionGotoDate_triggered() ; return true ; }
+            // A digit opens a text entry for the date, with the digit already in it (issue #92)
+            if (key->key()>=Qt::Key_0 && key->key()<=Qt::Key_9) { gotoTypedCalendarDate(key->text()) ; return true ; }
             if (key->key()==Qt::Key_Space) { toggleCalendarContactFilter() ; return true ; }
         }
     }

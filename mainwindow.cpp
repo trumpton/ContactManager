@@ -568,11 +568,9 @@ void MainWindow::populateDialog(QString id, bool switchtooverview)
         db.selectContact(id) ;
         LoadTabs() ;
 
-        // And refresh the menus
+        // And refresh the menus.  The calendar list keeps the focus on the entry nearest in date (issue #92), so it is not
+        // sent to today here.
         refreshMenus(db.getSelected(), false, false, true) ;
-
-        // Goto Today
-        on_actionGotoToday_triggered() ;
 
     } else if (id.compare(SELECT_ADDENTRY)==0) {
 
