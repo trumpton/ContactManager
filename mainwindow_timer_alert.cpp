@@ -424,6 +424,8 @@ void MainWindow::sendMailSMS()
             }
         }
         state.onthisday = isOnTheDay(occ, now) ;
+        QDateTime created = QDateTime::fromString(appt.getField(Appointment::Created), Qt::ISODate) ;
+        state.createdbeforeday = created.isValid() && created.toLocalTime().date() < now.toLocalTime().date() ;
         state.emaildone = emaildone ;
         state.smsdone = smsdone ;
         state.occurrence = occ ;
@@ -454,38 +456,40 @@ void MainWindow::sendMailSMS()
         // The on-the-day reminder, sent by the steps decided above: each channel once, and recorded
         if (onday) {
 
-            QString emailkey = id + "|dayemail" ;
-            QString textkey = id + "|daysms" ;
-
             // The limit holds the on-the-day messages too, and is reported in the log as the others are
             QString limit = contactLimitReason(contactid, now) ;
             if (!limit.isEmpty()) {
                 QString limitkey = contactid + "|" + QString::number(now.toSecsSinceEpoch()/3600) ;
                 if (!limitreported.contains(limitkey)) {
                     limitreported.insert(limitkey) ;
-                    addLog(QString("%1 has reached %2, so the on-the-day reminder was not sent for the appointment at %3")
+                    addLog(QString("%1 has reached %2, so the on-the-day message was not sent for the appointment at %3")
                            .arg(contact.getFormattedName(), limit, apptdate)) ;
                 }
             }
 
-            if (!emaildone && maySend(emailkey, now) && limit.isEmpty() && refreshSentState(id)==1) {
-                int result = deliver(emailkey, "Sending on-the-day reminder email to " + emailaddress, true,
-                                     gConf->getMessageFile(MSG_EMAIL_REMINDER), id, contactid, mobile, emailaddress, occ) ;
+            // Each channel that the decision gives is sent once, email first, and is recorded by its channel
+            for (const MessageStep &step : steps) {
+                bool byemail = step.email ;
+                QString channel = byemail ? "email" : "sms" ;
+                QString key = id + (byemail ? "|dayemail" : "|daysms") ;
+                if (!limit.isEmpty() || !maySend(key, now) || refreshSentState(id)!=1) continue ;
+
+                QString daytype = byemail ? "Sending on-the-day email to " + emailaddress : "Sending on-the-day sms message to " + mobile ;
+                int result = deliver(key, daytype, byemail,
+                                     gConf->getMessageFile(byemail ? MSG_EMAIL_REMINDER : MSG_SMS_REMINDER), id, contactid, mobile, emailaddress, occ) ;
                 if (result==1 || result==-4) {
                     Appointment &after = calendar.getAppointmentBy(Appointment::ID, id) ;
-                    if (!after.isNull()) after.setSentField(Appointment::ReminderOnDaySent, dayChannelRecord(after.getField(Appointment::ReminderOnDaySent), today, "email")) ;
+                    if (!after.isNull()) {
+                        after.setSentField(Appointment::ReminderOnDaySent, dayChannelRecord(after.getField(Appointment::ReminderOnDaySent), today, channel)) ;
+
+                        // A first message of the day by text is also the confirmation, so a later change is sent as an update
+                        if (!after.getDate(Appointment::MessageSent).isValid()) {
+                            after.setSentField(Appointment::MessageSent, nowToIsoString()) ;
+                            after.setSentField(Appointment::MessageSignature, signature) ;
+                        }
+                    }
                     pushSentState(id) ;
-                    saveCalendar("the on-the-day reminder") ;
-                }
-            }
-            if (!smsdone && maySend(textkey, now) && limit.isEmpty() && refreshSentState(id)==1) {
-                int result = deliver(textkey, "Sending on-the-day reminder sms message to " + mobile, false,
-                                     gConf->getMessageFile(MSG_SMS_REMINDER), id, contactid, mobile, emailaddress, occ) ;
-                if (result==1 || result==-4) {
-                    Appointment &after = calendar.getAppointmentBy(Appointment::ID, id) ;
-                    if (!after.isNull()) after.setSentField(Appointment::ReminderOnDaySent, dayChannelRecord(after.getField(Appointment::ReminderOnDaySent), today, "sms")) ;
-                    pushSentState(id) ;
-                    saveCalendar("the on-the-day reminder") ;
+                    saveCalendar("the on-the-day message") ;
                 }
             }
             continue ;
@@ -540,11 +544,11 @@ void MainWindow::sendMailSMS()
                 if (updatemessagesent) {
                     after.setSentField(Appointment::MessageSent, nowToIsoString()) ;
 
-                    // A confirmation or update given on the day of the appointment already gives the time, so the on-the-day
-                    // reminders for that day count as sent
+                    // A confirmation or update given on the day of the appointment gives the time by its channel, so the
+                    // on-the-day message for that channel counts as sent.  The other channel still gets its own.
                     if (isOnTheDay(occ, now)) {
-                        QString record = dayChannelRecord(after.getField(Appointment::ReminderOnDaySent), today, "email") ;
-                        after.setSentField(Appointment::ReminderOnDaySent, dayChannelRecord(record, today, "sms")) ;
+                        QString record = dayChannelRecord(after.getField(Appointment::ReminderOnDaySent), today, sendsmtp ? "email" : "sms") ;
+                        after.setSentField(Appointment::ReminderOnDaySent, record) ;
                     }
                 }
                 if (setsignature) after.setSentField(Appointment::MessageSignature, signature) ;

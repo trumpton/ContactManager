@@ -20,8 +20,9 @@ struct MessageState {
     bool isrepeating ;          // the appointment is a repeat
     QDateTime pendingcancel ;   // the first occurrence removed from a repeat, still to come and not yet cancelled (or invalid)
     bool onthisday ;            // the occurrence is on today's date, in local time
-    bool emaildone ;            // the on-the-day email has gone today
-    bool smsdone ;              // the on-the-day text has gone today
+    bool createdbeforeday ;     // the appointment was made before today, so a first message due today is the on-the-day one
+    bool emaildone ;            // the on-the-day email has gone today, or a confirmation or update by email has given it
+    bool smsdone ;              // the on-the-day text has gone today, or a confirmation or update by text has given it
     QDateTime occurrence ;      // the occurrence the messages are about
 } ;
 
@@ -33,8 +34,8 @@ struct MessageStep {
     bool recordreminder ;       // the message counts as the reminder for this occurrence, so no reminder is sent later
 } ;
 
-// The messages to send now for an appointment.  At most one kind is sent, except on the day, when a contact with both email
-// and text gets the on-the-day email and text, each once.  An empty list means nothing is to be sent yet.
+// The messages to send now for an appointment.  At most one kind is sent, except on the day, when each channel the contact
+// has gets its on-the-day message, each once (email first, then text).  An empty list means nothing is to be sent yet.
 QList<MessageStep> decideMessages(const MessageState &s) ;
 
 // The timing rules.  Times are UTC unless said otherwise; hours and minutes come from the settings.

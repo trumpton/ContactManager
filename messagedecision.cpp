@@ -16,11 +16,15 @@ QList<MessageStep> decideMessages(const MessageState &s)
         steps << step ;
     } ;
 
+    // A first message that is due on the day of an appointment made before that day (the window opened late) is the
+    // on-the-day text, not a confirmation.  Its email is still the confirmation.
+    bool latefirstonday = !s.messagesent && s.onthisday && s.createdbeforeday ;
+
     // A confirmation or update, a cancellation, or a reminder.  A contact with both email and text is sent email for these.
     if (s.emailme && !s.deleted && !s.messagesent) {
         add("confirm", true, s.confirmonly, s.occurrence) ;
     }
-    else if (s.textme && !s.emailme && !s.deleted && !s.messagesent) {
+    else if (s.textme && !s.emailme && !s.deleted && !s.messagesent && !latefirstonday) {
         add("confirm", false, s.confirmonly, s.occurrence) ;
     }
     else if (s.emailme && !s.deleted && s.changed) {
@@ -35,10 +39,11 @@ QList<MessageStep> decideMessages(const MessageState &s)
     else if (s.textme && !s.emailme && s.deleted && s.messagesent) {
         add("cancel", false, false, s.occurrence) ;
     }
-    else if (s.textme && !s.emailme && !s.deleted && s.istime && !s.remindersent) {
+    // A reminder is not sent for an occurrence on today's date: the on-the-day messages take its place
+    else if (s.textme && !s.emailme && !s.deleted && s.istime && !s.remindersent && !s.onthisday) {
         add("reminder", false, true, s.occurrence) ;
     }
-    else if (s.emailme && !s.deleted && s.istime && !s.remindersent) {
+    else if (s.emailme && !s.deleted && s.istime && !s.remindersent && !s.onthisday) {
         add("reminder", true, true, s.occurrence) ;
     }
 
@@ -47,10 +52,11 @@ QList<MessageStep> decideMessages(const MessageState &s)
         add("cancelocc", s.emailme, false, s.pendingcancel) ;
     }
 
-    // The on-the-day reminder: a contact with both email and text gets both, on the day of the appointment, each once
-    if (steps.isEmpty() && s.emailme && s.textme && !s.deleted && !(s.emaildone && s.smsdone) && s.onthisday) {
-        if (!s.emaildone) add("onday", true, false, s.occurrence) ;
-        if (!s.smsdone) add("onday", false, false, s.occurrence) ;
+    // The on-the-day messages: each channel the contact has gets its message once on the day, after the other messages.  A
+    // confirmation or update by a channel on the day has already given that channel's message, so it is not sent again.
+    if (steps.isEmpty() && !s.deleted && s.onthisday) {
+        if (s.emailme && !s.emaildone) add("onday", true, false, s.occurrence) ;
+        if (s.textme && !s.smsdone) add("onday", false, false, s.occurrence) ;
     }
 
     return steps ;
