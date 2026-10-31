@@ -904,3 +904,25 @@ int Appointment::operator<(const Appointment &rhs) const
 
     }
 }
+
+// The rule for an appointment's linked contact (issue #95).  A link to a contact that exists is kept.  Otherwise a For name
+// that matches exactly one contact (case-insensitive) sets the link to that contact.  Anything else removes the link.
+AppointmentContactRule matchAppointmentContact(const QString &contactid, const QString &forname, const QSet<QString> &ids,
+                                               const QHash<QString, QStringList> &idsbyname, QString &resolvedid)
+{
+    if (ids.contains(contactid)) {
+        resolvedid = contactid ;
+        return ContactKept ;
+    }
+
+    QString name = forname.trimmed().toLower() ;
+    QStringList matches = name.isEmpty() ? QStringList() : idsbyname.value(name) ;
+    if (matches.size()==1) {
+        resolvedid = matches.first() ;
+        return ContactNamed ;
+    }
+
+    resolvedid.clear() ;
+    return ContactUnnamed ;
+}
+

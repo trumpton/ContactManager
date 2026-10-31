@@ -72,6 +72,43 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
     QString calendarsyncdatestr = gConf->getLastGoogleCalendarSyncDate() ;
     QDateTime calendarsyncdate = isoStringToDateTime(calendarsyncdatestr) ;
 
+    bool consuccess = true ;
+
+    ui->updateStatusReport->append(QString("\nSYNCHRONISING CONTACTS")) ;
+
+    if (gConf->contactSyncEnabled()) {
+
+        ui->updateStatusReport->append(QString("Last Contact Synchronisation Date: ") + contactsyncdatestr ) ;
+        consuccess = processContactUpdate(contactsyncdate, google, db) ;
+        if (!consuccess) {
+            ui->updateStatusReport->append(QString("CONTACTS SYNCHRONISATION FAILED: ") + google.getNetworkError()) ;
+        } else {
+            // next syncdate after sync means anything changed on google during the sync may be lost
+            qSleep(1000) ;
+            QString nextsyncdate = nowToIsoString() ;
+            gConf->setLastGoogleContactSyncDate(nextsyncdate) ;
+
+            // And store sync token for next time
+//            gConf->setLastGoogleContactSyncToken(google.getContactSyncToken());
+
+            ui->updateStatusReport->append(QString("CONTACTS SYCHRONISATION SUCCESS.")) ;
+        }
+
+    } else {
+
+        ui->updateStatusReport->append(QString("Calendar Synchronisation disabled in configuration.")) ;
+
+    }
+
+    // Once the contacts have synchronised, each appointment's linked contact is checked against them (issue #95).  Not done when
+    // the contacts sync failed: the contact list is then incomplete, so the matches would be wrong.
+    if (consuccess && gConf->contactSyncEnabled()) {
+        int kept=0, named=0, unnamed=0 ;
+        settleAppointmentContacts(cal, db, kept, named, unnamed) ;
+        ui->updateStatusReport->append(QString("Appointment contacts: %1 kept, %2 matched by name, %3 set to %4 with the contact removed.")
+                                       .arg(kept).arg(named).arg(unnamed).arg(APPOINTMENT_UNNAMED_CONTACT)) ;
+    }
+
     bool calsuccess = true ;
 
     ui->updateStatusReport->append(QString("\nSYNCHRONISING CALENDAR")) ;
@@ -105,34 +142,6 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
     }
 
     setProgress(500) ;
-
-    bool consuccess = true ;
-
-    ui->updateStatusReport->append(QString("\nSYNCHRONISING CONTACTS")) ;
-
-    if (gConf->contactSyncEnabled()) {
-
-        ui->updateStatusReport->append(QString("Last Contact Synchronisation Date: ") + contactsyncdatestr ) ;
-        consuccess = processContactUpdate(contactsyncdate, google, db) ;
-        if (!consuccess) {
-            ui->updateStatusReport->append(QString("CONTACTS SYNCHRONISATION FAILED: ") + google.getNetworkError()) ;
-        } else {
-            // next syncdate after sync means anything changed on google during the sync may be lost
-            qSleep(1000) ;
-            QString nextsyncdate = nowToIsoString() ;
-            gConf->setLastGoogleContactSyncDate(nextsyncdate) ;
-
-            // And store sync token for next time
-//            gConf->setLastGoogleContactSyncToken(google.getContactSyncToken());
-
-            ui->updateStatusReport->append(QString("CONTACTS SYCHRONISATION SUCCESS.")) ;
-        }
-
-    } else {
-
-        ui->updateStatusReport->append(QString("Calendar Synchronisation disabled in configuration.")) ;
-
-    }
 
     ui->updateStatusReport->append(QString("")) ;
     // Last step: move deleted contacts with no Google link to the deleted folder.  A deleted

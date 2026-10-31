@@ -366,3 +366,56 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     setProgress(500) ;
     return networkok ;
 }
+
+//=====================================================================================================
+//
+// Appointments and their contacts (issue #95).  Run only after the contacts have synchronised, as the contact list is then
+// complete.  A link to a contact that exists is kept, and a blank For name is filled from the contact.  A link to no contact
+// is matched by name, when exactly one contact has that name; otherwise the link is removed and For is set to "Unnamed Contact".
+// An appointment with no linked contact, or linked to Me, is not changed.
+//
+
+void GoogleUpdateDialog::settleAppointmentContacts(Calendar &cal, ContactDatabase &db, int &kept, int &named, int &unnamed)
+{
+    QSet<QString> ids ;
+    QHash<QString, QStringList> idsbyname ;
+    QHash<QString, QString> namebyid ;
+    for (int i=0; i<db.size(); i++) {
+        Contact &c = db.getContact(i) ;
+        QString id = c.getField(Contact::ID) ;
+        if (id.isEmpty()) continue ;
+        QString name = c.getFormattedName(false, false).trimmed() ;
+        ids.insert(id) ;
+        namebyid.insert(id, name) ;
+        if (!name.isEmpty()) idsbyname[name.toLower()] << id ;
+    }
+
+    QString me = gConf->getMe() ;
+    kept=0 ;
+    named=0 ;
+    unnamed=0 ;
+    for (int i=0; i<cal.size(); i++) {
+        Appointment &appt = cal.getAppointment(i) ;
+        QString contactid = appt.getField(Appointment::ContactId) ;
+        if (appt.isTemp() || contactid.isEmpty() || contactid.compare(me)==0) continue ;
+
+        QString resolved ;
+        AppointmentContactRule rule = matchAppointmentContact(contactid, appt.getField(Appointment::For), ids, idsbyname, resolved) ;
+        switch (rule) {
+        case ContactKept:
+            kept++ ;
+            if (appt.getField(Appointment::For).isEmpty()) appt.setField(Appointment::For, namebyid.value(resolved)) ;
+            break ;
+        case ContactNamed:
+            named++ ;
+            appt.setField(Appointment::ContactId, resolved) ;
+            break ;
+        case ContactUnnamed:
+            unnamed++ ;
+            appt.setField(Appointment::ContactId, QString()) ;
+            appt.setField(Appointment::For, QString(APPOINTMENT_UNNAMED_CONTACT)) ;
+            break ;
+        }
+    }
+}
+
