@@ -702,6 +702,51 @@ private slots:
         QVERIFY(plain.getField(Appointment::Updated) != QString("2026-10-30T09:00:00Z")) ;
     }
 
+    void contactLinkIsKeptWhenTheContactExists()
+    {
+        // Issue #95: a link to a contact that exists (hidden or deleted included) is kept
+        QSet<QString> ids ;
+        ids << "contact-1" << "contact-2" ;
+        QHash<QString, QStringList> byname ;
+        QString resolved ;
+        QCOMPARE(matchAppointmentContact("contact-2", "", ids, byname, resolved), ContactKept) ;
+        QCOMPARE(resolved, QString("contact-2")) ;
+    }
+
+    void contactLinkIsSetByAnExactNameMatch()
+    {
+        // Issue #95: no contact has the link, and the For name matches exactly one contact, ignoring case
+        QSet<QString> ids ;
+        ids << "contact-1" ;
+        QHash<QString, QStringList> byname ;
+        byname["gitte lowther-dane"] = QStringList() << "contact-9" ;
+        QString resolved ;
+        QCOMPARE(matchAppointmentContact("gone", "Gitte Lowther-Dane", ids, byname, resolved), ContactNamed) ;
+        QCOMPARE(resolved, QString("contact-9")) ;
+    }
+
+    void contactLinkIsRemovedWhenTheNameMatchesMoreThanOne()
+    {
+        // Issue #95: two contacts with that name, so the link is not guessed
+        QSet<QString> ids ;
+        QHash<QString, QStringList> byname ;
+        byname["sam jones"] = QStringList() << "contact-3" << "contact-4" ;
+        QString resolved ;
+        QCOMPARE(matchAppointmentContact("gone", "Sam Jones", ids, byname, resolved), ContactUnnamed) ;
+        QVERIFY(resolved.isEmpty()) ;
+    }
+
+    void contactLinkIsRemovedWhenNoNameMatches()
+    {
+        // Issue #95: no contact has the link or the name, including a blank For name
+        QSet<QString> ids ;
+        QHash<QString, QStringList> byname ;
+        QString resolved ;
+        QCOMPARE(matchAppointmentContact("gone", "Unnamed Contact", ids, byname, resolved), ContactUnnamed) ;
+        QVERIFY(resolved.isEmpty()) ;
+        QCOMPARE(matchAppointmentContact("gone", "", ids, byname, resolved), ContactUnnamed) ;
+    }
+
     void loadKeepsTheSavedUpdatedDate()
     {
         // Loading an appointment is not an edit: its saved Updated and DateUpdated are kept, so the hold and the sync do not

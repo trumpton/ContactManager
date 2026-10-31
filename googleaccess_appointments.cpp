@@ -257,7 +257,7 @@ bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QStrin
     if (!appointmentfor.isEmpty()) {
         appt.setField(Appointment::For, appointmentfor) ;
     } else {
-        appt.setField(Appointment::For, QString("Unnamed Contact")) ;
+        appt.setField(Appointment::For, QString(APPOINTMENT_UNNAMED_CONTACT)) ;
     }
 
     appt.setFlag(Appointment::Deleted, (status.compare("cancelled")==0) ) ;

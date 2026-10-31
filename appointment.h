@@ -6,6 +6,21 @@
 #include <QList>
 #include <QStringList>
 #include <QPair>
+#include <QHash>
+#include <QSet>
+
+// The For value of an appointment whose contact is not known (issue #95).  The sync sets it, and reads it back when Google
+// has no name for the contact.
+#define APPOINTMENT_UNNAMED_CONTACT "Unnamed Contact"
+
+// What is done with an appointment's linked contact ID once the contacts are synchronised (issue #95)
+enum AppointmentContactRule { ContactKept, ContactNamed, ContactUnnamed } ;
+
+// The rule for an appointment with a linked contact ID.  ids holds every contact ID (hidden and deleted included), and
+// idsbyname the contact IDs with each name, in lower case.  resolvedid is the ID to keep, or to set; it is empty when the
+// link is to be removed.
+AppointmentContactRule matchAppointmentContact(const QString &contactid, const QString &forname, const QSet<QString> &ids,
+                                               const QHash<QString, QStringList> &idsbyname, QString &resolvedid) ;
 
 
 class Appointment
