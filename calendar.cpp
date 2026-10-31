@@ -794,3 +794,17 @@ bool Calendar::removeFromArchive(QString id)
     return backupFile(path, filename) ;
 }
 
+int nearestRowToDate(const QList<QDateTime> &starts, const QDateTime &wanted)
+{
+    int nearest = -1 ;
+    qint64 gap = 0 ;
+    for (int i=0; i<starts.size(); i++) {
+        qint64 g = qAbs(starts.at(i).secsTo(wanted)) ;
+        if (nearest<0 || g<gap) {
+            nearest = i ;
+            gap = g ;
+        }
+    }
+    return nearest ;
+}
+

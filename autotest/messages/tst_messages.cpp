@@ -821,6 +821,19 @@ private slots:
         QCOMPARE(parts.at(3), QString("1")) ;
     }
 
+    void focusGoesToTheNearestDate()
+    {
+        // Issue #92: with the entry on screen no longer listed, the focus goes to the row nearest to it in date
+        QList<QDateTime> starts ;
+        starts << localAt(QDate(2026, 10, 30), QTime(10, 0))
+               << localAt(QDate(2026, 11, 2), QTime(9, 0))
+               << localAt(QDate(2026, 11, 9), QTime(9, 0)) ;
+        QCOMPARE(nearestRowToDate(starts, localAt(QDate(2026, 10, 31), QTime(12, 0))), 0) ;
+        QCOMPARE(nearestRowToDate(starts, localAt(QDate(2026, 11, 3), QTime(0, 0))), 1) ;
+        QCOMPARE(nearestRowToDate(starts, localAt(QDate(2026, 11, 30), QTime(0, 0))), 2) ;
+        QCOMPARE(nearestRowToDate(QList<QDateTime>(), localAt(QDate(2026, 11, 3), QTime(0, 0))), -1) ;
+    }
+
     void loadKeepsTheSavedUpdatedDate()
     {
         // Loading an appointment is not an edit: its saved Updated and DateUpdated are kept, so the hold and the sync do not

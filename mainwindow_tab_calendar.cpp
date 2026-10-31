@@ -26,11 +26,35 @@ static QString allDayText(QDateTime first, QDateTime end, QString who, QString s
     return text + summary.replace("\n", ". ") ;
 }
 
+// Space in the calendar list (issue #92).  Shows all entries, or only those of the open contact.  With no contact open there is no
+// contact to show, so it beeps.
+void MainWindow::toggleCalendarContactFilter()
+{
+    Contact &open = db.getSelected() ;
+    QString openid = open.getField(Contact::ID) ;
+    bool contactopen = !open.isNull() && !openid.isEmpty() && openid.compare(SELECT_OVERVIEW)!=0 ;
+    if (!contactopen) {
+        play(Error) ;
+        msg("Open a contact to show only its appointments") ;
+        return ;
+    }
+
+    calendarcontactonly = !calendarcontactonly ;
+    play(calendarcontactonly ? SwitchOn : SwitchOff) ;
+    LoadCalendarTab() ;
+    msg(calendarcontactonly ? "Showing only this contact's appointments" : "Showing all appointments") ;
+}
+
 void MainWindow::LoadCalendarTab()
 {
     // The entry on screen: a repeat has its own hint, and an appointment has its ID
     QString selected = calendar.selectedHint().isEmpty() ? calendar.getSelected().getField(Appointment::ID) : calendar.selectedHint() ;
     int matchid=-1 ;
+
+    // Only the open contact's entries are listed while the list is limited to them, and only while a contact is open
+    Contact &open = db.getSelected() ;
+    QString openid = open.getField(Contact::ID) ;
+    QString filterid = (calendarcontactonly && !open.isNull() && !openid.isEmpty() && openid.compare(SELECT_OVERVIEW)!=0) ? openid : QString() ;
 
     // Refresh birthdays (all but mine), and sort ready for load
     calendar.purgeBirthdays();
@@ -53,6 +77,7 @@ void MainWindow::LoadCalendarTab()
     struct Row { QDateTime start ; QDateTime end ; QString title ; QString accessible ; QString hint ; } ;
     QList<Row> rows ;
     auto addRow = [&](Appointment &appt, QDateTime start, QString hint) {
+        if (!filterid.isEmpty() && appt.getField(Appointment::ContactId).compare(filterid)!=0) return ;
         QDateTime from = appt.getDate(Appointment::From) ;          // getDate shares one value, so copy each date
         QDateTime to = appt.getDate(Appointment::To) ;
         Appointment shown = appt ;
@@ -154,6 +179,16 @@ void MainWindow::LoadCalendarTab()
     }
 
     calendarlist.appendData(" -- Add New Appointment for Me (Control-Shift-N) -- ", "Add New Appointment for Me", "ADD") ;
+    // Still nothing: the focus goes to the nearest date to the entry that was on screen, as the list may have been limited to a
+    // contact, or the contact changed (issue #92)
+    if (matchid<0 && !rows.isEmpty()) {
+        QDateTime wanted = QDateTime::fromString(selected.section('@', 1), Qt::ISODate) ;
+        if (!wanted.isValid()) wanted = calendar.getSelected().getDate(Appointment::From) ;
+        QList<QDateTime> starts ;
+        for (const Row &row : rows) starts << row.start ;
+        matchid = nearestRowToDate(starts, wanted) ;
+    }
+
     if (matchid<0) {
         matchid=calendarlist.rowCount() - 1 ;
         dbg(QString("listCalendar->setCurrentIndex(endoflist))")) ;

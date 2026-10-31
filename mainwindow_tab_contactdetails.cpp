@@ -173,6 +173,17 @@ void MainWindow::refreshTitledEntries()
 // F2 in an email or phone entry opens a dialog for that entry's title.  When focus leaves an entry it is tidied.
 bool MainWindow::eventFilter(QObject *watched, QEvent *event)
 {
+    // The calendar list: T goes to today, D to a date, and Space toggles the contact's entries (issue #92).  Without a modifier,
+    // so that the keys are not taken from the Control shortcuts.  Enter is left to the list, which switches to the contact.
+    if (watched==ui->listCalendar && event->type()==QEvent::KeyPress) {
+        QKeyEvent *key = static_cast<QKeyEvent *>(event) ;
+        if (key->modifiers()==Qt::NoModifier) {
+            if (key->key()==Qt::Key_T) { on_actionGotoToday_triggered() ; return true ; }
+            if (key->key()==Qt::Key_D) { on_actionGotoDate_triggered() ; return true ; }
+            if (key->key()==Qt::Key_Space) { toggleCalendarContactFilter() ; return true ; }
+        }
+    }
+
     QLineEdit *entry = qobject_cast<QLineEdit *>(watched) ;
     if (entry && event->type() == QEvent::KeyPress && static_cast<QKeyEvent *>(event)->key() == Qt::Key_F2) {
         changeTitle(entry) ;

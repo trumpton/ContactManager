@@ -34,9 +34,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     showdeletedappointments=false ;
     showdeletedcontacts=false ;
     showhiddencontacts=false ;
+    calendarcontactonly=false ;
 
     ui->setupUi(this);
     setupTitledEntries() ;
+
+    // The keys T, D and Space work from the calendar list (issue #92)
+    ui->listCalendar->installEventFilter(this) ;
 
     // Enable debug
     setupdebug();
