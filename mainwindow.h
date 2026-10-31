@@ -105,6 +105,7 @@ private slots:
     void calendarFilterOff() ;               // Moving the date shows all entries again, when the contact filter is on (issue #92)
     void gotoCalendarDate(QDate wanted) ;    // Goes to a date in the calendar list, or the nearest date before it
     void gotoTypedCalendarDate(QString typed) ;   // A digit in the calendar list: a date typed after it (issue #92)
+    void gotoContactAppointment(int step) ;       // The next (1) or previous (-1) entry for the open contact: n, p and the arrows
     void on_tabBar_currentChanged(int index);
     void on_action_Email_Contact_triggered();
     void on_action_SMS_Contact_triggered();
@@ -170,6 +171,7 @@ private:
     AdvancedFind *find ;
     QList<QDateTime> calendarrowends ;              // The end of each row in the calendar list, so Goto Today can find the nearest
     QList<QDateTime> calendarrowstarts ;            // The start of each row in the calendar list, so Goto Date can find a date
+    QStringList calendarrowcontacts ;               // The contact of each row in the calendar list, so the next entry for a contact can be found
     bool titledEntriesHeld ;                        // An email or phone entry was refused: the form is not reloaded until it is fixed
 
     // Only the copy of ContactManager holding the data folder's lock sends messages, so two copies cannot send the same

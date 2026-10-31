@@ -189,6 +189,9 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
                 return true ;
             }
             if (key->key()==Qt::Key_Space) { toggleCalendarContactFilter() ; return true ; }
+            // The next and previous entry for the open contact: n and p, or the right and left arrows
+            if (key->key()==Qt::Key_N || key->key()==Qt::Key_Right) { gotoContactAppointment(1) ; return true ; }
+            if (key->key()==Qt::Key_P || key->key()==Qt::Key_Left) { gotoContactAppointment(-1) ; return true ; }
         }
     }
 

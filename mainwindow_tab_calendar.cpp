@@ -74,7 +74,7 @@ void MainWindow::LoadCalendarTab()
     calendarlist.clear() ;
 
     // A row for an entry, shown at a start.  A repeat is shown at its own start and end, and its hint is its own.
-    struct Row { QDateTime start ; QDateTime end ; QString title ; QString accessible ; QString hint ; } ;
+    struct Row { QDateTime start ; QDateTime end ; QString title ; QString accessible ; QString hint ; QString contactid ; } ;
     QList<Row> rows ;
     auto addRow = [&](Appointment &appt, QDateTime start, QString hint) {
         if (!filterid.isEmpty() && appt.getField(Appointment::ContactId).compare(filterid)!=0) return ;
@@ -113,6 +113,7 @@ void MainWindow::LoadCalendarTab()
             row.accessible = "Deleted, " + row.accessible ;
         }
         row.hint = hint ;
+        row.contactid = appt.getField(Appointment::ContactId) ;     // for the next and previous entry of a contact
         rows << row ;
     } ;
 
@@ -156,10 +157,12 @@ void MainWindow::LoadCalendarTab()
     // The entry on screen is kept.  If it is no longer listed, its appointment is, so the list is not left at the end.
     calendarrowends.clear() ;
     calendarrowstarts.clear() ;
+    calendarrowcontacts.clear() ;
     for (int j=0; j<rows.size(); j++) {
         calendarlist.appendData(rows[j].title, rows[j].accessible, rows[j].hint) ;
         calendarrowends << rows[j].end ;
         calendarrowstarts << rows[j].start ;
+        calendarrowcontacts << rows[j].contactid ;
         if (matchid<0 && rows[j].hint.compare(selected)==0) matchid = j ;
     }
     // The entry on screen is no longer listed, as when a repeat is shortened.  The entry of the same appointment that is

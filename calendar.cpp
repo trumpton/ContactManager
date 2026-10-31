@@ -831,7 +831,7 @@ bool parseCalendarDate(const QString &text, QDate today, QDate *result)
     QStringList words = spaced.simplified().split(' ', Qt::SkipEmptyParts) ;
 
     int day=0, month=0, year=0 ;
-    bool hasday=false, hasmonth=false, hasyear=false ;
+    bool hasday=false, hasmonth=false, hasyear=false, twodigityear=false ;
     for (const QString &word : words) {
 
         // A day may have an ordinal ending, as in "10th"
@@ -846,6 +846,11 @@ bool parseCalendarDate(const QString &text, QDate today, QDate *result)
         if (allDigits(number) && number.size()<=2 && !hasday) {
             day = number.toInt() ;
             hasday = true ;
+        } else if (allDigits(number) && number.size()==2 && !hasyear) {
+            // A year given by its last two digits, as in "1aug28"
+            year = number.toInt() ;
+            hasyear = true ;
+            twodigityear = true ;
         } else if (allDigits(number) && number.size()==4 && !hasyear) {
             year = number.toInt() ;
             hasyear = true ;
@@ -867,6 +872,12 @@ bool parseCalendarDate(const QString &text, QDate today, QDate *result)
     if (!hasday || !hasmonth) return false ;
 
     if (hasyear) {
+        // Two digits are the first year from last year that ends in them: "28" is 2028 in 2029, and 2128 in 2030
+        if (twodigityear) {
+            int from = today.year() - 1 ;
+            year = from - (from % 100) + year ;
+            if (year < from) year += 100 ;
+        }
         QDate date(year, month, day) ;
         if (!date.isValid()) return false ;
         *result = date ;

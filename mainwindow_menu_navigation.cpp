@@ -122,44 +122,70 @@ void MainWindow::on_actionGotoDate_triggered()
 //
 // gotoTypedCalendarDate
 //
-// A digit typed in the calendar list opens a text entry with the digit in it, and the rest of the date is typed after it
-// (issue #92).  Enter goes to the date.  A date that is not understood is beeped, and the entry is shown again with the text
-// kept, so it can be put right.  Escape leaves the list where it was.
+// A digit (0 to 3) typed in the calendar list opens a text entry with the digit in it, and the rest of the date is typed after
+// it (issue #92).  Enter goes to the date.  An entry that does not look like a date closes the entry and beeps, and nothing
+// moves.  An empty entry, or Escape, closes it with no beep.
 //
 void MainWindow::gotoTypedCalendarDate(QString typed)
 {
-    QString text = typed ;
     QString prompt = "Type a date, such as 10 oct 2026, 1 nov 2027, or 2 march for the next one.  Press Enter to go to it." ;
-    QDate today = QDate::currentDate() ;
-    QDate wanted ;
+
+    // The entry is shown with its cursor at the end and no text selected, so the next key adds to the digits typed
+    QInputDialog dialog(this) ;
+    dialog.setWindowTitle("Go to date") ;
+    dialog.setLabelText(prompt) ;
+    dialog.setTextValue(typed) ;
+    QLineEdit *edit = dialog.findChild<QLineEdit*>() ;
+    if (edit) {
+        QObject::connect(edit, &QLineEdit::selectionChanged, edit, [edit]() {
+            if (edit->hasSelectedText()) QTimer::singleShot(0, edit, [edit]() { edit->deselect() ; edit->end(false) ; }) ;
+        }) ;
+        edit->end(false) ;
+    }
 
     play(Query) ;
-    for (;;) {
-        // The entry is shown with its cursor at the end and no text selected, so the next key adds to the digits typed
-        QInputDialog dialog(this) ;
-        dialog.setWindowTitle("Go to date") ;
-        dialog.setLabelText(prompt) ;
-        dialog.setTextValue(text) ;
-        QLineEdit *edit = dialog.findChild<QLineEdit*>() ;
-        if (edit) {
-            QObject::connect(edit, &QLineEdit::selectionChanged, edit, [edit]() {
-                if (edit->hasSelectedText()) QTimer::singleShot(0, edit, [edit]() { edit->deselect() ; edit->end(false) ; }) ;
-            }) ;
-            edit->end(false) ;
-        }
-        if (dialog.exec()!=QDialog::Accepted) return ;
-        text = dialog.textValue() ;
+    if (dialog.exec()!=QDialog::Accepted) return ;
+    QString text = dialog.textValue() ;
 
-        // An empty entry, pressed Enter on, is the same as Escape: nothing is beeped, and nothing moves
-        if (text.trimmed().isEmpty()) return ;
-        if (parseCalendarDate(text, today, &wanted)) break ;
+    // An empty entry, pressed Enter on, is the same as Escape
+    if (text.trimmed().isEmpty()) return ;
 
+    QDate wanted ;
+    if (!parseCalendarDate(text, QDate::currentDate(), &wanted)) {
         play(Error) ;
-        prompt = QString("\"%1\" is not a date.  Type a day, a month name and a year, such as 10 oct 2026, or leave the year out.").arg(text) ;
+        return ;
     }
 
     calendarFilterOff() ;
     gotoCalendarDate(wanted) ;
+}
+
+//
+// gotoContactAppointment
+//
+// The next (step 1) or previous (step -1) entry in the calendar list for the open contact, from the entry on screen.  With no
+// contact open, or no such entry, the list stays where it is, and a beep is played.
+//
+void MainWindow::gotoContactAppointment(int step)
+{
+    Contact &open = db.getSelected() ;
+    QString openid = open.getField(Contact::ID) ;
+    bool contactopen = !open.isNull() && !openid.isEmpty() && openid.compare(SELECT_OVERVIEW)!=0 ;
+    if (!contactopen) {
+        play(Error) ;
+        msg("Open a contact first") ;
+        return ;
+    }
+
+    int row = ui->listCalendar->currentIndex().row() ;
+    for (int r=row+step; r>=0 && r<calendarrowcontacts.size(); r+=step) {
+        if (calendarrowcontacts.at(r)==openid) {
+            ui->listCalendar->setCurrentIndex(calendarlist.index(r,0)) ;
+            return ;
+        }
+    }
+    play(Error) ;
+    msg(step>0 ? "No later appointment for this contact" : "No earlier appointment for this contact") ;
 }
 
 // Jump to TODO List
