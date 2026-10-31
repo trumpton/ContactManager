@@ -138,6 +138,9 @@ void MainWindow::gotoTypedCalendarDate(QString typed)
         bool ok = false ;
         text = QInputDialog::getText(this, "Go to date", prompt, QLineEdit::Normal, text, &ok) ;
         if (!ok) return ;
+
+        // An empty entry, pressed Enter on, is the same as Escape: nothing is beeped, and nothing moves
+        if (text.trimmed().isEmpty()) return ;
         if (parseCalendarDate(text, today, &wanted)) break ;
 
         play(Error) ;
