@@ -135,9 +135,20 @@ void MainWindow::gotoTypedCalendarDate(QString typed)
 
     play(Query) ;
     for (;;) {
-        bool ok = false ;
-        text = QInputDialog::getText(this, "Go to date", prompt, QLineEdit::Normal, text, &ok) ;
-        if (!ok) return ;
+        // The entry is shown with its cursor at the end and no text selected, so the next key adds to the digits typed
+        QInputDialog dialog(this) ;
+        dialog.setWindowTitle("Go to date") ;
+        dialog.setLabelText(prompt) ;
+        dialog.setTextValue(text) ;
+        QLineEdit *edit = dialog.findChild<QLineEdit*>() ;
+        if (edit) {
+            QObject::connect(edit, &QLineEdit::selectionChanged, edit, [edit]() {
+                if (edit->hasSelectedText()) QTimer::singleShot(0, edit, [edit]() { edit->deselect() ; edit->end(false) ; }) ;
+            }) ;
+            edit->end(false) ;
+        }
+        if (dialog.exec()!=QDialog::Accepted) return ;
+        text = dialog.textValue() ;
 
         // An empty entry, pressed Enter on, is the same as Escape: nothing is beeped, and nothing moves
         if (text.trimmed().isEmpty()) return ;
