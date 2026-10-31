@@ -88,6 +88,24 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     }
     if (trimmed>0) ui->updateStatusReport->append(QString("  Repeats starting in the window: %1 moved on to their first occurrence in it.").arg(trimmed)) ;
 
+    // A repeat with no occurrence left is removed.  When ContactManager is master it is marked Deleted, so the upload below
+    // deletes it on Google too.  With Google as master, the change is Google's to make, so nothing is changed here.
+    int norepeats=0 ;
+    if (!gConf->googleMaster()) {
+        for (int i=0; i<cal.size(); i++) {
+            Appointment &appt = cal.getAppointment(i) ;
+            if (appt.isTemp() || appt.isSet(Appointment::Deleted) || !appt.isRepeating()) continue ;
+
+            // Only a repeat Google has is deleted there.  One Google never had is left hidden, so it is not created on Google
+            if (appt.getField(Appointment::GoogleRecordId).isEmpty()) continue ;
+            if (appt.hasNoOccurrences()) {
+                appt.setFlag(Appointment::Deleted, true) ;
+                norepeats++ ;
+            }
+        }
+    }
+    if (norepeats>0) ui->updateStatusReport->append(QString("  Repeats with no occurrence left: %1 removed.").arg(norepeats)) ;
+
     if (state<0) return false ;
 
     // ------------------------------------------------------------------------------------

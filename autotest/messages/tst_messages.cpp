@@ -651,6 +651,29 @@ private slots:
         QVERIFY(!cal.getAppointmentClash(single).isNull()) ;
     }
 
+    void repeatWithNoOccurrenceLeftIsFound()
+    {
+        // Issue #90 follow-up: a repeat with no occurrence left, not even its first, is removed when the sync runs
+        Appointment none = dailyRepeat("none", 2) ;
+        none.addException(QDateTime(QDate(2026, 10, 30), QTime(16, 0), Qt::UTC)) ;
+        none.addException(QDateTime(QDate(2026, 10, 31), QTime(16, 0), Qt::UTC)) ;
+        QVERIFY(none.hasNoOccurrences()) ;
+
+        Appointment one = dailyRepeat("one", 3) ;
+        one.addException(QDateTime(QDate(2026, 10, 30), QTime(16, 0), Qt::UTC)) ;
+        QVERIFY(!one.hasNoOccurrences()) ;                 // two occurrences are left
+
+        Appointment whole = dailyRepeat("whole", 3) ;
+        QVERIFY(!whole.hasNoOccurrences()) ;
+
+        Appointment single = oneOff("single", QDate(2026, 10, 30)) ;
+        QVERIFY(!single.hasNoOccurrences()) ;              // not a repeat
+
+        Appointment last = dailyRepeat("last", 1) ;
+        last.addException(QDateTime(QDate(2026, 10, 30), QTime(16, 0), Qt::UTC)) ;
+        QVERIFY(last.hasNoOccurrences()) ;
+    }
+
     void clashIsNotReportedForAnEmptyRepeat()
     {
         Appointment r = dailyRepeat("rep", 2) ;
