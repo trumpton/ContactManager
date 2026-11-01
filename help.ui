@@ -181,7 +181,8 @@
     W                   Go a week on from today.  Each W pressed after it goes a
                         week further on: WW is two weeks on, WWW three, and so on,
                         with no limit.  T or Control-T starts again from today
-    N or Right arrow    Go to the next entry for the open contact
+    N or Right arrow    Go to the next entry for the open contact.  After the last
+                        one, it wraps round to the first
     P or Left arrow     Go to the previous entry for the open contact
     Space               Show only the open contact's entries, or all of them again
     Enter               Open the contact for the selected entry (see section 3.3)

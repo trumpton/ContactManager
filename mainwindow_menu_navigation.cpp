@@ -258,6 +258,20 @@ void MainWindow::gotoContactAppointment(int step)
             return ;
         }
     }
+
+    // Next wraps round to the first entry for the contact, with the wrapped sound.  Previous does not wrap.
+    if (step>0) {
+        for (int r=0; r<=row && r<calendarrowcontacts.size(); r++) {
+            if (calendarrowcontacts.at(r)==openid) {
+                ui->listCalendar->setCurrentIndex(calendarlist.index(r,0)) ;
+                requestCalendarQuarter(r) ;
+                play(Wrapped) ;
+                msg("Wrapped to the first appointment for this contact") ;
+                return ;
+            }
+        }
+    }
+
     play(NotFound) ;
     msg(step>0 ? "No later appointment for this contact" : "No earlier appointment for this contact") ;
 }
