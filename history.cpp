@@ -103,22 +103,29 @@ bool History::load(QString path, QString idname)
 
     QByteArray data ;
 
+    // A contact with no history has no file, which is not an error: nothing is loaded, and the history stays empty (issue #100).
+    // A file that is there but cannot be loaded is still reported.
     if (gConf->encryptedEnabled()) {
 
-        // Load Encrypted File
-        if (!enc->load(path + idname + ".zhistory", data)) {
-            dbg(QString("Loading %1.zhistory FAILED").arg(idname)) ;
-            return false ;
+        QString filename = path + idname + ".zhistory" ;
+        if (QFile::exists(filename)) {
+            // Load Encrypted File
+            if (!enc->load(filename, data)) {
+                dbg(QString("Loading %1.zhistory FAILED").arg(idname)) ;
+                return false ;
+            }
         }
 
     } else {
 
         // Load Plaintext File
         QFile file(path + idname + ".history");
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-            return false;
-        data = file.readAll() ;
-        file.close() ;
+        if (file.exists()) {
+            if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+                return false;
+            data = file.readAll() ;
+            file.close() ;
+        }
 
     }
 
