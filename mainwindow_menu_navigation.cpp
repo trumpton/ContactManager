@@ -46,6 +46,8 @@ void MainWindow::showCalendarRowQuarterDown(int row)
 
     // The list scrolls by entries (the scroll bar counts them), so the entry at the top is the one this many entries above the row,
     // where that is a quarter of the viewport.  The scroll stops at the top and end of the list.
+    // The list may have changed size (a contact filter turned off, for one), so its layout is brought up to date first
+    ui->listCalendar->layoutNow() ;
     int rowheight = view->sizeHintForRow(row) ;
     int above = (rowheight>0) ? (view->viewport()->height()/4)/rowheight : 0 ;
     view->verticalScrollBar()->setValue(qMax(0, row-above)) ;
