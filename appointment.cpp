@@ -6,6 +6,8 @@
 #include <QStringList>
 #include <QTextStream>
 #include <QTextDecoder>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QRegularExpression>
 #include "../Lib/supportfunctions.h"
 
@@ -196,6 +198,64 @@ bool Appointment::load(QString path, QString idname)
 
     }
 }
+
+//=====================================================================================================
+//
+// Public: Appointment - setGoogleSnapshot
+//
+// Stores the details Google holds for this entry, as one value, so that a sync can tell what Google held when the entry was
+// last downloaded or uploaded (issue #105).  The entry is marked dirty, so the value is saved; Updated is not changed, so this
+// is not an edit.  Deleted is not stored: the snapshot is of an entry that exists on Google.
+//
+void Appointment::setGoogleSnapshot(const Appointment &google)
+{
+    if (isnull) return ;
+
+    QJsonObject details ;
+    for (int i=0; i<NumberOfRecords; i++) {
+        if (!appointmentrecordinfo[i].isdetails || i==Deleted) continue ;
+        details.insert(QString(appointmentrecordinfo[i].name), google.getField((enum AppointmentRecord) i)) ;
+    }
+    QString value = QString::fromLatin1(QJsonDocument(details).toJson(QJsonDocument::Compact).toBase64()) ;
+    if (value != filedata[GoogleDetails]) {
+        filedata[GoogleDetails] = value ;
+        isdirty = true ;
+    }
+}
+
+
+//=====================================================================================================
+//
+// Public: Appointment - hasGoogleSnapshot
+//
+bool Appointment::hasGoogleSnapshot() const
+{
+    return !filedata[GoogleDetails].isEmpty() ;
+}
+
+
+//=====================================================================================================
+//
+// Public: Appointment - googleSnapshotCopy
+//
+// Copies this entry into copy, with the details the snapshot holds in place of its own.  The identity and Google link are
+// this entry's.  Returns false, and leaves copy alone, when no snapshot is stored.
+//
+bool Appointment::googleSnapshotCopy(Appointment &copy)
+{
+    if (!hasGoogleSnapshot()) return false ;
+
+    QJsonObject details = QJsonDocument::fromJson(QByteArray::fromBase64(filedata[GoogleDetails].toLatin1())).object() ;
+    Appointment result = *this ;
+    for (int i=0; i<NumberOfRecords; i++) {
+        if (!appointmentrecordinfo[i].isdetails || i==Deleted) continue ;
+        QString name(appointmentrecordinfo[i].name) ;
+        if (details.contains(name)) result.setField((enum AppointmentRecord) i, details.value(name).toString()) ;
+    }
+    copy = result ;
+    return true ;
+}
+
 
 bool Appointment::save(QString path)
 {

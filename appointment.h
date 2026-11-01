@@ -95,6 +95,9 @@ public:
 
         // The occurrences the repeat leaves out (deleted, or changed into another appointment), as UTC starts
         RepeatExceptions,
+        // What Google held for this entry's details at its last download or upload, as one value.  An unchanged entry is
+        // compared with it when Google is the master, instead of with the local entry, which may have been edited (issue #105)
+        GoogleDetails,
 
         NumberOfRecords
 
@@ -154,7 +157,8 @@ public:
         { RepeatCount,         false,  true, false, true, "repeatcount" },
         { RepeatUntil,         false,  true, false, true, "repeatuntil" },
         { RepeatZone,          false,  true, false, true, "repeatzone" },
-        { RepeatExceptions,    false,  true, false, true, "repeatexceptions" }
+        { RepeatExceptions,    false,  true, false, true, "repeatexceptions" },
+        { GoogleDetails,       false, false, false, true, "googledetails" }
     } ;
 
     // Match and Copy Masks (matype)
@@ -191,6 +195,10 @@ public:
     Appointment& operator=(const Appointment& rhs) ;
 
     void setNull() ;
+    // Google's details snapshot (issue #105): the details Google held when last downloaded or uploaded
+    void setGoogleSnapshot(const Appointment &google) ;   // Stores google's details as the snapshot; not an edit (Updated is not changed)
+    bool hasGoogleSnapshot() const ;                      // True when a snapshot is stored
+    bool googleSnapshotCopy(Appointment &copy) ;          // Copies this entry, with the details Google held, into copy; false if none is stored
 
     ~Appointment();
 
