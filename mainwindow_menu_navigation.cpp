@@ -55,6 +55,27 @@ void MainWindow::showCalendarRowQuarterDown(int row)
 }
 
 //
+// requestCalendarQuarter, applyCalendarQuarter
+//
+// A shortcut that moves the calendar position asks for the list to be scrolled so the entry is a quarter of the way down (issue
+// #98).  When the calendar is not showing, the scroll waits until it is.
+//
+void MainWindow::requestCalendarQuarter()
+{
+    calendarscrollpending = true ;
+    applyCalendarQuarter() ;
+}
+
+void MainWindow::applyCalendarQuarter()
+{
+    if (!calendarscrollpending) return ;
+    QModelIndex current = ui->listCalendar->currentIndex() ;
+    if (ui->tabBar->currentIndex()!=CALENDARTABPOS || !ui->listCalendar->isVisible() || !current.isValid()) return ;
+    calendarscrollpending = false ;
+    showCalendarRowQuarterDown(current.row()) ;
+}
+
+//
 // on_actionGotoToday_triggered
 //
 void MainWindow::on_actionGotoToday_triggered()
@@ -83,7 +104,7 @@ void MainWindow::on_actionGotoToday_triggered()
     if (index.isValid()) {
         dbg("listCalendar->setCurrentIndex()") ;
         ui->listCalendar->setCurrentIndex(index) ;
-        showCalendarRowQuarterDown(index.row()) ;
+        requestCalendarQuarter() ;
     }
 }
 
@@ -124,7 +145,7 @@ void MainWindow::gotoCalendarDate(QDate wanted)
     if (index.isValid()) {
         dbg("listCalendar->setCurrentIndex()") ;
         ui->listCalendar->setCurrentIndex(index) ;
-        showCalendarRowQuarterDown(index.row()) ;
+        requestCalendarQuarter() ;
     }
 }
 
@@ -205,6 +226,7 @@ void MainWindow::gotoContactAppointment(int step)
     for (int r=row+step; r>=0 && r<calendarrowcontacts.size(); r+=step) {
         if (calendarrowcontacts.at(r)==openid) {
             ui->listCalendar->setCurrentIndex(calendarlist.index(r,0)) ;
+            requestCalendarQuarter() ;
             return ;
         }
     }
