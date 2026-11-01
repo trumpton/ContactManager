@@ -2,6 +2,7 @@
 #include "mainwindow.h"
 #include "../Lib/alertsound.h"
 #include "../Lib/dateinputdialog.h"
+#include <QScrollBar>
 
 //
 // on_actionGotoMe_triggered
@@ -33,6 +34,27 @@ void MainWindow::calendarFilterOff()
 }
 
 //
+// showCalendarRowQuarterDown
+//
+// Scrolls the calendar list so that the row is a quarter of the way down its visible part, so that the entries coming up after
+// it are seen (issue #98).  The list cannot scroll past its end, so a row near the end is as far down as the list allows.
+//
+void MainWindow::showCalendarRowQuarterDown(int row)
+{
+    QListView *view = ui->listCalendar ;
+    QModelIndex index = calendarlist.index(row,0) ;
+    if (!index.isValid()) return ;
+
+    // The scroll is set in pixels, so the row's place on the screen is exact.  The row is put at the top first, then moved down.
+    QAbstractItemView::ScrollMode mode = view->verticalScrollMode() ;
+    view->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel) ;
+    view->scrollTo(index, QAbstractItemView::PositionAtTop) ;
+    QScrollBar *bar = view->verticalScrollBar() ;
+    bar->setValue(bar->value() + view->visualRect(index).top() - view->viewport()->height()/4) ;
+    view->setVerticalScrollMode(mode) ;
+}
+
+//
 // on_actionGotoToday_triggered
 //
 void MainWindow::on_actionGotoToday_triggered()
@@ -61,6 +83,7 @@ void MainWindow::on_actionGotoToday_triggered()
     if (index.isValid()) {
         dbg("listCalendar->setCurrentIndex()") ;
         ui->listCalendar->setCurrentIndex(index) ;
+        showCalendarRowQuarterDown(index.row()) ;
     }
 }
 
@@ -101,6 +124,7 @@ void MainWindow::gotoCalendarDate(QDate wanted)
     if (index.isValid()) {
         dbg("listCalendar->setCurrentIndex()") ;
         ui->listCalendar->setCurrentIndex(index) ;
+        showCalendarRowQuarterDown(index.row()) ;
     }
 }
 
