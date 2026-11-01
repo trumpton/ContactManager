@@ -42,16 +42,13 @@ void MainWindow::calendarFilterOff()
 void MainWindow::showCalendarRowQuarterDown(int row)
 {
     QListView *view = ui->listCalendar ;
-    QModelIndex index = calendarlist.index(row,0) ;
-    if (!index.isValid()) return ;
+    if (!calendarlist.index(row,0).isValid()) return ;
 
-    // The scroll is set in pixels, so the row's place on the screen is exact.  The row is put at the top first, then moved down.
-    QAbstractItemView::ScrollMode mode = view->verticalScrollMode() ;
-    view->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel) ;
-    view->scrollTo(index, QAbstractItemView::PositionAtTop) ;
-    QScrollBar *bar = view->verticalScrollBar() ;
-    bar->setValue(bar->value() + view->visualRect(index).top() - view->viewport()->height()/4) ;
-    view->setVerticalScrollMode(mode) ;
+    // The list scrolls by entries (the scroll bar counts them), so the entry at the top is the one this many entries above the row,
+    // where that is a quarter of the viewport.  The scroll stops at the top and end of the list.
+    int rowheight = view->sizeHintForRow(row) ;
+    int above = (rowheight>0) ? (view->viewport()->height()/4)/rowheight : 0 ;
+    view->verticalScrollBar()->setValue(qMax(0, row-above)) ;
 }
 
 //
@@ -60,8 +57,10 @@ void MainWindow::showCalendarRowQuarterDown(int row)
 // A shortcut that moves the calendar position asks for the list to be scrolled so the entry is a quarter of the way down (issue
 // #98).  When the calendar is not showing, the scroll waits until it is.
 //
-void MainWindow::requestCalendarQuarter()
+void MainWindow::requestCalendarQuarter(int row)
 {
+    // The row is taken now, as the list's current row can change before the list is shown
+    calendarscrollrow = (row>=0) ? row : ui->listCalendar->currentIndex().row() ;
     calendarscrollpending = true ;
     applyCalendarQuarter() ;
 }
@@ -69,10 +68,13 @@ void MainWindow::requestCalendarQuarter()
 void MainWindow::applyCalendarQuarter()
 {
     if (!calendarscrollpending) return ;
-    QModelIndex current = ui->listCalendar->currentIndex() ;
-    if (ui->tabBar->currentIndex()!=CALENDARTABPOS || !ui->listCalendar->isVisible() || !current.isValid()) return ;
+    if (ui->tabBar->currentIndex()!=CALENDARTABPOS || !ui->listCalendar->isVisible()) return ;
+    if (calendarscrollrow<0 || calendarscrollrow>=calendarlist.rowCount()) {
+        calendarscrollpending = false ;
+        return ;
+    }
     calendarscrollpending = false ;
-    showCalendarRowQuarterDown(current.row()) ;
+    showCalendarRowQuarterDown(calendarscrollrow) ;
 }
 
 //
@@ -135,7 +137,7 @@ void MainWindow::on_actionGotoToday_triggered()
     if (index.isValid()) {
         dbg("listCalendar->setCurrentIndex()") ;
         ui->listCalendar->setCurrentIndex(index) ;
-        requestCalendarQuarter() ;
+        requestCalendarQuarter(index.row()) ;
     }
 }
 
@@ -176,7 +178,7 @@ void MainWindow::gotoCalendarDate(QDate wanted)
     if (index.isValid()) {
         dbg("listCalendar->setCurrentIndex()") ;
         ui->listCalendar->setCurrentIndex(index) ;
-        requestCalendarQuarter() ;
+        requestCalendarQuarter(index.row()) ;
     }
 }
 
@@ -257,7 +259,7 @@ void MainWindow::gotoContactAppointment(int step)
     for (int r=row+step; r>=0 && r<calendarrowcontacts.size(); r+=step) {
         if (calendarrowcontacts.at(r)==openid) {
             ui->listCalendar->setCurrentIndex(calendarlist.index(r,0)) ;
-            requestCalendarQuarter() ;
+            requestCalendarQuarter(r) ;
             return ;
         }
     }
