@@ -359,6 +359,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
             if (googlematcheslocal && !googleappt.isNull() && !googleappt.isSet(Appointment::Deleted) &&
                     !fromlocal.contains(localappt.getField(Appointment::ID))) {
                 localappt.setGoogleSnapshot(googleappt) ;
+                localappt.setGoogleEtag(googleappt.googleEtag()) ;
             }
 
             if ( deletedlocaldeletedgoogle ) {
@@ -387,7 +388,10 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                         changes = QString("Downloaded: ") + googleappt.mismatch(localappt, Appointment::maDetails) + QString(". ");
                         summary = QString("downloaded") ;
                         googleappt.copyTo(localappt, Appointment::maDetails|Appointment::maGoogleAcct) ;
-                        if (!fromlocal.contains(localappt.getField(Appointment::ID))) localappt.setGoogleSnapshot(googleappt) ;
+                        if (!fromlocal.contains(localappt.getField(Appointment::ID))) {
+                            localappt.setGoogleSnapshot(googleappt) ;
+                            localappt.setGoogleEtag(googleappt.googleEtag()) ;
+                        }
                     }
                     ui->updateStatusReport->append(QString("    ") + localappt.asText() + QString(" - Updating Local Appointment (%1)").arg(summary)) ;
                 }
@@ -429,6 +433,10 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                     if (!hadgoogleid && !localappt.getField(Appointment::GoogleRecordId).isEmpty()) localappt.save(gCalendarSavePath) ;
 
                     if (status) {
+                        if (google.isAppointmentConflict()) {
+                            // Google's copy had changed: its version is now the entry, and the change was not sent (issue #86)
+                            ui->updateStatusReport->append(QString("    ") + localappt.asText() + QString(" - CONFLICT: Google's copy changed since the last sync, so Google's version is kept")) ;
+                        }
                         addLog(QString("    ") + localappt.asText() + QString(" - Uploading Google Appointment Details: %1").arg(changes)) ;
                         localappt.copyTo(googleappt, Appointment::maDetails|Appointment::maId|Appointment::maGoogleId) ;
                         localappt.setGoogleSnapshot(localappt) ;

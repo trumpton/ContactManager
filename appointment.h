@@ -98,6 +98,9 @@ public:
         // What Google held for this entry's details at its last download or upload, as one value.  An unchanged entry is
         // compared with it when Google is the master, instead of with the local entry, which may have been edited (issue #105)
         GoogleDetails,
+        // The ETag Google gave this event at its last download or upload.  Sent as If-Match on a change, so Google refuses a
+        // change to a copy it has changed since (issue #86)
+        GoogleEtag,
 
         NumberOfRecords
 
@@ -158,7 +161,8 @@ public:
         { RepeatUntil,         false,  true, false, true, "repeatuntil" },
         { RepeatZone,          false,  true, false, true, "repeatzone" },
         { RepeatExceptions,    false,  true, false, true, "repeatexceptions" },
-        { GoogleDetails,       false, false, false, true, "googledetails" }
+        { GoogleDetails,       false, false, false, true, "googledetails" },
+        { GoogleEtag,          false, false, false, true, "googleetag" }
     } ;
 
     // Match and Copy Masks (matype)
@@ -199,6 +203,8 @@ public:
     void setGoogleSnapshot(const Appointment &google) ;   // Stores google's details as the snapshot; not an edit (Updated is not changed)
     bool hasGoogleSnapshot() const ;                      // True when a snapshot is stored
     bool googleSnapshotCopy(Appointment &copy) ;          // Copies this entry, with the details Google held, into copy; false if none is stored
+    void setGoogleEtag(const QString &etag) ;             // Stores the ETag Google gave the event; not an edit (Updated is not changed)
+    QString googleEtag() const ;                          // The stored ETag, or empty when none is stored
 
     ~Appointment();
 

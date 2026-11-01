@@ -216,11 +216,34 @@ void Appointment::setGoogleSnapshot(const Appointment &google)
         if (!appointmentrecordinfo[i].isdetails || i==Deleted) continue ;
         details.insert(QString(appointmentrecordinfo[i].name), google.getField((enum AppointmentRecord) i)) ;
     }
-    QString value = QString::fromLatin1(QJsonDocument(details).toJson(QJsonDocument::Compact).toBase64()) ;
+    // Hex, not base64: the file loader splits each line on '=', so a value with '=' padding would not be read back
+    QString value = QString::fromLatin1(QJsonDocument(details).toJson(QJsonDocument::Compact).toHex()) ;
     if (value != filedata[GoogleDetails]) {
         filedata[GoogleDetails] = value ;
         isdirty = true ;
     }
+}
+
+
+//=====================================================================================================
+//
+// Public: Appointment - setGoogleEtag / googleEtag
+//
+// The ETag Google gave the event, as its last download or upload returned it (issue #86).  Written without changing Updated, so
+// that taking in the ETag is not counted as an edit.
+//
+void Appointment::setGoogleEtag(const QString &etag)
+{
+    if (isnull) return ;
+    if (etag != filedata[GoogleEtag]) {
+        filedata[GoogleEtag] = etag ;
+        isdirty = true ;
+    }
+}
+
+QString Appointment::googleEtag() const
+{
+    return filedata[GoogleEtag] ;
 }
 
 
@@ -245,7 +268,7 @@ bool Appointment::googleSnapshotCopy(Appointment &copy)
 {
     if (!hasGoogleSnapshot()) return false ;
 
-    QJsonObject details = QJsonDocument::fromJson(QByteArray::fromBase64(filedata[GoogleDetails].toLatin1())).object() ;
+    QJsonObject details = QJsonDocument::fromJson(QByteArray::fromHex(filedata[GoogleDetails].toLatin1())).object() ;
     Appointment result = *this ;
     for (int i=0; i<NumberOfRecords; i++) {
         if (!appointmentrecordinfo[i].isdetails || i==Deleted) continue ;

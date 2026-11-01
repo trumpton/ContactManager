@@ -293,6 +293,7 @@ bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QStrin
     }
 
     appt.setFlag(Appointment::Deleted, (status.compare("cancelled")==0) ) ;
+    appt.setGoogleEtag(item["etag"].toString()) ;
     appt.setField(Appointment::Summary, summary) ;
     appt.setField(Appointment::Description, description) ;
     appt.setField(Appointment::Location, location) ;
@@ -426,6 +427,7 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
     QJsonObject root ;
     QString url ;
     QString jsonresponse ;
+    appointmentconflict = false ;
 
     // Override action for deletions
     if (appt.isSet(Appointment::Deleted))
@@ -453,11 +455,32 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
         // Error
     }
 
+    // The ETag the change is made against (issue #86).  Google refuses it if its copy has changed since.  An entry with no
+    // ETag, but a snapshot, is checked against Google's copy first, so Google's change is not overwritten.  An entry with
+    // neither is sent against any version, as before.
+    QString ifmatch = "*" ;
+    if (action==GoogleAccess::Put || action==GoogleAccess::Delete) {
+        ifmatch = appt.googleEtag() ;
+        if (ifmatch.isEmpty() && appt.hasGoogleSnapshot()) {
+            ConflictOutcome outcome = resolveAppointmentConflict(appt, ifmatch) ;
+            if (outcome==ReadFailed) return false ;
+            if (outcome==KeptGoogleVersion) return true ;
+        }
+        if (ifmatch.isEmpty()) ifmatch = "*" ;
+    }
+
     // Process Request
     if (action==GoogleAccess::Delete) {
 
         // Delete
-        googlePutPostDelete(url, GoogleAccess::Delete, "", "updateAppointment-Delete") ;
+        googlePutPostDelete(url, GoogleAccess::Delete, "", "updateAppointment-Delete", ifmatch) ;
+        if (getNetworkErrorCode()==412) {
+            // Google's copy has changed since the ETag sent: the snapshot decides whether to send the deletion again
+            ConflictOutcome outcome = resolveAppointmentConflict(appt, ifmatch) ;
+            if (outcome==ReadFailed) return false ;
+            if (outcome==KeptGoogleVersion) return true ;
+            googlePutPostDelete(url, GoogleAccess::Delete, "", "updateAppointment-Delete-resend", ifmatch) ;
+        }
 
         // If successful, update local status to indicate Google Record has been deleted
         if (!isConnectionError()) {
@@ -545,7 +568,14 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
         QString jsontext = doc.toJson() ;
 
         // createnew = POST, Update = PUT
-        jsonresponse = googlePutPostDelete(url, action, jsontext, "updateAppointment-PutPost") ;
+        jsonresponse = googlePutPostDelete(url, action, jsontext, "updateAppointment-PutPost", ifmatch) ;
+        if (action==GoogleAccess::Put && getNetworkErrorCode()==412) {
+            // Google's copy has changed since the ETag sent: the snapshot decides whether to send the change again
+            ConflictOutcome outcome = resolveAppointmentConflict(appt, ifmatch) ;
+            if (outcome==ReadFailed) return false ;
+            if (outcome==KeptGoogleVersion) return true ;
+            jsonresponse = googlePutPostDelete(url, action, jsontext, "updateAppointment-PutPost-resend", ifmatch) ;
+        }
 
     }
 
@@ -566,6 +596,7 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
             if (apptresponse.matches(sent, Appointment::maDetails|Appointment::maId)) {
                 // The details match, so only the Google record details change: that does not restart the wait after an edit
                 appt.copyFromKeepingUpdated(apptresponse, Appointment::maDetails|Appointment::maGoogleAcct) ;
+                appt.setGoogleEtag(apptresponse.googleEtag()) ;
 
                 // The upload carries the sent state, so it is no longer pending
                 appt.setSentField(Appointment::LedgerPending, QString()) ;
@@ -609,8 +640,47 @@ bool GoogleAccess::updateSentState(Appointment &appt)
 
     QJsonDocument doc ;
     doc.setObject(root) ;
-    googlePutPostDelete(url, GoogleAccess::Patch, doc.toJson(), "updateSentState") ;
-    return getNetworkError().isEmpty() ;
+    QString json = googlePutPostDelete(url, GoogleAccess::Patch, doc.toJson(), "updateSentState") ;
+    if (!getNetworkError().isEmpty()) return false ;
+
+    // Writing the sent state changes the event's ETag, so the new one is kept for the next change to it (issue #86)
+    QJsonObject reply = QJsonDocument::fromJson(json.toUtf8()).object() ;
+    appt.setGoogleEtag(reply["etag"].toString()) ;
+    return true ;
+}
+
+//=====================================================================================================
+//
+// Public: GoogleAccess - resolveAppointmentConflict
+//
+//  Google refused a change, or the entry had no ETag: Google's copy has changed since the entry was last read (issue #86).
+//  Reads Google's copy and compares its details with the snapshot.  If they are still the snapshot's, Google's change was not to
+//  the details, so the change is sent again with Google's new ETag (ResendWithEtag).  Otherwise Google's version is kept: the
+//  entry takes Google's details, and the local change is not sent (KeptGoogleVersion).  ReadFailed when Google's copy cannot be
+//  read.
+//
+GoogleAccess::ConflictOutcome GoogleAccess::resolveAppointmentConflict(Appointment &appt, QString &etag)
+{
+    Appointment current ;
+    if (!getEventSentState(appt, current)) return ReadFailed ;
+
+    // The snapshot is what Google held, so it is compared with the entry's details, not with its deletion (which is the change)
+    Appointment snapshot ;
+    bool hassnapshot = appt.googleSnapshotCopy(snapshot) ;
+    if (hassnapshot) snapshot.setFlag(Appointment::Deleted, false) ;
+    if (hassnapshot && !current.googleEtag().isEmpty() && current.matches(snapshot, Appointment::maDetails)) {
+        etag = current.googleEtag() ;
+        addLog(QString("CONFLICT CHECK (%1): Google's details are unchanged, so the change is sent again").arg(appt.getField(Appointment::ID))) ;
+        return ResendWithEtag ;
+    }
+
+    // Google's version is kept
+    appt.copyFromKeepingUpdated(current, Appointment::maDetails|Appointment::maGoogleAcct) ;
+    appt.setGoogleEtag(current.googleEtag()) ;
+    appt.setGoogleSnapshot(current) ;
+    appointmentconflict = true ;
+    addLog(QString("CONFLICT (%1): Google's copy has changed since the last sync, so Google's version is kept").arg(appt.getField(Appointment::ID))) ;
+    return KeptGoogleVersion ;
 }
 
 //=====================================================================================================

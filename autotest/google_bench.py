@@ -1846,6 +1846,10 @@ def gchange_main(argv):
     elif cmd == "patch-event":
         require_bench_event(argv[1])
         patch_event(argv[1], {"location": argv[2]})
+    elif cmd == "patch-event-fields":
+        # patch-event-fields <id> <json>: changes fields of the event, such as colorId, which the app does not hold
+        require_bench_event(argv[1])
+        patch_event(argv[1], json.loads(argv[2]))
     elif cmd == "move-event":
         # move-event <id> <start> <end>: both UTC times in the form of at_day()
         require_bench_event(argv[1])
@@ -2468,6 +2472,72 @@ def l06():
             Check("switching off is logged to the console", "AccessibleDebug off" in log, "")]
 
 
+def etag_stored(workdir, summary):
+    """The stored ETag of the appointment with this summary in a run's local data, or None when it is not there."""
+    name = folder_holding(workdir, "", summary)
+    if name is None:
+        return None
+    with open(os.path.join(workdir, "home", "TrumptonApps", "ContactManager", "calendar", name)) as f:
+        for line in f:
+            if line.startswith("googleetag="):
+                return line.split("=", 1)[1].strip()
+    return ""
+
+
+@scenario("E01", "#86: an ETag is stored from Google and sent with a change: a local edit reaches Google, with no conflict")
+def e01():
+    set_mode(CM_MASTER)
+    eid = create_event("BENCH E01", at_day(10, "09:00"), at_day(10, "10:00"), location="Room 1")
+    workdir = os.path.join(RUNS, "session-E01")
+    Run("E01a", [sync()], session="E01").execute()
+    stored = etag_stored(workdir, "BENCH E01")
+    b = Run("E01b", [edit_op("BENCH E01", location="Room 2"), sync(), dump()], session="E01").execute()
+    goog = bench_event("BENCH E01")
+    local = local_events(b.dump, "BENCH E01")
+    reports = "".join(open(os.path.join(b.dir, f), errors="replace").read() for f in os.listdir(b.dir) if f.startswith("report"))
+    return [Check("Google keeps the ETag it gave the event", bool(stored), "stored ETag: %r" % stored),
+            Check("the local edit reaches Google", len(goog) == 1 and goog[0].get("location") == "Room 2",
+                  "Google: %s" % [g.get("location") for g in goog]),
+            Check("no conflict is reported", "CONFLICT" not in reports, ""),
+            Check("the app holds it once, with the new location", len(local) == 1 and local[0]["location"] == "Room 2",
+                  "app: %s" % [a["location"] for a in local])]
+
+
+@scenario("E02", "#86: Google's copy changed in its details since the last sync (non-matching ETag): Google's version is kept, the local edit is not sent, and the conflict is reported")
+def e02():
+    set_mode(CM_MASTER)
+    eid = create_event("BENCH E02", at_day(11, "09:00"), at_day(11, "10:00"), location="Room 1")
+    workdir = os.path.join(RUNS, "session-E02")
+    Run("E02a", [sync()], session="E02").execute()
+    gchange_main(["patch-event", eid, "Room G"])     # Google changes the location: its ETag changes
+    b = Run("E02b", [edit_op("BENCH E02", location="Room L"), sync(), dump()], session="E02").execute()
+    goog = bench_event("BENCH E02")
+    local = local_events(b.dump, "BENCH E02")
+    reports = "".join(open(os.path.join(b.dir, f), errors="replace").read() for f in os.listdir(b.dir) if f.startswith("report"))
+    return [Check("Google keeps its own location (the local edit was not sent)", len(goog) == 1 and goog[0].get("location") == "Room G",
+                  "Google: %s" % [g.get("location") for g in goog]),
+            Check("the app takes Google's version", len(local) == 1 and local[0]["location"] == "Room G",
+                  "app: %s" % [a["location"] for a in local]),
+            Check("the conflict is reported", "CONFLICT" in reports, "")]
+
+
+@scenario("E03", "#86: Google's ETag changed, but not its details (a field the app does not hold): the change is sent again with the new ETag, and reaches Google")
+def e03():
+    set_mode(CM_MASTER)
+    eid = create_event("BENCH E03", at_day(12, "09:00"), at_day(12, "10:00"), location="Room 1")
+    Run("E03a", [sync()], session="E03").execute()
+    gchange_main(["patch-event-fields", eid, json.dumps({"colorId": "5"})])     # changes the ETag, not the details the app holds
+    b = Run("E03b", [edit_op("BENCH E03", location="Room L"), sync(), dump()], session="E03").execute()
+    goog = bench_event("BENCH E03")
+    local = local_events(b.dump, "BENCH E03")
+    reports = "".join(open(os.path.join(b.dir, f), errors="replace").read() for f in os.listdir(b.dir) if f.startswith("report"))
+    return [Check("the local edit reaches Google, after the snapshot check", len(goog) == 1 and goog[0].get("location") == "Room L",
+                  "Google: %s" % [g.get("location") for g in goog]),
+            Check("no conflict is reported", "CONFLICT" not in reports, ""),
+            Check("the app holds it once, with the new location", len(local) == 1 and local[0]["location"] == "Room L",
+                  "app: %s" % [a["location"] for a in local])]
+
+
 def run_path(run_name, name):
     return os.path.join(RUNS, run_name, name)
 
@@ -2569,6 +2639,8 @@ def folder_holding(workdir, sub, text):
     if not os.path.isdir(folder):
         return None
     for name in os.listdir(folder):
+        if not os.path.isfile(os.path.join(folder, name)):
+            continue                 # the archive and deleted sub-folders are not entries
         with open(os.path.join(folder, name), errors="replace") as f:
             if text in f.read():
                 return name
@@ -2659,7 +2731,7 @@ def purge(what):
 
 GROUP_UPLOADS, GROUP_UPDATES, GROUP_LOCAL = "uploads", "updates", "local"
 UPLOADS = ["U01"]
-GOOGLE_QUICK = ["A01", "A05", "A06", "C01", "M05", "R01", "R02", "R03", "R04", "R05", "AR01"]
+GOOGLE_QUICK = ["A01", "A05", "A06", "C01", "M05", "R01", "R02", "R03", "R04", "R05", "AR01", "E01", "E02", "E03"]
 GOOGLE_TOKENS = ("sync(", "gchange", "create_event", "create_recurring_event", "create_contact", "api(",
                  "bench_event", "patch_event", "import_external_event", "google_master", "all_connections",
                  "bench_contacts", "purge(")
