@@ -23,6 +23,22 @@ static bool changedLocallySince(Appointment &local, const QDateTime &lastsync)
     return updated >= lastsync ;
 }
 
+// True when an entry in the window has a Google record but no snapshot of what Google held (issue #105).  Under Google master
+// such an entry cannot be compared with Google by an incremental listing, so the listing is done in full once.
+static bool anyEntryWithoutGoogleSnapshot(Calendar &cal, const QDateTime &fromwindow, const QDateTime &towindow)
+{
+    for (int i=0; i<cal.size(); i++) {
+        Appointment &appt = cal.getAppointment(i) ;
+        if (appt.isTemp() || appt.isSet(Appointment::Deleted) || appt.getField(Appointment::GoogleRecordId).isEmpty()) continue ;
+        QDateTime from = appt.getDate(Appointment::From) ;
+        QDateTime to = appt.getDate(Appointment::To) ;
+        bool inwindow = (from <= fromwindow && to >= fromwindow) || (from >= fromwindow && to <= towindow) || (from <= towindow && to >= towindow) ;
+        if (inwindow && !appt.hasGoogleSnapshot()) return true ;
+    }
+    return false ;
+}
+
+
 bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess& google, class ContactDatabase& db, class Calendar& cal)
 {
     bool networkok = true ;
@@ -46,6 +62,13 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     QString stored = gConf->getLastGoogleCalendarSyncToken() ;
     QString syncToken = stored.startsWith(tokenkey + "|") ? stored.mid(tokenkey.size() + 1) : QString() ;
     bool incremental = !syncToken.isEmpty() ;
+    if (incremental && gConf->googleMaster() && anyEntryWithoutGoogleSnapshot(cal, fromwindow, towindow)) {
+        // Under Google master the entries are compared with their snapshots, so the listing is done in full, once, to give each
+        // entry in the window its snapshot (issue #105)
+        ui->updateStatusReport->append(QString("  Some appointments have no record of what Google holds, so every appointment is listed.")) ;
+        incremental = false ;
+        syncToken.clear() ;
+    }
     QStringList deletedids ;
     networkok &= google.getCalendar(googlecal, &deletedids, &syncToken) ;
     // Google refuses a sync token it no longer holds (410), or one it does not recognise (400): the listing is then done again in full
@@ -152,6 +175,9 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     //
     // An appointment that has not changed is not in an incremental listing.  Its Google copy is taken to be its local copy, so that
     // nothing is downloaded for it.  A change made locally is still uploaded: see the upload test in step 6.
+    // The ids whose Google copy is taken to be the local entry, because there is no snapshot to take it from.  Their snapshots
+    // are not refreshed from that copy.
+    QSet<QString> fromlocal ;
     if (incremental) {
         for (int i=0; i<cal.size(); i++) {
             Appointment &localappt = cal.getAppointment(i) ;
@@ -162,7 +188,12 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
             QDateTime to = localappt.getDate(Appointment::To) ;
             bool inwindow = (from <= fromwindow && to >= fromwindow) || (from >= fromwindow && to <= towindow) || (from <= towindow && to >= towindow) ;
             if (!inwindow || !googlecal.getAppointmentBy(Appointment::ID, id).isNull()) continue ;
+            // Under Google master, the Google copy is what Google held at the last sync, so a local edit is overwritten by it
             Appointment copy = localappt ;
+            if (!(googlemaster && localappt.googleSnapshotCopy(copy))) {
+                copy = localappt ;
+                fromlocal.insert(id) ;
+            }
             googlecal.addAppointment(copy, false) ;
         }
     }
@@ -325,6 +356,10 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
 
             bool deletedlocaldeletedgoogle = (googleappt.isNull() || googleappt.isSet(Appointment::Deleted)) && (localappt.isSet(Appointment::Deleted)) ;
             bool googlematcheslocal = googleappt.matches(localappt, Appointment::maDetails|Appointment::maId) ;
+            if (googlematcheslocal && !googleappt.isNull() && !googleappt.isSet(Appointment::Deleted) &&
+                    !fromlocal.contains(localappt.getField(Appointment::ID))) {
+                localappt.setGoogleSnapshot(googleappt) ;
+            }
 
             if ( deletedlocaldeletedgoogle ) {
 
@@ -352,6 +387,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                         changes = QString("Downloaded: ") + googleappt.mismatch(localappt, Appointment::maDetails) + QString(". ");
                         summary = QString("downloaded") ;
                         googleappt.copyTo(localappt, Appointment::maDetails|Appointment::maGoogleAcct) ;
+                        if (!fromlocal.contains(localappt.getField(Appointment::ID))) localappt.setGoogleSnapshot(googleappt) ;
                     }
                     ui->updateStatusReport->append(QString("    ") + localappt.asText() + QString(" - Updating Local Appointment (%1)").arg(summary)) ;
                 }
@@ -395,6 +431,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                     if (status) {
                         addLog(QString("    ") + localappt.asText() + QString(" - Uploading Google Appointment Details: %1").arg(changes)) ;
                         localappt.copyTo(googleappt, Appointment::maDetails|Appointment::maId|Appointment::maGoogleId) ;
+                        localappt.setGoogleSnapshot(localappt) ;
 
                         // Saved as it is uploaded, so that a Google event that was created is linked, and not created again
                         // if the sync stops.  The checkpoint below saves the calendar every SYNC_UPLOAD_CHUNK uploads.
