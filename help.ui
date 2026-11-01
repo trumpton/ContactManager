@@ -177,7 +177,7 @@
     Up and Down arrows  Move to the previous or next entry
     T or Control-T      Go to today: the first entry from now on
     D or Control-D      Go to a date (a date box, as below)
-    0, 1, 2 or 3        Start typing a date (see below)
+    0 to 9              Start typing a date (see below)
     W                   Go a week on from today.  Each W pressed after it goes a
                         week further on: WW is two weeks on, WWW three, and so on,
                         with no limit.  T or Control-T starts again from today
