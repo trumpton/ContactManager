@@ -95,6 +95,12 @@ public:
 
         // The occurrences the repeat leaves out (deleted, or changed into another appointment), as UTC starts
         RepeatExceptions,
+        // What Google held for this entry's details at its last download or upload, as one value.  An unchanged entry is
+        // compared with it when Google is the master, instead of with the local entry, which may have been edited (issue #105)
+        GoogleDetails,
+        // The ETag Google gave this event at its last download or upload.  Sent as If-Match on a change, so Google refuses a
+        // change to a copy it has changed since (issue #86)
+        GoogleEtag,
 
         NumberOfRecords
 
@@ -154,7 +160,9 @@ public:
         { RepeatCount,         false,  true, false, true, "repeatcount" },
         { RepeatUntil,         false,  true, false, true, "repeatuntil" },
         { RepeatZone,          false,  true, false, true, "repeatzone" },
-        { RepeatExceptions,    false,  true, false, true, "repeatexceptions" }
+        { RepeatExceptions,    false,  true, false, true, "repeatexceptions" },
+        { GoogleDetails,       false, false, false, true, "googledetails" },
+        { GoogleEtag,          false, false, false, true, "googleetag" }
     } ;
 
     // Match and Copy Masks (matype)
@@ -191,6 +199,12 @@ public:
     Appointment& operator=(const Appointment& rhs) ;
 
     void setNull() ;
+    // Google's details snapshot (issue #105): the details Google held when last downloaded or uploaded
+    void setGoogleSnapshot(const Appointment &google) ;   // Stores google's details as the snapshot; not an edit (Updated is not changed)
+    bool hasGoogleSnapshot() const ;                      // True when a snapshot is stored
+    bool googleSnapshotCopy(Appointment &copy) ;          // Copies this entry, with the details Google held, into copy; false if none is stored
+    void setGoogleEtag(const QString &etag) ;             // Stores the ETag Google gave the event; not an edit (Updated is not changed)
+    QString googleEtag() const ;                          // The stored ETag, or empty when none is stored
 
     ~Appointment();
 
@@ -244,6 +258,9 @@ public:
     // for a repeat, when no occurrence that is not removed ends at or after it.  A repeat that has expired occurrences
     // before the edge has its start moved to the first occurrence that is still in the window.
     bool isExpiredBefore(QDateTime lower) ;
+    bool hasStart() ;               // A real start: not empty, and after the epoch (an entry with none starts at 1970)
+    bool hasEnd() ;                 // A real end: after the epoch, and not before the start (Google refuses any other, issue #107)
+    bool hasNoOccurrences() ;       // A repeat with no occurrence left, not even its first: each exception leaves one out
     bool trimRepeatBefore(QDateTime lower) ;
 
     // The number of the occurrence that starts at this time, or -1 if there is none

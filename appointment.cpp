@@ -6,6 +6,8 @@
 #include <QStringList>
 #include <QTextStream>
 #include <QTextDecoder>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QRegularExpression>
 #include "../Lib/supportfunctions.h"
 
@@ -196,6 +198,87 @@ bool Appointment::load(QString path, QString idname)
 
     }
 }
+
+//=====================================================================================================
+//
+// Public: Appointment - setGoogleSnapshot
+//
+// Stores the details Google holds for this entry, as one value, so that a sync can tell what Google held when the entry was
+// last downloaded or uploaded (issue #105).  The entry is marked dirty, so the value is saved; Updated is not changed, so this
+// is not an edit.  Deleted is not stored: the snapshot is of an entry that exists on Google.
+//
+void Appointment::setGoogleSnapshot(const Appointment &google)
+{
+    if (isnull) return ;
+
+    QJsonObject details ;
+    for (int i=0; i<NumberOfRecords; i++) {
+        if (!appointmentrecordinfo[i].isdetails || i==Deleted) continue ;
+        details.insert(QString(appointmentrecordinfo[i].name), google.getField((enum AppointmentRecord) i)) ;
+    }
+    // Hex, not base64: the file loader splits each line on '=', so a value with '=' padding would not be read back
+    QString value = QString::fromLatin1(QJsonDocument(details).toJson(QJsonDocument::Compact).toHex()) ;
+    if (value != filedata[GoogleDetails]) {
+        filedata[GoogleDetails] = value ;
+        isdirty = true ;
+    }
+}
+
+
+//=====================================================================================================
+//
+// Public: Appointment - setGoogleEtag / googleEtag
+//
+// The ETag Google gave the event, as its last download or upload returned it (issue #86).  Written without changing Updated, so
+// that taking in the ETag is not counted as an edit.
+//
+void Appointment::setGoogleEtag(const QString &etag)
+{
+    if (isnull) return ;
+    if (etag != filedata[GoogleEtag]) {
+        filedata[GoogleEtag] = etag ;
+        isdirty = true ;
+    }
+}
+
+QString Appointment::googleEtag() const
+{
+    return filedata[GoogleEtag] ;
+}
+
+
+//=====================================================================================================
+//
+// Public: Appointment - hasGoogleSnapshot
+//
+bool Appointment::hasGoogleSnapshot() const
+{
+    return !filedata[GoogleDetails].isEmpty() ;
+}
+
+
+//=====================================================================================================
+//
+// Public: Appointment - googleSnapshotCopy
+//
+// Copies this entry into copy, with the details the snapshot holds in place of its own.  The identity and Google link are
+// this entry's.  Returns false, and leaves copy alone, when no snapshot is stored.
+//
+bool Appointment::googleSnapshotCopy(Appointment &copy)
+{
+    if (!hasGoogleSnapshot()) return false ;
+
+    QJsonObject details = QJsonDocument::fromJson(QByteArray::fromHex(filedata[GoogleDetails].toLatin1())).object() ;
+    Appointment result = *this ;
+    for (int i=0; i<NumberOfRecords; i++) {
+        if (!appointmentrecordinfo[i].isdetails || i==Deleted) continue ;
+        QString name(appointmentrecordinfo[i].name) ;
+        if (details.contains(name)) result.setField((enum AppointmentRecord) i, details.value(name).toString()) ;
+    }
+    copy = result ;
+    return true ;
+}
+
 
 bool Appointment::save(QString path)
 {
@@ -528,6 +611,20 @@ bool Appointment::occurrenceEnded(int n)
         if (occurrenceFrom(n) > last) return true ;
     }
     return false ;
+}
+
+bool Appointment::hasNoOccurrences()
+{
+    if (!isRepeating()) return false ;
+
+    // Each exception leaves out one occurrence, so among the first (exceptions + 1) occurrences one is left, unless the
+    // repeat has ended before then
+    int count = exceptions().size() + 1 ;
+    for (int n=0; n<count; n++) {
+        if (occurrenceEnded(n)) return true ;
+        if (occurrenceExists(n)) return false ;
+    }
+    return true ;
 }
 
 bool Appointment::occurrenceExists(int n)
@@ -942,6 +1039,21 @@ static int firstOccurrenceEndingFrom(Appointment &appt, QDateTime lower)
         if (occurrence.addSecs(length) >= lower && !appt.isException(occurrence)) return n ;
     }
     return -1 ;
+}
+
+bool Appointment::hasStart()
+{
+    return !getField(Appointment::From).isEmpty() && getDate(Appointment::From).toSecsSinceEpoch() > 0 ;
+}
+
+// A real end: after the epoch, and not before the start (issue #107).  Google refuses an event without one, or one that ends
+// before it starts, and the refusal stopped the whole calendar sync.
+bool Appointment::hasEnd()
+{
+    QDateTime to = getDate(Appointment::To) ;
+    if (!to.isValid() || to.toSecsSinceEpoch() <= 0) return false ;
+    QDateTime from = getDate(Appointment::From) ;
+    return !from.isValid() || to >= from ;
 }
 
 bool Appointment::isExpiredBefore(QDateTime lower)

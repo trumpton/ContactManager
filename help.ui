@@ -27,7 +27,7 @@
    <item>
     <widget class="SafeTextEdit" name="helpText">
      <property name="accessibleName">
-      <string>Easy Notepad Help</string>
+      <string>Contact Manager Help</string>
      </property>
      <property name="tabChangesFocus">
       <bool>true</bool>
@@ -36,16 +36,25 @@
       <string>&gt;&gt; 1. COMMON SHORTCUTS
   Control-F - Find in Current Page (F3 - Find Next)
   Control-G - Find Global (all Contacts)
+  Control-Shift-G - Advanced Global Find
   Control-J - Open Journal for Contact in Easy Notepad
   Control-L - Open To-Do List for Contact
   Control-Shift-L - Open My To-Do List
   Control-M - Send Email to Contact
+  Control-Shift-M - Send SMS to Contact
   Control-N - Create New Appointment for Contact
   Control-Shift-N - Create New Appointment for Me
+  Control-I - Insert Appointment After the Selected One
+  Control-Shift-I - Insert Appointment for Me After the Selected One
+  Control-U - Update the Selected Appointment
+  Control-R - Remove the Selected Appointment
   Control-O - Open / Create Contact
   Control-Shift-O - Open My Contact
   Control-S - Save Current Contact
   Control-T - Goto Today (in Calendar)
+  Control-D - Goto Date (in Calendar)
+  F1 - This Manual
+  F3 - Find Next
   F9 - Google Sync
   Alt-O - Goto Overview Tab
   Alt-C - Goto Calendar Tab
@@ -64,7 +73,7 @@
 
 &gt;&gt; 2.1. MENUS AND TABS
   Menus: File (Alt-F); Search (Alt-S); Goto (Alt-G); Edit (Alt-E); 
-         Tools (Alt-T)
+         Tasks (Alt-T); Help (Alt-H)
   Tabs:  Overview (Alt-O); Calendar (Alt-C); To-Do List (Alt-L); ...
          Contact Details (Alt-D); History (Alt-Y)
 
@@ -158,16 +167,61 @@
   Confirm Email:Enables Emails being sent for appointment reminders.
 
 &gt;&gt; 5. MANAGING APPOINTMENTS
-  By default, Contact Manager shows the Calendar Tab (Alt-C).  Appointments are 
-  stored in a list, and the previous 3 months, and next year are available.
-  You can navigate through the appointments with the up and down arrow keys, or
-  jump straight to today with Control-T.
-  If you have a contact opened, you can create a new appointment with Control-N,
-  or you can create a new appointment for yourself with Control-Shift-N.
-  You can also create an appointment following the currently selected one with
-  Control-I, or one for yourself with Control-Shift-I.
-  You can update update an appointment with Control-U, or remove it with 
-  Control-R.
+  By default, Contact Manager shows the Calendar Tab (Alt-C).  Appointments are
+  listed in date and time order, from 90 days before today to 730 days after it
+  (windowbefore and windowafter in the ini file).  A repeating appointment is
+  listed for each of its dates.  A deleted appointment is listed only when
+  File > Show > Deleted Appointments is ticked, and then it is in braces.
+
+  Moving around the list (the calendar list has the focus):
+    Up and Down arrows  Move to the previous or next entry
+    T or Control-T      Go to today: the first entry from now on
+    D or Control-D      Go to a date (a date box, as below)
+    0 to 9              Start typing a date (see below)
+    W                   Go a week on from today.  Each W pressed after it goes a
+                        week further on: WW is two weeks on, WWW three, and so on,
+                        with no limit.  T or Control-T starts again from today
+    N or Right arrow    Go to the next entry for the open contact.  After the last
+                        one, it wraps round to the first
+    P or Left arrow     Go to the previous entry for the open contact
+    Space               Show only the open contact's entries, or all of them again
+    Enter               Open the contact for the selected entry (see section 3.3)
+
+  With no contact open, Space, N, P and the arrows beep, and nothing changes.
+  Moving to a date, or pressing Control-T or W, shows all the entries again if
+  Space had shown only one contact's.  Each move puts the entry about a quarter
+  of the way down the list, so the entries coming up after it are seen.
+
+  Typing a date
+  Press 0, 1, 2 or 3 in the calendar list, and a box opens with that digit in
+  it, and the cursor at the end.  Type the rest of the date, and press Enter.
+  The list goes to the first entry on that date, or to the nearest entry before
+  it if there is none.  Escape, or Enter on an empty box, closes the box and
+  leaves the list as it was.  Text that is not a date closes the box and beeps.
+
+  A date can be typed in numbers, day first:
+    2/12          2 December, the next one on or after today
+    2-12-26       2 December 2026
+    2/12/2026     2 December 2026
+    2/12/26       2 December 2026
+  or with the name of the month, in full or in its first three letters or more:
+    12 oct 2026   12 October 2026
+    1 sep         1 September, the next one on or after today
+    1aug28        1 August 2028
+  If the year is left out, the next date with that day and month, on or after
+  today, is used.  A year of two digits takes the first two digits of this year.
+  Day names (mon, tue and so on) are not accepted.
+
+  Creating and changing appointments
+    Control-N           New appointment for the open contact
+    Control-Shift-N     New appointment for me
+    Control-I           Insert an appointment after the selected one
+    Control-Shift-I     Insert an appointment for me after the selected one
+    Control-U           Update the selected appointment
+    Control-R           Remove the selected appointment
+  Contact Manager checks for clashes before an appointment is saved, and offers
+  you the chance to change it.  At startup it also lists any appointments that
+  overlap, but changes nothing.
 
 &gt;&gt; 5.1. THE APPOINTMENT FORM 
   The form is laid out with four fields:
@@ -297,6 +351,19 @@
 
   Two copies of ContactManager on the same data folder do not both send messages.
   Only the copy that holds the lock in the data folder sends them.
+
+&gt;&gt; 6.4. THE FILE MENU: SHOW, TIDY RECORDS AND LOGS
+  File > Show > Deleted Appointments, Deleted Contacts and Hidden Contacts each
+  add those entries to the lists, when they are ticked.  The ticks are not kept,
+  so they are off each time Contact Manager starts.
+  File > Tidy Records saves any edit on the screen first, then tidies the history
+  and contact records.  Its progress window shows a summary of what was changed.
+  File > Show > Logs opens the log window.  It is not modal, so you can carry on
+  using Contact Manager while it is open, and it shows new entries as they happen.
+  Show > Show Screen Reader Text opens a dialog with the name, role, value and
+  description of the control that had the focus, and for the calendar list the
+  current entry.  It follows the focus, and updates as values change.  A screen
+  reader adds its own wording, so this shows what it is given, not what it says.
 
 &gt;&gt; 7. SYNCHRONISING
 

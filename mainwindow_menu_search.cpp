@@ -132,8 +132,9 @@ void MainWindow::on_actionFindNext_triggered()
         }
 
         if (currentlistview!=NULL && currentlist!=NULL) {
+            // Find Next goes on from the current entry, and wraps to the top of the list when there is no match after it
             int row = currentlistview->currentIndex().row() ;
-            QModelIndex index=currentlist->find(searchtext, row) ;
+            QModelIndex index=currentlist->find(searchtext, row+1) ;
             if (index.isValid()) {
                 play(Found) ;
                 found = true ;

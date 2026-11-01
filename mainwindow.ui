@@ -1194,6 +1194,8 @@ p, li { white-space: pre-wrap; }
      <addaction name="actionShowDeletedAppointments"/>
      <addaction name="actionShowDeletedContacts"/>
      <addaction name="actionShowHiddenContacts"/>
+     <addaction name="separator"/>
+     <addaction name="actionShowAccessibleText"/>
     </widget>
     <addaction name="actionOpen"/>
     <addaction name="actionSave"/>
@@ -1345,6 +1347,11 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="text">
     <string>Edit &amp;History</string>
+   </property>
+  </action>
+  <action name="actionShowAccessibleText">
+   <property name="text">
+    <string>&amp;Show Screen Reader Text</string>
    </property>
   </action>
   <action name="actionManual">

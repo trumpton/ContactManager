@@ -96,7 +96,8 @@ bool GoogleAccess::getCalendar(Calendar &googlecalendar, QStringList *deletedids
     // page at a time (maxResults), so without this later events are missing.
     QString pagetoken ;
     int pagecount=0 ;
-    QList<QPair<QString, QDateTime>> deletedoccurrences ;     // (repeat's Google ID, occurrence start) Google has deleted
+    QList<QPair<QString, QDateTime>> occurrenceexceptions ;  // (repeat's Google ID, occurrence start) Google has cancelled or changed
+    QList<Appointment> changedoccurrences ;                   // An occurrence Google has changed is an entry of its own (issue #102)
     do {
         QString pageurl = url ;
         if (!pagetoken.isEmpty()) pageurl = url + "&pageToken=" + QString(QUrl::toPercentEncoding(pagetoken)) ;
@@ -128,11 +129,19 @@ bool GoogleAccess::getCalendar(Calendar &googlecalendar, QStringList *deletedids
                 // from the repeat, so it is kept, and made an exception of the repeat once every page is read.
                 QString repeatid = item["recurringEventId"].toString().trimmed() ;
                 if (!repeatid.isEmpty()) {
+                    // An occurrence Google has changed, or cancelled, is an exception of its repeat.  A changed occurrence is also
+                    // an entry of its own, as the app keeps a moved occurrence (see changeJustThisOne).  Both were dropped before.
                     QDateTime left = QDateTime::fromString(item["originalStartTime"].toObject()["dateTime"].toString(), Qt::ISODate) ;
-                    if (item["status"].toString()=="cancelled" && left.isValid()) {
-                        deletedoccurrences << QPair<QString, QDateTime>(repeatid, left) ;
+                    if (left.isValid()) {
+                        occurrenceexceptions << QPair<QString, QDateTime>(repeatid, left) ;
+                        // An entry with no start is not stored (issue #104)
+                        if (item["status"].toString()!="cancelled" && parseAppointment(item, appt, account) && !appt.isSet(Appointment::Deleted)
+                                && appt.hasStart()) {
+                            changedoccurrences << appt ;
+                        }
                     }
-                } else if (parseAppointment(item, appt, account)) {
+                } else if (parseAppointment(item, appt, account) && (appt.isSet(Appointment::Deleted) || appt.hasStart())) {
+                    // A cancelled entry is kept, as it may have no start.  An entry with no start is not stored (issue #104)
                     if (!appt.isSet(Appointment::Deleted)) {
                         googlecalendar.addAppointment(appt, false) ;
                     } else if (deletedids) {
@@ -153,19 +162,26 @@ bool GoogleAccess::getCalendar(Calendar &googlecalendar, QStringList *deletedids
 
     // A repeat that Google has changed only through one of its occurrences is not in an incremental listing.  It is fetched, so
     // that the occurrence can be made an exception of it.
-    for (const QPair<QString, QDateTime> &occurrence : deletedoccurrences) {
+    for (const QPair<QString, QDateTime> &occurrence : occurrenceexceptions) {
         if (!googlecalendar.getAppointmentBy(Appointment::GoogleRecordId, occurrence.first).isNull()) continue ;
         Appointment repeat ;
         repeat.setField(Appointment::GoogleRecordId, occurrence.first) ;
-        if (getAppointment(repeat) && !repeat.getField(Appointment::ID).isEmpty() && !repeat.isSet(Appointment::Deleted)) {
+        // A repeat with no start is not stored (issue #104)
+        if (getAppointment(repeat) && !repeat.getField(Appointment::ID).isEmpty() && !repeat.isSet(Appointment::Deleted)
+                && repeat.hasStart()) {
             googlecalendar.addAppointment(repeat, false) ;
         }
     }
 
-    // Google's deleted occurrences of a repeat are exceptions of the repeat, so the app leaves them out too
-    for (const QPair<QString, QDateTime> &occurrence : deletedoccurrences) {
+    // Google's changed and cancelled occurrences of a repeat are exceptions of the repeat, so the app leaves them out too
+    for (const QPair<QString, QDateTime> &occurrence : occurrenceexceptions) {
         Appointment &repeat = googlecalendar.getAppointmentBy(Appointment::GoogleRecordId, occurrence.first) ;
         if (!repeat.isNull()) repeat.addException(occurrence.second) ;
+    }
+
+    // A changed occurrence is listed as an entry of its own, with its new times
+    for (Appointment &changed : changedoccurrences) {
+        googlecalendar.addAppointment(changed, false) ;
     }
 
     dbg(QString("TIMING getCalendar: %1 page(s), %2 events, %3 cancelled, %4 listing").arg(pagecount).arg(googlecalendar.size())
@@ -277,6 +293,7 @@ bool GoogleAccess::parseAppointment(QJsonObject &item, Appointment &appt, QStrin
     }
 
     appt.setFlag(Appointment::Deleted, (status.compare("cancelled")==0) ) ;
+    appt.setGoogleEtag(item["etag"].toString()) ;
     appt.setField(Appointment::Summary, summary) ;
     appt.setField(Appointment::Description, description) ;
     appt.setField(Appointment::Location, location) ;
@@ -410,6 +427,7 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
     QJsonObject root ;
     QString url ;
     QString jsonresponse ;
+    appointmentconflict = false ;
 
     // Override action for deletions
     if (appt.isSet(Appointment::Deleted))
@@ -437,11 +455,32 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
         // Error
     }
 
+    // The ETag the change is made against (issue #86).  Google refuses it if its copy has changed since.  An entry with no
+    // ETag, but a snapshot, is checked against Google's copy first, so Google's change is not overwritten.  An entry with
+    // neither is sent against any version, as before.
+    QString ifmatch = "*" ;
+    if (action==GoogleAccess::Put || action==GoogleAccess::Delete) {
+        ifmatch = appt.googleEtag() ;
+        if (ifmatch.isEmpty() && appt.hasGoogleSnapshot()) {
+            ConflictOutcome outcome = resolveAppointmentConflict(appt, ifmatch) ;
+            if (outcome==ReadFailed) return false ;
+            if (outcome==KeptGoogleVersion) return true ;
+        }
+        if (ifmatch.isEmpty()) ifmatch = "*" ;
+    }
+
     // Process Request
     if (action==GoogleAccess::Delete) {
 
         // Delete
-        googlePutPostDelete(url, GoogleAccess::Delete, "", "updateAppointment-Delete") ;
+        googlePutPostDelete(url, GoogleAccess::Delete, "", "updateAppointment-Delete", ifmatch) ;
+        if (getNetworkErrorCode()==412) {
+            // Google's copy has changed since the ETag sent: the snapshot decides whether to send the deletion again
+            ConflictOutcome outcome = resolveAppointmentConflict(appt, ifmatch) ;
+            if (outcome==ReadFailed) return false ;
+            if (outcome==KeptGoogleVersion) return true ;
+            googlePutPostDelete(url, GoogleAccess::Delete, "", "updateAppointment-Delete-resend", ifmatch) ;
+        }
 
         // If successful, update local status to indicate Google Record has been deleted
         if (!isConnectionError()) {
@@ -529,7 +568,14 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
         QString jsontext = doc.toJson() ;
 
         // createnew = POST, Update = PUT
-        jsonresponse = googlePutPostDelete(url, action, jsontext, "updateAppointment-PutPost") ;
+        jsonresponse = googlePutPostDelete(url, action, jsontext, "updateAppointment-PutPost", ifmatch) ;
+        if (action==GoogleAccess::Put && getNetworkErrorCode()==412) {
+            // Google's copy has changed since the ETag sent: the snapshot decides whether to send the change again
+            ConflictOutcome outcome = resolveAppointmentConflict(appt, ifmatch) ;
+            if (outcome==ReadFailed) return false ;
+            if (outcome==KeptGoogleVersion) return true ;
+            jsonresponse = googlePutPostDelete(url, action, jsontext, "updateAppointment-PutPost-resend", ifmatch) ;
+        }
 
     }
 
@@ -550,6 +596,7 @@ bool GoogleAccess::updateAppointment(Appointment &appt, googleAction action)
             if (apptresponse.matches(sent, Appointment::maDetails|Appointment::maId)) {
                 // The details match, so only the Google record details change: that does not restart the wait after an edit
                 appt.copyFromKeepingUpdated(apptresponse, Appointment::maDetails|Appointment::maGoogleAcct) ;
+                appt.setGoogleEtag(apptresponse.googleEtag()) ;
 
                 // The upload carries the sent state, so it is no longer pending
                 appt.setSentField(Appointment::LedgerPending, QString()) ;
@@ -593,8 +640,47 @@ bool GoogleAccess::updateSentState(Appointment &appt)
 
     QJsonDocument doc ;
     doc.setObject(root) ;
-    googlePutPostDelete(url, GoogleAccess::Patch, doc.toJson(), "updateSentState") ;
-    return getNetworkError().isEmpty() ;
+    QString json = googlePutPostDelete(url, GoogleAccess::Patch, doc.toJson(), "updateSentState") ;
+    if (!getNetworkError().isEmpty()) return false ;
+
+    // Writing the sent state changes the event's ETag, so the new one is kept for the next change to it (issue #86)
+    QJsonObject reply = QJsonDocument::fromJson(json.toUtf8()).object() ;
+    appt.setGoogleEtag(reply["etag"].toString()) ;
+    return true ;
+}
+
+//=====================================================================================================
+//
+// Public: GoogleAccess - resolveAppointmentConflict
+//
+//  Google refused a change, or the entry had no ETag: Google's copy has changed since the entry was last read (issue #86).
+//  Reads Google's copy and compares its details with the snapshot.  If they are still the snapshot's, Google's change was not to
+//  the details, so the change is sent again with Google's new ETag (ResendWithEtag).  Otherwise Google's version is kept: the
+//  entry takes Google's details, and the local change is not sent (KeptGoogleVersion).  ReadFailed when Google's copy cannot be
+//  read.
+//
+GoogleAccess::ConflictOutcome GoogleAccess::resolveAppointmentConflict(Appointment &appt, QString &etag)
+{
+    Appointment current ;
+    if (!getEventSentState(appt, current)) return ReadFailed ;
+
+    // The snapshot is what Google held, so it is compared with the entry's details, not with its deletion (which is the change)
+    Appointment snapshot ;
+    bool hassnapshot = appt.googleSnapshotCopy(snapshot) ;
+    if (hassnapshot) snapshot.setFlag(Appointment::Deleted, false) ;
+    if (hassnapshot && !current.googleEtag().isEmpty() && current.matches(snapshot, Appointment::maDetails)) {
+        etag = current.googleEtag() ;
+        addLog(QString("CONFLICT CHECK (%1): Google's details are unchanged, so the change is sent again").arg(appt.getField(Appointment::ID))) ;
+        return ResendWithEtag ;
+    }
+
+    // Google's version is kept
+    appt.copyFromKeepingUpdated(current, Appointment::maDetails|Appointment::maGoogleAcct) ;
+    appt.setGoogleEtag(current.googleEtag()) ;
+    appt.setGoogleSnapshot(current) ;
+    appointmentconflict = true ;
+    addLog(QString("CONFLICT (%1): Google's copy has changed since the last sync, so Google's version is kept").arg(appt.getField(Appointment::ID))) ;
+    return KeptGoogleVersion ;
 }
 
 //=====================================================================================================

@@ -178,13 +178,14 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
     if (watched==ui->listCalendar && event->type()==QEvent::KeyPress) {
         QKeyEvent *key = static_cast<QKeyEvent *>(event) ;
         if (key->modifiers()==Qt::NoModifier) {
+            if (key->key()==Qt::Key_W) { calendarWeekKey() ; return true ; }
             if (key->key()==Qt::Key_T) { on_actionGotoToday_triggered() ; return true ; }
             if (key->key()==Qt::Key_D) { on_actionGotoDate_triggered() ; return true ; }
 
             // A digit opens a text entry for the date, with the digit already in it (issue #92)
-            // A day of the month can start with 0 to 3 only, so only those digits open the date entry.  The digit is taken from
-            // the key, not from the text, which is empty for some keys and keyboards
-            if (key->key()>=Qt::Key_0 && key->key()<=Qt::Key_3) {
+            // Any digit opens the date entry, as a date can start with any of them ("9 mar").  The digit is taken from the key,
+            // not from the text, which is empty for some keys and keyboards
+            if (key->key()>=Qt::Key_0 && key->key()<=Qt::Key_9) {
                 gotoTypedCalendarDate(QString(QChar('0' + (key->key()-Qt::Key_0)))) ;
                 return true ;
             }
