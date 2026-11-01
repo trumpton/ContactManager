@@ -2454,6 +2454,20 @@ def l05():
                   "")]
 
 
+@scenario("L06", "#101: the accessibility debug checkbox in the screen reader text dialog turns console tracing on and off")
+def l06():
+    set_mode(CM_MASTER)
+    b = Run("L06", [{"op": "call", "name": "l06", "fn": "showacc"},
+                    {"op": "accdebug", "name": "l06on", "value": True},
+                    {"op": "accdebug", "name": "l06off", "value": False}, dump()]).execute()
+    res = b.dump_file("results.json")
+    log = open(os.path.join(b.dir, "stdout.log"), errors="replace").read()
+    return [Check("the checkbox is ticked", res.get("l06on_box") is True, "box %r" % res.get("l06on_box")),
+            Check("and cleared again", res.get("l06off_box") is False, "box %r" % res.get("l06off_box")),
+            Check("switching on is logged to the console", "AccessibleDebug on" in log, ""),
+            Check("switching off is logged to the console", "AccessibleDebug off" in log, "")]
+
+
 def run_path(run_name, name):
     return os.path.join(RUNS, run_name, name)
 

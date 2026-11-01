@@ -15,6 +15,7 @@
 //
 #include <QApplication>
 #include <QLabel>
+#include <QCheckBox>
 #include <QTimer>
 #include <QTest>
 #include <QAction>
@@ -557,6 +558,12 @@ int main(int argc, char *argv[])
             record(op["name"].toString() + "_text", QJsonValue(e ? e->toPlainText() : QString("NONE"))) ;
             QLabel *note = w.accessibleinfo.isNull() ? nullptr : w.accessibleinfo->findChild<QLabel*>("AccessibleInfoNote") ;
             record(op["name"].toString() + "_note", QJsonValue(note ? note->text() : QString("NONE"))) ;
+
+        } else if (kind == "accdebug") {
+            // Sets the accessibility debug checkbox of the screen reader text dialog, and records what it now shows
+            QCheckBox *cb = w.accessibleinfo.isNull() ? nullptr : w.accessibleinfo->findChild<QCheckBox*>("AccessibleDebugCheck") ;
+            if (cb) cb->setChecked(op["value"].toBool()) ;
+            record(op["name"].toString() + "_box", QJsonValue(cb ? cb->isChecked() : false)) ;
 
         } else if (kind == "measure") {
             // Records where the current row sits in the list, without changing anything
