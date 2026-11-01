@@ -6,6 +6,7 @@
 #include <QApplication>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QLabel>
 #include <QMetaEnum>
 #include <QPlainTextEdit>
 #include <QTimer>
@@ -97,12 +98,13 @@ void MainWindow::updateAccessibleInfo()
 void MainWindow::on_actionShowAccessibleText_triggered()
 {
     if (!accessibleinfo.isNull()) {
+        // Raised, not activated: the dialog does not take the focus, so the text stays for the control that has it
         accessibleinfo->raise() ;
-        accessibleinfo->activateWindow() ;
         return ;
     }
 
-    // The control that had the focus is the one described, as the dialog takes the focus when it opens
+    // The control that has the focus is the one described.  The dialog does not take the focus when it opens, so it stays
+    // on that control (issue #101)
     accessibleinfotarget = QApplication::focusWidget() ;
 
     QDialog *dialog = new QDialog(this) ;
@@ -111,6 +113,13 @@ void MainWindow::on_actionShowAccessibleText_triggered()
     dialog->setAttribute(Qt::WA_DeleteOnClose) ;
 
     QVBoxLayout *layout = new QVBoxLayout(dialog) ;
+
+    // The text is an approximation, so the dialog says so, as the screen reader is not the same
+    QLabel *note = new QLabel("This is an approximation. A screen reader builds its own speech and braille from these parts, with its own wording.", dialog) ;
+    note->setObjectName("AccessibleInfoNote") ;
+    note->setWordWrap(true) ;
+    layout->addWidget(note) ;
+
     QPlainTextEdit *edit = new QPlainTextEdit(dialog) ;
     edit->setObjectName("AccessibleInfoText") ;
     edit->setReadOnly(true) ;
@@ -137,5 +146,6 @@ void MainWindow::on_actionShowAccessibleText_triggered()
     timer->start(300) ;
 
     updateAccessibleInfo() ;
+    dialog->setAttribute(Qt::WA_ShowWithoutActivating) ;
     dialog->show() ;
 }

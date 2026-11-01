@@ -2441,6 +2441,19 @@ def bench_event(summary):
     return [e for e in bench_events() if e["summary"] == summary]
 
 
+@scenario("L05", "#101: Show Screen Reader Text: shows the name, role, value and description of the focused control, and says it is an approximation")
+def l05():
+    set_mode(CM_MASTER)
+    b = Run("L05", [{"op": "call", "name": "l05", "fn": "showacc"}, {"op": "accinfo", "name": "l05"}, dump()]).execute()
+    text = b.dump_file("results.json").get("l05_text", "NONE")
+    return [Check("the dialog opens", text != "NONE", "no dialog text recorded"),
+            Check("it shows the control that had the focus", "Control: listCalendar" in text, text[:120]),
+            Check("it shows name, role, value and description", all(k in text for k in ("Name:", "Role:", "Value:", "Description:")),
+                  text[:200]),
+            Check("it says the text is an approximation", "approximation" in b.dump_file("results.json").get("l05_note", "").lower(),
+                  "")]
+
+
 def run_path(run_name, name):
     return os.path.join(RUNS, run_name, name)
 
