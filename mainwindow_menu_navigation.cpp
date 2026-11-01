@@ -76,6 +76,37 @@ void MainWindow::applyCalendarQuarter()
 }
 
 //
+// calendarWeekKey, finishCalendarWeeks
+//
+// w moves the calendar to a week on from the day selected when the first w of a run is pressed.  Each w pressed within two
+// seconds of the last adds a week, so ww is two weeks on, www three and wwww four.  The move is made when the run ends, so a run
+// of five or more beeps and does nothing.  A run is also ended by any other key.
+//
+void MainWindow::calendarWeekKey()
+{
+    if (calendarweeks==0) {
+        int row = ui->listCalendar->currentIndex().row() ;
+        calendarweekbase = (row>=0 && row<calendarrowstarts.size()) ? calendarrowstarts[row].toLocalTime().date() : QDate::currentDate() ;
+    }
+    calendarweeks++ ;
+    calendarweektimer->start() ;
+}
+
+void MainWindow::finishCalendarWeeks()
+{
+    calendarweektimer->stop() ;
+    int weeks = calendarweeks ;
+    calendarweeks = 0 ;
+    if (weeks<=0) return ;
+    if (weeks>4) {
+        play(Error) ;
+        return ;
+    }
+    calendarFilterOff() ;
+    gotoCalendarDate(calendarweekbase.addDays(7*weeks)) ;
+}
+
+//
 // on_actionGotoToday_triggered
 //
 void MainWindow::on_actionGotoToday_triggered()

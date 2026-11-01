@@ -177,7 +177,10 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
     // so that the keys are not taken from the Control shortcuts.  Enter is left to the list, which switches to the contact.
     if (watched==ui->listCalendar && event->type()==QEvent::KeyPress) {
         QKeyEvent *key = static_cast<QKeyEvent *>(event) ;
+        // A key other than w ends a run of w's, and the move for the run is made first
+        if (key->key()!=Qt::Key_W && calendarweeks>0) finishCalendarWeeks() ;
         if (key->modifiers()==Qt::NoModifier) {
+            if (key->key()==Qt::Key_W) { calendarWeekKey() ; return true ; }
             if (key->key()==Qt::Key_T) { on_actionGotoToday_triggered() ; return true ; }
             if (key->key()==Qt::Key_D) { on_actionGotoDate_triggered() ; return true ; }
 
