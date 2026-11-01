@@ -259,6 +259,7 @@ public:
     // before the edge has its start moved to the first occurrence that is still in the window.
     bool isExpiredBefore(QDateTime lower) ;
     bool hasStart() ;               // A real start: not empty, and after the epoch (an entry with none starts at 1970)
+    bool hasEnd() ;                 // A real end: after the epoch, and not before the start (Google refuses any other, issue #107)
     bool hasNoOccurrences() ;       // A repeat with no occurrence left, not even its first: each exception leaves one out
     bool trimRepeatBefore(QDateTime lower) ;
 

@@ -252,7 +252,9 @@ class Run:
         with open(os.path.join(self.dir, "ops.json"), "w") as f:
             json.dump(ops, f, indent=1)
 
-    def execute(self):
+    def execute(self, max_writes=None):
+        """Runs the driver.  With max_writes, the run is stopped once the app has sent that many updates or creations to
+        Google: a safety limit for a test that could otherwise send far more than it expects (the run is then marked aborted)."""
         secret = os.environ.get("CM_TEST_SECRET", "")
         if not secret:
             raise SystemExit("set CM_TEST_SECRET to the local test password")
@@ -261,14 +263,33 @@ class Run:
         env.pop("XDG_CONFIG_HOME", None)
         if self.tz:
             env["TZ"] = self.tz
-        subprocess.run([DRIVER, self.dir, os.path.join(self.dir, "ops.json")], env=env,
-                       stdout=open(os.path.join(self.dir, "stdout.log"), "w"), stderr=subprocess.STDOUT,
-                       timeout=900, check=False, cwd=self.workdir)
+        self.aborted = False
+        log = os.path.join(self.dir, "stdout.log")
+        with open(log, "w") as out:
+            proc = subprocess.Popen([DRIVER, self.dir, os.path.join(self.dir, "ops.json")], env=env,
+                                    stdout=out, stderr=subprocess.STDOUT, cwd=self.workdir)
+            started = time.time()
+            while proc.poll() is None:
+                if max_writes is not None and self.writes_sent(log) > max_writes:
+                    proc.kill() ; proc.wait() ; self.aborted = True
+                    break
+                if time.time() - started > 900:
+                    proc.kill() ; proc.wait() ; break
+                time.sleep(0.5)
         path = os.path.join(self.dir, "dump.json")
         if os.path.exists(path):
             with open(path) as f:
                 self.dump = json.load(f)
         return self
+
+    def writes_sent(self, log):
+        """How many updates and creations the app has sent to Google so far, from the driver's log."""
+        try:
+            with open(log, errors="replace") as f:
+                text = f.read()
+        except OSError:
+            return 0
+        return text.count("TIMING http PUT updateAppointment") + text.count("TIMING http POST updateAppointment")
 
     def dump_file(self, name):
         with open(os.path.join(self.dir, name)) as f:
@@ -2566,6 +2587,64 @@ def c103():
             Check("the calendar's current entry is the same after the sync",
                   cm.get("cm_before_entry") == cm.get("cm_after_entry"),
                   "before %r, after %r" % (cm.get("cm_before_entry"), cm.get("cm_after_entry")))]
+
+
+def calendar_report(run):
+    """The text of a run's sync reports, as written by the app."""
+    return "".join(open(os.path.join(run.dir, f), errors="replace").read()
+                   for f in sorted(os.listdir(run.dir)) if f.startswith("report"))
+
+
+def http_count(run, verb, what):
+    """How many Google requests of this kind the app made in a run (from its driver log)."""
+    text = open(os.path.join(run.dir, "stdout.log"), errors="replace").read()
+    return text.count("TIMING http %s %s status=" % (verb, what))
+
+
+@scenario("N107", "#107: an appointment with no end time, or one ending on 1 Jan 1970, is not uploaded; the sync completes and the others reach Google")
+def n107():
+    set_mode(CM_MASTER)
+    run = Run("N107", [
+        {"op": "add_appointment", "fields": {"summary": "BENCH N107 noend", "from": at_day(31, "09:00")}},
+        {"op": "add_appointment", "fields": {"summary": "BENCH N107 epoch", "from": at_day(32, "09:00"),
+                                             "to": "1970-01-01T00:00:00Z"}},
+        {"op": "add_appointment", "fields": {"summary": "BENCH N107 ok", "from": at_day(33, "09:00"),
+                                             "to": at_day(33, "10:00")}},
+        sync(), dump()]).execute()
+    report = calendar_report(run)
+    return [Check("the calendar sync completes", "CALENDAR SYCHRONISATION SUCCESS" in report and "FAILED" not in report,
+                  "report ends: %r" % report[-120:]),
+            Check("the appointment with a valid end reaches Google", len(bench_event("BENCH N107 ok")) == 1,
+                  "Google holds %d" % len(bench_event("BENCH N107 ok"))),
+            Check("no end time: not uploaded", not bench_event("BENCH N107 noend"),
+                  "Google holds %d" % len(bench_event("BENCH N107 noend"))),
+            Check("1 Jan 1970 end: not uploaded", not bench_event("BENCH N107 epoch"),
+                  "Google holds %d" % len(bench_event("BENCH N107 epoch"))),
+            Check("the report says why they were not uploaded", "no end time" in report, "")]
+
+
+@scenario("N108", "#108: with the last calendar sync back at the epoch (as after a failed sync), the next sync sends only the appointment that was edited, not the ones it downloaded")
+def n108():
+    set_mode(CM_MASTER)
+    for i in range(40):
+        create_event("BENCH N108 %02d" % i, at_day(40 + i, "09:00"), at_day(40 + i, "10:00"), location="Room")
+    # The first sync downloads the 40
+    Run("N108a", [sync(), dump()], session="N108").execute()
+    # A failed sync leaves the last-sync date at the epoch, so the next sync is run with it at the epoch.  One of the 40 is
+    # edited in the app: that is the only change that should be sent
+    b = Run("N108b", [{"op": "setting", "key": "lastgooglecalendarsyncdate", "value": ""},
+                      edit_op("BENCH N108 05", location="Room Edited"), sync(), dump()], session="N108").execute(max_writes=20)
+    puts = http_count(b, "PUT", "updateAppointment")
+    edited = bench_event("BENCH N108 05")
+    return [Check("the run was not stopped for sending too many updates (more than 20)", not b.aborted,
+                  "%d updates sent before it was stopped" % puts),
+            Check("the next sync completes", "FAILED" not in calendar_report(b), ""),
+            Check("only the edited appointment is sent to Google", puts == 1, "%d updates sent" % puts),
+            Check("the edit reaches Google", len(edited) == 1 and edited[0].get("location") == "Room Edited",
+                  "Google: %s" % [e.get("location") for e in edited]),
+            Check("the other 39 are unchanged on Google", all(
+                len(bench_event("BENCH N108 %02d" % i)) == 1 and bench_event("BENCH N108 %02d" % i)[0].get("location") == "Room"
+                for i in range(40) if i != 5), "")]
 
 
 def run_path(run_name, name):
