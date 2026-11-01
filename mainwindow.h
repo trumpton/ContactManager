@@ -106,7 +106,7 @@ private slots:
     void calendarWeekKey() ;                 // w in the calendar list: a week on, and each w within two seconds adds one (issue #99)
     void finishCalendarWeeks() ;             // Makes the move for a run of w's, when the run ends
     void showCalendarRowQuarterDown(int row) ;   // Scrolls the calendar list so the row is a quarter of the way down (issue #98)
-    void requestCalendarQuarter() ;              // A shortcut has moved the calendar position: scroll it, once the calendar shows (issue #98)
+    void requestCalendarQuarter(int row = -1) ;  // A shortcut has moved the calendar position to row (default: the current row): scroll it, once the calendar shows (issue #98)
     void applyCalendarQuarter() ;                // Does that scroll, if the calendar is showing and a scroll is pending
     void gotoCalendarDate(QDate wanted) ;    // Goes to a date in the calendar list, or the nearest date before it
     void gotoTypedCalendarDate(QString typed) ;   // A digit in the calendar list: a date typed after it (issue #92)
@@ -196,6 +196,7 @@ private:
     bool showhiddencontacts ;
     bool calendarcontactonly ;          // The calendar list shows only the open contact's entries, while a contact is open
     bool calendarscrollpending ;        // A shortcut has moved the calendar position, and the list is to be scrolled to it when shown (issue #98)
+    int calendarscrollrow ;             // The row that position is at
     int calendarweeks ;                      // The w's in the run being counted
     QDate calendarweekbase ;                 // The day selected when the run began
     QTimer *calendarweektimer ;              // Ends the run two seconds after its last w

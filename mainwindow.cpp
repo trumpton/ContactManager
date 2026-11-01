@@ -36,6 +36,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     showhiddencontacts=false ;
     calendarcontactonly=false ;
     calendarscrollpending=false ;
+    calendarscrollrow=-1 ;
     calendarweeks=0 ;
     calendarweektimer = new QTimer(this) ;
     calendarweektimer->setSingleShot(true) ;
