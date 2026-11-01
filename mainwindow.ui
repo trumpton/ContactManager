@@ -1215,6 +1215,7 @@ p, li { white-space: pre-wrap; }
      <string>&amp;Help</string>
     </property>
     <addaction name="actionManual"/>
+    <addaction name="actionShowAccessibleText"/>
     <addaction name="actionAbout"/>
    </widget>
    <widget class="QMenu" name="menu_Edit">
@@ -1345,6 +1346,11 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="text">
     <string>Edit &amp;History</string>
+   </property>
+  </action>
+  <action name="actionShowAccessibleText">
+   <property name="text">
+    <string>&amp;Show Screen Reader Text</string>
    </property>
   </action>
   <action name="actionManual">
