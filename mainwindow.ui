@@ -1194,6 +1194,8 @@ p, li { white-space: pre-wrap; }
      <addaction name="actionShowDeletedAppointments"/>
      <addaction name="actionShowDeletedContacts"/>
      <addaction name="actionShowHiddenContacts"/>
+     <addaction name="separator"/>
+     <addaction name="actionShowAccessibleText"/>
     </widget>
     <addaction name="actionOpen"/>
     <addaction name="actionSave"/>
@@ -1215,7 +1217,6 @@ p, li { white-space: pre-wrap; }
      <string>&amp;Help</string>
     </property>
     <addaction name="actionManual"/>
-    <addaction name="actionShowAccessibleText"/>
     <addaction name="actionAbout"/>
    </widget>
    <widget class="QMenu" name="menu_Edit">
