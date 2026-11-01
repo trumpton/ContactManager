@@ -96,7 +96,8 @@ bool GoogleAccess::getCalendar(Calendar &googlecalendar, QStringList *deletedids
     // page at a time (maxResults), so without this later events are missing.
     QString pagetoken ;
     int pagecount=0 ;
-    QList<QPair<QString, QDateTime>> deletedoccurrences ;     // (repeat's Google ID, occurrence start) Google has deleted
+    QList<QPair<QString, QDateTime>> occurrenceexceptions ;  // (repeat's Google ID, occurrence start) Google has cancelled or changed
+    QList<Appointment> changedoccurrences ;                   // An occurrence Google has changed is an entry of its own (issue #102)
     do {
         QString pageurl = url ;
         if (!pagetoken.isEmpty()) pageurl = url + "&pageToken=" + QString(QUrl::toPercentEncoding(pagetoken)) ;
@@ -128,9 +129,14 @@ bool GoogleAccess::getCalendar(Calendar &googlecalendar, QStringList *deletedids
                 // from the repeat, so it is kept, and made an exception of the repeat once every page is read.
                 QString repeatid = item["recurringEventId"].toString().trimmed() ;
                 if (!repeatid.isEmpty()) {
+                    // An occurrence Google has changed, or cancelled, is an exception of its repeat.  A changed occurrence is also
+                    // an entry of its own, as the app keeps a moved occurrence (see changeJustThisOne).  Both were dropped before.
                     QDateTime left = QDateTime::fromString(item["originalStartTime"].toObject()["dateTime"].toString(), Qt::ISODate) ;
-                    if (item["status"].toString()=="cancelled" && left.isValid()) {
-                        deletedoccurrences << QPair<QString, QDateTime>(repeatid, left) ;
+                    if (left.isValid()) {
+                        occurrenceexceptions << QPair<QString, QDateTime>(repeatid, left) ;
+                        if (item["status"].toString()!="cancelled" && parseAppointment(item, appt, account) && !appt.isSet(Appointment::Deleted)) {
+                            changedoccurrences << appt ;
+                        }
                     }
                 } else if (parseAppointment(item, appt, account)) {
                     if (!appt.isSet(Appointment::Deleted)) {
@@ -153,7 +159,7 @@ bool GoogleAccess::getCalendar(Calendar &googlecalendar, QStringList *deletedids
 
     // A repeat that Google has changed only through one of its occurrences is not in an incremental listing.  It is fetched, so
     // that the occurrence can be made an exception of it.
-    for (const QPair<QString, QDateTime> &occurrence : deletedoccurrences) {
+    for (const QPair<QString, QDateTime> &occurrence : occurrenceexceptions) {
         if (!googlecalendar.getAppointmentBy(Appointment::GoogleRecordId, occurrence.first).isNull()) continue ;
         Appointment repeat ;
         repeat.setField(Appointment::GoogleRecordId, occurrence.first) ;
@@ -162,10 +168,15 @@ bool GoogleAccess::getCalendar(Calendar &googlecalendar, QStringList *deletedids
         }
     }
 
-    // Google's deleted occurrences of a repeat are exceptions of the repeat, so the app leaves them out too
-    for (const QPair<QString, QDateTime> &occurrence : deletedoccurrences) {
+    // Google's changed and cancelled occurrences of a repeat are exceptions of the repeat, so the app leaves them out too
+    for (const QPair<QString, QDateTime> &occurrence : occurrenceexceptions) {
         Appointment &repeat = googlecalendar.getAppointmentBy(Appointment::GoogleRecordId, occurrence.first) ;
         if (!repeat.isNull()) repeat.addException(occurrence.second) ;
+    }
+
+    // A changed occurrence is listed as an entry of its own, with its new times
+    for (Appointment &changed : changedoccurrences) {
+        googlecalendar.addAppointment(changed, false) ;
     }
 
     dbg(QString("TIMING getCalendar: %1 page(s), %2 events, %3 cancelled, %4 listing").arg(pagecount).arg(googlecalendar.size())
