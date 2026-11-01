@@ -565,6 +565,14 @@ int main(int argc, char *argv[])
             if (cb) cb->setChecked(op["value"].toBool()) ;
             record(op["name"].toString() + "_box", QJsonValue(cb ? cb->isChecked() : false)) ;
 
+        } else if (kind == "state") {
+            // Records what the screen shows: the window title, the contact on the form (its surname, or none), and the calendar's current entry
+            QString name = op["name"].toString() ;
+            record(name + "_title", QJsonValue(w.windowTitle())) ;
+            record(name + "_loaded", QJsonValue(w.db.getSelected().isNull() ? QString("none") : w.db.getSelected().getField(Contact::Surname))) ;
+            QModelIndex ci = w.ui->listCalendar->currentIndex() ;
+            record(name + "_entry", QJsonValue(ci.isValid() ? w.calendarlist.data(ci, Qt::AccessibleTextRole).toString() : QString("none"))) ;
+
         } else if (kind == "measure") {
             // Records where the current row sits in the list, without changing anything
             QString name = op["name"].toString() ;

@@ -2538,6 +2538,36 @@ def e03():
                   "app: %s" % [a["location"] for a in local])]
 
 
+def state_op(name):
+    """Records what the screen shows: the window title, the contact on the form, and the calendar's current entry."""
+    return {"op": "state", "name": name}
+
+
+@scenario("C103", "#103: the contact on the form stays loaded through a sync, in ContactManager master and in Google master, and the calendar entry does not move")
+def c103():
+    set_mode(CM_MASTER)
+    Run("C103a", [add_contact_op("C103", email="c103@test.invalid"), sync(), dump()], session="C103").execute()
+    cm = Run("C103b", [{"op": "open_contact", "match": {"surname": "C103"}}, {"op": "setrow", "row": 40}, state_op("cm_before"), sync(),
+                       state_op("cm_after"), dump()], session="C103").execute().dump_file("results.json")
+    set_mode(GOOGLE_MASTER)
+    gm = Run("C103c", [{"op": "open_contact", "match": {"surname": "C103"}}, {"op": "setrow", "row": 40}, state_op("gm_before"), sync(),
+                       state_op("gm_after"), dump()], session="C103").execute().dump_file("results.json")
+    set_mode(CM_MASTER)
+    return [Check("ContactManager master: the contact stays loaded through the sync",
+                  cm.get("cm_after_loaded") == "C103", "loaded: %r" % cm.get("cm_after_loaded")),
+            Check("ContactManager master: the window still shows the contact",
+                  "C103" in str(cm.get("cm_after_title", "")), "title: %r" % cm.get("cm_after_title")),
+            Check("Google master: the contact stays loaded through the sync",
+                  gm.get("gm_after_loaded") == "C103", "loaded: %r" % gm.get("gm_after_loaded")),
+            Check("Google master: the window still shows the contact",
+                  "C103" in str(gm.get("gm_after_title", "")), "title: %r" % gm.get("gm_after_title")),
+            Check("the calendar has a current entry to keep (row 40, away from the top)", cm.get("cm_before_entry", "none") != "none",
+                  "entry: %r" % cm.get("cm_before_entry")),
+            Check("the calendar's current entry is the same after the sync",
+                  cm.get("cm_before_entry") == cm.get("cm_after_entry"),
+                  "before %r, after %r" % (cm.get("cm_before_entry"), cm.get("cm_after_entry")))]
+
+
 def run_path(run_name, name):
     return os.path.join(RUNS, run_name, name)
 

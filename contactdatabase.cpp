@@ -128,6 +128,10 @@ int ContactDatabase::tidyDeleted(int &linked)
     // Save first, so the files match what is in memory
     save() ;
 
+    // The contact on screen is kept selected: removing the deleted contacts renumbers the others, so it is found again by its ID
+    // (issue #103)
+    QString selectedid = getSelected().isNull() ? QString() : getSelected().getField(Contact::ID) ;
+
     for (int i=contacts.size()-1; i>=0; i--) {
         Contact &c = contacts[i] ;
         if (!c.isSet(Contact::Deleted)) continue ;
@@ -144,8 +148,19 @@ int ContactDatabase::tidyDeleted(int &linked)
         archived++ ;
     }
 
-    selectedcontact = -1 ;
+    selectedcontact = indexOfContact(selectedid) ;
     return archived ;
+}
+
+// The position of the contact with this ID, found by searching the list (-1 when there is none).  Searched, not looked up, as the
+// index of IDs is not kept up to date while contacts are removed.
+int ContactDatabase::indexOfContact(QString id)
+{
+    if (id.isEmpty()) return -1 ;
+    for (int i=0; i<contacts.size(); i++) {
+        if (contacts[i].getField(Contact::ID) == id) return i ;
+    }
+    return -1 ;
 }
 
 //=====================================================================================================
