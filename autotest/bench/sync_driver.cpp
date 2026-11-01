@@ -14,6 +14,7 @@
 // wait, key and the list-navigation operations).  Built by build_driver.sh.
 //
 #include <QApplication>
+#include <QLabel>
 #include <QTimer>
 #include <QTest>
 #include <QAction>
@@ -554,6 +555,8 @@ int main(int argc, char *argv[])
             // Reads the text of the screen reader text dialog
             QPlainTextEdit *e = w.accessibleinfo.isNull() ? nullptr : w.accessibleinfo->findChild<QPlainTextEdit*>("AccessibleInfoText") ;
             record(op["name"].toString() + "_text", QJsonValue(e ? e->toPlainText() : QString("NONE"))) ;
+            QLabel *note = w.accessibleinfo.isNull() ? nullptr : w.accessibleinfo->findChild<QLabel*>("AccessibleInfoNote") ;
+            record(op["name"].toString() + "_note", QJsonValue(note ? note->text() : QString("NONE"))) ;
 
         } else if (kind == "measure") {
             // Records where the current row sits in the list, without changing anything
