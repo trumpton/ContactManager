@@ -136,11 +136,11 @@ bool GoogleAccess::getCalendar(Calendar &googlecalendar, QStringList *deletedids
                         occurrenceexceptions << QPair<QString, QDateTime>(repeatid, left) ;
                         // An entry with no start is not stored (issue #104)
                         if (item["status"].toString()!="cancelled" && parseAppointment(item, appt, account) && !appt.isSet(Appointment::Deleted)
-                                && !appt.getField(Appointment::From).isEmpty()) {
+                                && appt.hasStart()) {
                             changedoccurrences << appt ;
                         }
                     }
-                } else if (parseAppointment(item, appt, account) && (appt.isSet(Appointment::Deleted) || !appt.getField(Appointment::From).isEmpty())) {
+                } else if (parseAppointment(item, appt, account) && (appt.isSet(Appointment::Deleted) || appt.hasStart())) {
                     // A cancelled entry is kept, as it may have no start.  An entry with no start is not stored (issue #104)
                     if (!appt.isSet(Appointment::Deleted)) {
                         googlecalendar.addAppointment(appt, false) ;
@@ -168,7 +168,7 @@ bool GoogleAccess::getCalendar(Calendar &googlecalendar, QStringList *deletedids
         repeat.setField(Appointment::GoogleRecordId, occurrence.first) ;
         // A repeat with no start is not stored (issue #104)
         if (getAppointment(repeat) && !repeat.getField(Appointment::ID).isEmpty() && !repeat.isSet(Appointment::Deleted)
-                && !repeat.getField(Appointment::From).isEmpty()) {
+                && repeat.hasStart()) {
             googlecalendar.addAppointment(repeat, false) ;
         }
     }

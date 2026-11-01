@@ -137,7 +137,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
         } else {
             // Read-only entries (from another Google calendar) are only ever downloaded
             // An entry with no real start is never uploaded, as it would make a blank event on Google (issue #104)
-            bool hasstart = !localappt.getField(Appointment::From).isEmpty() && localappt.getDate(Appointment::From).toSecsSinceEpoch() > 0 ;
+            bool hasstart = localappt.hasStart() ;
             bool uploadentry = upload && hasstart && !localappt.isSet(Appointment::InternetOwned) ;
             localappt.setFlag(Appointment::ToBeDownloaded, !uploadentry) ;
             localappt.setFlag(Appointment::ToBeUploaded, uploadentry) ;
@@ -340,7 +340,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                 // Download Details from Google
                 // A local entry with nothing on Google, such as one outside the window, has nothing to download, so it is kept as
                 // it is.  Copying the empty entry over it blanked it (issue #104).
-                bool nogoogle = googleappt.isNull() || (!googleappt.isSet(Appointment::Deleted) && googleappt.getField(Appointment::From).isEmpty()) ;
+                bool nogoogle = googleappt.isNull() || (!googleappt.isSet(Appointment::Deleted) && !googleappt.hasStart()) ;
                 if (localappt.isSet(Appointment::ToBeDownloaded) && nogoogle) {
                     localappt.setFlag(Appointment::ToBeDownloaded, false) ;
                 } else if (localappt.isSet(Appointment::ToBeDownloaded)) {
@@ -550,7 +550,7 @@ void GoogleUpdateDialog::reconcileArchive(Calendar &cal, Calendar &googlecal, co
         // Not in this listing: left as it is, and not downloaded
         // An entry with no start is not used: copying it would blank the archived copy (issue #104)
         Appointment &googleappt = googlecal.getAppointmentBy(Appointment::ID, id) ;
-        if (googleappt.isNull() || googleappt.isSet(Appointment::Deleted) || googleappt.getField(Appointment::From).isEmpty()) {
+        if (googleappt.isNull() || googleappt.isSet(Appointment::Deleted) || !googleappt.hasStart()) {
             archivedids.insert(id) ;
             continue ;
         }

@@ -244,6 +244,7 @@ public:
     // for a repeat, when no occurrence that is not removed ends at or after it.  A repeat that has expired occurrences
     // before the edge has its start moved to the first occurrence that is still in the window.
     bool isExpiredBefore(QDateTime lower) ;
+    bool hasStart() ;               // A real start: not empty, and after the epoch (an entry with none starts at 1970)
     bool hasNoOccurrences() ;       // A repeat with no occurrence left, not even its first: each exception leaves one out
     bool trimRepeatBefore(QDateTime lower) ;
 
