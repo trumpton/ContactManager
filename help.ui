@@ -360,7 +360,7 @@
   and contact records.  Its progress window shows a summary of what was changed.
   File > Show > Logs opens the log window.  It is not modal, so you can carry on
   using Contact Manager while it is open, and it shows new entries as they happen.
-  Help > Show Screen Reader Text opens a dialog with the name, role, value and
+  Show > Show Screen Reader Text opens a dialog with the name, role, value and
   description of the control that had the focus, and for the calendar list the
   current entry.  It follows the focus, and updates as values change.  A screen
   reader adds its own wording, so this shows what it is given, not what it says.

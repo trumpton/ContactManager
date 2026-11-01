@@ -93,7 +93,7 @@ private slots:
     void on_actionIncome_triggered() ;
     void on_actionTransactionReport_triggered() ;
     void on_actionManual_triggered();
-    void on_actionShowAccessibleText_triggered() ;   // Help: the screen reader text of the control with the focus (issue #101)
+    void on_actionShowAccessibleText_triggered() ;   // Show: the screen reader text of the control with the focus (issue #101)
     void on_listCalendar_activated(const QModelIndex &index);
     void on_actionExportContacts_triggered();
     void on_actionExportAppointments_triggered();
@@ -178,7 +178,7 @@ private:
     QList<QDateTime> calendarrowends ;              // The end of each row in the calendar list, so Goto Today can find the nearest
     QList<QDateTime> calendarrowstarts ;            // The start of each row in the calendar list, so Goto Date can find a date
     QStringList calendarrowcontacts ;               // The contact of each row in the calendar list, so the next entry for a contact can be found
-    QPointer<QDialog> accessibleinfo ;              // Help > Show Screen Reader Text, while it is open (issue #101)
+    QPointer<QDialog> accessibleinfo ;              // Show > Show Screen Reader Text, while it is open (issue #101)
     QPointer<QWidget> accessibleinfotarget ;        // The control the screen reader text is for: the one with the focus before the dialog opened
     void updateAccessibleInfo() ;                   // Sets the text of that dialog from the control, if it has changed
     bool titledEntriesHeld ;                        // An email or phone entry was refused: the form is not reloaded until it is fixed

@@ -38,7 +38,7 @@ void MainWindow::on_actionManual_triggered()
 //
 // on_actionShowAccessibleText_triggered
 //
-// Help > Show Screen Reader Text (issue #101).  A dialog shows the name, role, value and description that the control with the
+// Show > Show Screen Reader Text (issue #101).  A dialog shows the name, role, value and description that the control with the
 // focus is given for a screen reader.  A screen reader builds its speech and braille from these, adding its own wording, so the
 // text is an approximation.  For the calendar list, the current entry is shown as well.  The text follows the focus, and changes
 // as values change.
