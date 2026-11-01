@@ -958,6 +958,11 @@ static int firstOccurrenceEndingFrom(Appointment &appt, QDateTime lower)
     return -1 ;
 }
 
+bool Appointment::hasStart()
+{
+    return !getField(Appointment::From).isEmpty() && getDate(Appointment::From).toSecsSinceEpoch() > 0 ;
+}
+
 bool Appointment::isExpiredBefore(QDateTime lower)
 {
     if (!isRepeating()) {
