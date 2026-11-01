@@ -134,11 +134,14 @@ bool GoogleAccess::getCalendar(Calendar &googlecalendar, QStringList *deletedids
                     QDateTime left = QDateTime::fromString(item["originalStartTime"].toObject()["dateTime"].toString(), Qt::ISODate) ;
                     if (left.isValid()) {
                         occurrenceexceptions << QPair<QString, QDateTime>(repeatid, left) ;
-                        if (item["status"].toString()!="cancelled" && parseAppointment(item, appt, account) && !appt.isSet(Appointment::Deleted)) {
+                        // An entry with no start is not stored (issue #104)
+                        if (item["status"].toString()!="cancelled" && parseAppointment(item, appt, account) && !appt.isSet(Appointment::Deleted)
+                                && !appt.getField(Appointment::From).isEmpty()) {
                             changedoccurrences << appt ;
                         }
                     }
-                } else if (parseAppointment(item, appt, account)) {
+                } else if (parseAppointment(item, appt, account) && (appt.isSet(Appointment::Deleted) || !appt.getField(Appointment::From).isEmpty())) {
+                    // A cancelled entry is kept, as it may have no start.  An entry with no start is not stored (issue #104)
                     if (!appt.isSet(Appointment::Deleted)) {
                         googlecalendar.addAppointment(appt, false) ;
                     } else if (deletedids) {
@@ -163,7 +166,9 @@ bool GoogleAccess::getCalendar(Calendar &googlecalendar, QStringList *deletedids
         if (!googlecalendar.getAppointmentBy(Appointment::GoogleRecordId, occurrence.first).isNull()) continue ;
         Appointment repeat ;
         repeat.setField(Appointment::GoogleRecordId, occurrence.first) ;
-        if (getAppointment(repeat) && !repeat.getField(Appointment::ID).isEmpty() && !repeat.isSet(Appointment::Deleted)) {
+        // A repeat with no start is not stored (issue #104)
+        if (getAppointment(repeat) && !repeat.getField(Appointment::ID).isEmpty() && !repeat.isSet(Appointment::Deleted)
+                && !repeat.getField(Appointment::From).isEmpty()) {
             googlecalendar.addAppointment(repeat, false) ;
         }
     }
