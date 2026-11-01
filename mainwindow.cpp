@@ -38,10 +38,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     calendarscrollpending=false ;
     calendarscrollrow=-1 ;
     calendarweeks=0 ;
-    calendarweektimer = new QTimer(this) ;
-    calendarweektimer->setSingleShot(true) ;
-    calendarweektimer->setInterval(2000) ;
-    connect(calendarweektimer, &QTimer::timeout, this, &MainWindow::finishCalendarWeeks) ;
 
     ui->setupUi(this);
     setupTitledEntries() ;
@@ -191,7 +187,7 @@ void MainWindow::on_initial_focus()
 {
     populateDialog(SELECT_OVERVIEW) ;
     on_tabBar_currentChanged(1) ;
-    on_actionGotoToday_triggered() ;
+    gotoToday(false) ;
     reportClashes() ;
 }
 

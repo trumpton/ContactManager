@@ -103,8 +103,8 @@ private slots:
     void on_actionShowHiddenContacts_triggered(bool checked);
     void toggleCalendarContactFilter() ;     // Space in the calendar list: all entries, or only the open contact's (issue #92)
     void calendarFilterOff() ;               // Moving the date shows all entries again, when the contact filter is on (issue #92)
-    void calendarWeekKey() ;                 // w in the calendar list: a week on, and each w within two seconds adds one (issue #99)
-    void finishCalendarWeeks() ;             // Makes the move for a run of w's, when the run ends
+    void calendarWeekKey() ;                 // w in the calendar list: one more week on from today, for each w since t (issue #99)
+    void gotoToday(bool withsound) ;         // Goes to today in the calendar list; t resets the w count (issue #99)
     void showCalendarRowQuarterDown(int row) ;   // Scrolls the calendar list so the row is a quarter of the way down (issue #98)
     void requestCalendarQuarter(int row = -1) ;  // A shortcut has moved the calendar position to row (default: the current row): scroll it, once the calendar shows (issue #98)
     void applyCalendarQuarter() ;                // Does that scroll, if the calendar is showing and a scroll is pending
@@ -197,9 +197,7 @@ private:
     bool calendarcontactonly ;          // The calendar list shows only the open contact's entries, while a contact is open
     bool calendarscrollpending ;        // A shortcut has moved the calendar position, and the list is to be scrolled to it when shown (issue #98)
     int calendarscrollrow ;             // The row that position is at
-    int calendarweeks ;                      // The w's in the run being counted
-    QDate calendarweekbase ;                 // The day selected when the run began
-    QTimer *calendarweektimer ;              // Ends the run two seconds after its last w
+    int calendarweeks ;                      // The w's pressed since t went to today (issue #99)
 
     // Manage dialog controls / enables etc.
     void UpdateContactsList() ;          // Update drop-down list
