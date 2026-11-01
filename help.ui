@@ -178,10 +178,9 @@
     T or Control-T      Go to today: the first entry from now on
     D or Control-D      Go to a date (a date box, as below)
     0, 1, 2 or 3        Start typing a date (see below)
-    W                   Go a week on from the selected day.  WW is two weeks on,
-                        WWW three weeks and WWWW four weeks.  The move is made two
-                        seconds after the last W, or when another key is pressed.
-                        Five or more W's beep, and do nothing
+    W                   Go a week on from today.  Each W pressed after it goes a
+                        week further on: WW is two weeks on, WWW three, and so on,
+                        with no limit.  T or Control-T starts again from today
     N or Right arrow    Go to the next entry for the open contact
     P or Left arrow     Go to the previous entry for the open contact
     Space               Show only the open contact's entries, or all of them again

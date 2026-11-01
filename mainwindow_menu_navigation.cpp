@@ -78,34 +78,16 @@ void MainWindow::applyCalendarQuarter()
 }
 
 //
-// calendarWeekKey, finishCalendarWeeks
+// calendarWeekKey
 //
-// w moves the calendar to a week on from the day selected when the first w of a run is pressed.  Each w pressed within two
-// seconds of the last adds a week, so ww is two weeks on, www three and wwww four.  The move is made when the run ends, so a run
-// of five or more beeps and does nothing.  A run is also ended by any other key.
+// w goes to a week on from today, and each further w goes a week further on: the first is one week, the second two, and so on,
+// with no limit.  t and Control-T start the count again (issue #99).  Other keys do not change it.
 //
 void MainWindow::calendarWeekKey()
 {
-    if (calendarweeks==0) {
-        int row = ui->listCalendar->currentIndex().row() ;
-        calendarweekbase = (row>=0 && row<calendarrowstarts.size()) ? calendarrowstarts[row].toLocalTime().date() : QDate::currentDate() ;
-    }
     calendarweeks++ ;
-    calendarweektimer->start() ;
-}
-
-void MainWindow::finishCalendarWeeks()
-{
-    calendarweektimer->stop() ;
-    int weeks = calendarweeks ;
-    calendarweeks = 0 ;
-    if (weeks<=0) return ;
-    if (weeks>4) {
-        play(Error) ;
-        return ;
-    }
     calendarFilterOff() ;
-    gotoCalendarDate(calendarweekbase.addDays(7*weeks)) ;
+    gotoCalendarDate(QDate::currentDate().addDays(7*calendarweeks)) ;
 }
 
 //
@@ -113,6 +95,13 @@ void MainWindow::finishCalendarWeeks()
 //
 void MainWindow::on_actionGotoToday_triggered()
 {
+    gotoToday(true) ;
+}
+
+// Goes to today.  The w count starts again, as w goes from today.  The sound is played for a move by the user, not at startup.
+void MainWindow::gotoToday(bool withsound)
+{
+    calendarweeks = 0 ;
     calendarFilterOff() ;
 
     if (ui->tabBar->currentIndex()!=CALENDARTABPOS) {
@@ -138,6 +127,7 @@ void MainWindow::on_actionGotoToday_triggered()
         dbg("listCalendar->setCurrentIndex()") ;
         ui->listCalendar->setCurrentIndex(index) ;
         requestCalendarQuarter(index.row()) ;
+        if (withsound) play(Found) ;
     }
 }
 
@@ -179,6 +169,7 @@ void MainWindow::gotoCalendarDate(QDate wanted)
         dbg("listCalendar->setCurrentIndex()") ;
         ui->listCalendar->setCurrentIndex(index) ;
         requestCalendarQuarter(index.row()) ;
+        play(Found) ;
     }
 }
 
@@ -233,7 +224,7 @@ void MainWindow::gotoTypedCalendarDate(QString typed)
 
     QDate wanted ;
     if (!parseCalendarDate(text, QDate::currentDate(), &wanted)) {
-        play(Error) ;
+        play(NotFound) ;
         return ;
     }
 
@@ -263,10 +254,11 @@ void MainWindow::gotoContactAppointment(int step)
         if (calendarrowcontacts.at(r)==openid) {
             ui->listCalendar->setCurrentIndex(calendarlist.index(r,0)) ;
             requestCalendarQuarter(r) ;
+            play(Found) ;
             return ;
         }
     }
-    play(Error) ;
+    play(NotFound) ;
     msg(step>0 ? "No later appointment for this contact" : "No earlier appointment for this contact") ;
 }
 
