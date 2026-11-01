@@ -7,6 +7,7 @@
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QLabel>
+#include <QCheckBox>
 #include <QMetaEnum>
 #include <QPlainTextEdit>
 #include <QTimer>
@@ -92,7 +93,10 @@ void MainWindow::updateAccessibleInfo()
     }
 
     // Only a change is set, as setting the text again would move the reader's place in it
-    if (edit->toPlainText()!=text) edit->setPlainText(text) ;
+    if (edit->toPlainText()!=text) {
+        edit->setPlainText(text) ;
+        if (accessibledebug) qDebug().noquote() << QString("AccessibleDebug text: %1").arg(QString(text).replace("\n", " | ")) ;
+    }
 }
 
 void MainWindow::on_actionShowAccessibleText_triggered()
@@ -120,6 +124,16 @@ void MainWindow::on_actionShowAccessibleText_triggered()
     note->setWordWrap(true) ;
     layout->addWidget(note) ;
 
+    // Accessibility tracing to the console: each focus change, and each change to the text, while the dialog is open
+    QCheckBox *debugbox = new QCheckBox("Accessibility debug output to the console", dialog) ;
+    debugbox->setObjectName("AccessibleDebugCheck") ;
+    debugbox->setChecked(accessibledebug) ;
+    QObject::connect(debugbox, &QCheckBox::toggled, dialog, [this](bool on) {
+        accessibledebug = on ;
+        qDebug().noquote() << QString("AccessibleDebug %1").arg(on ? "on" : "off") ;
+    }) ;
+    layout->addWidget(debugbox) ;
+
     QPlainTextEdit *edit = new QPlainTextEdit(dialog) ;
     edit->setObjectName("AccessibleInfoText") ;
     edit->setReadOnly(true) ;
@@ -137,6 +151,7 @@ void MainWindow::on_actionShowAccessibleText_triggered()
         if (!now || accessibleinfo.isNull()) return ;
         if (now==accessibleinfo || accessibleinfo->isAncestorOf(now)) return ;
         accessibleinfotarget = now ;
+        if (accessibledebug) qDebug().noquote() << QString("AccessibleDebug focus: %1 %2").arg(now->metaObject()->className()).arg(now->objectName()) ;
         updateAccessibleInfo() ;
     }) ;
 

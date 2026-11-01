@@ -180,6 +180,7 @@ private:
     QStringList calendarrowcontacts ;               // The contact of each row in the calendar list, so the next entry for a contact can be found
     QPointer<QDialog> accessibleinfo ;              // Show > Show Screen Reader Text, while it is open (issue #101)
     QPointer<QWidget> accessibleinfotarget ;        // The control the screen reader text is for: the one with the focus before the dialog opened
+    bool accessibledebug = false ;                  // Accessibility tracing to the console, switched on in the screen reader text dialog (not saved)
     void updateAccessibleInfo() ;                   // Sets the text of that dialog from the control, if it has changed
     bool titledEntriesHeld ;                        // An email or phone entry was refused: the form is not reloaded until it is fixed
 
