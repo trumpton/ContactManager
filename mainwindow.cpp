@@ -35,6 +35,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     showdeletedcontacts=false ;
     showhiddencontacts=false ;
     calendarcontactonly=false ;
+    calendarscrollpending=false ;
 
     ui->setupUi(this);
     setupTitledEntries() ;
@@ -620,12 +621,19 @@ void MainWindow::populateDialog(QString id, bool switchtooverview)
 
     }
 
+    // A new contact moves the calendar position to the entry nearest in date, so it is scrolled to (issue #98)
+    if (contactchanged) {
+        requestCalendarQuarter() ;
+    }
+
 }
 
 // TODO: Fix all tab-specific menu options
 void MainWindow::on_tabBar_currentChanged(int index)
 {
     if (index==1) { // Calendar
+        // A position moved by a shortcut while the calendar was not showing is scrolled to now it is (issue #98)
+        QTimer::singleShot(0, this, [this]() { applyCalendarQuarter() ; }) ;
         ui->actionMoveAppointment->setEnabled(true) ;
         ui->actionRemoveAppointment->setEnabled(true) ;
     } else {

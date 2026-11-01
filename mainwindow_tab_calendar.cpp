@@ -42,6 +42,7 @@ void MainWindow::toggleCalendarContactFilter()
     calendarcontactonly = !calendarcontactonly ;
     play(calendarcontactonly ? SwitchOn : SwitchOff) ;
     LoadCalendarTab() ;
+    requestCalendarQuarter() ;
     msg(calendarcontactonly ? "Showing only this contact's appointments" : "Showing all appointments") ;
 }
 
