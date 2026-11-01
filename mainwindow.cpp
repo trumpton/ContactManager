@@ -748,6 +748,9 @@ void MainWindow::on_action_Google_Sync_triggered()
         db.selectContact(SELECT_OVERVIEW) ;
     }
 
+    // The contact on screen stays loaded through the sync (issue #103).  The sync can renumber the contacts, so it is found again by its ID
+    QString loadedid = db.getSelected().isNull() ? QString() : db.getSelected().getField(Contact::ID) ;
+
     frm = new GoogleUpdateDialog(this) ;
     play(Ok) ;
     frm->doUpdate(google, db, calendar) ;
@@ -756,7 +759,8 @@ void MainWindow::on_action_Google_Sync_triggered()
     // Save now, so links cleared by the sync are kept if the app is stopped
     db.save() ;
 
-    // And re-load.  If the selected contact was removed by the sync, show the overview
+    // And re-load.  If the contact on screen was removed by the sync, show the overview
+    if (db.getSelected().isNull()) db.selectContact(db.indexOfContact(loadedid)) ;
     if (db.getSelected().isNull()) {
         populateDialog(SELECT_OVERVIEW) ;
     } else {
