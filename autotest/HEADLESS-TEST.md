@@ -172,18 +172,79 @@ background with a log file, then wait for the log to show it has finished. This 
 **One run at a time.** Two bench runs, or a bench run and a test program, on the same account delete each other's
 test contacts. The bench's cleanup removes every contact named `Bench`. Stop any background run before starting another.
 
-## 6. Running the Google bench
+## 6. Running the bench
+
+The bench has three groups (ticket #105). Each scenario is in one group, and `google_bench.py groups` lists them with a typical duration.
+
+| Group | What it covers | Time |
+|---|---|---|
+| 1, uploads (`U01`) | Purges the account, then uploads 250 contacts and 1,000 appointments, half through the Google API and half through ContactManager (its sync). Aaron Aesop is among the contacts. The records are left in place. | slow: about 20 minutes or more |
+| 2, updates | Every other test that syncs with Google. Each puts on Google the one or two details it needs first, rather than relying on the records in group 1. Google changes outside ContactManager are made with the API. | about 45 seconds each |
+| 3, local | Tests that need no Google sync. The account is not touched, so there is no cleanup on it. | a few seconds each |
+
+Selections (`google_bench.py run <name>`):
+
+| Name | Runs | Use |
+|---|---|---|
+| `full` | 1, 2, 3 | everything |
+| `quick` | 2, 3 | no uploads |
+| `google` | 2 | every Google sync test |
+| `google-quick` | a subset of 2 (`GOOGLE_QUICK` in the script) | a few minutes |
+| `local` | 3 | no Google at all |
+
+Scenario codes can be given instead: `google_bench.py run R01 L02`.
+
+Build the driver after the application (it links the application's objects, so rebuild it after each change to the app). It is built in a folder of its own, not in the build folder:
 
 ```bash
-export CM_BENCH_DRIVER=/path/to/bench_driver
-export CM_TEST_SECRET="$(cat /home/user/.cm-test-secret)"
-python3 autotest/google_bench.py run            # all scenarios
-python3 autotest/google_bench.py run C02 A03   # some scenarios
+sh autotest/bench/build_driver.sh /home/user/build-contactmanager    # writes sync_driver into that folder
 ```
 
-The bench uses only the scratch account (section 0). It names everything it creates (`Bench ...` contacts, `BENCH ...` appointments, `@test.invalid` addresses), and deletes those names before and after each scenario. Anything else on the account is left alone.
+`sync_driver` (`autotest/bench/sync_driver.cpp`) is a superset of `bench_driver`. It adds `listdir` (a calendar sub-folder, such as `archive`), `dumplog`, `paths`, `setting`, `wait` and `key`.
 
-Results are printed, and written to `results.json` in the run directory. A failed check prints its detail.
+```bash
+export CM_BENCH_DRIVER=/home/user/build-contactmanager/sync_driver
+export CM_BUILD=/home/user/build-contactmanager          # for the messages tests (L01)
+export CM_TEST_SECRET="$(cat /home/user/.cm-test-secret)"
+python3 autotest/google_bench.py run local
+python3 autotest/google_bench.py run google-quick
+python3 autotest/google_bench.py run full
+```
+
+### Purging the account
+
+```bash
+python3 autotest/google_bench.py purge contacts|appointments|both --yes
+```
+
+It removes **everything** of that kind on the account, not only the test entries, so run it only on the scratch account. Without `--yes` it does nothing. Google's contact-delete limit is per minute, so a purge of a full account takes a long time. The upload group purges the account itself before it uploads.
+
+### Changes on Google, and the test prefix
+
+Changes made on Google outside ContactManager go through `google_bench.py gchange` (or the same helpers in Python), which **refuses any event or contact without the test prefix**. Only `BENCH ...` events, and contacts named `Bench` or with a `@test.invalid` address, can be changed. The upload group's records are named `Upload ...` and are left in place at the end of the group, which is why its tests do not depend on them.
+
+### How a group is chosen
+
+The updates and local groups are decided by reading each scenario's source: a scenario that calls the sync, or a Google helper, is in group 2; the rest are in group 3. `google_bench.py groups` shows the result, so check it after adding a scenario.
+
+### Typical durations
+
+The durations are in `TYPICAL_SECONDS` in `google_bench.py`, and each run records the time it took in `results.json`. Measured on the scratch account (about 3,300 appointments and 500 contacts on it):
+
+| Test | Typical seconds |
+|---|---|
+| Group 3, most tests | 4 to 11 |
+| `K24` | about 20 |
+| `R01` to `R05` | 42 to 47 (two or three runs each) |
+| `AR01` | about 80 (four runs) |
+| `U01` | about 1,080 for the earlier all-API version; the mixed version is not yet timed |
+
+Group 2 has 95 tests. Most have not been timed yet, so the group's total is not known until a full run has been done.
+
+### Known test results
+
+- Group 3: 24 of 24 pass (`L01` runs the 77 messages unit tests, which all pass).
+- `R02` and `R03` fail: under Google master, an edit made in ContactManager is kept by the app at the next sync, where the ticket's matrix says Google's copy should win. This is a behaviour question for the owner, not a test fault, and has not been changed in the app.
 
 ## 7. Working with a human go-between
 
