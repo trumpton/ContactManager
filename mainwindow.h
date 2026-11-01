@@ -103,6 +103,7 @@ private slots:
     void on_actionShowHiddenContacts_triggered(bool checked);
     void toggleCalendarContactFilter() ;     // Space in the calendar list: all entries, or only the open contact's (issue #92)
     void calendarFilterOff() ;               // Moving the date shows all entries again, when the contact filter is on (issue #92)
+    void showCalendarRowQuarterDown(int row) ;   // Scrolls the calendar list so the row is a quarter of the way down (issue #98)
     void gotoCalendarDate(QDate wanted) ;    // Goes to a date in the calendar list, or the nearest date before it
     void gotoTypedCalendarDate(QString typed) ;   // A digit in the calendar list: a date typed after it (issue #92)
     void gotoContactAppointment(int step) ;       // The next (1) or previous (-1) entry for the open contact: n, p and the arrows
