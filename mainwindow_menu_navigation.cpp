@@ -206,7 +206,7 @@ void MainWindow::on_actionGotoDate_triggered()
 //
 void MainWindow::gotoTypedCalendarDate(QString typed)
 {
-    QString prompt = "Type a date, such as 10 oct 2026, 1 nov 2027, or 2 march for the next one.  Press Enter to go to it." ;
+    QString prompt = "Type a date, such as 2/12 or 12 oct 2026" ;
 
     // The entry is shown with its cursor at the end and no text selected, so the next key adds to the digits typed
     QInputDialog dialog(this) ;
@@ -215,6 +215,9 @@ void MainWindow::gotoTypedCalendarDate(QString typed)
     dialog.setTextValue(typed) ;
     QLineEdit *edit = dialog.findChild<QLineEdit*>() ;
     if (edit) {
+        // Short, as a braille display shows the name and description with the field
+        edit->setAccessibleName("Date") ;
+        edit->setAccessibleDescription("Enter goes to it") ;
         QObject::connect(edit, &QLineEdit::selectionChanged, edit, [edit]() {
             if (edit->hasSelectedText()) QTimer::singleShot(0, edit, [edit]() { edit->deselect() ; edit->end(false) ; }) ;
         }) ;
