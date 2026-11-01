@@ -20,6 +20,8 @@ static bool changedLocallySince(Appointment &local, const QDateTime &lastsync)
 {
     if (!lastsync.isValid()) return true ;
     QDateTime updated = local.getDate(Appointment::Updated) ;
+    // An entry with no stamp has not been edited here (issue #108)
+    if (!updated.isValid()) return false ;
     return updated >= lastsync ;
 }
 
@@ -161,7 +163,13 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
             // Read-only entries (from another Google calendar) are only ever downloaded
             // An entry with no real start is never uploaded, as it would make a blank event on Google (issue #104)
             bool hasstart = localappt.hasStart() ;
-            bool uploadentry = upload && hasstart && !localappt.isSet(Appointment::InternetOwned) ;
+            bool hasend = localappt.hasEnd() ;
+            bool uploadentry = upload && hasstart && hasend && !localappt.isSet(Appointment::InternetOwned) ;
+            // An entry that would be sent without a real end is not sent: Google refuses it, and the refusal stopped the whole
+            // calendar sync (issue #107).  It is reported, and the sync carries on.
+            if (upload && hasstart && !hasend && !localappt.isSet(Appointment::InternetOwned)) {
+                ui->updateStatusReport->append(QString("    ") + localappt.asText() + QString(" - not uploaded: it has no end time, or ends before it starts")) ;
+            }
             localappt.setFlag(Appointment::ToBeDownloaded, !uploadentry) ;
             localappt.setFlag(Appointment::ToBeUploaded, uploadentry) ;
         }
@@ -205,7 +213,8 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
         Appointment& localappt = cal.getAppointmentBy(Appointment::ID, googleappt.getField(Appointment::ID)) ;
         if (!localappt.isNull() && !googleappt.isSet(Appointment::Deleted) &&
                 localappt.getField(Appointment::GoogleRecordId).compare(googleappt.getField(Appointment::GoogleRecordId))!=0) {
-            localappt.setField(Appointment::GoogleRecordId, googleappt.getField(Appointment::GoogleRecordId)) ;
+            // The Google record is not an edit, so the stamp of the last edit is kept (issue #108)
+            localappt.setSentField(Appointment::GoogleRecordId, googleappt.getField(Appointment::GoogleRecordId)) ;
             ui->updateStatusReport->append(QString("    ") + localappt.asText()) ;
         }
     }
@@ -245,10 +254,12 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                 if (localappt.getField(Appointment::GoogleRecordId).isEmpty()) {
 
                     // Appointment has never been uploaded
-                    // Override upload/download -> upload
-                    localappt.setFlag(Appointment::ToBeUploaded, true) ;
+                    // Override upload/download -> upload, unless it has no real start or end: Google refuses it, and the refusal
+                    // stopped the whole calendar sync (issues #104 and #107).  Such an entry is not sent, and is reported above.
+                    bool sendable = localappt.hasStart() && localappt.hasEnd() ;
+                    localappt.setFlag(Appointment::ToBeUploaded, sendable) ;
                     localappt.setFlag(Appointment::ToBeDownloaded, false) ;
-                    ui->updateStatusReport->append(QString("    %1 (new local)").arg(localappt.asText())) ;
+                    if (sendable) ui->updateStatusReport->append(QString("    %1 (new local)").arg(localappt.asText())) ;
 
                 } else {
 
@@ -302,6 +313,9 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
             // rewrote the event on Google, adding the app's properties, and rewrote events the user never changed.
             newlocal.setFlag(Appointment::ToBeDownloaded, true) ;
             newlocal.setFlag(Appointment::InternetOwned, googleappt.isSet(Appointment::InternetOwned)) ;
+            // Taken from Google, so it is not an edit: no stamp, until it is edited here (issue #108).  Set last, as the
+            // steps above stamp it.
+            newlocal.setField(Appointment::Updated, QString()) ;
             cal.addAppointment(newlocal) ;
             ui->updateStatusReport->append(QString("        ") + googleappt.asText()) ;
         }
@@ -387,7 +401,11 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                     } else {
                         changes = QString("Downloaded: ") + googleappt.mismatch(localappt, Appointment::maDetails) + QString(". ");
                         summary = QString("downloaded") ;
+                        // A download is not an edit: the stamp of the last local edit is kept, so the next sync does not send the
+                        // entry back to Google as a change (issue #108)
+                        QString keptupdated = localappt.getField(Appointment::Updated) ;
                         googleappt.copyTo(localappt, Appointment::maDetails|Appointment::maGoogleAcct) ;
+                        localappt.setField(Appointment::Updated, keptupdated) ;
                         if (!fromlocal.contains(localappt.getField(Appointment::ID))) {
                             localappt.setGoogleSnapshot(googleappt) ;
                             localappt.setGoogleEtag(googleappt.googleEtag()) ;

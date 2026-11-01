@@ -1046,6 +1046,16 @@ bool Appointment::hasStart()
     return !getField(Appointment::From).isEmpty() && getDate(Appointment::From).toSecsSinceEpoch() > 0 ;
 }
 
+// A real end: after the epoch, and not before the start (issue #107).  Google refuses an event without one, or one that ends
+// before it starts, and the refusal stopped the whole calendar sync.
+bool Appointment::hasEnd()
+{
+    QDateTime to = getDate(Appointment::To) ;
+    if (!to.isValid() || to.toSecsSinceEpoch() <= 0) return false ;
+    QDateTime from = getDate(Appointment::From) ;
+    return !from.isValid() || to >= from ;
+}
+
 bool Appointment::isExpiredBefore(QDateTime lower)
 {
     if (!isRepeating()) {
