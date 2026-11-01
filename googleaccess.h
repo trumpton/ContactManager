@@ -91,8 +91,13 @@ private:
     QString googleGetResponse ;
 
     // Fetch information via an http put or post
-    QString googlePutPostDelete(QString link, enum googleAction action, QString data = "", QString logfile = "") ;
+    QString googlePutPostDelete(QString link, enum googleAction action, QString data = "", QString logfile = "", QString ifmatch = "*") ;
     QString googlePutPostResponse ;
+
+    // An appointment change that Google refused because its copy changed (412), resolved from the snapshot (issue #86)
+    enum ConflictOutcome { ResendWithEtag, KeptGoogleVersion, ReadFailed } ;
+    ConflictOutcome resolveAppointmentConflict(Appointment &appt, QString &etag) ;
+    bool appointmentconflict = false ;
 
     // Load the groups
     QStringList groupslist ;
@@ -128,6 +133,8 @@ public:
     // Return the last network error string, or "" if OK
     QString getNetworkError() ;
     int getNetworkErrorCode() ;
+    // True when the last appointment update was a conflict: Google's copy had changed, so Google's version was kept (issue #86)
+    bool isAppointmentConflict() { return appointmentconflict ; }
 
     // Returns true if last network error was network-connection related
     bool isConnectionError() ;

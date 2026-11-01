@@ -37,7 +37,7 @@ bool GoogleAccess::isConnectionError()
 
 // xmlpost - Submit an xml request
 
-QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action, QString data, QString logfile)
+QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action, QString data, QString logfile, QString ifmatch)
 {
     googlePutPostResponse="" ;
     errorcode=0 ;
@@ -92,8 +92,9 @@ QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action
             request.setRawHeader("Authorization", auth.toLatin1()) ;
             header = header + "Authorization: Bearer " + accesstoken + "\n" ;
 
-            request.setRawHeader("If-Match", "*") ;
-            header = header + "If-Match: *\n" ;
+            // The ETag the change is made against, or "*" for any version (issue #86)
+            request.setRawHeader("If-Match", ifmatch.toLatin1()) ;
+            header = header + "If-Match: " + ifmatch + "\n" ;
 
             QString actionname ;
 
@@ -172,6 +173,13 @@ QString GoogleAccess::googlePutPostDelete(QString link, enum googleAction action
                         readsuccess=true ;
                         timeoutretry=false ;
                     }
+
+                } else if (replycode.toInt()==412) {
+                  // Precondition Failed: Google's copy has changed since the ETag sent.  The caller decides what to do with it,
+                  // so it is not retried here (issue #86)
+                  errorstatus = "Network Error 412" ;
+                  googlePutPostResponse = reply->readAll() ;
+                  readsuccess=true ;
 
                 } else {
                   errorstatus = "Network Error " + replycode.toString() ;
