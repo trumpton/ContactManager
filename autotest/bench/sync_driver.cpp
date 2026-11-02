@@ -212,7 +212,7 @@ int main(int argc, char *argv[])
         }
 
         // A long sync keeps its progress dialog open for a long time, so only other dialogs can be stuck
-        if (m->objectName() != "GoogleUpdateDialog" && m == lastmodal) {
+        if (m->objectName() != "GoogleUpdateDialog" && QString(m->metaObject()->className()) != "MainWindow" && m == lastmodal) {
             if (++clicksonthis > 40) {
                 note("giving up: dialog did not close: " + m->windowTitle()) ;
                 QApplication::quit() ;
@@ -564,6 +564,18 @@ int main(int argc, char *argv[])
             QCheckBox *cb = w.accessibleinfo.isNull() ? nullptr : w.accessibleinfo->findChild<QCheckBox*>("AccessibleDebugCheck") ;
             if (cb) cb->setChecked(op["value"].toBool()) ;
             record(op["name"].toString() + "_box", QJsonValue(cb ? cb->isChecked() : false)) ;
+
+        } else if (kind == "save") {
+            // Saves the contacts and the calendar, so a run that stops can be continued from here
+            w.db.save() ;
+            w.calendar.save() ;
+            note("saved") ;
+
+        } else if (kind == "waituntil") {
+            // Waits, with the application running, until a local time (ISO, e.g. 2026-11-02T07:00:00).  Used by timed tests.
+            QDateTime target = QDateTime::fromString(op["at"].toString(), Qt::ISODate) ;
+            while (QDateTime::currentDateTime() < target) QTest::qWait(1000) ;
+            note(QString("reached %1").arg(op["at"].toString())) ;
 
         } else if (kind == "state") {
             // Records what the screen shows: the window title, the contact on the form (its surname, or none), and the calendar's current entry
