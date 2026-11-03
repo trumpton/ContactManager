@@ -292,7 +292,7 @@ Decisions the tests now record (ticket #105, item 4 and the items after it):
 - An appointment that starts after the far edge of the window is not downloaded (issue #105, `W03`).
 - The repeat-delete step of the driver finds the occurrence by its calendar hint. The list's `find()` matches the displayed
   text, which does not hold the hint, so it never found it (`X81D`). The calendar's own focus step after an edit
-  (`mainwindow_tab_calendar.cpp`) also calls `find()` with a hint. That is not yet checked in the app, and is to be looked at.
+  (`mainwindow_tab_calendar.cpp`) also calls `find()` with a hint. That is not yet checked in the app. The ticket is https://github.com/trumpton/ContactManager/issues/109.
 
 ## 7. Working with a human go-between
 
