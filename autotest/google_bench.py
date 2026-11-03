@@ -102,6 +102,12 @@ def api(method, url, body=None):
             if e.code == 429 and attempt < 8:
                 time.sleep(min(2 ** attempt, 60))
                 continue
+            # An access token lasts about an hour: a long run asks for a new one, once per request
+            if e.code == 401 and attempt < 8:
+                _token["value"] = None
+                req.remove_header("Authorization")
+                req.add_header("Authorization", "Bearer " + access_token())
+                continue
             raise RuntimeError("%s %s -> %s %s" % (method, url, e.code, e.read().decode()[:300]))
 
 
@@ -252,7 +258,7 @@ class Run:
         with open(os.path.join(self.dir, "ops.json"), "w") as f:
             json.dump(ops, f, indent=1)
 
-    def execute(self, max_writes=None):
+    def execute(self, max_writes=None, faults=None):
         """Runs the driver.  With max_writes, the run is stopped once the app has sent that many updates or creations to
         Google: a safety limit for a test that could otherwise send far more than it expects (the run is then marked aborted)."""
         secret = os.environ.get("CM_TEST_SECRET", "")
@@ -261,6 +267,8 @@ class Run:
         prepare_home(self.home, self.fresh, MODE["master"], self.conf)
         env = dict(os.environ, CM_TEST_SECRET=secret, QT_QPA_PLATFORM="offscreen", HOME=self.home)
         env.pop("XDG_CONFIG_HOME", None)
+        if faults:
+            env["CM_TEST_FAULTS"] = faults
         if self.tz:
             env["TZ"] = self.tz
         self.aborted = False
@@ -1074,6 +1082,22 @@ def x13():
             Check("no more than one Google copy", len(events) <= 1, "found %d" % len(events))]
 
 
+def bench_events_named(summary):
+    """Every event on the account with this summary, across all pages (the account can hold thousands of events)."""
+    return [e for e in bench_events_all() if e.get("summary") == summary]
+
+
+def bench_events_all():
+    out, token = [], None
+    while True:
+        q = "maxResults=2500&singleEvents=false&showDeleted=false" + ("&pageToken=" + token if token else "")
+        data = api("GET", CALENDAR + "/events?" + q)
+        out.extend(data.get("items", []))
+        token = data.get("nextPageToken")
+        if not token:
+            return out
+
+
 @scenario("X14", "Unicode summary and multi-line description round-trip")
 def x14():
     summary = "BENCH X14 Café meeting – \U0001F4C5"
@@ -1082,7 +1106,7 @@ def x14():
                        "start": {"dateTime": DAY % (24, "09:00")}, "end": {"dateTime": DAY % (24, "10:00")}})
     run = Run("X14", [sync(), dump()]).execute()
     local = [a for a in run.dump["appointments"] if a["summary"] == summary]
-    goog = [e for e in api("GET", CALENDAR + "/events?maxResults=2500")["items"] if e.get("summary") == summary]
+    goog = [e for e in bench_events_named(summary)]
     return [Check("Google summary unchanged", len(goog) == 1),
             Check("description intact in the app", bool(local) and norm(local[0]["description"]) == norm(desc))]
 
@@ -1113,8 +1137,8 @@ def x17():
                       gchange("patch-event", eid, "From Google"), sync(), dump()], session="X17").execute()
     events = [e for e in bench_events() if e["summary"] == "BENCH X17"]
     return [Check("one event on Google", len(events) == 1, "found %d" % len(events)),
-            Check("record which side won (app expected under ContactManager master)",
-                  len(events) == 1 and events[0].get("location") == "From app",
+            Check("Google's version is kept, as the report's CONFLICT line says (issue #86)",
+                  len(events) == 1 and events[0].get("location") == "From Google",
                   "Google location: %s" % [e.get("location") for e in events])]
 
 
@@ -1158,7 +1182,7 @@ def google_email_types(resource):
     return out
 
 
-@scenario("L01", "Four emails from Google (home, other, work, Partner): each keeps its slot and label, no write")
+@scenario("LB01", "Four emails from Google (home, other, work, Partner): each keeps its slot and label, no write")
 def l01():
     resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "L01"}],
         "emailAddresses": [{"value": "l01a@test.invalid", "type": "home"},
@@ -1179,7 +1203,7 @@ def l01():
                   labels == ("Home", "Other", "Work", "Partner"), "got %s" % (labels,))]
 
 
-@scenario("L02", "A label changed in the app is sent to Google as that email's type")
+@scenario("LB02", "A label changed in the app is sent to Google as that email's type")
 def l02():
     resource = create_contact_body({"names": [{"givenName": "Bench", "familyName": "L02"}],
         "emailAddresses": [{"value": "l02a@test.invalid", "type": "home"},
@@ -1197,7 +1221,7 @@ def l02():
                   and app_live_contacts(run.dump, "L02")[0].get("email2title") == "Mobile")]
 
 
-@scenario("L03", "Emails with no labels set are sent with the labels they always had")
+@scenario("LB03", "Emails with no labels set are sent with the labels they always had")
 def l03():
     run = Run("L03", [add_contact_op("L03", email="l03a@test.invalid", email2="l03b@test.invalid",
                                      email3="l03c@test.invalid", email4="l03d@test.invalid"),
@@ -1343,7 +1367,7 @@ def form_scenario_contact(tag, address=None, home=None):
                                 "emailAddresses": emails, "phoneNumbers": phones})
 
 
-@scenario("E01", "Editor: a label typed after an address becomes its title, and Google gets it as that type")
+@scenario("ED01", "Editor: a label typed after an address becomes its title, and Google gets it as that type")
 def e01():
     resource = form_scenario_contact("E01", address="e01@test.invalid")
     ops = [sync(), {"op": "open_contact", "match": {"surname": "E01"}},
@@ -1360,7 +1384,7 @@ def e01():
             Check("Google holds the address as work", types.get("e01@test.invalid") == "work", "Google types: %s" % types)]
 
 
-@scenario("E02", "Editor: a save with a bad entry is refused, focus goes to the first, nothing is saved, and the typed text is kept")
+@scenario("ED02", "Editor: a save with a bad entry is refused, focus goes to the first, nothing is saved, and the typed text is kept")
 def e02():
     form_scenario_contact("E02", address="e02@test.invalid")
     bad_email = "Home: e02b@test.invalid - Home (Work)"
@@ -1727,7 +1751,7 @@ def f13():
     return checks
 
 
-@scenario("E03","Editor: an older entry with its label in the address is tidied when opened, and saved with the next change")
+@scenario("ED03","Editor: an older entry with its label in the address is tidied when opened, and saved with the next change")
 def e03():
     resource = form_scenario_contact("E03", address="e03@test.invalid (Work)")
     ops = [sync(), {"op": "open_contact", "match": {"surname": "E03"}},
@@ -1888,6 +1912,9 @@ def main(argv):
         return 2
     if argv[0] == "gchange":
         gchange_main(argv[1:])
+        return 0
+    if argv[0] == "keys":
+        keys_main(argv[1:])
         return 0
     if argv[0] == "groups":
         for g in (GROUP_UPLOADS, GROUP_UPDATES, GROUP_LOCAL):
@@ -3061,6 +3088,538 @@ def l04():
     return [Check("the app starts and dumps its data", b.dump is not None and "contacts" in b.dump,
                   "no dump" if b.dump is None else "dump written")]
 
+
+
+# ----------------------------------------------------------------------------------------------
+# Ticket #105, batch 1: the window edges, sync tokens, repeats, two copies, resume, archive, and #104
+
+@scenario("W01", "#105 Window: an entry that starts before the window and ends inside it is downloaded, once")
+def w01():
+    create_event("BENCH W01", at_day(-91, "09:00"), at_day(-88, "10:00"))
+    set_mode(CM_MASTER)
+    run = Run("W01", [sync(), dump()], session="W01").execute()
+    goog = bench_event("BENCH W01")
+    local = local_events(run.dump, "BENCH W01")
+    return [Check("one event on Google", len(goog) == 1, "found %d" % len(goog)),
+            Check("the app downloads it once, as it crosses the window's edge", len(local) == 1,
+                  "app: %d" % len(local))]
+
+
+@scenario("W02", "#105 Window: an entry that ends before the window is not downloaded, and stays on Google once")
+def w02():
+    create_event("BENCH W02", at_day(-120, "09:00"), at_day(-120, "10:00"))
+    set_mode(CM_MASTER)
+    run = Run("W02", [sync(), dump()], session="W02").execute()
+    goog = bench_event("BENCH W02")
+    local = local_events(run.dump, "BENCH W02")
+    return [Check("the app does not download it", len(local) == 0, "app: %d" % len(local)),
+            Check("Google keeps it once", len(goog) == 1, "found %d" % len(goog))]
+
+
+@scenario("W03", "#105 Window: an entry beyond the far edge of the window is not downloaded, and stays on Google once")
+def w03():
+    create_event("BENCH W03", at_day(760, "09:00"), at_day(760, "10:00"))
+    set_mode(CM_MASTER)
+    run = Run("W03", [sync(), dump()], session="W03").execute()
+    goog = bench_event("BENCH W03")
+    local = local_events(run.dump, "BENCH W03")
+    return [Check("the app does not download it", len(local) == 0, "app: %d" % len(local)),
+            Check("Google keeps it once", len(goog) == 1, "found %d" % len(goog))]
+
+
+@scenario("W04", "#105 Window: widening the window downloads the entries it now reaches, once")
+def w04():
+    create_event("BENCH W04", at_day(-120, "09:00"), at_day(-120, "10:00"))
+    set_mode(CM_MASTER)
+    before = Run("W04a", [sync(), dump()], session="W04").execute()
+    after = Run("W04b", [{"op": "setting", "key": "windowbefore", "value": "150"}, sync(), dump()], session="W04").execute()
+    goog = bench_event("BENCH W04")
+    local = local_events(after.dump, "BENCH W04")
+    return [Check("not downloaded with the 90-day window", len(local_events(before.dump, "BENCH W04")) == 0,
+                  "app before: %d" % len(local_events(before.dump, "BENCH W04"))),
+            Check("downloaded once the window reaches it", len(local) == 1, "app after: %d" % len(local)),
+            Check("Google holds it once", len(goog) == 1, "found %d" % len(goog))]
+
+
+@scenario("TK01", "#105 Token: a sync token Google refuses is replaced by a full listing, and the sync completes")
+def tk01():
+    create_event("BENCH T01 first", at_day(3, "09:00"), at_day(3, "10:00"))
+    set_mode(CM_MASTER)
+    Run("TK01a", [sync(), dump()], session="TK01").execute()
+    create_event("BENCH T01 second", at_day(4, "09:00"), at_day(4, "10:00"))
+    run = Run("TK01b", [{"op": "setting", "key": "lastgooglecalendarsynctoken", "value": "90,730|NOT-A-VALID-TOKEN"},
+                       sync(), dump()], session="TK01").execute()
+    first = local_events(run.dump, "BENCH T01 first")
+    second = local_events(run.dump, "BENCH T01 second")
+    return [Check("the entry already held is still there, once", len(first) == 1, "app: %d" % len(first)),
+            Check("the entry added on Google since the last sync is downloaded, once",
+                  len(second) == 1, "app: %d" % len(second))]
+
+
+@scenario("TK02", "#105 Token: with no sync token, the listing is full and every entry in the window is downloaded")
+def tk02():
+    for i in range(3):
+        create_event("BENCH T02 %d" % i, at_day(5 + i, "09:00"), at_day(5 + i, "10:00"))
+    set_mode(CM_MASTER)
+    run = Run("TK02", [{"op": "setting", "key": "lastgooglecalendarsynctoken", "value": ""}, sync(), dump()],
+              session="TK02").execute()
+    got = [local_events(run.dump, "BENCH T02 %d" % i) for i in range(3)]
+    return [Check("each of the three entries is downloaded once",
+                  all(len(g) == 1 for g in got), "app: %s" % [len(g) for g in got])]
+
+
+@scenario("R06", "#105 ContactManager master, repeat changed in both places since the last sync: Google's version is kept and the report says CONFLICT (issue #86)")
+def r06():
+    eid = create_recurring_event("BENCH R06 weekly", at_day(2, "09:00"), at_day(2, "10:00"), "RRULE:FREQ=WEEKLY;INTERVAL=1")
+    patch_event(eid, {"location": "Start"})
+    set_mode(CM_MASTER)
+    run = Run("R06", [sync(), edit_op("BENCH R06 weekly", location="From app"),
+                       gchange("patch-event", eid, "From Google"), sync(), dump()], session="R06").execute()
+    goog = bench_event("BENCH R06 weekly")
+    local = local_events(run.dump, "BENCH R06")
+    return [Check("one repeat on Google, still weekly",
+                  len(goog) == 1 and any("FREQ=WEEKLY" in r for r in goog[0].get("recurrence", [])),
+                  "Google: %s" % [g.get("recurrence") for g in goog]),
+            Check("Google keeps its own change, as the sync report says (CONFLICT: Google's copy changed since the last sync)",
+                  len(goog) == 1 and goog[0].get("location") == "From Google",
+                  "Google: %s" % [g.get("location") for g in goog]),
+            Check("the app takes Google's version, one entry",
+                  len(local) == 1 and local[0]["location"] == "From Google", "app: %s" % [a["location"] for a in local])]
+
+
+@scenario("R07", "#105 ContactManager master, repeat moved on Google: the app shows the moved start, and one repeat")
+def r07():
+    eid = create_recurring_event("BENCH R07 weekly", at_day(2, "09:00"), at_day(2, "10:00"), "RRULE:FREQ=WEEKLY;INTERVAL=1")
+    set_mode(CM_MASTER)
+    Run("R07a", [sync(), dump()], session="R07").execute()
+    gchange_main(["move-event", eid, at_day(3, "11:00"), at_day(3, "12:00")])
+    run = Run("R07b", [sync(), dump()], session="R07").execute()
+    goog = bench_event("BENCH R07 weekly")
+    local = local_events(run.dump, "BENCH R07")
+    return [Check("one repeat on Google, still weekly",
+                  len(goog) == 1 and any("FREQ=WEEKLY" in r for r in goog[0].get("recurrence", [])),
+                  "Google: %s" % [g.get("recurrence") for g in goog]),
+            Check("the app shows the moved start on one entry",
+                  len(local) == 1 and "11:00" in local[0]["from"], "app: %s" % [a["from"] for a in local])]
+
+
+@scenario("R08", "#105 Repeat with no occurrence in the window: not downloaded, and it stays on Google once")
+def r08():
+    create_recurring_event("BENCH R08 weekly", at_day(-120, "09:00"), at_day(-120, "10:00"), "RRULE:FREQ=WEEKLY;COUNT=3")
+    set_mode(CM_MASTER)
+    run = Run("R08", [sync(), dump()], session="R08").execute()
+    goog = bench_event("BENCH R08 weekly")
+    local = local_events(run.dump, "BENCH R08")
+    return [Check("the app does not download it", len(local) == 0, "app: %d" % len(local)),
+            Check("Google keeps the repeat once", len(goog) == 1, "found %d" % len(goog))]
+
+
+@scenario("R09", "#105 Repeat with an exception: the excluded occurrence is not listed, and the other five are")
+def r09():
+    eid = create_recurring_event("BENCH R09 weekly", at_day(2, "09:00"), at_day(2, "10:00"), "RRULE:FREQ=WEEKLY;COUNT=6")
+    gone = datetime.datetime.utcnow() + datetime.timedelta(days=2 + 7)
+    # Google leaves an occurrence out by cancelling that instance, which is how the repeat gets its exception
+    target = gone.strftime("%Y-%m-%dT09")
+    for inst in google_instances(eid):
+        if (inst.get("originalStartTime") or inst.get("start") or {}).get("dateTime", "").startswith(target):
+            api("DELETE", CALENDAR + "/events/" + inst["id"])
+    set_mode(CM_MASTER)
+    run = Run("R09", [sync(), {"op": "calendar_rows", "name": "r09", "reload": False}, dump()], session="R09").execute()
+    r = run.dump_file("results.json")
+    mine = [t for t in r.get("r09_titles", []) if "BENCH R09 weekly" in t]
+    gone_text = gone.strftime("%d %b %Y")
+    return [Check("five occurrences are listed", len(mine) == 5, "rows %r" % mine),
+            Check("the excluded date is not listed", not any(gone_text in t for t in mine), "rows %r" % mine)]
+
+
+@scenario("TC01", "#105 Two copies of ContactManager on one calendar: each sees the other's change, and nothing is duplicated")
+def tc01():
+    set_mode(CM_MASTER)
+    Run("TC01a", [{"op": "add_appointment", "fields": {"summary": "BENCH TC01", "from": at_day(6, "09:00"),
+                                                       "to": at_day(6, "10:00")}}, sync(), dump()], session="TC01a").execute()
+    Run("TC01b", [sync(), edit_op("BENCH TC01", location="From B"), sync(), dump()], session="TC01b").execute()
+    run = Run("TC01c", [sync(), dump()], session="TC01a").execute()
+    goog = bench_event("BENCH TC01")
+    local = local_events(run.dump, "BENCH TC01")
+    return [Check("one event on Google", len(goog) == 1, "found %d" % len(goog)),
+            Check("Google has the change made in the second copy", len(goog) == 1 and goog[0].get("location") == "From B",
+                  "Google: %s" % [g.get("location") for g in goog]),
+            Check("the first copy holds one entry, with that change",
+                  len(local) == 1 and local[0]["location"] == "From B", "app: %s" % [a["location"] for a in local])]
+
+
+@scenario("RS01", "#105 A sync that stops part-way resumes without repeating or losing its uploads (#93)")
+def rs01():
+    set_mode(CM_MASTER)
+    ops = [{"op": "add_appointment", "fields": {"summary": "BENCH RS01 %02d" % i, "from": at_day(10 + i, "09:00"),
+                                                "to": at_day(10 + i, "10:00")}} for i in range(30)]
+    first = Run("RS01a", ops + [{"op": "save"}, sync(), dump()], session="RS01").execute(max_writes=8)
+    second = Run("RS01b", [sync(), dump()], session="RS01").execute()
+    goog = [e for e in bench_events() if e["summary"].startswith("BENCH RS01 ")]
+    names = [e["summary"] for e in goog]
+    local = local_events(second.dump, "BENCH RS01 ") if second.dump else []
+    return [Check("the first sync was stopped part-way", getattr(first, "aborted", False),
+                  "aborted: %s" % getattr(first, "aborted", None)),
+            Check("Google holds all 30, each once", len(goog) == 30 and len(set(names)) == 30,
+                  "found %d, distinct %d" % (len(goog), len(set(names)))),
+            Check("the app holds all 30, each once", len(local) == 30, "app: %d" % len(local))]
+
+
+@scenario("AR02", "#105 Archive: an archived entry changed on Google, still outside the window, has its archived copy brought up to date")
+def ar02():
+    eid = create_event("BENCH AR02", at_day(-30, "09:00"), at_day(-30, "10:00"))
+    workdir = os.path.join(RUNS, "session-AR02")
+    set_mode(CM_MASTER)
+    Run("AR02a", [sync(), dump()], session="AR02").execute()
+    Run("AR02b", [{"op": "setting", "key": "windowbefore", "value": "10"}, sync(), dump()], session="AR02").execute()
+    gchange_main(["patch-event-fields", eid, json.dumps({"summary": "BENCH AR02 changed"})])
+    run = Run("AR02c", [{"op": "setting", "key": "windowbefore", "value": "10"}, sync(), dump()], session="AR02").execute()
+    archived_new = folder_holding(workdir, "archive", "BENCH AR02 changed")
+    archived_old = folder_holding(workdir, "archive", "BENCH AR02\n")
+    goog = bench_event("BENCH AR02 changed")
+    return [Check("the archived copy has the change", archived_new is not None, "archive holds %s" % archived_new),
+            Check("the old summary is gone from the archive", archived_old is None, "archive holds %s" % archived_old),
+            Check("the app does not restore it: it stays outside the window", len(local_events(run.dump, "BENCH AR02")) == 0,
+                  "app: %d" % len(local_events(run.dump, "BENCH AR02"))),
+            Check("Google holds it once", len(goog) == 1, "found %d" % len(goog))]
+
+
+@scenario("AR03", "#105 Archive: an archived entry cancelled on Google leaves the archive, and is kept in the deleted folder")
+def ar03():
+    eid = create_event("BENCH AR03", at_day(-30, "09:00"), at_day(-30, "10:00"))
+    workdir = os.path.join(RUNS, "session-AR03")
+    set_mode(CM_MASTER)
+    Run("AR03a", [sync(), dump()], session="AR03").execute()
+    Run("AR03b", [{"op": "setting", "key": "windowbefore", "value": "10"}, sync(), dump()], session="AR03").execute()
+    before = folder_holding(workdir, "archive", "BENCH AR03")
+    gchange_main(["delete-event", eid])
+    run = Run("AR03c", [{"op": "setting", "key": "windowbefore", "value": "10"}, sync(), dump()], session="AR03").execute()
+    still = folder_holding(workdir, "archive", "BENCH AR03")
+    kept = folder_holding(workdir, os.path.join("archive", "deleted"), "BENCH AR03")   # the archive's own deleted folder
+    return [Check("it was archived before it was cancelled", before is not None, "archive held %s" % before),
+            Check("cancelled on Google, it leaves the archive", still is None, "archive still holds %s" % still),
+            Check("it is kept in the deleted folder", kept is not None, "deleted folder holds %s" % kept),
+            Check("Google does not hold it", len(bench_event("BENCH AR03")) == 0, "found %d" % len(bench_event("BENCH AR03")))]
+
+
+@scenario("E70", "#104 A local entry dated 1 January 1970, or with no start, is neither stored nor uploaded; a normal entry alongside is unaffected")
+def e70():
+    set_mode(CM_MASTER)
+    ops = [{"op": "add_appointment", "fields": {"summary": "BENCH E70 ok", "from": at_day(7, "09:00"), "to": at_day(7, "10:00")}},
+           {"op": "add_appointment", "fields": {"summary": "BENCH E70 epoch", "from": "1970-01-01T09:00:00Z",
+                                                "to": "1970-01-01T10:00:00Z"}},
+           {"op": "add_appointment", "fields": {"summary": "BENCH E70 nostart", "from": "", "to": at_day(7, "10:00")}},
+           sync(), dump()]
+    run = Run("E70", ops, session="E70").execute()
+    goog = bench_event("BENCH E70 epoch") + bench_event("BENCH E70 nostart")
+    ok = local_events(run.dump, "BENCH E70 ok")
+    bad = local_events(run.dump, "BENCH E70 epoch") + local_events(run.dump, "BENCH E70 nostart")
+    return [Check("the normal entry is kept once", len(ok) == 1, "app: %d" % len(ok)),
+            Check("the entries with no real start are left as they were, not blanked", len(bad) == 2,
+                  "app: %s" % [b["summary"] for b in bad]),
+            Check("nothing with no real start is uploaded", len(goog) == 0, "Google: %d" % len(goog)),
+            Check("the normal entry is on Google once", len(bench_event("BENCH E70 ok")) == 1,
+                  "found %d" % len(bench_event("BENCH E70 ok")))]
+
+
+# ----------------------------------------------------------------------------------------------
+# Ticket #105, batch 2: failures from Google (#94): retries, reasons, pacing, and a closed connection
+
+def fault_run(name, session, count, faults, extra=()):
+    """Adds count local appointments on ContactManager master, and syncs them with the faults in CM_TEST_FAULTS."""
+    set_mode(CM_MASTER)
+    ops = [{"op": "add_appointment", "fields": {"summary": "BENCH %s %02d" % (name, i), "from": at_day(12 + i, "09:00"),
+                                                "to": at_day(12 + i, "10:00")}} for i in range(count)]
+    ops += [{"op": "save"}, sync(), dump(), {"op": "dumplog", "file": run_path(name, "synclog.txt")}] + list(extra)
+    return Run(name, ops, session=session).execute(faults=faults)
+
+
+def fault_count(run, status):
+    """How many requests the run sent that Google answered with this status (from the driver's timing lines)."""
+    pattern = re.compile(r"TIMING http \w+ \S+ status=%d " % status)
+    try:
+        with open(os.path.join(run.dir, "stdout.log"), errors="replace") as f:
+            return sum(1 for line in f if pattern.search(line))
+    except OSError:
+        return 0
+
+
+def sync_log(name):
+    try:
+        with open(run_path(name, "synclog.txt"), errors="replace") as f:
+            return f.read()
+    except OSError:
+        return ""
+
+
+def report_text(name):
+    """The sync report the dialog showed, as the driver saved it (the report, not the application's log)."""
+    try:
+        with open(run_path(name, "report1.txt"), errors="replace") as f:
+            return f.read()
+    except OSError:
+        return ""
+
+
+def bench_summaries(name):
+    return [e["summary"] for e in bench_events() if e["summary"].startswith("BENCH %s " % name)]
+
+
+@scenario("RL01", "#94 A rate-limit answer (403 rateLimitExceeded) is retried with backoff, and the upload then completes")
+def rl01():
+    run = fault_run("RL01", "RL01", 8, "w3-4=403:rateLimitExceeded")
+    goog = bench_summaries("RL01")
+    return [Check("the sync completed", run.dump is not None and not sync_log("RL01").count("FAILED"),
+                  "FAILED lines: %d" % sync_log("RL01").count("FAILED")),
+            Check("Google holds each of the 8 appointments once", len(goog) == 8 and len(set(goog)) == 8,
+                  "found %d, distinct %d" % (len(goog), len(set(goog)))),
+            Check("the two rate-limited requests were retried (three requests for the first upload)",
+                  fault_count(run, 403) == 2, "403 answers: %d" % fault_count(run, 403))]
+
+
+@scenario("RL02", "#94 A failure that is not a rate limit (400 badRequest) is not retried, and its reason is reported")
+def rl02():
+    run = fault_run("RL02", "RL02", 4, "w2=400:badRequest")
+    log = sync_log("RL02")
+    return [Check("the request was not retried", fault_count(run, 400) == 1, "400 answers: %d" % fault_count(run, 400)),
+            Check("the report gives the HTTP status and Google's reason", "400" in log and "badRequest" in log,
+                  "report mentions: %s" % [w for w in ("400", "badRequest") if w in log])]
+
+
+@scenario("RL03", "#94 A rate limit that keeps coming back is given up after four retries, and the report gives the reason and a recovery step")
+def rl03():
+    run = fault_run("RL03", "RL03", 4, "w2-6=403:rateLimitExceeded")
+    log = report_text("RL03")
+    failed = [l for l in log.splitlines() if "SYNCHRONISATION FAILED" in l]
+    last = failed[-1] if failed else ""
+    return [Check("five attempts for the request, then it is given up", fault_count(run, 403) == 5,
+                  "403 answers: %d" % fault_count(run, 403)),
+            Check("the report names the rate limit", "rateLimitExceeded" in log, "report mentions it: %s" % ("rateLimitExceeded" in log)),
+            Check("the last line of the report says what to do next (wait, then sync again)",
+                  "wait" in last.lower() and "sync again" in last.lower(), "last line: %s" % last[-200:])]
+
+
+@scenario("RL04", "#94 Repeated rate limits start the adaptive pacing, and the report says so")
+def rl04():
+    run = fault_run("RL04", "RL04", 12, "w2=429:rateLimitExceeded;w4=429:rateLimitExceeded;w6=429:rateLimitExceeded;"
+                                         "w8=429:rateLimitExceeded;w10=429:rateLimitExceeded;w12=429:rateLimitExceeded")
+    goog = bench_summaries("RL04")
+    return [Check("Google holds each of the 12 appointments once", len(goog) == 12 and len(set(goog)) == 12,
+                  "found %d" % len(goog)),
+            Check("the report says the adaptive pacing started", "pacing" in report_text("RL04").lower(),
+                  "report mentions pacing: %s" % ("pacing" in report_text("RL04").lower()))]
+
+
+@scenario("RL05", "#94 A connection closed by Google part-way: the report says so and what to do, and a second sync finishes the uploads")
+def rl05():
+    first = fault_run("RL05", "RL05", 6, "w3-4=closed")
+    log = report_text("RL05")
+    failed = [l for l in log.splitlines() if "SYNCHRONISATION FAILED" in l]
+    last = failed[-1] if failed else ""
+    second = Run("RL05b", [sync(), dump(), {"op": "dumplog", "file": run_path("RL05b", "synclog.txt")}], session="RL05").execute()
+    goog = bench_summaries("RL05")
+    return [Check("the report says the connection was closed", "closed" in log.lower(), "report mentions it: %s" % ("closed" in log.lower())),
+            Check("the last line of the report says to sync again", "sync again" in last.lower(), "last line: %s" % last[-200:]),
+            Check("a second sync completes the uploads, each once", len(goog) == 6 and len(set(goog)) == 6,
+                  "found %d, distinct %d" % (len(goog), len(set(goog))))]
+
+
+# ----------------------------------------------------------------------------------------------
+# Ticket #105, batch 3: contacts changed or deleted in both places, and the local files after syncs
+
+def contact_tags_on_google(tag):
+    return [contact_info(p)["tag"] for p in bench_contacts() if contact_info(p)["tag"].startswith(tag)]
+
+
+@scenario("C17", "#105 Contact changed in both places since the last sync, ContactManager master: the app's change is kept, once")
+def c17():
+    resource = create_contact("C17")
+    set_mode(CM_MASTER)
+    run = Run("C17", [sync(), {"op": "edit_contact", "match": {"names": "Bench", "surname": "C17"},
+                               "fields": {"surname": "C17 app"}},
+                      gchange("edit-contact", resource, "C17 google"), sync(), dump()], session="C17").execute()
+    tags = contact_tags_on_google("C17")
+    local = [c for c in run.dump["contacts"] if c.get("surname", "").startswith("C17")] if run.dump else []
+    return [Check("Google holds one contact, with the app's surname", tags == ["C17 app"], "Google: %s" % tags),
+            Check("the app holds one contact, with the app's surname",
+                  len(local) == 1 and local[0].get("surname") == "C17 app", "app: %s" % [c.get("surname") for c in local])]
+
+
+@scenario("C18", "#105 Contact changed in both places since the last sync, Google master: Google's change is kept, once")
+def c18():
+    resource = create_contact("C18")
+    set_mode(GOOGLE_MASTER)
+    run = Run("C18", [sync(), {"op": "edit_contact", "match": {"names": "Bench", "surname": "C18"},
+                               "fields": {"surname": "C18 app"}},
+                      gchange("edit-contact", resource, "C18 google"), sync(), dump()], session="C18").execute()
+    tags = contact_tags_on_google("C18")
+    local = [c for c in run.dump["contacts"] if c.get("surname", "").startswith("C18")] if run.dump else []
+    return [Check("Google holds one contact, with Google's surname", tags == ["C18 google"], "Google: %s" % tags),
+            Check("the app holds one contact, with Google's surname",
+                  len(local) == 1 and local[0].get("surname") == "C18 google", "app: %s" % [c.get("surname") for c in local])]
+
+
+@scenario("C19", "#105 Contact deleted on Google and changed in the app, ContactManager master: one state on both sides, never a duplicate")
+def c19():
+    resource = create_contact("C19")
+    set_mode(CM_MASTER)
+    run = Run("C19", [sync(), gchange("delete-contact", resource), {"op": "edit_contact", "match": {"names": "Bench", "surname": "C19"},
+                                                                    "fields": {"surname": "C19 app"}},
+                      sync(), dump()], session="C19").execute()
+    tags = contact_tags_on_google("C19")
+    live = [c for c in run.dump["contacts"] if c.get("surname", "").startswith("C19") and c.get("deleted") != "true"] if run.dump else []
+    return [Check("no duplicate on Google", len(tags) <= 1, "Google: %s" % tags),
+            Check("the app and Google agree", len(live) == len(tags), "app: %d, Google: %d" % (len(live), len(tags)))]
+
+
+@scenario("C20", "#105 Contact deleted in the app and changed on Google, ContactManager master: one state on both sides, never a duplicate")
+def c20():
+    resource = create_contact("C20")
+    set_mode(CM_MASTER)
+    run = Run("C20", [sync(), gchange("edit-contact", resource, "C20 google"),
+                      {"op": "delete_contact", "match": {"names": "Bench", "surname": "C20"}},
+                      sync(), dump()], session="C20").execute()
+    tags = contact_tags_on_google("C20")
+    live = [c for c in run.dump["contacts"] if c.get("surname", "").startswith("C20") and c.get("deleted") != "true"] if run.dump else []
+    return [Check("no duplicate on Google", len(tags) <= 1, "Google: %s" % tags),
+            Check("the app and Google agree", len(live) == len(tags), "app: %d, Google: %d" % (len(live), len(tags)))]
+
+
+@scenario("LF01", "#105 Local files: after two syncs the calendar folder holds each appointment once, and no file is empty")
+def lf01():
+    set_mode(CM_MASTER)
+    ops = [{"op": "add_appointment", "fields": {"summary": "BENCH LF01 %02d" % i, "from": at_day(20 + i, "09:00"),
+                                                "to": at_day(20 + i, "10:00")}} for i in range(10)]
+    Run("LF01a", ops + [sync(), dump()], session="LF01").execute()
+    run = Run("LF01b", [sync(), dump()], session="LF01").execute()
+    workdir = os.path.join(RUNS, "session-LF01")
+    folder = os.path.join(workdir, "home", "TrumptonApps", "ContactManager", "calendar")
+    files = [n for n in os.listdir(folder) if os.path.isfile(os.path.join(folder, n))] if os.path.isdir(folder) else []
+    holding = []
+    empty = 0
+    for n in files:
+        with open(os.path.join(folder, n), errors="replace") as f:
+            text = f.read()
+        if not text.strip():
+            empty += 1
+        if "BENCH LF01" in text:
+            holding.append(n)
+    summaries = sorted(set(l.split("=", 1)[1] for n in holding for l in open(os.path.join(folder, n), errors="replace").read().splitlines()
+                           if l.startswith("summary=") and "BENCH LF01" in l))
+    return [Check("the calendar folder holds each of the 10 appointments once", len(holding) == 10 and len(summaries) == 10,
+                  "files holding them: %d, distinct summaries: %d" % (len(holding), len(summaries))),
+            Check("no file in the calendar folder is empty", empty == 0, "empty files: %d" % empty),
+            Check("the app holds the 10 once", len(local_events(run.dump, "BENCH LF01")) == 10,
+                  "app: %d" % len(local_events(run.dump, "BENCH LF01")))]
+
+
+@scenario("LF02", "#105 Local files: a deleted appointment moves to the deleted folder, and is not left in the calendar folder")
+def lf02():
+    set_mode(CM_MASTER)
+    Run("LF02a", [{"op": "add_appointment", "fields": {"summary": "BENCH LF02", "from": at_day(25, "09:00"),
+                                                       "to": at_day(25, "10:00")}}, sync(), dump()], session="LF02").execute()
+    # The deleted entry is linked to Google until the sync has removed it there; the tidy then moves it to the deleted folder
+    Run("LF02b", [{"op": "delete_appointment", "match": {"summary": "BENCH LF02"}}, sync(), {"op": "tidy_full"}, dump()],
+        session="LF02").execute()
+    workdir = os.path.join(RUNS, "session-LF02")
+    in_calendar = folder_holding(workdir, "", "BENCH LF02")
+    in_deleted = folder_holding(workdir, "deleted", "BENCH LF02")
+    return [Check("the deleted appointment is not left in the calendar folder", in_calendar is None, "calendar holds %s" % in_calendar),
+            Check("it is kept in the deleted folder", in_deleted is not None, "deleted holds %s" % in_deleted),
+            Check("Google does not hold it", len(bench_event("BENCH LF02")) == 0, "found %d" % len(bench_event("BENCH LF02")))]
+
+
+@scenario("A14", "#105 Appointment deleted in the app and changed on Google, ContactManager master: the app and Google agree, with no duplicate")
+def a14():
+    eid = create_event("BENCH A14", at_day(26, "09:00"), at_day(26, "10:00"))
+    set_mode(CM_MASTER)
+    run = Run("A14", [sync(), gchange("patch-event", eid, "From Google"),
+                      {"op": "delete_appointment", "match": {"summary": "BENCH A14"}}, sync(), dump()], session="A14").execute()
+    goog = bench_event("BENCH A14")
+    live = [a for a in local_events(run.dump, "BENCH A14")] if run.dump else []
+    return [Check("no duplicate on Google", len(goog) <= 1, "Google: %d" % len(goog)),
+            Check("the app and Google agree", len(live) == len(goog), "app: %d, Google: %d" % (len(live), len(goog)))]
+
+
+@scenario("A15", "#105 Appointment deleted on Google and changed in the app, ContactManager master: the app and Google agree, with no duplicate")
+def a15():
+    eid = create_event("BENCH A15", at_day(27, "09:00"), at_day(27, "10:00"))
+    set_mode(CM_MASTER)
+    run = Run("A15", [sync(), gchange("delete-event", eid), edit_op("BENCH A15", location="From app"), sync(), dump()],
+              session="A15").execute()
+    goog = bench_event("BENCH A15")
+    live = [a for a in local_events(run.dump, "BENCH A15")] if run.dump else []
+    return [Check("no duplicate on Google", len(goog) <= 1, "Google: %d" % len(goog)),
+            Check("the app and Google agree", len(live) == len(goog), "app: %d, Google: %d" % (len(live), len(goog)))]
+
+
+def keys_main(argv):
+    """Writes the bench's keys to a private file, in the layout of the setup-secrets file (issue #105): the Google OAuth
+    client, the Google account, the local encryption secret, and the local file keys of the session.  The file is written
+    with owner-only permissions, and no value is printed.  It is never written into the repository."""
+    if not argv:
+        raise SystemExit("usage: google_bench.py keys <out-file>")
+    out = os.path.abspath(argv[0])
+    if out.startswith(REPO + os.sep) or out == REPO:
+        raise SystemExit("refusing to write keys inside the repository: %s" % out)
+    cid, secret = _define("CLIENTID") or "", _define("SECRET") or ""
+    with open(CONF) as f:
+        conf = f.read()
+    m = re.search(r"^googlerefreshtoken=(\S+) (\S*)", conf, re.M)
+    refresh, account = (m.group(1), m.group(2)) if m else ("", "")
+    local_secret = os.environ.get("CM_TEST_SECRET") or ""
+    local_keys = {}
+    for name in ("A", "B", "C", "D"):
+        local_keys[name] = ""
+    key_file = os.path.join(RUNS, "session-LF01", "home", ".config", "trumpton.uk", "TextFileEncryption.conf")
+    if os.path.exists(key_file):
+        with open(key_file, errors="replace") as f:
+            for line in f.read().splitlines():
+                if "=" in line and line.split("=", 1)[0].strip() in local_keys:
+                    local_keys[line.split("=", 1)[0].strip()] = line.split("=", 1)[1].strip()
+    lines = [
+        "google_oauth_client:",
+        "  client_id: %s" % cid,
+        "  client_secret: %s" % secret,
+        "  source: %s" % os.path.relpath(HEADER, REPO) if HEADER.startswith(REPO) else "  source: CM_HEADER",
+        "google_account:",
+        "  email: %s" % account,
+        "  refresh_token: %s" % refresh,
+        "  stored_in: ~/.config/trumpton.org.uk/ContactManager.conf (googlerefreshtoken)",
+        "local_encryption:",
+        "  key: %s" % local_secret,
+        "  key_confirmation: %s" % local_secret,
+        "  password: %s" % local_secret,
+        "  password_confirmation: %s" % local_secret,
+        "  note: the bench's test secret; it is read from CM_TEST_SECRET or ~/.cm-test-secret",
+        "local_file_encryption_keys:",
+        "  source: TextFileEncryption.conf of the session (written by the app)",
+    ] + ["  %s: %s" % (k, v) for k, v in sorted(local_keys.items())]
+    fd = os.open(out, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    print("keys written to %s (owner-only; no values printed)" % out)
+
+
+@scenario("R10", "#102 A changed occurrence of a repeat, changed on Google, is downloaded as its own entry; the other occurrences are unchanged")
+def r10():
+    eid = create_recurring_event("BENCH R10 weekly", at_day(2, "09:00"), at_day(2, "10:00"), "RRULE:FREQ=WEEKLY;INTERVAL=1")
+    set_mode(CM_MASTER)
+    Run("R10a", [sync(), dump()], session="R10").execute()
+    target = at_day(2 + 14, "09:00")[:10]
+    instances = [i for i in google_instances(eid) if (i.get("start") or {}).get("dateTime", "").startswith(target)]
+    if instances:
+        gchange_main(["patch-event", instances[0]["id"], "Room I"])
+    run = Run("R10b", [sync(), dump()], session="R10").execute()
+    local = local_events(run.dump, "BENCH R10")
+    changed = [a for a in local if a["location"] == "Room I"]
+    others = [a for a in local if a["location"] != "Room I"]
+    return [Check("Google has the changed occurrence, with its location", len(instances) == 1 and instances[0].get("location") == "Room I",
+                  "instances: %d" % len(instances)),
+            Check("the app shows the changed occurrence once, with its new location", len(changed) == 1 and target in changed[0]["from"],
+                  "app changed: %s" % [a["from"] for a in changed]),
+            Check("the repeat itself is still there, with its original location", len(others) == 1 and others[0]["location"] == "",
+                  "app others: %s" % [(a["from"], a["location"]) for a in others])]
 
 
 if __name__ == "__main__":
