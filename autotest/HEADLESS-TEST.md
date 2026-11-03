@@ -243,59 +243,26 @@ Group 2 has 95 tests. Most have not been timed yet, so the group's total is not 
 
 ### Known test results
 
-- Group 3: 24 of 24 pass (`L01` runs the 77 messages unit tests, which all pass).
-- `R02` and `R03` fail: under Google master, an edit made in ContactManager is kept by the app at the next sync, where the ticket's matrix says Google's copy should win. This is a behaviour question for the owner, not a test fault, and has not been changed in the app.
+Results at the end of the ticket #105 work (the last run of each scenario):
 
-## 6b. Coverage of ticket #105
+- **159 scenarios.** 156 pass. Two fail, and both also fail on the code from before this work (so they are not regressions):
+  - `A07`: an appointment deleted in the app after it was downloaded is not deleted on Google. The sync decides the deletion
+    is to be uploaded, but by the upload step the entry's Deleted and upload flags have been cleared. The cause is not yet
+    found; this is a bug to fix.
+  - `X81D`: the repeat-delete step does not find the occurrence in the calendar list on the large scratch account (about
+    3,800 rows), so the driver waits on a dialog until the 15-minute limit. It needs the driver's occurrence lookup fixed.
+- **The fixes checked against the code from before them** (each scenario fails there, and passes now): `#94` (`RL01` to
+  `RL05`), `#102` (`R10`), `#104` (`E70`), and `#86` (`E01`, `E02`).
+- **`U01`** (uploads): see the run note in the ticket.
+- Scratch account: about 3,300 events and 500 contacts (most are cancelled tombstones from earlier runs). Each sync lists
+  them all, which is why most Google tests take 40 to 60 seconds.
 
-Each item of the ticket is listed with the scenarios that test it (`google_bench.py groups` shows them all, with a typical duration).
+Decisions the tests now record:
 
-| Ticket item | Scenarios |
-|---|---|
-| Exchanges: ContactManager master, edit in the app (upload) | A05, C08, R01 (Google's edit), M05 |
-| Exchanges: ContactManager master, edit in Google (download, unless the app also changed it) | A06, C09, R01, R06 |
-| Exchanges: Google master, edit in the app (overwritten by Google) | R02, R03, M07 |
-| Exchanges: Google master, edit in Google (downloaded) | R04, R05, M08 |
-| Window: inside, outside (before and after), crossing the edge | W01 (crossing), W02 (before), W03 (after), X15 |
-| Window: widened, with a full listing | W04, TK02 |
-| Archived entries: moved into the window (restored), left outside (copy updated), cancelled (removed) | AR01, AR02, AR03 |
-| Repeats: moved start | R07 |
-| Repeats: changed occurrence (#102) | R10 |
-| Repeats: cancelled occurrence, this and following, no occurrences left, exceptions | X81D, X81E, R08, R09 |
-| Deleted in one place, changed in the other | A14 (app deleted, Google changed), A15 (Google deleted, app changed), C19, C20 |
-| Changed in both places since the last sync | X17, R06 (repeat), C17, C18 |
-| Entry with no start, and one dated 1 January 1970 (#104) | E70, X13 |
-| Full listing (no token, or a window change) and incremental listing | TK02, W04; every second sync of the suite is incremental |
-| A sync token Google refuses (400, 410) | TK01 |
-| A sync that stops part-way, then resumes (#93) | RS01 |
-| A rate limit (#94): retried, given up, paced, and the reason reported | RL01, RL03, RL04, RL02 (not a rate limit: not retried) |
-| A connection Google closes part-way | RL05 |
-| Two copies of ContactManager on one calendar | TC01 |
-| The window changed in Setup between syncs | W04, AR01, AR02, AR03 |
-| Contacts: the same quadrants, a contact deleted in one place and changed in the other | C08, C09, C17, C18, C19, C20, M01 to M08, C04, C05 |
-| Local files: calendar, archive and deleted folders, each entry once, no empty file | LF01, LF02, L02, L03 |
-| To-do and history files, with and without a file (#100) | L04 (without a file). Encrypted and plain-text versions: not yet covered |
-| Data set: 250 contacts and 1,000 appointments, generated | U01 (last) |
-
-Not covered, and why: the encrypted and plain-text to-do and history files (see above); a burst of create, delete, re-create and modify within the five-minute hold on Google (the local messages tests cover it, and the bench does not drive it); and the per-contact message limits, which belong to the messages tests.
-
-### Test hooks
-
-`CM_TEST_FAULTS` makes numbered requests of a run answer with a status and reason, without being sent, so the rate-limit scenarios can be repeated exactly. `w` numbers the writes (uploads, creates, changes and deletes) and `r` the reads, each from 1 in the order sent:
-
-```
-CM_TEST_FAULTS="w3-4=403:rateLimitExceeded;w9=400:badRequest;r2=429:rateLimitExceeded;w12=closed"
-```
-
-`closed` is a connection closed by Google. The variable is unset in normal use; the application ignores it when it is not set.
-
-### Keys
-
-```bash
-python3 autotest/google_bench.py keys <a file outside the repository>
-```
-
-writes the bench's keys to a file with owner-only permissions, in the layout of the setup-secrets file: the Google OAuth client, the Google account (and its refresh token), the local encryption secret, and the local file keys of the session. No value is printed, and the command refuses to write inside the repository.
+- An appointment changed in both places since the last sync keeps Google's version, and the report says `CONFLICT` (issue
+  #86, `R06`, `X17`). A contact changed in both places keeps the local copy (`C17`). The two rules differ; which one is wanted
+  for contacts is open.
+- An appointment that starts after the far edge of the window is not downloaded (issue #105, `W03`). Before this it was.
 
 ## 7. Working with a human go-between
 
