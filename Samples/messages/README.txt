@@ -8,6 +8,8 @@ This folder contains the template messages in the following files:
     smsdelete.msg
     smsupdate.msg
     smsreminder.msg
+    emailtoday.msg   (the on-the-day email; the reminder template is used if not set)
+    smstoday.msg    (the on-the-day text; the reminder template is used if not set)
 
 The first line is the sender:
     Email:  the From address, written as "Name <address>", e.g.

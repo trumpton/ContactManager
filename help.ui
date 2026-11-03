@@ -470,6 +470,8 @@ smsconfirmation=&quot;$INI/emailconfirmation.msg&quot;
 smsupdate=&quot;$INI/smsupdate.msg&quot;
 smsdelete=&quot;$INI/smsdelete.msg&quot;
 smsreminder=&quot;$INI/smsreminder.msg&quot;
+emailtoday=&quot;$INI/emailtoday.msg&quot;
+smstoday=&quot;$INI/smstoday.msg&quot;
 
 </string>
      </property>

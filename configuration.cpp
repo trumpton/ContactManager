@@ -658,6 +658,13 @@ QString Configuration::getMessageFile(int index)
         case MSG_SMS_DELETION: path=ini.get("message", "smsdelete") ; break ;
         case MSG_SMS_UPDATE: path=ini.get("message", "smsupdate") ; break ;
         case MSG_SMS_REMINDER: path=ini.get("message", "smsreminder") ; break ;
+        // The on-the-day messages use their own templates; a copy of the file that does not set them uses the reminder
+        case MSG_EMAIL_TODAY: path=ini.get("message", "emailtoday") ;
+            if (path.trimmed().isEmpty()) path=ini.get("message", "emailreminder") ;
+            break ;
+        case MSG_SMS_TODAY: path=ini.get("message", "smstoday") ;
+            if (path.trimmed().isEmpty()) path=ini.get("message", "smsreminder") ;
+            break ;
         default: break ;
         }
 
