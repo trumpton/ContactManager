@@ -98,8 +98,9 @@ def api(method, url, body=None):
                 text = r.read().decode()
                 return json.loads(text) if text else {}
         except urllib.error.HTTPError as e:
-            # Quota (429): Google's limits are per minute for some writes, so back off up to a minute between tries
-            if e.code == 429 and attempt < 8:
+            # Quota (429): Google's limits are per minute for some writes, so back off up to a minute between tries.  A server
+            # error (5xx, such as 502 Bad Gateway) is transient: it is tried again, as a change lost here would not be noticed.
+            if (e.code == 429 or e.code >= 500) and attempt < 8:
                 time.sleep(min(2 ** attempt, 60))
                 continue
             # An access token lasts about an hour: a long run asks for a new one, once per request
