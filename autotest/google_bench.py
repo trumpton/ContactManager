@@ -2815,9 +2815,10 @@ def ar01():
 
 
 def in_scale_window(days, step_days, occurrences):
-    """Whether any occurrence of an entry falls in the window: 90 days before today to 730 days after.  The lower edge
-    is 89 days, not 90: the sync runs minutes after the set is generated, so an entry on the edge has already left it."""
-    return any(-89 <= days + step_days * k <= 730 for k in range(occurrences))
+    """Whether any occurrence of an entry falls in the window: 90 days before today to 730 days after.  Both edges are one
+    day inside: the sync runs minutes after the set is generated, and an entry on the far edge starts after the sync's
+    window end (about 13:00 on that day), so it is not downloaded (issue #105, W03)."""
+    return any(-89 <= days + step_days * k <= 729 for k in range(occurrences))
 
 
 # --- purge: removes entries from the account (test area utility) ------------------------------------------------
@@ -3035,6 +3036,10 @@ def u01():
     dup_ids = {i for i in held_ids if held_ids.count(i) > 1}
     lb = [x for x in b_run.dump["appointments"] if x["summary"].startswith("Upload S") and not x["deleted"]]
     archived = parse_listing(run_path("U01c", "archive-c.txt"))
+    # The second sync's report says how many expired entries it moved to the archive (they were uploaded by the first)
+    second_report = "".join(open(os.path.join(b_run.dir, f), errors="replace").read() for f in os.listdir(b_run.dir) if f.startswith("report"))
+    found = re.search(r"Archived (\d+) expired appointments", second_report)
+    second_archived = int(found.group(1)) if found else 0
     return [Check("%d contacts on Google" % UPLOAD_CONTACTS, goog_contacts == UPLOAD_CONTACTS,
                   "Google holds %d" % goog_contacts),
             Check("Aaron Aesop is on Google once", len(aaron_goog) == 1, "found %d" % len(aaron_goog)),
@@ -3049,8 +3054,9 @@ def u01():
                   "%d missing, e.g. %s" % (len(missing), missing[:3])),
             Check("an appointment is held twice only for a changed occurrence",
                   all(i % 50 == 0 for i in dup_ids), "duplicated: %s" % sorted(dup_ids)[:5]),
-            Check("a second sync changes nothing in the app", len(lb) == len(held),
-                  "held %d, then %d" % (len(held), len(lb))),
+            Check("a second sync changes nothing in the app, but archives what it has moved (expired, now on Google)",
+                  len(lb) + second_archived == len(held),
+                  "held %d, then %d, archived %d" % (len(held), len(lb), second_archived)),
             Check("the entries the shrunken window left behind are archived", len(archived) > 0,
                   "archive holds %d files" % len(archived))]
 
