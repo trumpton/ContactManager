@@ -683,7 +683,7 @@ def a06():
 @scenario("A07", "Event deleted in the app after it synced: deleted on Google")
 def a07():
     create_event("BENCH A07", DAY % (8, "09:00"), DAY % (8, "10:00"))
-    Run("A07", [sync(), {"op": "delete_appointment", "match": {"summary": "BENCH A07"}}, sync(), dump()]).execute()
+    Run("A07", [sync(), {"op": "wait", "ms": 3000}, {"op": "delete_appointment", "match": {"summary": "BENCH A07"}}, sync(), dump()]).execute()
     return [Check("Google no longer holds BENCH A07", not [e for e in bench_events() if e["summary"] == "BENCH A07"])]
 
 
@@ -3611,11 +3611,13 @@ def r10():
     if instances:
         gchange_main(["patch-event", instances[0]["id"], "Room I"])
     run = Run("R10b", [sync(), dump()], session="R10").execute()
+    # The occurrence as Google holds it after the sync (the list above was taken before the change)
+    instances = [i for i in google_instances(eid) if (i.get("start") or {}).get("dateTime", "").startswith(target)]
     local = local_events(run.dump, "BENCH R10")
     changed = [a for a in local if a["location"] == "Room I"]
     others = [a for a in local if a["location"] != "Room I"]
     return [Check("Google has the changed occurrence, with its location", len(instances) == 1 and instances[0].get("location") == "Room I",
-                  "instances: %d" % len(instances)),
+                  "instances: %d, locations: %s" % (len(instances), [i.get("location") for i in instances])),
             Check("the app shows the changed occurrence once, with its new location", len(changed) == 1 and target in changed[0]["from"],
                   "app changed: %s" % [a["from"] for a in changed]),
             Check("the repeat itself is still there, with its original location", len(others) == 1 and others[0]["location"] == "",
