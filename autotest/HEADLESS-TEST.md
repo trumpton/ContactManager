@@ -263,7 +263,12 @@ Results after the item-4 and item-1 work of ticket #105 (the last run of each sc
   `LF02`, `E01`, `E03`, `C17` to `C20`, `X81D`, `X81E`, `U02`, `RL01` to `RL05`, `TC01`, `RS01`. Result: see the ticket.
 - **The fixes checked against the code from before them** (each scenario fails there, and passes now): `#94` (`RL01` to
   `RL05`), `#102` (`R10`), `#104` (`E70`), and `#86` (`E01`, `E02`).
-- **`U01`** (uploads, run last): see the run note in the ticket.
+- **`U01`** (uploads, run last, on commit 2e9e452): Google holds all 1,000 appointment masters and the ContactManager half reached
+  Google. The app holds 830 of them after the first sync; the 647 that the window expects are all held. The second sync archives 119
+  expired entries that the first sync uploaded (they were out of the window, so their earlier sync did not archive them), leaving
+  711 in the calendar folder. Two checks had wrong expectations and were corrected after the run, then re-evaluated on the saved data
+  (not re-run): the window's far edge is one day inside (an entry on day 730 starts after the window ends, so it is not downloaded), and
+  the second sync's archived entries are allowed for. The run's first version failed both checks.
 - Scratch account: about 3,300 events and 500 contacts (most are cancelled tombstones from earlier runs). The first sync of a
   run lists every event; later syncs list only the changes, when the sync token is kept. Most Google tests take 40 to 60 seconds.
 
