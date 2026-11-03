@@ -221,7 +221,20 @@ It removes **everything** of that kind on the account, not only the test entries
 
 ### Changes on Google, and the test prefix
 
-Changes made on Google outside ContactManager go through `google_bench.py gchange` (or the same helpers in Python), which **refuses any event or contact without the test prefix**. Only `BENCH ...` events, and contacts named `Bench` or with a `@test.invalid` address, can be changed. The upload group's records are named `Upload ...` and are left in place at the end of the group, which is why its tests do not depend on them.
+Every record a test creates or syncs carries a prefix, so its records can be told apart from a user's on an account that is not a
+scratch one:
+
+| Record | Prefix |
+|---|---|
+| Appointment | the summary starts `BENCH ` (for example `BENCH A07`, `BENCH Upload S0012 Team call`) |
+| Contact | the given name is `Bench`, or the contact has an address at `test.invalid` (a contact with no name is found by its address) |
+
+The helpers and the test runner enforce this. A test that creates an appointment without the prefix, or a contact with neither
+the name nor the address, is refused before anything is sent to Google. Changes made on Google outside ContactManager
+(`google_bench.py gchange`) refuse any record without the prefix too.
+
+The upload group keeps its records: no cleanup runs before or after `U01` and `U02`, so the records are left on Google. The purge (`google_bench.py purge`, and the start of the upload group `U01`) removes **everything** of that kind on the account,
+not only the test records. It is for the scratch account only. The prefix is what identifies the test records on any other account.
 
 ### How a group is chosen
 
