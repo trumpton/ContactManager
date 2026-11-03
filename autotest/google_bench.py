@@ -252,6 +252,7 @@ class Run:
         else:
             self.workdir = self.dir
         self.home = os.path.join(self.workdir, "home")
+        self.ini_extra = INI_EXTRA.get(session, []) if session else []
         self.fresh = not os.path.exists(self.home)
         self.ops = ops
         self.dump = None
@@ -264,7 +265,7 @@ class Run:
         secret = os.environ.get("CM_TEST_SECRET", "")
         if not secret:
             raise SystemExit("set CM_TEST_SECRET to the local test password")
-        prepare_home(self.home, self.fresh, MODE["master"], self.conf)
+        prepare_home(self.home, self.fresh, MODE["master"], self.conf, self.ini_extra)
         env = dict(os.environ, CM_TEST_SECRET=secret, QT_QPA_PLATFORM="offscreen", HOME=self.home)
         env.pop("XDG_CONFIG_HOME", None)
         if faults:
@@ -373,7 +374,11 @@ def set_mode(master):
     MODE["master"] = master
 
 
-def prepare_home(home, fresh, master, extra=()):
+# The ini lines a session's app starts with, after the phone settings (the encryption flag is read from it at start-up)
+INI_EXTRA = {}
+
+
+def prepare_home(home, fresh, master, extra=(), ini_extra=()):
     """Give a run its own HOME, so its settings, phone settings and local data are its own.
 
     A fresh home gets the sign-in from the source settings file, the sync switches, and no sync dates, so the
@@ -385,7 +390,7 @@ def prepare_home(home, fresh, master, extra=()):
     os.makedirs(ini_dir, exist_ok=True)
     # Phone codes blank, so numbers are stored as typed (see HEADLESS-TEST.md, section 4a)
     with open(os.path.join(ini_dir, "ContactManager.ini"), "w") as f:
-        f.write("[phone]\nlocalcode=\ncountrycode=\n")
+        f.write("[phone]\nlocalcode=\ncountrycode=\n" + "".join(line + "\n" for line in ini_extra))
     cfg = os.path.join(cfg_dir, "ContactManager.conf")
     if fresh or not os.path.exists(cfg):
         with open(CONF) as src:
@@ -3123,6 +3128,64 @@ def l04():
     return [Check("the app starts and dumps its data", b.dump is not None and "contacts" in b.dump,
                   "no dump" if b.dump is None else "dump written")]
 
+
+
+def session_home(session):
+    return os.path.join(RUNS, "session-" + session, "home")
+
+
+def write_encryption_setting(session, encrypted):
+    """The encryption flag is read from ContactManager.ini at start-up, so it is given to every run of the session, through
+    the ini the run writes (prepare_home)."""
+    INI_EXTRA[session] = ["[database]", "encrypted=%s" % ("true" if encrypted else "false")]
+
+
+def notes_check(session, plain, todo, history):
+    """The notes files of the contact named by the scenario: plain ones (.todolist, .history) or encrypted (.ztodolist,
+    .zhistory).  Returns the checks' details as (names, ok) pairs."""
+    folder = os.path.join(session_home(session), "TrumptonApps", "ContactManager", "contact")
+    names = os.listdir(folder) if os.path.isdir(folder) else []
+    todo_name = ".todolist" if plain else ".ztodolist"
+    history_name = ".history" if plain else ".zhistory"
+    other_todo = ".ztodolist" if plain else ".todolist"
+    other_history = ".zhistory" if plain else ".history"
+    found_todo = [n for n in names if n.endswith(todo_name)]
+    found_history = [n for n in names if n.endswith(history_name)]
+    def text_of(names_):
+        return "".join(open(os.path.join(folder, n), "rb").read().decode("latin-1") for n in names_)
+    return [("the %s file is written" % todo_name, len(found_todo) >= 1),
+            ("the %s file is written" % history_name, len(found_history) >= 1),
+            ("no %s file is written" % other_todo, not [n for n in names if n.endswith(other_todo)]),
+            ("no %s file is written" % other_history, not [n for n in names if n.endswith(other_history)]),
+            ("the to-do is %s" % ("in plain text" if plain else "not in plain text"),
+             (todo in text_of(found_todo)) == plain),
+            ("the history is %s" % ("in plain text" if plain else "not in plain text"),
+             (history in text_of(found_history)) == plain)]
+
+
+def notes_scenario(code, plain, todo, history):
+    write_encryption_setting(code, not plain)
+    ops = [{"op": "add_contact", "fields": {"names": "Notes", "surname": code}},
+           {"op": "contact_notes", "match": {"surname": code}, "todo": todo, "history": history},
+           {"op": "save"}, dump()]
+    first = Run(code + "a", ops, session=code).execute()
+    # A restart reads the notes back: the same session's folder, with a fresh application
+    second = Run(code + "b", [dump()], session=code).execute()
+    checks = notes_check(code, plain, todo, history)
+    back = [c for c in (second.dump or {}).get("contacts", []) if c.get("surname") == code]
+    checks.append(("after a restart, the to-do is read back", len(back) == 1 and back[0].get("todo", "").strip() == todo))
+    checks.append(("after a restart, the history is read back", len(back) == 1 and history in back[0].get("history", "")))
+    return [Check(label, ok) for label, ok in checks]
+
+
+@scenario("L05", "#105 Notes, plain text: a contact's to-do list and history are saved as plain files, and a restart reads them back")
+def l05():
+    return notes_scenario("L05", True, "L05 plain to-do", "L05 plain history")
+
+
+@scenario("L06", "#105 Notes, encrypted: a contact's to-do list and history are saved encrypted, with no plain text on disk, and a restart reads them back")
+def l06():
+    return notes_scenario("L06", False, "L06 encrypted to-do", "L06 encrypted history")
 
 
 # ----------------------------------------------------------------------------------------------
