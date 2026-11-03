@@ -82,9 +82,11 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
     if (gConf->contactSyncEnabled()) {
 
         ui->updateStatusReport->append(QString("Last Contact Synchronisation Date: ") + contactsyncdatestr ) ;
+        google.clearLastFailure() ;
         consuccess = processContactUpdate(contactsyncdate, google, db) ;
+        for (const QString &note : google.takeSyncNotes()) ui->updateStatusReport->append(QString("  ") + note) ;
         if (!consuccess) {
-            ui->updateStatusReport->append(QString("CONTACTS SYNCHRONISATION FAILED: ") + google.getNetworkError()) ;
+            ui->updateStatusReport->append(QString("CONTACTS SYNCHRONISATION FAILED: ") + google.getLastFailure() + QString(" ") + google.getLastRecovery()) ;
         } else {
             // next syncdate after sync means anything changed on google during the sync may be lost
             qSleep(1000) ;
@@ -123,9 +125,11 @@ int GoogleUpdateDialog::doUpdate(GoogleAccess& google, class ContactDatabase& db
         ui->updateStatusReport->append(QString("\nSYNCHRONISING CALENDAR")) ;
         ui->updateStatusReport->append(QString("Last Calendar Synchronisation Date: ") + calendarsyncdatestr ) ;
 
+        google.clearLastFailure() ;
         calsuccess = processCalendarUpdate(calendarsyncdate, google, db, cal) ;
+        for (const QString &note : google.takeSyncNotes()) ui->updateStatusReport->append(QString("  ") + note) ;
         if (!calsuccess) {
-            ui->updateStatusReport->append(QString("CALENDAR SYNCHRONISATION FAILED: ") + google.getNetworkError()) ;
+            ui->updateStatusReport->append(QString("CALENDAR SYNCHRONISATION FAILED: ") + google.getLastFailure() + QString(" ") + google.getLastRecovery()) ;
         } else {
 
             // Sleep to allow local changes that have been made during the sync to be
