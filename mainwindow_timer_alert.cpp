@@ -481,7 +481,7 @@ void MainWindow::sendMailSMS()
 
                 QString daytype = byemail ? "Sending on-the-day email to " + emailaddress : "Sending on-the-day sms message to " + mobile ;
                 int result = deliver(key, daytype, byemail,
-                                     gConf->getMessageFile(byemail ? MSG_EMAIL_REMINDER : MSG_SMS_REMINDER), id, contactid, mobile, emailaddress, occ) ;
+                                     gConf->getMessageFile(byemail ? MSG_EMAIL_TODAY : MSG_SMS_TODAY), id, contactid, mobile, emailaddress, occ) ;
                 if (result==1 || result==-4) {
                     Appointment &after = calendar.getAppointmentBy(Appointment::ID, id) ;
                     if (!after.isNull()) {

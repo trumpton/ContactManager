@@ -22,7 +22,7 @@ Times are UK local time. Settings are from the `[reminders]` section of ContactM
 | Update | Already confirmed, and the start, end, or repeat differs from what was last sent | Same as confirmation | After the hold, at the first check inside the window. Carries the final details. | Once per settled change |
 | Cancellation | Already confirmed, then deleted | Same as confirmation | Not held. Sent at the first check inside the window. | Once |
 | Reminder | Not confirm-only; occurrence is within 24 hours; the occurrence is not today; no reminder sent yet | Same as confirmation | At the first check inside the window once due | Once per occurrence |
-| On-the-day | The occurrence is today | Each channel the contact has: email and/or text | At the first check inside the window on the day, after any confirmation or update due at that check | Once per channel per day |
+| On-the-day (Today Reminder) | The occurrence is today | Each channel the contact has: email and/or text. Uses the Today Reminder template (`emailtoday` / `smstoday` in `[message]`). | At the first check inside the window on the day, after any confirmation or update due at that check | Once per channel per day |
 | Removed repeat occurrence | A repeat occurrence is removed | Email | At the first check inside the window | Once per occurrence |
 
 Nothing is sent for a past occurrence, or for an appointment deleted before it was confirmed.
@@ -43,7 +43,7 @@ On the day, a confirmation or update sent by a channel that day counts as that c
 | Email only | Confirmation by email only. The confirmation covers the day. |
 | Text only | Confirmation by text only. The confirmation covers the day. |
 
-Rule to confirm: for a same-day booking, a single-channel contact gets no separate on-the-day message. A message that already gives the time on the day counts for it.
+Confirmed: for a same-day booking, a single-channel contact gets no separate on-the-day message. The confirmation gives the time on the day, so it counts as that channel's on-the-day message.
 
 ## 4. Corrections inside the hold
 
@@ -97,6 +97,7 @@ The table holds every rule in sections 2 to 4, and all on-the-day messages are p
 
 ## 7. Open items
 
-1. Issue #89 still says "A single-channel contact gets no on-the-day message". That contradicts the code and your expectation. The ticket has not been changed yet.
-2. Same-day bookings for single-channel contacts get the confirmation only (section 3). Confirm this is what you want.
-3. Updates are not sent for title or location changes (section 4). Confirm this is what you want.
+1. Confirmed: single-channel contacts get an on-the-day message, by their own channel (sections 2 and 3).
+2. Confirmed: same-day bookings for single-channel contacts get the confirmation only (section 3).
+3. Confirmed: updates are not sent for title or location changes (section 4).
+4. Issue #89 is being corrected to match these rules.
