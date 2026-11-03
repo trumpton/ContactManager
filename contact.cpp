@@ -223,6 +223,8 @@ bool Contact::createNew()
         qids.replace("}","") ;
         setField(Contact::ID,  qids) ;
         todo.createNew(qids) ;
+        // The history needs the ID too, or it is never saved (its save is skipped without one) (issue #105, notes files)
+        history.createNew(qids) ;
     }
 
     setField(Contact::Created, getField(Contact::Updated)) ;

@@ -597,6 +597,27 @@ int main(int argc, char *argv[])
 
             record(name + "_date", QJsonValue(ci.isValid() ? w.calendarlist.data(w.calendarlist.index(ci.row(),0), Qt::DisplayRole).toString().left(16) : QString())) ;
 
+        } else if (kind == "contact_notes") {
+            // Sets the to-do text, and adds a history line, to each contact matching, as the contact form does (issue #105)
+            QJsonObject match = op["match"].toObject() ;
+            int hit = 0 ;
+            for (int i = 0; i < w.db.size(); i++) {
+                Contact &c = w.db.getContact(i) ;
+                bool same = !match.isEmpty() ;
+                for (auto it = match.begin(); it != match.end(); ++it) {
+                    int rec = contactRecordFor(it.key()) ;
+                    if (rec < 0 || c.getField((Contact::ContactRecord)rec) != it.value().toString()) same = false ;
+                }
+                if (!same) continue ;
+                hit++ ;
+                if (op.contains("todo")) {
+                    QString text = op["todo"].toString() ;
+                    c.getTodo().setText(text) ;
+                }
+                if (op.contains("history")) c.getHistory().addEntry(op["history"].toString()) ;
+            }
+            note(QString("contact_notes matched %1 contact(s)").arg(hit)) ;
+
         } else if (kind == "setting") {
             // Sets an application setting, such as the window (windowbefore) for the next sync
             gConf->settings->setValue(op["key"].toString(), op["value"].toString()) ;
@@ -910,6 +931,9 @@ int main(int argc, char *argv[])
                     QString value = c.getField((Contact::ContactRecord)r) ;
                     if (!value.isEmpty()) obj.insert(QString(probe.contactRecordName((Contact::ContactRecord)r)), value) ;
                 }
+                // The to-do list and the history, as the contact holds them (issue #105: notes files)
+                if (!c.getTodo().todoText.isEmpty()) obj.insert("todo", c.getTodo().todoText) ;
+                if (!c.getHistory().HistoryText.isEmpty()) obj.insert("history", c.getHistory().HistoryText) ;
                 contacts.append(obj) ;
             }
             QJsonArray appointments ;

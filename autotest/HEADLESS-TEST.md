@@ -258,6 +258,11 @@ Results after the item-4 and item-1 work of ticket #105 (the last run of each sc
   the app's change) and `C19` (the same for a contact).
 - **Deletions made in the app are sent** until Google has them deleted (`A07`, fixed: see the decisions below).
 - **Uploads inside the window** (`U02`): 40 appointments added in the app are all on Google after one sync.
+- **Notes files** (`L05` plain text, `L06` encrypted, issue #105): a contact's to-do list and history are written as `.todolist` and
+  `.history` (plain) or `.ztodolist` and `.zhistory` (encrypted, with no plain text on disk), and a restart reads them back. The
+  test writes the encryption flag into the session's ini before the app starts. This found a bug, now fixed: a new contact's history
+  had no ID, so its file was never written (`Contact::createNew` now gives the history its ID too).
+- **Repeat with no occurrence left** (`R11`): every occurrence cancelled on Google, the app removes the repeat, and Google holds none.
 - **Repeats** (`X81D`): deleting one occurrence in the app is found by its hint and sent to Google, and the window is narrow for the test.
 - **Regression set** run after these changes: `R01` to `R10`, `A03`, `A04`, `A07`, `A14`, `A15`, `AR01` to `AR03`, `W03`, `LF01`,
   `LF02`, `E01`, `E03`, `C17` to `C20`, `X81D`, `X81E`, `U02`, `RL01` to `RL05`, `TC01`, `RS01`, and `R11` (a repeat with no occurrence left is removed, and Google holds none), all passing. Result: see the ticket.

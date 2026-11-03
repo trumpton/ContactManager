@@ -23,8 +23,8 @@ private:
     QString getOverviewResult ;
     QString cachedPath ;
 
-private:
-    bool createNew(QString idname) ;
+public:
+    bool createNew(QString idname) ;   // Contact::createNew gives a new contact its history ID
 
 public:
 
