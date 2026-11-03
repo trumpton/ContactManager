@@ -152,8 +152,28 @@ def delete_bench_contacts():
             print("cleanup: could not delete contact:", e)
 
 
+# Every record a test creates or syncs carries a prefix, so the test's records can be told apart from a user's on an account
+# that is not a scratch one.  An event's summary starts "BENCH ".  A contact's given name is "Bench", or it has an address at
+# test.invalid (a contact with no name is found by its address).  The guard refuses anything else, so a test cannot forget it.
+EVENT_PREFIX = "BENCH "
+CONTACT_GIVEN = "Bench"
+CONTACT_DOMAIN = "@test.invalid"
+
+
+def require_event_prefix(summary):
+    if not (summary or "").startswith(EVENT_PREFIX):
+        raise RuntimeError("refused: a test event must start with %r, so it can be told apart: %r" % (EVENT_PREFIX, summary))
+
+
+def require_contact_prefix(given, emails):
+    if given != CONTACT_GIVEN and not any((e or "").endswith(CONTACT_DOMAIN) for e in emails):
+        raise RuntimeError("refused: a test contact is named %r or has a %s address, so it can be told apart: %r, %r"
+                           % (CONTACT_GIVEN, CONTACT_DOMAIN, given, emails))
+
+
 def create_contact(tag, emails=(), phones=(), urls=(), nicknames=(), biographies=(), addresses=(),
                    given="Bench", family=None):
+    require_contact_prefix(given, [e[0] if isinstance(e, (tuple, list)) else e for e in emails])
     body = {"names": [{"givenName": given, "familyName": tag if family is None else family}]}
     if emails:
         body["emailAddresses"] = [{"value": v, "type": t} for v, t in emails]
@@ -197,6 +217,7 @@ def event_info(e):
 
 
 def create_event(summary, start, end, location=""):
+    require_event_prefix(summary)
     body = {"summary": summary, "start": {"dateTime": start}, "end": {"dateTime": end}}
     if location:
         body["location"] = location
@@ -239,6 +260,12 @@ def cleanup():
 
 class Run:
     def __init__(self, name, ops, session=None, tz=None, conf=()):
+        for op in ops:
+            if op.get("op") == "add_appointment":
+                require_event_prefix(op.get("fields", {}).get("summary", ""))
+            if op.get("op") == "add_contact":
+                fields = op.get("fields", {})
+                require_contact_prefix(fields.get("names", ""), [fields.get("email", "")])
         self.name = name
         self.tz = tz
         self.conf = list(conf)
@@ -761,7 +788,9 @@ def run_scenario(code):
     title, fn = SCENARIOS[code]
     set_mode(CM_MASTER)          # each scenario starts on the default master, whatever the one before left
     local = group_of(code) == GROUP_LOCAL
-    if not local:
+    # The upload group leaves its records on Google (its own purge starts it), so no cleanup runs before or after it (U01, U02)
+    keep_records = group_of(code) == GROUP_UPLOADS
+    if not local and not keep_records:
         cleanup()                # local tests never touch the account, so they do not clean it either
     # Sessions carry local data between runs, so each scenario starts from none
     for name in os.listdir(RUNS):
@@ -780,7 +809,7 @@ def run_scenario(code):
     for c in checks:
         if not c.ok:
             print("     - %s %s" % (c.label, ("(" + c.detail + ")") if c.detail else ""))
-    if not local:
+    if not local and not keep_records:
         cleanup()
 
 
@@ -2082,6 +2111,7 @@ def d30():
 
 
 def create_recurring_event(summary, start, end, rule):
+    require_event_prefix(summary)
     # A repeating event needs a time zone on its start and end
     body = {"summary": summary, "start": {"dateTime": start, "timeZone": "UTC"},
             "end": {"dateTime": end, "timeZone": "UTC"}, "recurrence": [rule]}
@@ -2936,14 +2966,14 @@ def upload_plan(rnd):
     for i in range(UPLOAD_CONTACTS):
         first, last = ("Aaron", "Aesop") if i == 0 else (rnd.choice(FIRST_NAMES), rnd.choice(LAST_NAMES))
         contacts.append({"i": i, "first": first, "last": last,
-                         "email": "%s.%s%04d@example.com" % (first.lower(), last.lower(), i),
+                         "email": "%s.%s%04d@test.invalid" % (first.lower(), last.lower(), i),
                          "phone": "+44 7700 9%05d" % i})
     appts = []
     for i in range(UPLOAD_APPOINTMENTS):
         days, hour = rnd.randint(-400, 900), rnd.randint(8, 17)
         repeat = i % 5 == 0
         interval, occurrences = (rnd.choice([1, 2]), rnd.randint(4, 12)) if repeat else (1, 1)
-        appts.append({"i": i, "summary": "Upload S%04d %s" % (i, rnd.choice(TITLES)), "days": days,
+        appts.append({"i": i, "summary": "BENCH Upload S%04d %s" % (i, rnd.choice(TITLES)), "days": days,
                       "start": at_day(days, "%02d:00" % hour), "end": at_day(days, "%02d:30" % hour),
                       "repeat": repeat, "interval": interval, "occurrences": occurrences,
                       "step": 7 * interval if repeat else 0, "direct": i < DIRECT_APPOINTMENTS})
@@ -2961,20 +2991,20 @@ def u02():
     # Days 5 to 44 from today, two appointments a day, so the window (90 days back, 730 forward) holds all of them.
     set_mode(CM_MASTER)
     # Earlier runs' copies are removed from Google first, so that only this run's are counted
-    earlier = api("GET", CALENDAR + "/events?q=" + urllib.parse.quote("Repro 40") + "&maxResults=250&singleEvents=false&showDeleted=false")
+    earlier = api("GET", CALENDAR + "/events?q=" + urllib.parse.quote("BENCH Repro 40") + "&maxResults=250&singleEvents=false&showDeleted=false")
     for e in earlier.get("items", []):
-        if e.get("summary", "").startswith("Repro 40 "):
+        if e.get("summary", "").startswith("BENCH Repro 40 "):
             api("DELETE", CALENDAR + "/events/" + e["id"])
     ops = []
     for n in range(40):
         day = 5 + n
-        ops.append({"op": "add_appointment", "fields": {"summary": "Repro 40 %02d" % n, "from": at_day(day, "09:00"),
+        ops.append({"op": "add_appointment", "fields": {"summary": "BENCH Repro 40 %02d" % n, "from": at_day(day, "09:00"),
                                                          "to": at_day(day, "10:00"), "location": "Room %d" % (n % 9)}})
     run = Run("U02", ops + [sync(), dump()]).execute()
     # Found by a search on the summary (bench_events() lists only the BENCH entries)
-    found = api("GET", CALENDAR + "/events?q=" + urllib.parse.quote("Repro 40") + "&maxResults=250&singleEvents=false&showDeleted=false")
-    on_google = sorted(e["summary"] for e in found.get("items", []) if e.get("summary", "").startswith("Repro 40 "))
-    missing = [("Repro 40 %02d" % n) for n in range(40) if ("Repro 40 %02d" % n) not in on_google]
+    found = api("GET", CALENDAR + "/events?q=" + urllib.parse.quote("BENCH Repro 40") + "&maxResults=250&singleEvents=false&showDeleted=false")
+    on_google = sorted(e["summary"] for e in found.get("items", []) if e.get("summary", "").startswith("BENCH Repro 40 "))
+    missing = [("BENCH Repro 40 %02d" % n) for n in range(40) if ("BENCH Repro 40 %02d" % n) not in on_google]
     report = report_text("U02")
     return [Check("all 40 in-window appointments are on Google after one sync", not missing, ", ".join(missing[:10])),
             Check("no duplicates on Google", len(on_google) == len(set(on_google)), ""),
@@ -3028,19 +3058,19 @@ def u01():
     goog_contacts = len(people)
     aaron_goog = [p for p in people if any(n.get("givenName") == "Aaron" and n.get("familyName") == "Aesop"
                                            for n in p.get("names", []))]
-    goog_events = [e for e in all_events() if e.get("summary", "").startswith("Upload S") and not e.get("recurringEventId")]
+    goog_events = [e for e in all_events() if e.get("summary", "").startswith("BENCH Upload S") and not e.get("recurringEventId")]
     goog_ids = {appointment_summary_id(e["summary"]) for e in goog_events}
     cm_ids = {a["i"] for a in appts if not a["direct"]}
     cm_missing = sorted(cm_ids - goog_ids)
 
     app_contacts = [c for c in a_run.dump["contacts"] if c.get("deleted") != "true"]
     app_aaron = [c for c in app_contacts if c.get("names") == "Aaron" and c.get("surname") == "Aesop"]
-    held = [x for x in a_run.dump["appointments"] if x["summary"].startswith("Upload S") and not x["deleted"]]
+    held = [x for x in a_run.dump["appointments"] if x["summary"].startswith("BENCH Upload S") and not x["deleted"]]
     held_ids = [appointment_summary_id(x["summary"]) for x in held]
     expected = {a["i"] for a in appts if in_scale_window(a["days"], a["step"], a["occurrences"])}
     missing = sorted(expected - set(held_ids))
     dup_ids = {i for i in held_ids if held_ids.count(i) > 1}
-    lb = [x for x in b_run.dump["appointments"] if x["summary"].startswith("Upload S") and not x["deleted"]]
+    lb = [x for x in b_run.dump["appointments"] if x["summary"].startswith("BENCH Upload S") and not x["deleted"]]
     archived = parse_listing(run_path("U01c", "archive-c.txt"))
     # The second sync's report says how many expired entries it moved to the archive (they were uploaded by the first)
     second_report = "".join(open(os.path.join(b_run.dir, f), errors="replace").read() for f in os.listdir(b_run.dir) if f.startswith("report"))
@@ -3166,7 +3196,7 @@ def notes_check(session, plain, todo, history):
 
 def notes_scenario(code, plain, todo, history):
     write_encryption_setting(code, not plain)
-    ops = [{"op": "add_contact", "fields": {"names": "Notes", "surname": code}},
+    ops = [{"op": "add_contact", "fields": {"names": "Bench", "surname": code}},
            {"op": "contact_notes", "match": {"surname": code}, "todo": todo, "history": history},
            {"op": "save"}, dump()]
     first = Run(code + "a", ops, session=code).execute()
@@ -3253,6 +3283,37 @@ def tk01():
     return [Check("the entry already held is still there, once", len(first) == 1, "app: %d" % len(first)),
             Check("the entry added on Google since the last sync is downloaded, once",
                   len(second) == 1, "app: %d" % len(second))]
+
+
+@scenario("TK03", "#105 Token: a sync token Google answers with 410 (gone), as with 400, is replaced by a full listing, and the sync completes")
+def tk03():
+    create_event("BENCH TK03 first", at_day(3, "09:00"), at_day(3, "10:00"))
+    set_mode(CM_MASTER)
+    Run("TK03a", [sync(), dump()], session="TK03").execute()          # a full listing, which stores a sync token
+    create_event("BENCH TK03 second", at_day(4, "09:00"), at_day(4, "10:00"))
+    # Contacts are not synced here, so the first request of the sync is the calendar's listing: Google answers it with 410
+    run = Run("TK03b", [sync(), dump()], session="TK03", conf=("contactsync=no",)).execute(faults="r1=410:gone")
+    log = report_text("TK03b")
+    first = bench_event("BENCH TK03 first")
+    second = bench_event("BENCH TK03 second")
+    local = local_events(run.dump, "BENCH TK03") if run.dump else []
+    return [Check("the report says Google did not accept the sync token (HTTP 410)", "HTTP 410" in log, ""),
+            Check("the listing is done again in full", "every appointment is listed again" in log, ""),
+            Check("each appointment is on Google once", len(first) == 1 and len(second) == 1,
+                  "found %d and %d" % (len(first), len(second))),
+            Check("the app holds each appointment once", len(local) == 2, "app: %d" % len(local))]
+
+
+@scenario("TK04", "#105 Listing: after a full sync, the next sync lists only the changes since the last sync, and downloads no unchanged appointment")
+def tk04():
+    create_event("BENCH TK04 first", at_day(3, "09:00"), at_day(3, "10:00"))
+    set_mode(CM_MASTER)
+    Run("TK04a", [sync()], session="TK04").execute()
+    # Contacts are not synced here, so the report's listing lines are the calendar's
+    Run("TK04b", [sync(), dump()], session="TK04", conf=("contactsync=no",)).execute()
+    log = report_text("TK04b")
+    return [Check("the listing is the changes since the last sync", "the changes since the last sync" in log, ""),
+            Check("no unchanged appointment is downloaded", "Downloaded: 0 entries" in log, "")]
 
 
 @scenario("TK02", "#105 Token: with no sync token, the listing is full and every entry in the window is downloaded")
