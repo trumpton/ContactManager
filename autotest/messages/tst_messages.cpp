@@ -8,6 +8,7 @@
 #include "messagedecision.h"
 #include "appointment.h"
 #include "calendar.h"
+#include "ratepacer.h"
 
 // A UTC time from a local date and time
 static QDateTime localAt(QDate date, QTime time)
@@ -875,6 +876,60 @@ private slots:
         QCOMPARE(d, QDate(2028, 8, 1)) ;
         QVERIFY(!parseCalendarDate("1aug2", QDate(2030, 6, 1), &d)) ;
         QVERIFY(!parseCalendarDate("1 2 aug x", QDate(2030, 6, 1), &d)) ;
+    }
+
+
+    // ---- Issue #94: pacing of the uploads after Google's rate limits -----------------------------------------------------------
+
+    void ratePacerIsOffWithoutRateLimits()
+    {
+        RatePacer pacer ;
+        for (int i=0; i<300; i++) pacer.finished(false) ;
+        QCOMPARE(pacer.delayBeforeNext(), 0) ;
+        QVERIFY(!pacer.adaptive()) ;
+        QVERIFY(pacer.takeNotes().isEmpty()) ;
+    }
+
+    void ratePacerStartsAtFourSecondsAfterFiveLimitedOfAHundred()
+    {
+        RatePacer pacer ;
+        for (int i=0; i<4; i++) pacer.finished(true) ;
+        for (int i=0; i<20; i++) pacer.finished(false) ;
+        QVERIFY(!pacer.adaptive()) ;                 // four limited: not yet
+        pacer.finished(true) ;                       // the fifth
+        QVERIFY(pacer.adaptive()) ;
+        QCOMPARE(pacer.delayBeforeNext(), 4000) ;
+        QVERIFY(pacer.takeNotes().join(" ").contains("pacing")) ;
+    }
+
+    void ratePacerHalvesEvery500DownToHalfASecond()
+    {
+        RatePacer pacer ;
+        for (int i=0; i<5; i++) pacer.finished(true) ;
+        QCOMPARE(pacer.delayBeforeNext(), 4000) ;
+        for (int i=0; i<499; i++) pacer.finished(false) ;
+        QCOMPARE(pacer.delayBeforeNext(), 4000) ;    // not yet 500 transactions since the start
+        pacer.finished(false) ;
+        QCOMPARE(pacer.delayBeforeNext(), 2000) ;
+        for (int i=0; i<500; i++) pacer.finished(false) ;
+        QCOMPARE(pacer.delayBeforeNext(), 1000) ;
+        for (int i=0; i<500; i++) pacer.finished(false) ;
+        QCOMPARE(pacer.delayBeforeNext(), 500) ;
+        for (int i=0; i<500; i++) pacer.finished(false) ;
+        QCOMPARE(pacer.delayBeforeNext(), 500) ;     // the floor
+        QVERIFY(pacer.takeNotes().size() == 4) ;     // the start, then one note at each halving: 2000, 1000 and 500 ms
+    }
+
+    void ratePacerCountsOnlyTheLastHundred()
+    {
+        RatePacer pacer ;
+        for (int i=0; i<4; i++) pacer.finished(true) ;
+        for (int i=0; i<100; i++) pacer.finished(false) ;   // the four limited ones have left the window
+        for (int i=0; i<4; i++) pacer.finished(true) ;      // four more: five in all, but not five in the last hundred
+        QVERIFY(!pacer.adaptive()) ;
+        QVERIFY(pacer.takeNotes().isEmpty()) ;
+        pacer.finished(true) ;                              // the fifth in the last hundred
+        QVERIFY(pacer.adaptive()) ;
     }
 
     void numericDatesAreParsed()

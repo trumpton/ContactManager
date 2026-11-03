@@ -54,6 +54,7 @@ DEFINES += QWIDGET_EXTRA_DEBUG
 INCLUDE += $$PWD
 
 SOURCES += main.cpp\
+    ratepacer.cpp \
     mainwindow.cpp \
     history.cpp \
     contact.cpp \
@@ -122,6 +123,7 @@ SOURCES += main.cpp\
     safesave.cpp
 
 HEADERS  += mainwindow.h \
+    ratepacer.h \
     account-googleaccess.h \
     account-googleaccess.h \
     history.h \
