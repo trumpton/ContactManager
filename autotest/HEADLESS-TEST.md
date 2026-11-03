@@ -270,6 +270,9 @@ Results after the item-4 and item-1 work of ticket #105 (the last run of each sc
   `LF02`, `E01`, `E03`, `C17` to `C20`, `X81D`, `X81E`, `U02`, `RL01` to `RL05`, `TC01`, `RS01`, and `R11` (a repeat with no occurrence left is removed, and Google holds none), all passing. Result: see the ticket.
 - **The fixes checked against the code from before them** (each scenario fails there, and passes now): `#94` (`RL01` to
   `RL05`), `#102` (`R10`), `#104` (`E70`), and `#86` (`E01`, `E02`).
+- **The uploads problem reproduces on the code before this work** (commit 4fc5928): `U01` there holds 824 of the 1,000 appointment masters,
+  and 176 of the ContactManager half are missing from Google. On commit 2e9e452 all are there. The 40-appointment reproduction (`U02`)
+  passes on both, so the loss needs the full run's conditions. Which change fixes it has not been isolated.
 - **`U01`** (uploads, run last, on commit 2e9e452): Google holds all 1,000 appointment masters and the ContactManager half reached
   Google. The app holds 830 of them after the first sync; the 647 that the window expects are all held. The second sync archives 119
   expired entries that the first sync uploaded (they were out of the window, so their earlier sync did not archive them), leaving
