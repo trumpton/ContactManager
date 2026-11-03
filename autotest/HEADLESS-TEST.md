@@ -262,6 +262,8 @@ Results after the item-4 and item-1 work of ticket #105 (the last run of each sc
   `.history` (plain) or `.ztodolist` and `.zhistory` (encrypted, with no plain text on disk), and a restart reads them back. The
   test writes the encryption flag into the session's ini before the app starts. This found a bug, now fixed: a new contact's history
   had no ID, so its file was never written (`Contact::createNew` now gives the history its ID too).
+- **Transient server errors** (`X19`): a change the bench makes on Google that got HTTP 502 was not retried, so the sync had nothing to
+  download and the test failed two runs in three. `api()` now retries 5xx answers as it does 429, and `X19` passes three runs in three.
 - **Repeat with no occurrence left** (`R11`): every occurrence cancelled on Google, the app removes the repeat, and Google holds none.
 - **Repeats** (`X81D`): deleting one occurrence in the app is found by its hint and sent to Google, and the window is narrow for the test.
 - **Regression set** run after these changes: `R01` to `R10`, `A03`, `A04`, `A07`, `A14`, `A15`, `AR01` to `AR03`, `W03`, `LF01`,
