@@ -3643,6 +3643,22 @@ def keys_main(argv):
     print("keys written to %s (owner-only; no values printed)" % out)
 
 
+@scenario("R11", "#105 Repeat with no occurrence left: every occurrence cancelled on Google, the app removes the repeat, and Google holds none")
+def r11():
+    eid = create_recurring_event("BENCH R11 weekly", at_day(2, "09:00"), at_day(2, "10:00"), "RRULE:FREQ=WEEKLY;INTERVAL=1;COUNT=3")
+    set_mode(CM_MASTER)
+    Run("R11a", [sync()], session="R11").execute()
+    # Google cancels each occurrence that is still there
+    for inst in google_instances(eid):
+        if inst.get("status") != "cancelled":
+            api("DELETE", CALENDAR + "/events/" + inst["id"])
+    run = Run("R11b", [sync(), dump()], session="R11").execute()
+    goog = bench_event("BENCH R11 weekly")
+    live = local_events(run.dump, "BENCH R11") if run.dump else []
+    return [Check("the app holds no live repeat", len(live) == 0, "app: %d" % len(live)),
+            Check("Google holds no live repeat, as the app has none", len(goog) == 0, "Google: %d" % len(goog))]
+
+
 @scenario("R10", "#102 A changed occurrence of a repeat, changed on Google, is downloaded as its own entry; the other occurrences are unchanged")
 def r10():
     eid = create_recurring_event("BENCH R10 weekly", at_day(2, "09:00"), at_day(2, "10:00"), "RRULE:FREQ=WEEKLY;INTERVAL=1")

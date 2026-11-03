@@ -260,7 +260,7 @@ Results after the item-4 and item-1 work of ticket #105 (the last run of each sc
 - **Uploads inside the window** (`U02`): 40 appointments added in the app are all on Google after one sync.
 - **Repeats** (`X81D`): deleting one occurrence in the app is found by its hint and sent to Google, and the window is narrow for the test.
 - **Regression set** run after these changes: `R01` to `R10`, `A03`, `A04`, `A07`, `A14`, `A15`, `AR01` to `AR03`, `W03`, `LF01`,
-  `LF02`, `E01`, `E03`, `C17` to `C20`, `X81D`, `X81E`, `U02`, `RL01` to `RL05`, `TC01`, `RS01`. Result: see the ticket.
+  `LF02`, `E01`, `E03`, `C17` to `C20`, `X81D`, `X81E`, `U02`, `RL01` to `RL05`, `TC01`, `RS01`, and `R11` (a repeat with no occurrence left is removed, and Google holds none), all passing. Result: see the ticket.
 - **The fixes checked against the code from before them** (each scenario fails there, and passes now): `#94` (`RL01` to
   `RL05`), `#102` (`R10`), `#104` (`E70`), and `#86` (`E01`, `E02`).
 - **`U01`** (uploads, run last, on commit 2e9e452): Google holds all 1,000 appointment masters and the ContactManager half reached
