@@ -654,23 +654,37 @@ bool GoogleAccess::updateSentState(Appointment &appt)
 // Public: GoogleAccess - resolveAppointmentConflict
 //
 //  Google refused a change, or the entry had no ETag: Google's copy has changed since the entry was last read (issue #86).
-//  Reads Google's copy and compares its details with the snapshot.  If they are still the snapshot's, Google's change was not to
-//  the details, so the change is sent again with Google's new ETag (ResendWithEtag).  Otherwise Google's version is kept: the
-//  entry takes Google's details, and the local change is not sent (KeptGoogleVersion).  ReadFailed when Google's copy cannot be
-//  read.
+//  Reads Google's copy, which gives its current ETag.  ReadFailed when Google's copy cannot be read.
+//
+//  Under ContactManager master, when Google's details are still the snapshot's, Google's change was not to the details, and
+//  the change is sent again with Google's new ETag (ResendWithEtag).  When Google's details changed too, both sides changed,
+//  and the master wins: the app's change is sent again over Google's copy (ResendWithEtag, reported as a conflict).
+//
+//  Under Google master, when Google's details changed, Google's version is kept: the entry takes Google's details, and the
+//  local change is not sent (KeptGoogleVersion).  Otherwise the change is sent again with Google's new ETag (ResendWithEtag).
 //
 GoogleAccess::ConflictOutcome GoogleAccess::resolveAppointmentConflict(Appointment &appt, QString &etag)
 {
     Appointment current ;
     if (!getEventSentState(appt, current)) return ReadFailed ;
+    if (current.googleEtag().isEmpty()) return ReadFailed ;
 
     // The snapshot is what Google held, so it is compared with the entry's details, not with its deletion (which is the change)
     Appointment snapshot ;
     bool hassnapshot = appt.googleSnapshotCopy(snapshot) ;
     if (hassnapshot) snapshot.setFlag(Appointment::Deleted, false) ;
-    if (hassnapshot && !current.googleEtag().isEmpty() && current.matches(snapshot, Appointment::maDetails)) {
+    if (hassnapshot && current.matches(snapshot, Appointment::maDetails)) {
+        // Google's change was not to the details (only its ETag): nothing is in conflict
         etag = current.googleEtag() ;
         addLog(QString("CONFLICT CHECK (%1): Google's details are unchanged, so the change is sent again").arg(appt.getField(Appointment::ID))) ;
+        return ResendWithEtag ;
+    }
+
+    // Both sides changed.  ContactManager is master: the app's change wins over Google's, as it does for contacts (issue #105, item 4)
+    if (!gConf->googleMaster()) {
+        etag = current.googleEtag() ;
+        appointmentconflict = true ;
+        addLog(QString("CONFLICT (%1): Google's copy also changed since the last sync, so the app's version is sent (ContactManager is master)").arg(appt.getField(Appointment::ID))) ;
         return ResendWithEtag ;
     }
 

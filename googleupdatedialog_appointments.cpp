@@ -173,6 +173,12 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
             localappt.setFlag(Appointment::ToBeDownloaded, !uploadentry) ;
             localappt.setFlag(Appointment::ToBeUploaded, uploadentry) ;
         }
+
+        // A deletion of an entry that Google holds is recorded until Google has it deleted, so it is sent whatever the
+        // timestamps say (issue #105, A07).  Kept as it was saved: not an edit.
+        if (!localappt.isTemp() && localappt.isSet(Appointment::Deleted) && !localappt.getField(Appointment::GoogleRecordId).isEmpty()) {
+            localappt.setSentField(Appointment::DeletePending, "true") ;
+        }
     }
 
     if (state<0) return false ;
@@ -190,18 +196,22 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
         for (int i=0; i<cal.size(); i++) {
             Appointment &localappt = cal.getAppointment(i) ;
             QString id = localappt.getField(Appointment::ID) ;
-            if (localappt.isTemp() || localappt.isSet(Appointment::Deleted) || localappt.getField(Appointment::GoogleRecordId).isEmpty()) continue ;
+            // A pending deletion is taken in whatever its date: the window limits downloads, not deletions
+            bool pendingdelete = localappt.isSet(Appointment::DeletePending) ;
+            if (localappt.isTemp() || (localappt.isSet(Appointment::Deleted) && !pendingdelete) || localappt.getField(Appointment::GoogleRecordId).isEmpty()) continue ;
             if (deletedids.contains(id)) continue ;
             QDateTime from = localappt.getDate(Appointment::From) ;
             QDateTime to = localappt.getDate(Appointment::To) ;
             bool inwindow = (from <= fromwindow && to >= fromwindow) || (from >= fromwindow && to <= towindow) || (from <= towindow && to >= towindow) ;
-            if (!inwindow || !googlecal.getAppointmentBy(Appointment::ID, id).isNull()) continue ;
+            if ((!inwindow && !pendingdelete) || !googlecal.getAppointmentBy(Appointment::ID, id).isNull()) continue ;
             // Under Google master, the Google copy is what Google held at the last sync, so a local edit is overwritten by it
             Appointment copy = localappt ;
             if (!(googlemaster && localappt.googleSnapshotCopy(copy))) {
                 copy = localappt ;
                 fromlocal.insert(id) ;
             }
+            // The copy is the entry as Google has it, so it is not deleted: the pending delete is then compared with it
+            if (pendingdelete) copy.setFlag(Appointment::Deleted, false) ;
             googlecal.addAppointment(copy, false) ;
         }
     }
@@ -235,9 +245,12 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
         QDateTime from = localappt.getDate(Appointment::From) ;
         QDateTime to = localappt.getDate(Appointment::To) ;
 
-        // Just process non-temp, non-deleted entries within sync window
+        // Process non-temp, non-deleted entries within sync window.  The window limits what is downloaded, not what is
+        // uploaded: an entry that has never been on Google is checked whatever its date, so it is created there.
+        bool neverongoogle = localappt.getField(Appointment::GoogleRecordId).isEmpty() ;
         if ( !localappt.isTemp() && !localappt.isSet(Appointment::Deleted) &&
-              ( (from <= fromwindow && to >= fromwindow) ||
+              ( neverongoogle ||
+                (from <= fromwindow && to >= fromwindow) ||
                 (from >= fromwindow && to <= towindow) ||
                 ( from <= towindow && to >= towindow) ) ) {
 
@@ -356,11 +369,12 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
         QDateTime from = localappt.getDate(Appointment::From) ;
         QDateTime to = localappt.getDate(Appointment::To) ;
 
-        // Just process non-temp entries within sync window.  An entry that Google has, or that is to be downloaded, is
-        // processed whatever its date: a repeat, or an entry older than the window, is downloaded with its details.
+        // Process non-temp entries within sync window.  An entry that Google has, or that is to be downloaded or uploaded, is
+        // processed whatever its date: a repeat, or an entry older than the window, is downloaded with its details, and a
+        // local change or a new entry is uploaded.  The window limits downloads only.
         bool ongoogle = !googlecal.getAppointmentBy(Appointment::ID, localappt.getField(Appointment::ID)).isNull() ;
         if ( !localappt.isTemp() &&
-               ( ongoogle || localappt.isSet(Appointment::ToBeDownloaded) ||
+               ( ongoogle || localappt.isSet(Appointment::ToBeDownloaded) || localappt.isSet(Appointment::ToBeUploaded) ||
                  (from <= fromwindow && to >= fromwindow) ||
                  (from >= fromwindow && to <= towindow) ||
                  ( from <= towindow && to >= towindow) )  ) {
@@ -368,7 +382,29 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
             Appointment& googleappt = googlecal.getAppointmentBy(Appointment::ID, localappt.getField(Appointment::ID)) ;
 
             // The sent state kept on Google is taken in first, so a message sent from another copy is not sent again here
-            if (!googleappt.isNull() && !googleappt.isSet(Appointment::Deleted)) localappt.mergeSentState(googleappt) ;
+
+            // A deletion made in the app is sent until Google has it deleted (DeletePending).  Under Google master it is sent only
+            // when Google's copy is as it was at the last sync: a change Google made is kept, as Google is the master (issue #105).
+            if (localappt.isSet(Appointment::DeletePending) && !googleappt.isNull() && !googleappt.isSet(Appointment::Deleted)) {
+                bool googleunchanged = true ;
+                if (googlemaster) {
+                    Appointment snapshot ;
+                    googleunchanged = localappt.googleSnapshotCopy(snapshot) ;
+                    if (googleunchanged) {
+                        snapshot.setFlag(Appointment::Deleted, false) ;
+                        googleunchanged = googleappt.matches(snapshot, Appointment::maDetails) ;
+                    }
+                }
+                if (googleunchanged) {
+                    localappt.setFlag(Appointment::ToBeUploaded, true) ;
+                    localappt.setFlag(Appointment::ToBeDownloaded, false) ;
+                } else {
+                    // Google changed its copy: the change is kept, and the delete is not sent
+                    localappt.setSentField(Appointment::DeletePending, "false") ;
+                    localappt.setFlag(Appointment::ToBeUploaded, false) ;
+                    localappt.setFlag(Appointment::ToBeDownloaded, true) ;
+                }
+            }
 
             bool deletedlocaldeletedgoogle = (googleappt.isNull() || googleappt.isSet(Appointment::Deleted)) && (localappt.isSet(Appointment::Deleted)) ;
             bool googlematcheslocal = googleappt.matches(localappt, Appointment::maDetails|Appointment::maId) ;
@@ -383,6 +419,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
                 // Deleted everywhere, so nothing is required
                 localappt.setFlag(Appointment::ToBeUploaded, false) ;
                 localappt.setFlag(Appointment::ToBeDownloaded, false) ;
+                if (localappt.isSet(Appointment::DeletePending)) localappt.setSentField(Appointment::DeletePending, "false") ;
 
             } else if (!googlematcheslocal || localappt.isSet(Appointment::ToBeUploaded)) {
 
@@ -418,7 +455,8 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
 
                 // Update Details on Google.  An upload that an earlier sync made is not repeated.
                 QString uploadkey = uploadProgressKey(localappt.getField(Appointment::ID), localappt.getField(Appointment::Updated)) ;
-                if (doneuploads.contains(uploadkey)) localappt.setFlag(Appointment::ToBeUploaded, false) ;
+                // A pending delete is always sent, so an upload an earlier sync made does not stop it
+                if (doneuploads.contains(uploadkey) && !localappt.isSet(Appointment::DeletePending)) localappt.setFlag(Appointment::ToBeUploaded, false) ;
                 if (localappt.isSet(Appointment::ToBeUploaded)) {
                     if (localappt.isSet(Appointment::Deleted)) {
                         changes = QString("Deleted.") ;
@@ -454,8 +492,11 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
 
                     if (status) {
                         if (google.isAppointmentConflict()) {
-                            // Google's copy had changed: its version is now the entry, and the change was not sent (issue #86)
-                            ui->updateStatusReport->append(QString("    ") + localappt.asText() + QString(" - CONFLICT: Google's copy changed since the last sync, so Google's version is kept")) ;
+                            // Both sides had changed (issues #86 and #105)
+                            // Both sides changed: the master's version is kept (issue #105, item 4)
+                            QString kept = gConf->googleMaster() ? QString("Google's copy changed since the last sync, so Google's version is kept")
+                                                                 : QString("Google's copy also changed since the last sync, so the app's version is sent (ContactManager is master)") ;
+                            ui->updateStatusReport->append(QString("    ") + localappt.asText() + QString(" - CONFLICT: ") + kept) ;
                         }
                         addLog(QString("    ") + localappt.asText() + QString(" - Uploading Google Appointment Details: %1").arg(changes)) ;
                         localappt.copyTo(googleappt, Appointment::maDetails|Appointment::maId|Appointment::maGoogleId) ;
@@ -484,6 +525,7 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
 
                     // If the record has been successfully removed from Google, forget the local details
                     if (networkok && localappt.isSet(Appointment::Deleted)) {
+                        localappt.setSentField(Appointment::DeletePending, "false") ;
                         localappt.setField(Appointment::GoogleRecordId, QString("")) ;
                         localappt.setFlag(Appointment::ToBeUploaded, false) ;
                         localappt.setFlag(Appointment::ToBeDownloaded, false) ;
