@@ -292,9 +292,11 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
 
         // Google birthdays are not stored: they are shown from the contacts list.  Storing
         // them made a new copy on every sync, as their IDs are not kept by Google.
-        // An appointment that has expired is not created here: it is only on Google (issue #96)
+        // An appointment that has expired is not created here: it is only on Google (issue #96).  Nor is one that starts after the
+        // window (issue #105): the window is the same at both ends.
         if (localappt.isNull() && !googleappt.isSet(Appointment::Deleted) && !googleappt.isBirthday()
-                && !archivedids.contains(googleappt.getField(Appointment::ID)) && !googleappt.isExpiredBefore(fromwindow)) {
+                && !archivedids.contains(googleappt.getField(Appointment::ID)) && !googleappt.isExpiredBefore(fromwindow)
+                && googleappt.getDate(Appointment::From) <= towindow) {
             Appointment newlocal ;
             newlocal.setField(Appointment::ID, googleappt.getField(Appointment::ID)) ;
             newlocal.setField(Appointment::From, googleappt.getField(Appointment::From)) ;
