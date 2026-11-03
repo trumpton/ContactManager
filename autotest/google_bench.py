@@ -1128,7 +1128,7 @@ def x16():
             Check("app holds no live copy", len(local_events(run.dump, "BENCH X16")) == 0)]
 
 
-@scenario("X17", "Conflict: location changed in the app and on Google; ContactManager master sync")
+@scenario("X17", "Conflict: location changed in the app and on Google; ContactManager master, so the app's change wins (item 4)")
 def x17():
     eid = create_event("BENCH X17", DAY % (26, "09:00"), DAY % (26, "10:00"), location="Start")
     set_mode(CM_MASTER)
@@ -1137,8 +1137,8 @@ def x17():
                       gchange("patch-event", eid, "From Google"), sync(), dump()], session="X17").execute()
     events = [e for e in bench_events() if e["summary"] == "BENCH X17"]
     return [Check("one event on Google", len(events) == 1, "found %d" % len(events)),
-            Check("Google's version is kept, as the report's CONFLICT line says (issue #86)",
-                  len(events) == 1 and events[0].get("location") == "From Google",
+            Check("the app's version wins on Google, as the master",
+                  len(events) == 1 and events[0].get("location") == "From app",
                   "Google location: %s" % [e.get("location") for e in events])]
 
 
@@ -2002,7 +2002,7 @@ def k24():
 
 def at_day(days, time_of_day):
     """A UTC time this many days from now, so repeats are checked against the window from today."""
-    when = datetime.datetime.utcnow() + datetime.timedelta(days=days)
+    when = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) + datetime.timedelta(days=days)
     return when.strftime("%Y-%m-%d") + "T" + time_of_day + ":00Z"
 
 
@@ -2179,8 +2179,11 @@ def google_instances(master_id):
 @scenario("X81D", "#81: deleting just one occurrence of a repeat keeps the others, and Google leaves that date out")
 def x81d():
     summary = "BENCH X81D weekly"
-    gone = datetime.datetime.utcnow() + datetime.timedelta(days=2 + 14)
-    run = Run("X81D", [{"op": "add_appointment", "fields": {"summary": summary, "from": at_day(2, "09:00"), "to": at_day(2, "10:00"),
+    gone = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) + datetime.timedelta(days=2 + 14)
+    # A narrow window (10 days back, 60 forward), so the list holds only the entries around the repeat: the account has thousands
+    # of events, and all six occurrences fall inside it
+    run = Run("X81D", [{"op": "setting", "key": "windowbefore", "value": "10"}, {"op": "setting", "key": "windowafter", "value": "60"},
+                       {"op": "add_appointment", "fields": {"summary": summary, "from": at_day(2, "09:00"), "to": at_day(2, "10:00"),
                                                          "repeat": "2", "repeatinterval": "1", "repeatcount": "6"}},
                        sync(), {"op": "choose", "letter": "a"},
                        {"op": "repeat_delete", "summary": summary, "occurrence": at_day(2 + 14, "09:00")},
@@ -2551,7 +2554,7 @@ def e01():
                   "app: %s" % [a["location"] for a in local])]
 
 
-@scenario("E02", "#86: Google's copy changed in its details since the last sync (non-matching ETag): Google's version is kept, the local edit is not sent, and the conflict is reported")
+@scenario("E02", "#86: Google's copy changed in its details since the last sync (non-matching ETag) and the app changed it too, ContactManager master: the app's version is sent, and the conflict is reported (item 4)")
 def e02():
     set_mode(CM_MASTER)
     eid = create_event("BENCH E02", at_day(11, "09:00"), at_day(11, "10:00"), location="Room 1")
@@ -2562,11 +2565,11 @@ def e02():
     goog = bench_event("BENCH E02")
     local = local_events(b.dump, "BENCH E02")
     reports = "".join(open(os.path.join(b.dir, f), errors="replace").read() for f in os.listdir(b.dir) if f.startswith("report"))
-    return [Check("Google keeps its own location (the local edit was not sent)", len(goog) == 1 and goog[0].get("location") == "Room G",
-                  "Google: %s" % [g.get("location") for g in goog]),
-            Check("the app takes Google's version", len(local) == 1 and local[0]["location"] == "Room G",
+    return [Check("the app's version is sent over Google's change, as the master (ContactManager is master)",
+                  len(goog) == 1 and goog[0].get("location") == "Room L", "Google: %s" % [g.get("location") for g in goog]),
+            Check("the app keeps its version", len(local) == 1 and local[0]["location"] == "Room L",
                   "app: %s" % [a["location"] for a in local]),
-            Check("the conflict is reported", "CONFLICT" in reports, "")]
+            Check("the conflict is reported, as the app's version being sent", "also changed since the last sync, so the app's version is sent" in reports, "")]
 
 
 @scenario("E03", "#86: Google's ETag changed, but not its details (a field the app does not hold): the change is sent again with the new ETag, and reaches Google")
@@ -2945,6 +2948,32 @@ def appointment_summary_id(text):
     return int(m.group(1)) if m else None
 
 
+@scenario("U02", "#105 Uploads: 40 appointments added in the app inside the window are all on Google after one sync (the 66 not uploaded)")
+def u02():
+    # The reproduction: a sync uploads every appointment added in the app inside the window, and none is left behind.
+    # Days 5 to 44 from today, two appointments a day, so the window (90 days back, 730 forward) holds all of them.
+    set_mode(CM_MASTER)
+    # Earlier runs' copies are removed from Google first, so that only this run's are counted
+    earlier = api("GET", CALENDAR + "/events?q=" + urllib.parse.quote("Repro 40") + "&maxResults=250&singleEvents=false&showDeleted=false")
+    for e in earlier.get("items", []):
+        if e.get("summary", "").startswith("Repro 40 "):
+            api("DELETE", CALENDAR + "/events/" + e["id"])
+    ops = []
+    for n in range(40):
+        day = 5 + n
+        ops.append({"op": "add_appointment", "fields": {"summary": "Repro 40 %02d" % n, "from": at_day(day, "09:00"),
+                                                         "to": at_day(day, "10:00"), "location": "Room %d" % (n % 9)}})
+    run = Run("U02", ops + [sync(), dump()]).execute()
+    # Found by a search on the summary (bench_events() lists only the BENCH entries)
+    found = api("GET", CALENDAR + "/events?q=" + urllib.parse.quote("Repro 40") + "&maxResults=250&singleEvents=false&showDeleted=false")
+    on_google = sorted(e["summary"] for e in found.get("items", []) if e.get("summary", "").startswith("Repro 40 "))
+    missing = [("Repro 40 %02d" % n) for n in range(40) if ("Repro 40 %02d" % n) not in on_google]
+    report = report_text("U02")
+    return [Check("all 40 in-window appointments are on Google after one sync", not missing, ", ".join(missing[:10])),
+            Check("no duplicates on Google", len(on_google) == len(set(on_google)), ""),
+            Check("the sync reports no failure", "FAILED" not in report and "SYNCHRONISATION FAILED" not in report, "")]
+
+
 @scenario("U01", "#105 Uploads: purge the account, then upload 250 contacts and 1,000 appointments (half by the Google API, half by ContactManager), left in place")
 def u01():
     set_mode(CM_MASTER)
@@ -3168,7 +3197,7 @@ def tk02():
                   all(len(g) == 1 for g in got), "app: %s" % [len(g) for g in got])]
 
 
-@scenario("R06", "#105 ContactManager master, repeat changed in both places since the last sync: Google's version is kept and the report says CONFLICT (issue #86)")
+@scenario("R06", "#105 ContactManager master, repeat changed in both places since the last sync: the app's version wins, and the report says so (item 4)")
 def r06():
     eid = create_recurring_event("BENCH R06 weekly", at_day(2, "09:00"), at_day(2, "10:00"), "RRULE:FREQ=WEEKLY;INTERVAL=1")
     patch_event(eid, {"location": "Start"})
@@ -3177,14 +3206,18 @@ def r06():
                        gchange("patch-event", eid, "From Google"), sync(), dump()], session="R06").execute()
     goog = bench_event("BENCH R06 weekly")
     local = local_events(run.dump, "BENCH R06")
+    # The change is sent by the second sync, so every report of the run is read
+    reports = "".join(open(os.path.join(run.dir, f), errors="replace").read() for f in os.listdir(run.dir) if f.startswith("report"))
     return [Check("one repeat on Google, still weekly",
                   len(goog) == 1 and any("FREQ=WEEKLY" in r for r in goog[0].get("recurrence", [])),
                   "Google: %s" % [g.get("recurrence") for g in goog]),
-            Check("Google keeps its own change, as the sync report says (CONFLICT: Google's copy changed since the last sync)",
-                  len(goog) == 1 and goog[0].get("location") == "From Google",
+            Check("the app's change wins on Google, as the master",
+                  len(goog) == 1 and goog[0].get("location") == "From app",
                   "Google: %s" % [g.get("location") for g in goog]),
-            Check("the app takes Google's version, one entry",
-                  len(local) == 1 and local[0]["location"] == "From Google", "app: %s" % [a["location"] for a in local])]
+            Check("the sync report says the app's version is sent (ContactManager is master)",
+                  "Google's copy also changed since the last sync, so the app's version is sent" in reports, ""),
+            Check("the app keeps its version, one entry",
+                  len(local) == 1 and local[0]["location"] == "From app", "app: %s" % [a["location"] for a in local])]
 
 
 @scenario("R07", "#105 ContactManager master, repeat moved on Google: the app shows the moved start, and one repeat")
@@ -3459,7 +3492,7 @@ def c18():
                   len(local) == 1 and local[0].get("surname") == "C18 google", "app: %s" % [c.get("surname") for c in local])]
 
 
-@scenario("C19", "#105 Contact deleted on Google and changed in the app, ContactManager master: one state on both sides, never a duplicate")
+@scenario("C19", "#105 Contact deleted on Google and changed in the app, ContactManager master: created on Google again with the app's change (item 4)")
 def c19():
     resource = create_contact("C19")
     set_mode(CM_MASTER)
@@ -3468,11 +3501,12 @@ def c19():
                       sync(), dump()], session="C19").execute()
     tags = contact_tags_on_google("C19")
     live = [c for c in run.dump["contacts"] if c.get("surname", "").startswith("C19") and c.get("deleted") != "true"] if run.dump else []
-    return [Check("no duplicate on Google", len(tags) <= 1, "Google: %s" % tags),
-            Check("the app and Google agree", len(live) == len(tags), "app: %d, Google: %d" % (len(live), len(tags)))]
+    return [Check("created on Google again, with the app's change, as the contact exists only in the app",
+                  len(tags) == 1 and "C19 app" in tags[0], "Google: %s" % tags),
+            Check("the app and Google agree, one contact", len(live) == 1 and len(tags) == 1, "app: %d, Google: %d" % (len(live), len(tags)))]
 
 
-@scenario("C20", "#105 Contact deleted in the app and changed on Google, ContactManager master: one state on both sides, never a duplicate")
+@scenario("C20", "#105 Contact deleted in the app and changed on Google, ContactManager master: the app's delete wins, so Google deletes it too (item 4)")
 def c20():
     resource = create_contact("C20")
     set_mode(CM_MASTER)
@@ -3481,8 +3515,8 @@ def c20():
                       sync(), dump()], session="C20").execute()
     tags = contact_tags_on_google("C20")
     live = [c for c in run.dump["contacts"] if c.get("surname", "").startswith("C20") and c.get("deleted") != "true"] if run.dump else []
-    return [Check("no duplicate on Google", len(tags) <= 1, "Google: %s" % tags),
-            Check("the app and Google agree", len(live) == len(tags), "app: %d, Google: %d" % (len(live), len(tags)))]
+    return [Check("deleted on Google too, as the master's delete wins", len(tags) == 0, "Google: %s" % tags),
+            Check("the app holds it deleted, so one state on both sides", len(live) == 0, "app: %d" % len(live))]
 
 
 @scenario("LF01", "#105 Local files: after two syncs the calendar folder holds each appointment once, and no file is empty")
@@ -3529,7 +3563,7 @@ def lf02():
             Check("Google does not hold it", len(bench_event("BENCH LF02")) == 0, "found %d" % len(bench_event("BENCH LF02")))]
 
 
-@scenario("A14", "#105 Appointment deleted in the app and changed on Google, ContactManager master: the app and Google agree, with no duplicate")
+@scenario("A14", "#105 Appointment deleted in the app and changed on Google, ContactManager master: the app's delete wins, so Google deletes it too (item 4)")
 def a14():
     eid = create_event("BENCH A14", at_day(26, "09:00"), at_day(26, "10:00"))
     set_mode(CM_MASTER)
@@ -3537,11 +3571,11 @@ def a14():
                       {"op": "delete_appointment", "match": {"summary": "BENCH A14"}}, sync(), dump()], session="A14").execute()
     goog = bench_event("BENCH A14")
     live = [a for a in local_events(run.dump, "BENCH A14")] if run.dump else []
-    return [Check("no duplicate on Google", len(goog) <= 1, "Google: %d" % len(goog)),
-            Check("the app and Google agree", len(live) == len(goog), "app: %d, Google: %d" % (len(live), len(goog)))]
+    return [Check("deleted on Google too, as the master's delete wins", len(goog) == 0, "Google: %d" % len(goog)),
+            Check("the app holds it deleted, so one state on both sides", len(live) == 0, "app: %d" % len(live))]
 
 
-@scenario("A15", "#105 Appointment deleted on Google and changed in the app, ContactManager master: the app and Google agree, with no duplicate")
+@scenario("A15", "#105 Appointment deleted on Google and changed in the app, ContactManager master: created on Google again with the app's change (item 4)")
 def a15():
     eid = create_event("BENCH A15", at_day(27, "09:00"), at_day(27, "10:00"))
     set_mode(CM_MASTER)
@@ -3549,8 +3583,10 @@ def a15():
               session="A15").execute()
     goog = bench_event("BENCH A15")
     live = [a for a in local_events(run.dump, "BENCH A15")] if run.dump else []
-    return [Check("no duplicate on Google", len(goog) <= 1, "Google: %d" % len(goog)),
-            Check("the app and Google agree", len(live) == len(goog), "app: %d, Google: %d" % (len(live), len(goog)))]
+    return [Check("created on Google again, with the app's change, as the entry exists only in the app",
+                  len(goog) == 1 and goog[0].get("location") == "From app", "Google: %s" % [g.get("location") for g in goog]),
+            Check("the app and Google agree, one entry", len(live) == 1 and len(goog) == 1 and live[0]["location"] == "From app",
+                  "app: %d, Google: %d" % (len(live), len(goog)))]
 
 
 def keys_main(argv):

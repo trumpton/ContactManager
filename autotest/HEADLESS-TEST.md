@@ -241,28 +241,53 @@ The durations are in `TYPICAL_SECONDS` in `google_bench.py`, and each run record
 
 Group 2 has 95 tests. Most have not been timed yet, so the group's total is not known until a full run has been done.
 
+### Limits in the bench
+
+The bench stops a scenario that runs for more than 900 seconds (`Run.execute` in `google_bench.py`), and the driver gives up on a
+dialog that keeps coming back after 40 clicks (`sync_driver.cpp`). Both limits are in the test bench only. The application has
+neither: a sync is not cut short by time, and a dialog is not answered by a counter.
+
 ### Known test results
 
-Results at the end of the ticket #105 work (the last run of each scenario):
+Results after the item-4 and item-1 work of ticket #105 (the last run of each scenario):
 
-- **159 scenarios.** 156 pass. Two fail, and both also fail on the code from before this work (so they are not regressions):
-  - `A07`: an appointment deleted in the app after it was downloaded is not deleted on Google. The sync decides the deletion
-    is to be uploaded, but by the upload step the entry's Deleted and upload flags have been cleared. The cause is not yet
-    found; this is a bug to fix.
-  - `X81D`: the repeat-delete step does not find the occurrence in the calendar list on the large scratch account (about
-    3,800 rows), so the driver waits on a dialog until the 15-minute limit. It needs the driver's occurrence lookup fixed.
+- **Both sides changed: the master wins** (item 4). Verified by `R06`, `X17`, `E02` (appointments, ContactManager master: the app's
+  version is sent over Google's change, and the report says so), `A14` and `C20` (deleted in the app, changed on Google, ContactManager
+  master: deleted on Google too), `C17` (contact, ContactManager master) and `C18` (contact, Google master: Google's version is kept).
+- **One side only: the other side is created.** `A15` (appointment deleted on Google, changed in the app: created on Google again with
+  the app's change) and `C19` (the same for a contact).
+- **Deletions made in the app are sent** until Google has them deleted (`A07`, fixed: see the decisions below).
+- **Uploads inside the window** (`U02`): 40 appointments added in the app are all on Google after one sync.
+- **Repeats** (`X81D`): deleting one occurrence in the app is found by its hint and sent to Google, and the window is narrow for the test.
+- **Regression set** run after these changes: `R01` to `R10`, `A03`, `A04`, `A07`, `A14`, `A15`, `AR01` to `AR03`, `W03`, `LF01`,
+  `LF02`, `E01`, `E03`, `C17` to `C20`, `X81D`, `X81E`, `U02`, `RL01` to `RL05`, `TC01`, `RS01`. Result: see the ticket.
 - **The fixes checked against the code from before them** (each scenario fails there, and passes now): `#94` (`RL01` to
   `RL05`), `#102` (`R10`), `#104` (`E70`), and `#86` (`E01`, `E02`).
-- **`U01`** (uploads): see the run note in the ticket.
-- Scratch account: about 3,300 events and 500 contacts (most are cancelled tombstones from earlier runs). Each sync lists
-  them all, which is why most Google tests take 40 to 60 seconds.
+- **`U01`** (uploads, run last): see the run note in the ticket.
+- Scratch account: about 3,300 events and 500 contacts (most are cancelled tombstones from earlier runs). The first sync of a
+  run lists every event; later syncs list only the changes, when the sync token is kept. Most Google tests take 40 to 60 seconds.
 
-Decisions the tests now record:
+Decisions the tests now record (ticket #105, item 4 and the items after it):
 
-- An appointment changed in both places since the last sync keeps Google's version, and the report says `CONFLICT` (issue
-  #86, `R06`, `X17`). A contact changed in both places keeps the local copy (`C17`). The two rules differ; which one is wanted
-  for contacts is open.
-- An appointment that starts after the far edge of the window is not downloaded (issue #105, `W03`). Before this it was.
+- **When both sides change, the master's version wins.** Under ContactManager master an appointment or contact changed in both places
+  since the last sync is sent from the app, over Google's copy. Under Google master Google's version is kept. The sync report says
+  which: for appointments `CONFLICT: Google's copy also changed since the last sync, so the app's version is sent (ContactManager is
+  master)` or `CONFLICT: Google's copy changed since the last sync, so Google's version is kept` (issues #86 and #105).
+- **When only one side has the entry, the other side is created.** An entry that exists only in the app is created on Google, and
+  one deleted on Google but changed in the app is created again with the app's change.
+- **A deletion made in the app is recorded as pending** (`DeletePending`, saved with the entry) until Google has it deleted. The
+  sync sends it whatever the timestamps say. The cause of the earlier failure (`A07`): in an incremental listing an entry Google
+  has not changed is not listed, and the sync took its Google copy as missing, so the delete was never sent. The sync now gives a
+  pending delete its Google copy from the local entry. Under Google master a pending delete is sent only when Google's copy is as it
+  was at the last sync; a change Google made is kept.
+- **The window limits downloads, not uploads.** An appointment with no Google record is created on Google whatever its date, and an
+  archived appointment is always one that Google holds (the archive moves only entries with a Google record). Local changes to
+  appointments outside the window are uploaded too.
+- **Contacts changed in both places** follow the same master rule (`C17`, `C18`).
+- An appointment that starts after the far edge of the window is not downloaded (issue #105, `W03`).
+- The repeat-delete step of the driver finds the occurrence by its calendar hint. The list's `find()` matches the displayed
+  text, which does not hold the hint, so it never found it (`X81D`). The calendar's own focus step after an edit
+  (`mainwindow_tab_calendar.cpp`) also calls `find()` with a hint. That is not yet checked in the app, and is to be looked at.
 
 ## 7. Working with a human go-between
 

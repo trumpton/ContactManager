@@ -635,7 +635,12 @@ int main(int argc, char *argv[])
                 QDateTime occ = QDateTime::fromString(op["occurrence"].toString(), Qt::ISODate) ;
                 QString hint = (occ == origin.getDate(Appointment::From)) ? origin.getField(Appointment::ID)
                                                                           : Calendar::occurrenceHint(origin.getField(Appointment::ID), occ) ;
-                QModelIndex index = w.calendarlist.find(hint) ;
+                // The row is found by its hint, which the list keeps with each row.  find() matches the displayed text, which does
+                // not hold the hint, so it never found the occurrence (X81D).
+                QModelIndex index = QModelIndex() ;
+                for (int row=0; row<w.calendarlist.rowCount() && !index.isValid(); row++) {
+                    if (w.calendarlist.hintAt(row) == hint) index = w.calendarlist.index(row, 0) ;
+                }
                 note(QString("repeat_delete hint %1, row %2, rows %3").arg(hint).arg(index.row()).arg(w.calendarlist.rowCount())) ;
                 if (!index.isValid()) return ;
                 // The list only takes the index from setCurrentIndex when it has focus, which a bench window does not, so

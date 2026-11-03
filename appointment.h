@@ -82,6 +82,11 @@ public:
         // it has been written, and the next sync uploads it.
         LedgerPending,
 
+        // Set when the entry is deleted in the app while Google holds it.  The delete is sent to Google by the next sync, and
+        // the flag is cleared only once Google has it deleted.  It is not tied to the time of the change, so a sync that
+        // stops, or a later change to the entry, cannot lose it (issue #105, A07).
+        DeletePending,
+
         // Flags
         ToBeUploaded,           // Used to track uploads
         ToBeDownloaded,         // Used to track downloads
@@ -153,6 +158,7 @@ public:
         { CancelledOccurrences, false, false, false, true, "cancelledoccurrences" },
         { CancelSent,          false, false, false, true, "cancelsent" },
         { LedgerPending,       false, false, false, true, "ledgerpending" },
+        { DeletePending,       false, false, false, true, "deletepending" },
 
         { ToBeUploaded,         true, false, false, false, "tobeuploaded" },
         { ToBeDownloaded,       true, false, false, false, "tobedownloaded" },

@@ -101,7 +101,7 @@ private:
     QString googlePutPostDelete(QString link, enum googleAction action, QString data = "", QString logfile = "", QString ifmatch = "*") ;
     QString googlePutPostResponse ;
 
-    // An appointment change that Google refused because its copy changed (412), resolved from the snapshot (issue #86)
+    // An appointment change that Google refused because its copy changed (412), resolved by the master (issues #86 and #105)
     enum ConflictOutcome { ResendWithEtag, KeptGoogleVersion, ReadFailed } ;
     ConflictOutcome resolveAppointmentConflict(Appointment &appt, QString &etag) ;
     bool appointmentconflict = false ;
@@ -147,7 +147,8 @@ public:
     void clearLastFailure() { lastfailure.clear() ; lastrecovery.clear() ; }
     // The pacing messages for the sync report since the last call (issue #94)
     QStringList takeSyncNotes() { return pacer.takeNotes() ; }
-    // True when the last appointment update was a conflict: Google's copy had changed, so Google's version was kept (issue #86)
+    // True when the last appointment update was a conflict: both sides had changed.  Under ContactManager master the app's version was
+    // sent; under Google master Google's version was kept (issues #86 and #105)
     bool isAppointmentConflict() { return appointmentconflict ; }
 
     // Returns true if last network error was network-connection related

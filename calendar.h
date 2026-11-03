@@ -99,7 +99,7 @@ public:
     int tidyBirthdays(bool dryrun) ;
 
     // Archived appointments (issue #96).  An archived appointment is kept in the archive folder, which start-up does not read.
-    // archiveExpired moves each expired appointment that is not changed since lastsync, and has nothing waiting to be
+    // archiveExpired moves each expired appointment that is on Google (has a Google record), is not changed since lastsync, and has nothing waiting to be
     // uploaded or downloaded, into the archive, and returns how many.  Its IDs are added to archived.
     int archiveExpired(QDateTime lower, QDateTime lastsync, QStringList &archived) ;
     static QList<Appointment> loadArchive() ;
