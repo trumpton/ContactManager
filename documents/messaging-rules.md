@@ -80,24 +80,13 @@ The send loop looks at each appointment's current state at every check. It does 
 
 With the test limits of 20000, none of this applies.
 
-## 6. Test expectations (corrected 20:40 table)
+## 6. Evidence
 
-Counts are the expected email and text messages for the 240 appointments, from `sequence-2040.csv`:
+- **Accelerated test** (`test-results/20261102-2313/`): 25 scenarios on six contacts covering the send window, the 5-minute hold, the 24-hour reminder and the 36-hour confirm-only period. 60 expected messages; all 60 were sent and matched, each with the right appointment time, within one check of the expected minute. The full list of scenarios and the corner case each tests is in `README.md`.
+- **Unit tests** (`autotest/messages`): 77 of 77 pass. They cover same-day bookings with both channels, the hold, edits that return to the sent details, and the date parsing.
 
-| Person | Channel | Email | Text |
-|---|---|---|---|
-| Daniel Jackson | Both | 74 | 20 |
-| Vala Mandoran | Both | 73 | 21 |
-| Jack O'Neil | Email | 75 | 0 |
-| Tealc Tealc | Email | 75 | 0 |
-| Sam Carter | Text | 0 | 73 |
-| George Hammond | Text | 0 | 76 |
+## 7. Confirmed decisions
 
-The table holds every rule in sections 2 to 4, and all on-the-day messages are per channel. Earlier versions left out on-the-day messages for single-channel contacts. That was wrong, and it is corrected in this version.
-
-## 7. Open items
-
-1. Confirmed: single-channel contacts get an on-the-day message, by their own channel (sections 2 and 3).
-2. Confirmed: same-day bookings for single-channel contacts get the confirmation only (section 3).
-3. Confirmed: updates are not sent for title or location changes (section 4).
-4. Issue #89 is being corrected to match these rules.
+1. Single-channel contacts get an on-the-day message by their own channel, using the Today Reminder templates (sections 2 and 3).
+2. Same-day bookings for single-channel contacts get the confirmation only, because it gives the time on the day (section 3).
+3. Updates are not sent for title or location changes, only for start, end and repeat (section 4).
