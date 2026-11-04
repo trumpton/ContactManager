@@ -126,8 +126,9 @@ def all_connections():
 def bench_contacts():
     """Contacts this bench created: given name 'Bench', or the test address for contacts with no name."""
     return [p for p in all_connections()
-            if any(n.get("givenName") == "Bench" for n in p.get("names", []))
-            or any((e.get("value") or "").endswith("@test.invalid") for e in p.get("emailAddresses", []))]
+            if not is_upload_contact(p)
+            and (any(n.get("givenName") == "Bench" for n in p.get("names", []))
+                 or any((e.get("value") or "").endswith("@test.invalid") for e in p.get("emailAddresses", [])))]
 
 
 def contact_info(p):
@@ -198,6 +199,20 @@ def update_contact_surname(resource, surname):
     api("PATCH", PEOPLE + "/" + resource + ":updateContact?updatePersonFields=names", body)
 
 
+# The upload group's records (U01, U02) are kept on Google until the next purge: the checks and cleanup of the other tests leave
+# them alone.  They are named "BENCH Upload S" (events) and "first.last0000@test.invalid" (contacts, as U01 makes them).
+UPLOAD_EVENT_PREFIX = "BENCH Upload S"
+UPLOAD_CONTACT = re.compile(r"^[a-z]+\.[a-z]+\d{4}@test\.invalid$")
+
+
+def is_upload_event(e):
+    return (e.get("summary") or "").startswith(UPLOAD_EVENT_PREFIX)
+
+
+def is_upload_contact(p):
+    return any(UPLOAD_CONTACT.match((e.get("value") or "").strip()) for e in p.get("emailAddresses", []))
+
+
 def bench_events():
     out, token = [], None
     while True:
@@ -207,7 +222,7 @@ def bench_events():
         token = page.get("nextPageToken")
         if not token:
             break
-    return [e for e in out if (e.get("summary") or "").startswith("BENCH ")]
+    return [e for e in out if (e.get("summary") or "").startswith("BENCH ") and not is_upload_event(e)]
 
 
 def event_info(e):
@@ -2045,7 +2060,8 @@ def at_day(days, time_of_day):
 def p30():
     start, end = at_day(2, "09:00"), at_day(2, "10:00")
     # Weeks from the start that fall in the appointment window (90 days before today to 730 days after)
-    weeks = [k for k in range(0, 200) if 2 + 7 * k <= 730]
+    # The far edge is one day inside, as in in_scale_window (see G40)
+    weeks = [k for k in range(0, 200) if 2 + 7 * k <= 729]
     run = Run("P30", [add_contact_op("P30C", email="p30c@test.invalid"),
                       {"op": "add_appointment", "fields": {"summary": "BENCH P30 weekly", "from": start, "to": end,
                                                          "repeat": "2", "repeatinterval": "1"}},
@@ -2122,7 +2138,8 @@ def create_recurring_event(summary, start, end, rule):
 def g40():
     start, end = at_day(2, "09:00"), at_day(2, "10:00")
     create_recurring_event("BENCH G40 weekly", start, end, "RRULE:FREQ=WEEKLY;INTERVAL=1")
-    weeks = [k for k in range(0, 200) if 2 + 7 * k <= 730]
+    # The far edge is one day inside, as in in_scale_window: an occurrence on day 730 starts after the window's end
+    weeks = [k for k in range(0, 200) if 2 + 7 * k <= 729]
     run = Run("G40", [sync(), {"op": "calendar_rows", "name": "g40"}, dump()]).execute()
     r = run.dump_file("results.json")
     stored = [x for x in run.dump["appointments"] if x.get("summary") == "BENCH G40 weekly"]
