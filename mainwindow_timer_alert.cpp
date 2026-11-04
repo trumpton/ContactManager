@@ -130,6 +130,10 @@ static void reportOnce(const QString &key, const QString &text)
 // Result from sendMailSMS when the message file could not be loaded.  Other results are those of Email and SMS.
 static const int RESULT_NO_TEMPLATE = -6 ;
 
+// Result from sendMailSMS when the sender is blank in ContactManager.ini ([email-reminder] or [sms-reminder] sender=).
+// Nothing is sent, and nothing is written to the contact's history.
+static const int RESULT_NO_SENDER = -7 ;
+
 // Whether a message with this key may be tried now (it has not been given up on, and its wait is over)
 static bool maySend(const QString &key, const QDateTime &now)
 {
@@ -154,7 +158,7 @@ static QString contactLimitReason(const QString &contactid, const QDateTime &now
 
 void MainWindow::sendMailSMS()
 {
-    QString from, title, message ;
+    QString title, message ;
     static int mutex=0 ;
     QDateTime now = QDateTime::currentDateTimeUtc() ;
     QString today = now.toLocalTime().date().toString("yyyy-MM-dd") ;
@@ -274,22 +278,28 @@ void MainWindow::sendMailSMS()
         shown.setDate(Appointment::To, occurrence.addSecs(length)) ;
         QString apptdate = occurrence.toLocalTime().toString("dd-MMM-yyyy hh:mm") ;
 
-        from.clear() ;
         title.clear() ;
         message.clear() ;
 
+        // The sender comes from ContactManager.ini only, so a message is not sent without one
+        QString sender = byemail ? gConf->getEmailSender() : gConf->getSMSSender() ;
+
         int result = RESULT_NO_TEMPLATE ;
         QString errortext ;
-        if (!loadMessage(cfgfile, from, title, message, shown, contact)) {
-            errortext = "could not load " + cfgfile + " (it is missing, or has no sender or subject line)" ;
+        if (sender.isEmpty()) {
+            result = RESULT_NO_SENDER ;
+            errortext = QString("not sent - sender missing from ContactManager.ini (set sender= in the [%1] section)")
+                        .arg(byemail ? "email-reminder" : "sms-reminder") ;
+        } else if (!loadMessage(cfgfile, title, message, shown, contact)) {
+            errortext = "could not load " + cfgfile + " (it is missing, or has no subject or message line)" ;
         } else if (byemail) {
             Email email(gConf->getSMTPServer(), gConf->getSMTPUsername(), gConf->getSMTPPassword(), gConf->getSMTPPort().toInt()) ;
-            result = email.send(gConf->getEmailSender().isEmpty() ? from : gConf->getEmailSender(), emailaddress, title, message) ;
+            result = email.send(sender, emailaddress, title, message) ;
             errortext = email.getErrorMessage() ;
         } else {
             // Voodoo wants the number in international form, without a leading + or 0
             SMS sms(gConf->getSMSAgent(), gConf->getSMSUsername(), gConf->getSMSPassword()) ;
-            result = sms.send(SMS::internationalNumber(mobile, gConf->getCountryDiallingCode()), from, title) ;
+            result = sms.send(SMS::internationalNumber(mobile, gConf->getCountryDiallingCode()), sender, title) ;
             errortext = sms.getErrorMessage() ;
         }
 
@@ -582,8 +592,10 @@ void MainWindow::sendMailSMS()
 
 }
 
+// Loads a message template.  The first line is the subject (email) or the text (SMS), and the rest is the body.  The sender
+// is not in the file: it comes from ContactManager.ini (see deliver).
 bool MainWindow::loadMessage(QString filename,
-       QString& from, QString& title,QString& message,
+       QString& title, QString& message,
        Appointment& appt, Contact& contact)
 {
 
@@ -593,7 +605,6 @@ bool MainWindow::loadMessage(QString filename,
     QTextStream in(&file);
     in.setEncoding(QStringConverter::Utf8) ;
 
-    if (!in.atEnd()) from = in.readLine().trimmed() ;
     if (!in.atEnd()) title = in.readLine().trimmed() ;
 
     message="" ;
@@ -629,7 +640,15 @@ bool MainWindow::loadMessage(QString filename,
     title.replace("$FDATE", start.toLocalTime().toString("dd-MMM-yyyy")) ;
     title.replace("$APPOINTMENTS", upcomingAppointments(calendar, contact.getField(Contact::ID), "; ")) ;
 
-    return !title.isEmpty() && !from.isEmpty();
+    return !title.isEmpty();
+}
+
+// On startup, logs when the sender is blank in ContactManager.ini.  Messages for that channel are then not sent (see
+// deliver), so the log says why.
+void MainWindow::checkMessageSenders()
+{
+    if (gConf->getEmailSender().isEmpty()) addLog("WARNING: sender= is blank in the [email-reminder] section of ContactManager.ini, so no email messages will be sent") ;
+    if (gConf->getSMSSender().isEmpty()) addLog("WARNING: sender= is blank in the [sms-reminder] section of ContactManager.ini, so no SMS messages will be sent") ;
 }
 
 // On startup, warns when the SMS API key expires within 30 days (the expiry date is set in Settings)

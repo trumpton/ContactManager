@@ -90,6 +90,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     // Warn, once the window is up, if the SMS API key is due to expire
     QTimer::singleShot(0, this, [this]() { checkSMSKeyExpiry() ; }) ;
 
+    // Log, once the window is up, if a sender is blank in ContactManager.ini
+    QTimer::singleShot(0, this, [this]() { checkMessageSenders() ; }) ;
+
     // Login if not already done so
     int count=0 ;
     if (!enc->loggedIn()) do {
@@ -1343,16 +1346,15 @@ void MainWindow::on_action_SMS_Contact_triggered()
     smsform.setRecipient(c.getFormattedName(false, true) + QString(" (") + c.getField(Contact::Mobile) + QString(")")) ;
     play(Query) ;
     if (smsform.exec()) {
-        // The sender is the first line of the SMS reminder template, as for the reminders (Voodoo needs 3 to 11 letters
-        // or digits).  There is no separate setting for it.
-        QString from ;
-        QFile senderfile(gConf->getMessageFile(MSG_SMS_REMINDER)) ;
-        if (senderfile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            from = QTextStream(&senderfile).readLine().trimmed() ;
-        }
+        // The sender is sender= in the [sms-reminder] section of ContactManager.ini, as for the reminders (Voodoo needs 3 to 11
+        // letters or digits)
+        QString from = gConf->getSMSSender() ;
         QString message = smsform.getMessage() ;
         if (message.isEmpty()) {
             warningOkDialog(this, "Unable to Send", "No Message Provided") ;
+        } else if (from.isEmpty()) {
+            addLog(QString("SMS to %1 not sent: sender missing from ContactManager.ini (set sender= in the [sms-reminder] section)").arg(c.getFormattedName(false, true))) ;
+            warningOkDialog(this, "Unable to Send", "The sender is blank. Set sender= in the [sms-reminder] section of ContactManager.ini.") ;
         } else {
             SMS sms(gConf->getSMSAgent(), gConf->getSMSUsername(), gConf->getSMSPassword()) ;
             // send returns 1 only when the message was accepted (any other code is a failure, and says why)

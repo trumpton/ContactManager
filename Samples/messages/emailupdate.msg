@@ -1,4 +1,3 @@
-My Company Name <email@domain.com> - override with sender= in ContactManager.ini
 Sogfripp Enterprises Appointment Updated for $TIME on $FDATE
 
 Dear $NAME,

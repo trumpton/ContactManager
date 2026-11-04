@@ -95,15 +95,15 @@ public:
     bool googleMaster() ;
     bool debugGoogleEnabled() ;
 
-    // The sender for SMS, if set in ini [sms-reminder] sender (a registered name), overriding the template's sender line
+    // The sender for SMS, from ini [sms-reminder] sender= (a registered name).  Blank means no SMS is sent (logged on startup)
     QString getSMSSender() ;
 
     // The date the SMS API key expires, kept in the settings store with the API key, written day/month/year
     // (25/01/2035).  Invalid if not set.
     QDate getSMSKeyExpiry() ;
 
-    // The From address of reminder emails, if set in ini [email-reminder] sender (as "Name <address>"), overriding the
-    // template's first line
+    // The From address of all emails, from ini [email-reminder] sender= (as "Name <address>").  Blank means no email is sent
+    // (logged on startup)
     QString getEmailSender() ;
 
     // Whether each transaction with the SMS service is written to a debug file (ini [sms-reminder] debug=yes or no)
