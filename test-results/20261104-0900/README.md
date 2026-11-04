@@ -23,3 +23,9 @@ Run 2 saves the contacts after they are added. Its messages are in `box/`, one f
 
 Not reached: messages due after 23:05 on Tuesday 3 November.
 X (booked and deleted within its hold) correctly sent nothing.
+
+## Outcome
+
+Accepted. The messages were checked per person (Daniel Jackson, Jack O'Neil, Sam Carter) and each looks correct.
+The on-the-day reminders for Wednesday 4 November at 07:00 (email and text) were not reached: the run ends at 23:05 on Tuesday 3 November.
+The totals (8 emails, 4 texts) were not reconciled against the 7 emails and 3 texts in the scheduled check, which predated this run's plan.
