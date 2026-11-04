@@ -2,6 +2,7 @@
 #include "mainwindow.h"
 #include "../Lib/alertsound.h"
 #include "../Lib/dateinputdialog.h"
+#include <QScrollBar>
 
 //
 // on_actionGotoMe_triggered
@@ -33,10 +34,76 @@ void MainWindow::calendarFilterOff()
 }
 
 //
+// showCalendarRowQuarterDown
+//
+// Scrolls the calendar list so that the row is a quarter of the way down its visible part, so that the entries coming up after
+// it are seen (issue #98).  The list cannot scroll past its end, so a row near the end is as far down as the list allows.
+//
+void MainWindow::showCalendarRowQuarterDown(int row)
+{
+    QListView *view = ui->listCalendar ;
+    if (!calendarlist.index(row,0).isValid()) return ;
+
+    // The list scrolls by entries (the scroll bar counts them), so the entry at the top is the one this many entries above the row,
+    // where that is a quarter of the viewport.  The scroll stops at the top and end of the list.
+    // The list may have changed size (a contact filter turned off, for one), so its layout is brought up to date first
+    ui->listCalendar->layoutNow() ;
+    int rowheight = view->sizeHintForRow(row) ;
+    int above = (rowheight>0) ? (view->viewport()->height()/4)/rowheight : 0 ;
+    view->verticalScrollBar()->setValue(qMax(0, row-above)) ;
+}
+
+//
+// requestCalendarQuarter, applyCalendarQuarter
+//
+// A shortcut that moves the calendar position asks for the list to be scrolled so the entry is a quarter of the way down (issue
+// #98).  When the calendar is not showing, the scroll waits until it is.
+//
+void MainWindow::requestCalendarQuarter(int row)
+{
+    // The row is taken now, as the list's current row can change before the list is shown
+    calendarscrollrow = (row>=0) ? row : ui->listCalendar->currentIndex().row() ;
+    calendarscrollpending = true ;
+    applyCalendarQuarter() ;
+}
+
+void MainWindow::applyCalendarQuarter()
+{
+    if (!calendarscrollpending) return ;
+    if (ui->tabBar->currentIndex()!=CALENDARTABPOS || !ui->listCalendar->isVisible()) return ;
+    if (calendarscrollrow<0 || calendarscrollrow>=calendarlist.rowCount()) {
+        calendarscrollpending = false ;
+        return ;
+    }
+    calendarscrollpending = false ;
+    showCalendarRowQuarterDown(calendarscrollrow) ;
+}
+
+//
+// calendarWeekKey
+//
+// w goes to a week on from today, and each further w goes a week further on: the first is one week, the second two, and so on,
+// with no limit.  t and Control-T start the count again (issue #99).  Other keys do not change it.
+//
+void MainWindow::calendarWeekKey()
+{
+    calendarweeks++ ;
+    calendarFilterOff() ;
+    gotoCalendarDate(QDate::currentDate().addDays(7*calendarweeks)) ;
+}
+
+//
 // on_actionGotoToday_triggered
 //
 void MainWindow::on_actionGotoToday_triggered()
 {
+    gotoToday(true) ;
+}
+
+// Goes to today.  The w count starts again, as w goes from today.  The sound is played for a move by the user, not at startup.
+void MainWindow::gotoToday(bool withsound)
+{
+    calendarweeks = 0 ;
     calendarFilterOff() ;
 
     if (ui->tabBar->currentIndex()!=CALENDARTABPOS) {
@@ -61,6 +128,8 @@ void MainWindow::on_actionGotoToday_triggered()
     if (index.isValid()) {
         dbg("listCalendar->setCurrentIndex()") ;
         ui->listCalendar->setCurrentIndex(index) ;
+        requestCalendarQuarter(index.row()) ;
+        if (withsound) play(Found) ;
     }
 }
 
@@ -101,6 +170,8 @@ void MainWindow::gotoCalendarDate(QDate wanted)
     if (index.isValid()) {
         dbg("listCalendar->setCurrentIndex()") ;
         ui->listCalendar->setCurrentIndex(index) ;
+        requestCalendarQuarter(index.row()) ;
+        play(Found) ;
     }
 }
 
@@ -128,7 +199,7 @@ void MainWindow::on_actionGotoDate_triggered()
 //
 void MainWindow::gotoTypedCalendarDate(QString typed)
 {
-    QString prompt = "Type a date, such as 10 oct 2026, 1 nov 2027, or 2 march for the next one.  Press Enter to go to it." ;
+    QString prompt = "Type a date, such as 2/12 or 12 oct 2026" ;
 
     // The entry is shown with its cursor at the end and no text selected, so the next key adds to the digits typed
     QInputDialog dialog(this) ;
@@ -137,6 +208,9 @@ void MainWindow::gotoTypedCalendarDate(QString typed)
     dialog.setTextValue(typed) ;
     QLineEdit *edit = dialog.findChild<QLineEdit*>() ;
     if (edit) {
+        // Short, as a braille display shows the name and description with the field
+        edit->setAccessibleName("Date") ;
+        edit->setAccessibleDescription("Enter goes to it") ;
         QObject::connect(edit, &QLineEdit::selectionChanged, edit, [edit]() {
             if (edit->hasSelectedText()) QTimer::singleShot(0, edit, [edit]() { edit->deselect() ; edit->end(false) ; }) ;
         }) ;
@@ -152,7 +226,7 @@ void MainWindow::gotoTypedCalendarDate(QString typed)
 
     QDate wanted ;
     if (!parseCalendarDate(text, QDate::currentDate(), &wanted)) {
-        play(Error) ;
+        play(NotFound) ;
         return ;
     }
 
@@ -181,10 +255,26 @@ void MainWindow::gotoContactAppointment(int step)
     for (int r=row+step; r>=0 && r<calendarrowcontacts.size(); r+=step) {
         if (calendarrowcontacts.at(r)==openid) {
             ui->listCalendar->setCurrentIndex(calendarlist.index(r,0)) ;
+            requestCalendarQuarter(r) ;
+            play(Found) ;
             return ;
         }
     }
-    play(Error) ;
+
+    // Next wraps round to the first entry for the contact, with the wrapped sound.  Previous does not wrap.
+    if (step>0) {
+        for (int r=0; r<=row && r<calendarrowcontacts.size(); r++) {
+            if (calendarrowcontacts.at(r)==openid) {
+                ui->listCalendar->setCurrentIndex(calendarlist.index(r,0)) ;
+                requestCalendarQuarter(r) ;
+                play(Wrapped) ;
+                msg("Wrapped to the first appointment for this contact") ;
+                return ;
+            }
+        }
+    }
+
+    play(NotFound) ;
     msg(step>0 ? "No later appointment for this contact" : "No earlier appointment for this contact") ;
 }
 

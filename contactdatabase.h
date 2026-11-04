@@ -102,6 +102,7 @@ public:
     void tidyUnnamed(int &emptied, int &renamed, QStringList &left) ;
 
     int getIndex(Contact& record) ;
+    int indexOfContact(QString id) ;      // Position of the contact with this ID, found by search; -1 when there is none
     int getIndex(QString id) ;
 
 };

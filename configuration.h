@@ -28,6 +28,8 @@ enum DatabaseMaster {
 #define MSG_SMS_DELETION 6
 #define MSG_SMS_UPDATE 7
 #define MSG_SMS_REMINDER 8
+#define MSG_EMAIL_TODAY 9   // the on-the-day email (emailtoday in [message]; the reminder template if that is not set)
+#define MSG_SMS_TODAY 10    // the on-the-day text (smstoday in [message]; the reminder template if that is not set)
 
 // Max Number of SMS/Emails to send for a single appointment
 // (used to trap send bugs to prevent client being bombarded)

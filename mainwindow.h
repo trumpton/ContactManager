@@ -93,6 +93,7 @@ private slots:
     void on_actionIncome_triggered() ;
     void on_actionTransactionReport_triggered() ;
     void on_actionManual_triggered();
+    void on_actionShowAccessibleText_triggered() ;   // Show: the screen reader text of the control with the focus (issue #101)
     void on_listCalendar_activated(const QModelIndex &index);
     void on_actionExportContacts_triggered();
     void on_actionExportAppointments_triggered();
@@ -103,6 +104,11 @@ private slots:
     void on_actionShowHiddenContacts_triggered(bool checked);
     void toggleCalendarContactFilter() ;     // Space in the calendar list: all entries, or only the open contact's (issue #92)
     void calendarFilterOff() ;               // Moving the date shows all entries again, when the contact filter is on (issue #92)
+    void calendarWeekKey() ;                 // w in the calendar list: one more week on from today, for each w since t (issue #99)
+    void gotoToday(bool withsound) ;         // Goes to today in the calendar list; t resets the w count (issue #99)
+    void showCalendarRowQuarterDown(int row) ;   // Scrolls the calendar list so the row is a quarter of the way down (issue #98)
+    void requestCalendarQuarter(int row = -1) ;  // A shortcut has moved the calendar position to row (default: the current row): scroll it, once the calendar shows (issue #98)
+    void applyCalendarQuarter() ;                // Does that scroll, if the calendar is showing and a scroll is pending
     void gotoCalendarDate(QDate wanted) ;    // Goes to a date in the calendar list, or the nearest date before it
     void gotoTypedCalendarDate(QString typed) ;   // A digit in the calendar list: a date typed after it (issue #92)
     void gotoContactAppointment(int step) ;       // The next (1) or previous (-1) entry for the open contact: n, p and the arrows
@@ -172,6 +178,10 @@ private:
     QList<QDateTime> calendarrowends ;              // The end of each row in the calendar list, so Goto Today can find the nearest
     QList<QDateTime> calendarrowstarts ;            // The start of each row in the calendar list, so Goto Date can find a date
     QStringList calendarrowcontacts ;               // The contact of each row in the calendar list, so the next entry for a contact can be found
+    QPointer<QDialog> accessibleinfo ;              // Show > Show Screen Reader Text, while it is open (issue #101)
+    QPointer<QWidget> accessibleinfotarget ;        // The control the screen reader text is for: the one with the focus before the dialog opened
+    bool accessibledebug = false ;                  // Accessibility tracing to the console, switched on in the screen reader text dialog (not saved)
+    void updateAccessibleInfo() ;                   // Sets the text of that dialog from the control, if it has changed
     bool titledEntriesHeld ;                        // An email or phone entry was refused: the form is not reloaded until it is fixed
 
     // Only the copy of ContactManager holding the data folder's lock sends messages, so two copies cannot send the same
@@ -190,6 +200,9 @@ private:
     bool showdeletedcontacts ;
     bool showhiddencontacts ;
     bool calendarcontactonly ;          // The calendar list shows only the open contact's entries, while a contact is open
+    bool calendarscrollpending ;        // A shortcut has moved the calendar position, and the list is to be scrolled to it when shown (issue #98)
+    int calendarscrollrow ;             // The row that position is at
+    int calendarweeks ;                      // The w's pressed since t went to today (issue #99)
 
     // Manage dialog controls / enables etc.
     void UpdateContactsList() ;          // Update drop-down list
