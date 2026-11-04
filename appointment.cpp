@@ -1041,9 +1041,13 @@ static int firstOccurrenceEndingFrom(Appointment &appt, QDateTime lower)
     return -1 ;
 }
 
+// A real date is after 1 January 1971.  Anything in 1970 is the app's default date (see the default set in appointment.cpp), not a start or end (issue #104),
+// so a time on 1 January 1970 is not one either.
+static const qint64 REAL_DATE_FROM = 365LL * 86400LL ;
+
 bool Appointment::hasStart()
 {
-    return !getField(Appointment::From).isEmpty() && getDate(Appointment::From).toSecsSinceEpoch() > 0 ;
+    return !getField(Appointment::From).isEmpty() && getDate(Appointment::From).toSecsSinceEpoch() >= REAL_DATE_FROM ;
 }
 
 // A real end: after the epoch, and not before the start (issue #107).  Google refuses an event without one, or one that ends
@@ -1051,7 +1055,7 @@ bool Appointment::hasStart()
 bool Appointment::hasEnd()
 {
     QDateTime to = getDate(Appointment::To) ;
-    if (!to.isValid() || to.toSecsSinceEpoch() <= 0) return false ;
+    if (!to.isValid() || to.toSecsSinceEpoch() < REAL_DATE_FROM) return false ;
     QDateTime from = getDate(Appointment::From) ;
     return !from.isValid() || to >= from ;
 }
