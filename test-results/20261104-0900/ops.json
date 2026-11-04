@@ -1,0 +1,209 @@
+[
+ {
+  "op": "add_contact",
+  "fields": {
+   "names": "Daniel",
+   "surname": "Jackson",
+   "email": "daniel.jackson@vizier.uk",
+   "mobile": "+447718997189",
+   "emailme": "true",
+   "textme": "true"
+  }
+ },
+ {
+  "op": "add_contact",
+  "fields": {
+   "names": "Jack",
+   "surname": "O'Neil",
+   "email": "jack.oneil@vizier.uk",
+   "mobile": "+447718997189",
+   "emailme": "true",
+   "textme": "false"
+  }
+ },
+ {
+  "op": "add_contact",
+  "fields": {
+   "names": "Sam",
+   "surname": "Carter",
+   "email": "sam.carter@vizier.uk",
+   "mobile": "+447718997189",
+   "emailme": "false",
+   "textme": "true"
+  }
+ },
+ {
+  "op": "save"
+ },
+ {
+  "op": "waituntil",
+  "at": "2026-11-01T23:41:00"
+ },
+ {
+  "op": "add_appointment",
+  "surname": "Jackson",
+  "fields": {
+   "summary": "A Daniel Jackson - confirm then reminder (Wed 04 Nov 10:00)",
+   "from": "2026-11-04T10:00:00Z",
+   "to": "2026-11-04T11:00:00Z",
+   "location": "Room A"
+  }
+ },
+ {
+  "op": "waituntil",
+  "at": "2026-11-01T23:43:00"
+ },
+ {
+  "op": "add_appointment",
+  "surname": "O'Neil",
+  "fields": {
+   "summary": "B Jack O'Neil - email only, edited Monday (Tue 03 Nov 12:00)",
+   "from": "2026-11-03T12:00:00Z",
+   "to": "2026-11-03T13:00:00Z",
+   "location": "Room B"
+  }
+ },
+ {
+  "op": "waituntil",
+  "at": "2026-11-01T23:45:00"
+ },
+ {
+  "op": "add_appointment",
+  "surname": "Carter",
+  "fields": {
+   "summary": "C Sam Carter - text only, deleted Monday (Mon 02 Nov 15:00)",
+   "from": "2026-11-02T15:00:00Z",
+   "to": "2026-11-02T16:00:00Z",
+   "location": "Room C"
+  }
+ },
+ {
+  "op": "waituntil",
+  "at": "2026-11-01T23:47:00"
+ },
+ {
+  "op": "add_appointment",
+  "surname": "Jackson",
+  "fields": {
+   "summary": "X Daniel Jackson - burst, deleted (Thu 05 Nov 09:00)",
+   "from": "2026-11-05T09:00:00Z",
+   "to": "2026-11-05T10:00:00Z",
+   "location": "Room X"
+  }
+ },
+ {
+  "op": "waituntil",
+  "at": "2026-11-01T23:49:00"
+ },
+ {
+  "op": "delete_appointment",
+  "match": {
+   "summary": "X Daniel Jackson - burst, deleted (Thu 05 Nov 09:00)"
+  }
+ },
+ {
+  "op": "waituntil",
+  "at": "2026-11-01T23:51:00"
+ },
+ {
+  "op": "add_appointment",
+  "surname": "Jackson",
+  "fields": {
+   "summary": "Y Daniel Jackson - burst, final (Thu 05 Nov 09:00)",
+   "from": "2026-11-05T09:00:00Z",
+   "to": "2026-11-05T10:00:00Z",
+   "location": "Room Y1"
+  }
+ },
+ {
+  "op": "waituntil",
+  "at": "2026-11-01T23:53:00"
+ },
+ {
+  "op": "edit_appointment",
+  "match": {
+   "summary": "Y Daniel Jackson - burst, final (Thu 05 Nov 09:00)"
+  },
+  "fields": {
+   "location": "Room Y2"
+  }
+ },
+ {
+  "op": "waituntil",
+  "at": "2026-11-02T08:00:00"
+ },
+ {
+  "op": "edit_appointment",
+  "match": {
+   "summary": "B Jack O'Neil - email only, edited Monday (Tue 03 Nov 12:00)"
+  },
+  "fields": {
+   "location": "Room B9"
+  }
+ },
+ {
+  "op": "waituntil",
+  "at": "2026-11-02T09:00:00"
+ },
+ {
+  "op": "delete_appointment",
+  "match": {
+   "summary": "C Sam Carter - text only, deleted Monday (Mon 02 Nov 15:00)"
+  }
+ },
+ {
+  "op": "waituntil",
+  "at": "2026-11-02T11:00:00"
+ },
+ {
+  "op": "add_appointment",
+  "surname": "Jackson",
+  "fields": {
+   "summary": "G Daniel Jackson - same-day booking (Mon 02 Nov 17:00)",
+   "from": "2026-11-02T17:00:00Z",
+   "to": "2026-11-02T18:00:00Z",
+   "location": "Room G"
+  }
+ },
+ {
+  "op": "waituntil",
+  "at": "2026-11-02T12:30:00"
+ },
+ {
+  "op": "dump",
+  "file": "dump-mon1230.json"
+ },
+ {
+  "op": "waituntil",
+  "at": "2026-11-02T23:58:00"
+ },
+ {
+  "op": "add_appointment",
+  "surname": "O'Neil",
+  "fields": {
+   "summary": "H Jack O'Neil - booked late Monday night (Thu 05 Nov 14:00)",
+   "from": "2026-11-05T14:00:00Z",
+   "to": "2026-11-05T15:00:00Z",
+   "location": "Room H"
+  }
+ },
+ {
+  "op": "waituntil",
+  "at": "2026-11-03T12:30:00"
+ },
+ {
+  "op": "dump",
+  "file": "dump-tue1230.json"
+ },
+ {
+  "op": "waituntil",
+  "at": "2026-11-03T23:05:00"
+ },
+ {
+  "op": "dump",
+  "file": "dump-final.json"
+ },
+ {
+  "op": "exit"
+ }
+]

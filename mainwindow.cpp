@@ -35,6 +35,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     showdeletedcontacts=false ;
     showhiddencontacts=false ;
     calendarcontactonly=false ;
+    calendarscrollpending=false ;
+    calendarscrollrow=-1 ;
+    calendarweeks=0 ;
 
     ui->setupUi(this);
     setupTitledEntries() ;
@@ -184,7 +187,7 @@ void MainWindow::on_initial_focus()
 {
     populateDialog(SELECT_OVERVIEW) ;
     on_tabBar_currentChanged(1) ;
-    on_actionGotoToday_triggered() ;
+    gotoToday(false) ;
     reportClashes() ;
 }
 
@@ -620,12 +623,19 @@ void MainWindow::populateDialog(QString id, bool switchtooverview)
 
     }
 
+    // A new contact moves the calendar position to the entry nearest in date, so it is scrolled to (issue #98)
+    if (contactchanged) {
+        requestCalendarQuarter() ;
+    }
+
 }
 
 // TODO: Fix all tab-specific menu options
 void MainWindow::on_tabBar_currentChanged(int index)
 {
     if (index==1) { // Calendar
+        // A position moved by a shortcut while the calendar was not showing is scrolled to now it is (issue #98)
+        QTimer::singleShot(0, this, [this]() { applyCalendarQuarter() ; }) ;
         ui->actionMoveAppointment->setEnabled(true) ;
         ui->actionRemoveAppointment->setEnabled(true) ;
     } else {
@@ -738,6 +748,9 @@ void MainWindow::on_action_Google_Sync_triggered()
         db.selectContact(SELECT_OVERVIEW) ;
     }
 
+    // The contact on screen stays loaded through the sync (issue #103).  The sync can renumber the contacts, so it is found again by its ID
+    QString loadedid = db.getSelected().isNull() ? QString() : db.getSelected().getField(Contact::ID) ;
+
     frm = new GoogleUpdateDialog(this) ;
     play(Ok) ;
     frm->doUpdate(google, db, calendar) ;
@@ -746,7 +759,8 @@ void MainWindow::on_action_Google_Sync_triggered()
     // Save now, so links cleared by the sync are kept if the app is stopped
     db.save() ;
 
-    // And re-load.  If the selected contact was removed by the sync, show the overview
+    // And re-load.  If the contact on screen was removed by the sync, show the overview
+    if (db.getSelected().isNull()) db.selectContact(db.indexOfContact(loadedid)) ;
     if (db.getSelected().isNull()) {
         populateDialog(SELECT_OVERVIEW) ;
     } else {

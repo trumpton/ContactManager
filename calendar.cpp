@@ -736,6 +736,8 @@ int Calendar::archiveExpired(QDateTime lower, QDateTime lastsync, QStringList &a
         if (appt.isTemp() || appt.isSet(Appointment::Deleted)) continue ;
         // Waiting to be uploaded: it stays until it is.  (Unchanged entries are always flagged to be downloaded, so that is not checked.)
         if (appt.isSet(Appointment::ToBeUploaded)) continue ;
+        // Never on Google (no Google record): there is nothing to keep it in step with, so it stays here
+        if (appt.getField(Appointment::GoogleRecordId).isEmpty()) continue ;
 
         // Changed since the last sync: it waits for the upload
         QDateTime updated = appt.getDate(Appointment::Updated) ;

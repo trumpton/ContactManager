@@ -1,0 +1,98 @@
+time,user,channel,scenario,title,event,detail,corner case tested
+today 20:40,Vala Mandoran,both,A05,A05 Vala Mandoran (both),APPOINTMENT SET,starts day after tomorrow 09:00,"Confirmed 36 h 15 min before the start (just outside 36 h): not confirm-only, so the reminder is still due"
+today 20:40,Daniel Jackson,both,A07,A07 Daniel Jackson (both),APPOINTMENT SET,starts day after tomorrow 22:00,"Reminder due at 22:00 falls outside the window: it is held to 07:00 on the day of the appointment, where the on-the-day message replaces it"
+today 20:40,Jack O'Neil,email,A08,A08 Jack O'Neil (email),APPOINTMENT SET,starts in 3 days 07:00,Reminder due exactly at the window opening (24 h before 07:00 on day 5)
+today 20:40,Sam Carter,sms,A09,A09 Sam Carter (sms),APPOINTMENT SET,starts in 3 days 06:30,"Reminder due at 06:30 on day 4, before the window: it is sent at 07:00, the first check in the window"
+today 20:40,George Hammond,sms,A10,A10 George Hammond (sms),APPOINTMENT SET,starts in 3 days 07:30,"Start at 07:30 on day 5: on-the-day message at 07:00, the first check, before the start"
+today 20:40,Vala Mandoran,both,A11,A11 Vala Mandoran (both),APPOINTMENT SET,starts in 3 days 22:15,"Reminder due at 22:15 on day 4 (outside the window), so held to 07:00 on day 5 where the on-the-day message replaces it. Last appointment of the run"
+today 20:40,Jack O'Neil,email,B14,B14 Jack O'Neil (email),APPOINTMENT SET,starts day after tomorrow 20:40,"Reminder sent 20:41 on day 3 (exactly 24 h before). A move at 20:50 is sent as an update at 20:55, inside 36 h, and counts as the reminder for the new time, so no second reminder"
+today 20:45,Vala Mandoran,email,A05,A05 Vala Mandoran (both),EMAIL EXPECTED,confirmation for appointment day after tomorrow 09:00,
+today 20:45,Daniel Jackson,email,A07,A07 Daniel Jackson (both),EMAIL EXPECTED,confirmation for appointment day after tomorrow 22:00,
+today 20:45,Jack O'Neil,email,A08,A08 Jack O'Neil (email),EMAIL EXPECTED,confirmation for appointment in 3 days 07:00,
+today 20:45,Sam Carter,sms,A09,A09 Sam Carter (sms),SMS EXPECTED,confirmation for appointment in 3 days 06:30,
+today 20:45,George Hammond,sms,A10,A10 George Hammond (sms),SMS EXPECTED,confirmation for appointment in 3 days 07:30,
+today 20:45,Vala Mandoran,email,A11,A11 Vala Mandoran (both),EMAIL EXPECTED,confirmation for appointment in 3 days 22:15,
+today 20:45,Jack O'Neil,email,B14,B14 Jack O'Neil (email),EMAIL EXPECTED,confirmation for appointment day after tomorrow 20:40,
+today 21:00,George Hammond,sms,A06,A06 George Hammond (sms),APPOINTMENT SET,starts day after tomorrow 08:30,"Confirmed 35 h 25 min before the start (inside 36 h): confirm-only, so there is no reminder"
+today 21:00,Daniel Jackson,both,B01,B01 Daniel Jackson (both),APPOINTMENT SET,starts tomorrow 18:00,"Moved at 06:30, outside the window: the hold ends at 06:35, so the update waits for 07:00. The update covers the email on the day, so the text on-the-day message follows at 07:01"
+today 21:00,Jack O'Neil,email,B02,B02 Jack O'Neil (email),APPOINTMENT SET,starts day after tomorrow 15:00,"Reminder would be due at 15:00 on day 3; the move at 21:58 is held past the window to 07:00 on day 3, when the start is inside 36 h, so the update takes the reminder's place"
+today 21:00,Sam Carter,sms,B03,B03 Sam Carter (sms),APPOINTMENT SET,starts in 3 days 10:00,"Reminder sent 10:01 on day 4 (exactly 24 h before the start, one minute after). A move at 10:05 is sent at 10:10 as an update, and it counts as the reminder for the new time"
+today 21:00,Tealc Tealc,email,B11,B11 Tealc Tealc (email),APPOINTMENT SET,starts in 3 days 14:00,"Deleted at 22:30 on day 3, before its reminder is due at 14:00 on day 4: no reminder. The cancellation waits for 07:00"
+today 21:00,George Hammond,sms,B12,B12 George Hammond (sms),APPOINTMENT SET,starts day after tomorrow 22:45,"Reminder due at 22:45 on day 3 is held to 07:00 on day 4, when the start is on that day: on-the-day text replaces it"
+today 21:05,George Hammond,sms,A06,A06 George Hammond (sms),SMS EXPECTED,confirmation for appointment day after tomorrow 08:30,
+today 21:05,Daniel Jackson,email,B01,B01 Daniel Jackson (both),EMAIL EXPECTED,confirmation for appointment tomorrow 18:00,
+today 21:05,Jack O'Neil,email,B02,B02 Jack O'Neil (email),EMAIL EXPECTED,confirmation for appointment day after tomorrow 15:00,
+today 21:05,Sam Carter,sms,B03,B03 Sam Carter (sms),SMS EXPECTED,confirmation for appointment in 3 days 10:00,
+today 21:05,Tealc Tealc,email,B11,B11 Tealc Tealc (email),EMAIL EXPECTED,confirmation for appointment in 3 days 14:00,
+today 21:05,George Hammond,sms,B12,B12 George Hammond (sms),SMS EXPECTED,confirmation for appointment day after tomorrow 22:45,
+today 21:30,Tealc Tealc,email,A04,A04 Tealc Tealc (email),APPOINTMENT SET,starts day after tomorrow 14:00,"Over 36 h away when confirmed: reminder due 24 h before, 14:00 tomorrow, is sent at the next check after it"
+today 21:35,Tealc Tealc,email,A04,A04 Tealc Tealc (email),EMAIL EXPECTED,confirmation for appointment day after tomorrow 14:00,
+today 21:50,Daniel Jackson,both,A01,A01 Daniel Jackson (both),APPOINTMENT SET,starts tomorrow 12:00,"Created 5 min before the window closes: the confirmation is sent inside the window; confirm-only (under 36 h), so no reminder; both channels get the on-the-day message at the window opening"
+today 21:55,Daniel Jackson,email,A01,A01 Daniel Jackson (both),EMAIL EXPECTED,confirmation for appointment tomorrow 12:00,
+today 21:57,Jack O'Neil,email,A02,A02 Jack O'Neil (email),APPOINTMENT SET,starts day after tomorrow 10:00,"Hold ends at 22:02, after latestsend: the confirmation waits for the window opening (07:00)"
+today 21:58,Jack O'Neil,email,B02,B02 Jack O'Neil (email),CHANGE START,now starts day after tomorrow 14:59,"Reminder would be due at 15:00 on day 3; the move at 21:58 is held past the window to 07:00 on day 3, when the start is inside 36 h, so the update takes the reminder's place"
+tomorrow 06:30,Daniel Jackson,both,B01,B01 Daniel Jackson (both),CHANGE START,now starts tomorrow 18:01,"Moved at 06:30, outside the window: the hold ends at 06:35, so the update waits for 07:00. The update covers the email on the day, so the text on-the-day message follows at 07:01"
+tomorrow 06:57,Sam Carter,sms,A03,A03 Sam Carter (sms),APPOINTMENT SET,starts tomorrow 15:00,"Created before earliestsend: hold ends at 07:02, inside the window. Same-day text booking: the confirmation gives the day, so no on-the-day text"
+tomorrow 07:00,Daniel Jackson,email,A01,A01 Daniel Jackson (both),EMAIL EXPECTED,on-the-day message for appointment tomorrow 12:00,
+tomorrow 07:00,Daniel Jackson,sms,A01,A01 Daniel Jackson (both),SMS EXPECTED,on-the-day message for appointment tomorrow 12:00,
+tomorrow 07:00,Jack O'Neil,email,A02,A02 Jack O'Neil (email),EMAIL EXPECTED,confirmation for appointment day after tomorrow 10:00,
+tomorrow 07:00,Daniel Jackson,email,B01,B01 Daniel Jackson (both),EMAIL EXPECTED,update for appointment tomorrow 18:01,
+tomorrow 07:00,Jack O'Neil,email,B02,B02 Jack O'Neil (email),EMAIL EXPECTED,update for appointment day after tomorrow 14:59,
+tomorrow 07:01,Daniel Jackson,sms,B01,B01 Daniel Jackson (both),SMS EXPECTED,on-the-day message for appointment tomorrow 18:01,
+tomorrow 07:02,Sam Carter,sms,A03,A03 Sam Carter (sms),SMS EXPECTED,confirmation for appointment tomorrow 15:00,
+tomorrow 09:01,Vala Mandoran,email,A05,A05 Vala Mandoran (both),EMAIL EXPECTED,reminder for appointment day after tomorrow 09:00,
+tomorrow 10:00,Tealc Tealc,email,B05,B05 Tealc Tealc (email),APPOINTMENT SET,starts tomorrow 16:00,"Same-day email booking: confirmation at 10:05, then cancelled at 10:30 (a cancellation is not held)"
+tomorrow 10:05,Tealc Tealc,email,B05,B05 Tealc Tealc (email),EMAIL EXPECTED,confirmation for appointment tomorrow 16:00,
+tomorrow 10:30,Tealc Tealc,email,B05,B05 Tealc Tealc (email),DELETE,appointment deleted,"Same-day email booking: confirmation at 10:05, then cancelled at 10:30 (a cancellation is not held)"
+tomorrow 10:30,Tealc Tealc,email,B05,B05 Tealc Tealc (email),EMAIL EXPECTED,cancellation for appointment tomorrow 16:00,
+tomorrow 12:00,Sam Carter,sms,B08,B08 Sam Carter (sms),APPOINTMENT SET,starts day after tomorrow 13:00,"Deleted inside the hold, before anything was confirmed: nothing is sent"
+tomorrow 12:02,Sam Carter,sms,B08,B08 Sam Carter (sms),DELETE,appointment deleted,"Deleted inside the hold, before anything was confirmed: nothing is sent"
+tomorrow 14:01,Tealc Tealc,email,A04,A04 Tealc Tealc (email),EMAIL EXPECTED,reminder for appointment day after tomorrow 14:00,
+tomorrow 19:00,Vala Mandoran,both,B13,B13 Vala Mandoran (both),APPOINTMENT SET,starts day after tomorrow 11:00,"Confirmed on day 3, then the on-the-day email and text at 07:00 on day 4, and cancelled at 09:00 (not held)"
+tomorrow 19:05,Vala Mandoran,email,B13,B13 Vala Mandoran (both),EMAIL EXPECTED,confirmation for appointment day after tomorrow 11:00,
+tomorrow 20:41,Jack O'Neil,email,B14,B14 Jack O'Neil (email),EMAIL EXPECTED,reminder for appointment day after tomorrow 20:40,
+tomorrow 20:50,Jack O'Neil,email,B14,B14 Jack O'Neil (email),CHANGE START,now starts day after tomorrow 20:41,"Reminder sent 20:41 on day 3 (exactly 24 h before). A move at 20:50 is sent as an update at 20:55, inside 36 h, and counts as the reminder for the new time, so no second reminder"
+tomorrow 20:55,Jack O'Neil,email,B14,B14 Jack O'Neil (email),EMAIL EXPECTED,update for appointment day after tomorrow 20:41,
+tomorrow 22:30,Vala Mandoran,both,B06,B06 Vala Mandoran (both),APPOINTMENT SET,starts day after tomorrow 12:00,"Booked after the window closes, for a start later on day 4: confirmation waits for 07:00, and the on-the-day text follows at 07:01 (the email already covered the day)"
+tomorrow 22:30,Tealc Tealc,email,B11,B11 Tealc Tealc (email),DELETE,appointment deleted,"Deleted at 22:30 on day 3, before its reminder is due at 14:00 on day 4: no reminder. The cancellation waits for 07:00"
+tomorrow 23:00,George Hammond,sms,B04,B04 George Hammond (sms),APPOINTMENT SET,starts in 3 days 12:00,"Overnight backlog: four edits between 23:30 and 05:00, with the last at 05:00. One confirmation at 07:00 with the final times, and nothing for the earlier edits"
+tomorrow 23:30,George Hammond,sms,B04,B04 George Hammond (sms),CHANGE START,now starts in 3 days 12:01,"Overnight backlog: four edits between 23:30 and 05:00, with the last at 05:00. One confirmation at 07:00 with the final times, and nothing for the earlier edits"
+day after tomorrow 01:00,George Hammond,sms,B04,B04 George Hammond (sms),CHANGE START,now starts in 3 days 11:59,"Overnight backlog: four edits between 23:30 and 05:00, with the last at 05:00. One confirmation at 07:00 with the final times, and nothing for the earlier edits"
+day after tomorrow 03:00,George Hammond,sms,B04,B04 George Hammond (sms),CHANGE START,now starts in 3 days 12:01,"Overnight backlog: four edits between 23:30 and 05:00, with the last at 05:00. One confirmation at 07:00 with the final times, and nothing for the earlier edits"
+day after tomorrow 05:00,George Hammond,sms,B04,B04 George Hammond (sms),CHANGE START,now starts in 3 days 12:02,"Overnight backlog: four edits between 23:30 and 05:00, with the last at 05:00. One confirmation at 07:00 with the final times, and nothing for the earlier edits"
+day after tomorrow 06:30,Jack O'Neil,email,B10,B10 Jack O'Neil (email),APPOINTMENT SET,starts day after tomorrow 17:00,"Hold ends at 06:35, before the window: confirmation at 07:00, same-day email booking, so no on-the-day email"
+day after tomorrow 07:00,Jack O'Neil,email,A02,A02 Jack O'Neil (email),EMAIL EXPECTED,on-the-day message for appointment day after tomorrow 10:00,
+day after tomorrow 07:00,Tealc Tealc,email,A04,A04 Tealc Tealc (email),EMAIL EXPECTED,on-the-day message for appointment day after tomorrow 14:00,
+day after tomorrow 07:00,Vala Mandoran,email,A05,A05 Vala Mandoran (both),EMAIL EXPECTED,on-the-day message for appointment day after tomorrow 09:00,
+day after tomorrow 07:00,Vala Mandoran,sms,A05,A05 Vala Mandoran (both),SMS EXPECTED,on-the-day message for appointment day after tomorrow 09:00,
+day after tomorrow 07:00,George Hammond,sms,A06,A06 George Hammond (sms),SMS EXPECTED,on-the-day message for appointment day after tomorrow 08:30,
+day after tomorrow 07:00,Daniel Jackson,email,A07,A07 Daniel Jackson (both),EMAIL EXPECTED,on-the-day message for appointment day after tomorrow 22:00,
+day after tomorrow 07:00,Daniel Jackson,sms,A07,A07 Daniel Jackson (both),SMS EXPECTED,on-the-day message for appointment day after tomorrow 22:00,
+day after tomorrow 07:00,Sam Carter,sms,A09,A09 Sam Carter (sms),SMS EXPECTED,reminder for appointment in 3 days 06:30,
+day after tomorrow 07:00,Jack O'Neil,email,B02,B02 Jack O'Neil (email),EMAIL EXPECTED,on-the-day message for appointment day after tomorrow 14:59,
+day after tomorrow 07:00,George Hammond,sms,B04,B04 George Hammond (sms),SMS EXPECTED,confirmation for appointment in 3 days 12:02,
+day after tomorrow 07:00,Vala Mandoran,email,B06,B06 Vala Mandoran (both),EMAIL EXPECTED,confirmation for appointment day after tomorrow 12:00,
+day after tomorrow 07:00,Jack O'Neil,email,B10,B10 Jack O'Neil (email),EMAIL EXPECTED,confirmation for appointment day after tomorrow 17:00,
+day after tomorrow 07:00,Tealc Tealc,email,B11,B11 Tealc Tealc (email),EMAIL EXPECTED,cancellation for appointment in 3 days 14:00,
+day after tomorrow 07:00,George Hammond,sms,B12,B12 George Hammond (sms),SMS EXPECTED,on-the-day message for appointment day after tomorrow 22:45,
+day after tomorrow 07:00,Vala Mandoran,email,B13,B13 Vala Mandoran (both),EMAIL EXPECTED,on-the-day message for appointment day after tomorrow 11:00,
+day after tomorrow 07:00,Vala Mandoran,sms,B13,B13 Vala Mandoran (both),SMS EXPECTED,on-the-day message for appointment day after tomorrow 11:00,
+day after tomorrow 07:00,Jack O'Neil,email,B14,B14 Jack O'Neil (email),EMAIL EXPECTED,on-the-day message for appointment day after tomorrow 20:41,
+day after tomorrow 07:01,Jack O'Neil,email,A08,A08 Jack O'Neil (email),EMAIL EXPECTED,reminder for appointment in 3 days 07:00,
+day after tomorrow 07:01,Vala Mandoran,sms,B06,B06 Vala Mandoran (both),SMS EXPECTED,on-the-day message for appointment day after tomorrow 12:00,
+day after tomorrow 07:31,George Hammond,sms,A10,A10 George Hammond (sms),SMS EXPECTED,reminder for appointment in 3 days 07:30,
+day after tomorrow 09:00,Vala Mandoran,both,B13,B13 Vala Mandoran (both),DELETE,appointment deleted,"Confirmed on day 3, then the on-the-day email and text at 07:00 on day 4, and cancelled at 09:00 (not held)"
+day after tomorrow 09:00,Vala Mandoran,email,B13,B13 Vala Mandoran (both),EMAIL EXPECTED,cancellation for appointment day after tomorrow 11:00,
+day after tomorrow 10:01,Sam Carter,sms,B03,B03 Sam Carter (sms),SMS EXPECTED,reminder for appointment in 3 days 10:00,
+day after tomorrow 10:05,Sam Carter,sms,B03,B03 Sam Carter (sms),CHANGE START,now starts in 3 days 09:59,"Reminder sent 10:01 on day 4 (exactly 24 h before the start, one minute after). A move at 10:05 is sent at 10:10 as an update, and it counts as the reminder for the new time"
+day after tomorrow 10:10,Sam Carter,sms,B03,B03 Sam Carter (sms),SMS EXPECTED,update for appointment in 3 days 09:59,
+day after tomorrow 21:00,George Hammond,sms,B07,B07 George Hammond (sms),APPOINTMENT SET,starts day after tomorrow 23:30,"Same-day booking in the evening, after the on-the-day check would have run: confirmation text only"
+day after tomorrow 21:05,George Hammond,sms,B07,B07 George Hammond (sms),SMS EXPECTED,confirmation for appointment day after tomorrow 23:30,
+day after tomorrow 21:57,Daniel Jackson,both,B09,B09 Daniel Jackson (both),APPOINTMENT SET,starts in 3 days 08:30,"Booked at 21:57 for a start at 08:30 on day 5: confirmation at 07:00, and the text on-the-day message at 07:01"
+in 3 days 07:00,George Hammond,sms,A10,A10 George Hammond (sms),SMS EXPECTED,on-the-day message for appointment in 3 days 07:30,
+in 3 days 07:00,Vala Mandoran,email,A11,A11 Vala Mandoran (both),EMAIL EXPECTED,on-the-day message for appointment in 3 days 22:15,
+in 3 days 07:00,Vala Mandoran,sms,A11,A11 Vala Mandoran (both),SMS EXPECTED,on-the-day message for appointment in 3 days 22:15,
+in 3 days 07:00,Sam Carter,sms,B03,B03 Sam Carter (sms),SMS EXPECTED,on-the-day message for appointment in 3 days 09:59,
+in 3 days 07:00,George Hammond,sms,B04,B04 George Hammond (sms),SMS EXPECTED,on-the-day message for appointment in 3 days 12:02,
+in 3 days 07:00,Daniel Jackson,email,B09,B09 Daniel Jackson (both),EMAIL EXPECTED,confirmation for appointment in 3 days 08:30,
+in 3 days 07:01,Daniel Jackson,sms,B09,B09 Daniel Jackson (both),SMS EXPECTED,on-the-day message for appointment in 3 days 08:30,

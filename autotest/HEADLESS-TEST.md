@@ -172,18 +172,154 @@ background with a log file, then wait for the log to show it has finished. This 
 **One run at a time.** Two bench runs, or a bench run and a test program, on the same account delete each other's
 test contacts. The bench's cleanup removes every contact named `Bench`. Stop any background run before starting another.
 
-## 6. Running the Google bench
+## 6. Running the bench
+
+The bench has three groups (ticket #105). Each scenario is in one group, and `google_bench.py groups` lists them with a typical duration.
+
+| Group | What it covers | Time |
+|---|---|---|
+| 1, uploads (`U01`) | Purges the account, then uploads 250 contacts and 1,000 appointments, half through the Google API and half through ContactManager (its sync). Aaron Aesop is among the contacts. The records are left in place. | slow: about 20 minutes or more |
+| 2, updates | Every other test that syncs with Google. Each puts on Google the one or two details it needs first, rather than relying on the records in group 1. Google changes outside ContactManager are made with the API. | about 45 seconds each |
+| 3, local | Tests that need no Google sync. The account is not touched, so there is no cleanup on it. | a few seconds each |
+
+Selections (`google_bench.py run <name>`):
+
+| Name | Runs | Use |
+|---|---|---|
+| `full` | 1, 2, 3 | everything |
+| `quick` | 2, 3 | no uploads |
+| `google` | 2 | every Google sync test |
+| `google-quick` | a subset of 2 (`GOOGLE_QUICK` in the script) | a few minutes |
+| `local` | 3 | no Google at all |
+
+Scenario codes can be given instead: `google_bench.py run R01 L02`.
+
+Build the driver after the application (it links the application's objects, so rebuild it after each change to the app). It is built in a folder of its own, not in the build folder:
 
 ```bash
-export CM_BENCH_DRIVER=/path/to/bench_driver
-export CM_TEST_SECRET="$(cat /home/user/.cm-test-secret)"
-python3 autotest/google_bench.py run            # all scenarios
-python3 autotest/google_bench.py run C02 A03   # some scenarios
+sh autotest/bench/build_driver.sh /home/user/build-contactmanager    # writes sync_driver into that folder
 ```
 
-The bench uses only the scratch account (section 0). It names everything it creates (`Bench ...` contacts, `BENCH ...` appointments, `@test.invalid` addresses), and deletes those names before and after each scenario. Anything else on the account is left alone.
+`sync_driver` (`autotest/bench/sync_driver.cpp`) is a superset of `bench_driver`. It adds `listdir` (a calendar sub-folder, such as `archive`), `dumplog`, `paths`, `setting`, `wait` and `key`.
 
-Results are printed, and written to `results.json` in the run directory. A failed check prints its detail.
+```bash
+export CM_BENCH_DRIVER=/home/user/build-contactmanager/sync_driver
+export CM_BUILD=/home/user/build-contactmanager          # for the messages tests (L01)
+export CM_TEST_SECRET="$(cat /home/user/.cm-test-secret)"
+python3 autotest/google_bench.py run local
+python3 autotest/google_bench.py run google-quick
+python3 autotest/google_bench.py run full
+```
+
+### Purging the account
+
+```bash
+python3 autotest/google_bench.py purge contacts|appointments|both --yes
+```
+
+It removes **everything** of that kind on the account, not only the test entries, so run it only on the scratch account. Without `--yes` it does nothing. Google's contact-delete limit is per minute, so a purge of a full account takes a long time. The upload group purges the account itself before it uploads.
+
+### Changes on Google, and the test prefix
+
+Every record a test creates or syncs carries a prefix, so its records can be told apart from a user's on an account that is not a
+scratch one:
+
+| Record | Prefix |
+|---|---|
+| Appointment | the summary starts `BENCH ` (for example `BENCH A07`, `BENCH Upload S0012 Team call`) |
+| Contact | the given name is `Bench`, or the contact has an address at `test.invalid` (a contact with no name is found by its address) |
+
+The helpers and the test runner enforce this. A test that creates an appointment without the prefix, or a contact with neither
+the name nor the address, is refused before anything is sent to Google. Changes made on Google outside ContactManager
+(`google_bench.py gchange`) refuse any record without the prefix too.
+
+The upload group keeps its records: no cleanup runs before or after `U01` and `U02`, so the records are left on Google. The purge (`google_bench.py purge`, and the start of the upload group `U01`) removes **everything** of that kind on the account,
+not only the test records. It is for the scratch account only. The prefix is what identifies the test records on any other account.
+
+### How a group is chosen
+
+The updates and local groups are decided by reading each scenario's source: a scenario that calls the sync, or a Google helper, is in group 2; the rest are in group 3. `google_bench.py groups` shows the result, so check it after adding a scenario.
+
+### Typical durations
+
+The durations are in `TYPICAL_SECONDS` in `google_bench.py`, and each run records the time it took in `results.json`. Measured on the scratch account (about 3,300 appointments and 500 contacts on it):
+
+| Test | Typical seconds |
+|---|---|
+| Group 3, most tests | 4 to 11 |
+| `K24` | about 20 |
+| `R01` to `R05` | 42 to 47 (two or three runs each) |
+| `AR01` | about 80 (four runs) |
+| `U01` | about 1,080 for the earlier all-API version; the mixed version is not yet timed |
+
+Group 2 has 95 tests. Most have not been timed yet, so the group's total is not known until a full run has been done.
+
+### Limits in the bench
+
+The bench stops a scenario that runs for more than 900 seconds (`Run.execute` in `google_bench.py`), and the driver gives up on a
+dialog that keeps coming back after 40 clicks (`sync_driver.cpp`). Both limits are in the test bench only. The application has
+neither: a sync is not cut short by time, and a dialog is not answered by a counter.
+
+### Known test results
+
+Results after the item-4 and item-1 work of ticket #105 (the last run of each scenario):
+
+- **Both sides changed: the master wins** (item 4). Verified by `R06`, `X17`, `E02` (appointments, ContactManager master: the app's
+  version is sent over Google's change, and the report says so), `A14` and `C20` (deleted in the app, changed on Google, ContactManager
+  master: deleted on Google too), `C17` (contact, ContactManager master) and `C18` (contact, Google master: Google's version is kept).
+- **One side only: the other side is created.** `A15` (appointment deleted on Google, changed in the app: created on Google again with
+  the app's change) and `C19` (the same for a contact).
+- **Deletions made in the app are sent** until Google has them deleted (`A07`, fixed: see the decisions below).
+- **Uploads inside the window** (`U02`): 40 appointments added in the app are all on Google after one sync.
+- **Notes files** (`L05` plain text, `L06` encrypted, issue #105): a contact's to-do list and history are written as `.todolist` and
+  `.history` (plain) or `.ztodolist` and `.zhistory` (encrypted, with no plain text on disk), and a restart reads them back. The
+  test writes the encryption flag into the session's ini before the app starts. This found a bug, now fixed: a new contact's history
+  had no ID, so its file was never written (`Contact::createNew` now gives the history its ID too).
+- **Transient server errors** (`X19`): a change the bench makes on Google that got HTTP 502 was not retried, so the sync had nothing to
+  download and the test failed two runs in three. `api()` now retries 5xx answers as it does 429, and `X19` passes three runs in three.
+- **Repeat with no occurrence left** (`R11`): every occurrence cancelled on Google, the app removes the repeat, and Google holds none.
+- **Repeats** (`X81D`): deleting one occurrence in the app is found by its hint and sent to Google, and the window is narrow for the test.
+- **Regression set** run after these changes: `R01` to `R10`, `A03`, `A04`, `A07`, `A14`, `A15`, `AR01` to `AR03`, `W03`, `LF01`,
+  `LF02`, `E01`, `E03`, `C17` to `C20`, `X81D`, `X81E`, `U02`, `RL01` to `RL05`, `TC01`, `RS01`, and `R11` (a repeat with no occurrence left is removed, and Google holds none), all passing. Result: see the ticket.
+- **The fixes checked against the code from before them** (each scenario fails there, and passes now): `#94` (`RL01` to
+  `RL05`), `#102` (`R10`), `#104` (`E70`), and `#86` (`E01`, `E02`).
+- **The uploads problem reproduces on the code before this work** (commit 4fc5928): `U01` there holds 824 of the 1,000 appointment masters,
+  and 176 of the ContactManager half are missing from Google. On commit 2e9e452 all are there. The 40-appointment reproduction (`U02`)
+  passes on both, so the loss needs the full run's conditions. The cause is isolated by three full runs on 2e9e452 with changes
+  reverted: the 176 are entries outside the window that were never on Google. Before, the upload loop only visited entries inside the
+  window, or Google's, or to be downloaded. Either of two changes fixes it: step 4 flags such an entry for upload (`neverongoogle`),
+  or the loop includes entries to be uploaded. Reverting either one alone still passes. Reverting both gives the 4fc5928 result
+  exactly (824 on Google, the same 176 missing).
+- **`U01`** (uploads, run last, on commit 2e9e452): Google holds all 1,000 appointment masters and the ContactManager half reached
+  Google. The app holds 830 of them after the first sync; the 647 that the window expects are all held. The second sync archives 119
+  expired entries that the first sync uploaded (they were out of the window, so their earlier sync did not archive them), leaving
+  711 in the calendar folder. Two checks had wrong expectations and were corrected after the run, then re-evaluated on the saved data
+  (not re-run): the window's far edge is one day inside (an entry on day 730 starts after the window ends, so it is not downloaded), and
+  the second sync's archived entries are allowed for. The run's first version failed both checks.
+- Scratch account: about 3,300 events and 500 contacts (most are cancelled tombstones from earlier runs). The first sync of a
+  run lists every event; later syncs list only the changes, when the sync token is kept. Most Google tests take 40 to 60 seconds.
+
+Decisions the tests now record (ticket #105, item 4 and the items after it):
+
+- **When both sides change, the master's version wins.** Under ContactManager master an appointment or contact changed in both places
+  since the last sync is sent from the app, over Google's copy. Under Google master Google's version is kept. The sync report says
+  which: for appointments `CONFLICT: Google's copy also changed since the last sync, so the app's version is sent (ContactManager is
+  master)` or `CONFLICT: Google's copy changed since the last sync, so Google's version is kept` (issues #86 and #105).
+- **When only one side has the entry, the other side is created.** An entry that exists only in the app is created on Google, and
+  one deleted on Google but changed in the app is created again with the app's change.
+- **A deletion made in the app is recorded as pending** (`DeletePending`, saved with the entry) until Google has it deleted. The
+  sync sends it whatever the timestamps say. The cause of the earlier failure (`A07`): in an incremental listing an entry Google
+  has not changed is not listed, and the sync took its Google copy as missing, so the delete was never sent. The sync now gives a
+  pending delete its Google copy from the local entry. Under Google master a pending delete is sent only when Google's copy is as it
+  was at the last sync; a change Google made is kept.
+- **The window limits downloads, not uploads.** An appointment with no Google record is created on Google whatever its date, and an
+  archived appointment is always one that Google holds (the archive moves only entries with a Google record). Local changes to
+  appointments outside the window are uploaded too.
+- **Contacts changed in both places** follow the same master rule (`C17`, `C18`).
+- An appointment that starts after the far edge of the window is not downloaded (issue #105, `W03`).
+- The repeat-delete step of the driver finds the occurrence by its calendar hint. The list's `find()` matches the displayed
+  text, which does not hold the hint, so it never found it (`X81D`). The calendar's own focus step after an edit
+  (`mainwindow_tab_calendar.cpp`) also calls `find()` with a hint. That is not yet checked in the app. The ticket is https://github.com/trumpton/ContactManager/issues/109.
 
 ## 7. Working with a human go-between
 

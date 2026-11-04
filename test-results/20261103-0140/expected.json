@@ -1,0 +1,482 @@
+[
+{
+"time": "2026-11-02T20:45:00",
+"person": "Vala",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-04T09:00:00",
+"id": "A05"
+},
+{
+"time": "2026-11-02T20:45:00",
+"person": "Daniel",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-04T22:00:00",
+"id": "A07"
+},
+{
+"time": "2026-11-02T20:45:00",
+"person": "Jack",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-05T07:00:00",
+"id": "A08"
+},
+{
+"time": "2026-11-02T20:45:00",
+"person": "Sam",
+"channel": "sms",
+"kind": "confirm",
+"occ": "2026-11-05T06:30:00",
+"id": "A09"
+},
+{
+"time": "2026-11-02T20:45:00",
+"person": "George",
+"channel": "sms",
+"kind": "confirm",
+"occ": "2026-11-05T07:30:00",
+"id": "A10"
+},
+{
+"time": "2026-11-02T20:45:00",
+"person": "Vala",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-05T22:15:00",
+"id": "A11"
+},
+{
+"time": "2026-11-02T20:45:00",
+"person": "Jack",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-04T20:40:00",
+"id": "B14"
+},
+{
+"time": "2026-11-02T21:05:00",
+"person": "George",
+"channel": "sms",
+"kind": "confirm",
+"occ": "2026-11-04T08:30:00",
+"id": "A06"
+},
+{
+"time": "2026-11-02T21:05:00",
+"person": "Daniel",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-03T18:00:00",
+"id": "B01"
+},
+{
+"time": "2026-11-02T21:05:00",
+"person": "Jack",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-04T15:00:00",
+"id": "B02"
+},
+{
+"time": "2026-11-02T21:05:00",
+"person": "Sam",
+"channel": "sms",
+"kind": "confirm",
+"occ": "2026-11-05T10:00:00",
+"id": "B03"
+},
+{
+"time": "2026-11-02T21:05:00",
+"person": "Tealc",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-05T14:00:00",
+"id": "B11"
+},
+{
+"time": "2026-11-02T21:05:00",
+"person": "George",
+"channel": "sms",
+"kind": "confirm",
+"occ": "2026-11-04T22:45:00",
+"id": "B12"
+},
+{
+"time": "2026-11-02T21:35:00",
+"person": "Tealc",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-04T14:00:00",
+"id": "A04"
+},
+{
+"time": "2026-11-02T21:55:00",
+"person": "Daniel",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-03T12:00:00",
+"id": "A01"
+},
+{
+"time": "2026-11-03T07:00:00",
+"person": "Daniel",
+"channel": "email",
+"kind": "onday",
+"occ": "2026-11-03T12:00:00",
+"id": "A01"
+},
+{
+"time": "2026-11-03T07:00:00",
+"person": "Daniel",
+"channel": "sms",
+"kind": "onday",
+"occ": "2026-11-03T12:00:00",
+"id": "A01"
+},
+{
+"time": "2026-11-03T07:00:00",
+"person": "Jack",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-04T10:00:00",
+"id": "A02"
+},
+{
+"time": "2026-11-03T07:00:00",
+"person": "Daniel",
+"channel": "email",
+"kind": "update",
+"occ": "2026-11-03T18:01:00",
+"id": "B01"
+},
+{
+"time": "2026-11-03T07:00:00",
+"person": "Jack",
+"channel": "email",
+"kind": "update",
+"occ": "2026-11-04T14:59:00",
+"id": "B02"
+},
+{
+"time": "2026-11-03T07:01:00",
+"person": "Daniel",
+"channel": "sms",
+"kind": "onday",
+"occ": "2026-11-03T18:01:00",
+"id": "B01"
+},
+{
+"time": "2026-11-03T07:02:00",
+"person": "Sam",
+"channel": "sms",
+"kind": "confirm",
+"occ": "2026-11-03T15:00:00",
+"id": "A03"
+},
+{
+"time": "2026-11-03T09:01:00",
+"person": "Vala",
+"channel": "email",
+"kind": "reminder",
+"occ": "2026-11-04T09:00:00",
+"id": "A05"
+},
+{
+"time": "2026-11-03T10:05:00",
+"person": "Tealc",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-03T16:00:00",
+"id": "B05"
+},
+{
+"time": "2026-11-03T10:30:00",
+"person": "Tealc",
+"channel": "email",
+"kind": "cancel",
+"occ": "2026-11-03T16:00:00",
+"id": "B05"
+},
+{
+"time": "2026-11-03T14:01:00",
+"person": "Tealc",
+"channel": "email",
+"kind": "reminder",
+"occ": "2026-11-04T14:00:00",
+"id": "A04"
+},
+{
+"time": "2026-11-03T19:05:00",
+"person": "Vala",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-04T11:00:00",
+"id": "B13"
+},
+{
+"time": "2026-11-03T20:41:00",
+"person": "Jack",
+"channel": "email",
+"kind": "reminder",
+"occ": "2026-11-04T20:40:00",
+"id": "B14"
+},
+{
+"time": "2026-11-03T20:55:00",
+"person": "Jack",
+"channel": "email",
+"kind": "update",
+"occ": "2026-11-04T20:41:00",
+"id": "B14"
+},
+{
+"time": "2026-11-04T07:00:00",
+"person": "Jack",
+"channel": "email",
+"kind": "onday",
+"occ": "2026-11-04T10:00:00",
+"id": "A02"
+},
+{
+"time": "2026-11-04T07:00:00",
+"person": "Tealc",
+"channel": "email",
+"kind": "onday",
+"occ": "2026-11-04T14:00:00",
+"id": "A04"
+},
+{
+"time": "2026-11-04T07:00:00",
+"person": "Vala",
+"channel": "email",
+"kind": "onday",
+"occ": "2026-11-04T09:00:00",
+"id": "A05"
+},
+{
+"time": "2026-11-04T07:00:00",
+"person": "Vala",
+"channel": "sms",
+"kind": "onday",
+"occ": "2026-11-04T09:00:00",
+"id": "A05"
+},
+{
+"time": "2026-11-04T07:00:00",
+"person": "George",
+"channel": "sms",
+"kind": "onday",
+"occ": "2026-11-04T08:30:00",
+"id": "A06"
+},
+{
+"time": "2026-11-04T07:00:00",
+"person": "Daniel",
+"channel": "email",
+"kind": "onday",
+"occ": "2026-11-04T22:00:00",
+"id": "A07"
+},
+{
+"time": "2026-11-04T07:00:00",
+"person": "Daniel",
+"channel": "sms",
+"kind": "onday",
+"occ": "2026-11-04T22:00:00",
+"id": "A07"
+},
+{
+"time": "2026-11-04T07:00:00",
+"person": "Sam",
+"channel": "sms",
+"kind": "reminder",
+"occ": "2026-11-05T06:30:00",
+"id": "A09"
+},
+{
+"time": "2026-11-04T07:00:00",
+"person": "Jack",
+"channel": "email",
+"kind": "onday",
+"occ": "2026-11-04T14:59:00",
+"id": "B02"
+},
+{
+"time": "2026-11-04T07:00:00",
+"person": "George",
+"channel": "sms",
+"kind": "confirm",
+"occ": "2026-11-05T12:02:00",
+"id": "B04"
+},
+{
+"time": "2026-11-04T07:00:00",
+"person": "Vala",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-04T12:00:00",
+"id": "B06"
+},
+{
+"time": "2026-11-04T07:00:00",
+"person": "Jack",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-04T17:00:00",
+"id": "B10"
+},
+{
+"time": "2026-11-04T07:00:00",
+"person": "Tealc",
+"channel": "email",
+"kind": "cancel",
+"occ": "2026-11-05T14:00:00",
+"id": "B11"
+},
+{
+"time": "2026-11-04T07:00:00",
+"person": "George",
+"channel": "sms",
+"kind": "onday",
+"occ": "2026-11-04T22:45:00",
+"id": "B12"
+},
+{
+"time": "2026-11-04T07:00:00",
+"person": "Vala",
+"channel": "email",
+"kind": "onday",
+"occ": "2026-11-04T11:00:00",
+"id": "B13"
+},
+{
+"time": "2026-11-04T07:00:00",
+"person": "Vala",
+"channel": "sms",
+"kind": "onday",
+"occ": "2026-11-04T11:00:00",
+"id": "B13"
+},
+{
+"time": "2026-11-04T07:00:00",
+"person": "Jack",
+"channel": "email",
+"kind": "onday",
+"occ": "2026-11-04T20:41:00",
+"id": "B14"
+},
+{
+"time": "2026-11-04T07:01:00",
+"person": "Jack",
+"channel": "email",
+"kind": "reminder",
+"occ": "2026-11-05T07:00:00",
+"id": "A08"
+},
+{
+"time": "2026-11-04T07:01:00",
+"person": "Vala",
+"channel": "sms",
+"kind": "onday",
+"occ": "2026-11-04T12:00:00",
+"id": "B06"
+},
+{
+"time": "2026-11-04T07:31:00",
+"person": "George",
+"channel": "sms",
+"kind": "reminder",
+"occ": "2026-11-05T07:30:00",
+"id": "A10"
+},
+{
+"time": "2026-11-04T09:00:00",
+"person": "Vala",
+"channel": "email",
+"kind": "cancel",
+"occ": "2026-11-04T11:00:00",
+"id": "B13"
+},
+{
+"time": "2026-11-04T10:01:00",
+"person": "Sam",
+"channel": "sms",
+"kind": "reminder",
+"occ": "2026-11-05T10:00:00",
+"id": "B03"
+},
+{
+"time": "2026-11-04T10:10:00",
+"person": "Sam",
+"channel": "sms",
+"kind": "update",
+"occ": "2026-11-05T09:59:00",
+"id": "B03"
+},
+{
+"time": "2026-11-04T21:05:00",
+"person": "George",
+"channel": "sms",
+"kind": "confirm",
+"occ": "2026-11-04T23:30:00",
+"id": "B07"
+},
+{
+"time": "2026-11-05T07:00:00",
+"person": "George",
+"channel": "sms",
+"kind": "onday",
+"occ": "2026-11-05T07:30:00",
+"id": "A10"
+},
+{
+"time": "2026-11-05T07:00:00",
+"person": "Vala",
+"channel": "email",
+"kind": "onday",
+"occ": "2026-11-05T22:15:00",
+"id": "A11"
+},
+{
+"time": "2026-11-05T07:00:00",
+"person": "Vala",
+"channel": "sms",
+"kind": "onday",
+"occ": "2026-11-05T22:15:00",
+"id": "A11"
+},
+{
+"time": "2026-11-05T07:00:00",
+"person": "Sam",
+"channel": "sms",
+"kind": "onday",
+"occ": "2026-11-05T09:59:00",
+"id": "B03"
+},
+{
+"time": "2026-11-05T07:00:00",
+"person": "George",
+"channel": "sms",
+"kind": "onday",
+"occ": "2026-11-05T12:02:00",
+"id": "B04"
+},
+{
+"time": "2026-11-05T07:00:00",
+"person": "Daniel",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-05T08:30:00",
+"id": "B09"
+},
+{
+"time": "2026-11-05T07:01:00",
+"person": "Daniel",
+"channel": "sms",
+"kind": "onday",
+"occ": "2026-11-05T08:30:00",
+"id": "B09"
+}
+]

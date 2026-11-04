@@ -1,0 +1,120 @@
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+qt.core.qmetaobject.connectslotsbyname: QMetaObject::connectSlotsByName: No matching signal for on_listCalendar_SelectionChanged(QModelIndex)
+qt.core.qmetaobject.connectslotsbyname: QMetaObject::connectSlotsByName: No matching signal for on_initial_focus()
+unknown:0 - QSharedMemory::lock: already locked
+unknown:0 - Logging In
+unknown:0 - This plugin does not support propagateSizeHints()
+unknown:0 - This plugin does not support propagateSizeHints()
+unknown:0 - Logging In
+unknown:0 - This plugin does not support propagateSizeHints()
+unknown:0 - Logging In
+unknown:0 - This plugin does not support propagateSizeHints()
+unknown:0 - This plugin does not support propagateSizeHints()
+unknown:0 - Login Complete
+unknown:0 - This plugin does not support propagateSizeHints()
+unknown:0 - Loading database and calendar
+unknown:0 - "TIMING load contacts: 0 entries, 0 ms"
+unknown:0 - "TIMING load calendar: 0 entries, 0 ms"
+unknown:0 - "LOAD SUMMARY contacts: total 0, empty 0, deleted 0 (linked to Google 0), hidden only 0 (linked 0), live 0 (linked 0), extra entries sharing a Google link 0"
+unknown:0 - "LOAD SUMMARY calendar: total 0, deleted 0, cancelled on Google 0, linked to Google 0, in sync window 0, before window 0, after window 0, summary mentions birthday 0, read-only (internet) 0, linked to a contact 0 (contact deleted 0, contact missing 0)"
+unknown:0 - Tidying old log files
+unknown:0 - Initialisation complete
+unknown:0 - PulseAudioService: pa_context_connect() failed
+unknown:0 - No audio device detected
+unknown:0 - No audio device detected
+unknown:0 - No audio device detected
+unknown:0 - No audio device detected
+unknown:0 - No audio device detected
+unknown:0 - No audio device detected
+unknown:0 - No audio device detected
+unknown:0 - No audio device detected
+unknown:0 - No audio device detected
+unknown:0 - No audio device detected
+unknown:0 - No audio device detected
+unknown:0 - No audio device detected
+unknown:0 - No audio device detected
+unknown:0 - Saving Contact Tab
+unknown:0 - Loading Contact Tab
+unknown:0 - "Contact = {00000000-0000-0000-0000-000000000000}"
+unknown:0 - Contact Tab Load Complete
+unknown:0 - "listCalendar->setCurrentIndex(endoflist))"
+unknown:0 - "does not have focus, caching curridx.row=0"
+unknown:0 - listCalendar->setFocus()
+unknown:0 - "gained focus, curridx.row=0"
+unknown:0 - "on_listCalendar_SelectionChanged(0)"
+unknown:0 - "setAccessibleTextAndWindowTitle(Unnamed Contact)"
+unknown:0 - title set complete
+unknown:0 - listCalendar->setFocus()
+unknown:0 - listCalendar->setCurrentIndex()
+unknown:0 - "hasfocus, curridx.row=0"
+unknown:0 - "on_listCalendar_SelectionChanged(0)"
+unknown:0 - listCalendar->setCurrentIndex()
+unknown:0 - "hasfocus, curridx.row=0"
+unknown:0 - "on_listCalendar_SelectionChanged(0)"
+unknown:0 - "Saving {c98c3b32-1e9c-472b-966b-00b1fbcd6723} as contact"
+unknown:0 - "Saving {fb501a6c-a8a5-4c79-b576-67a12b60ba1a} as contact"
+unknown:0 - "Saving {bf250449-525d-4869-919c-360a33b8f18e} as contact"
+unknown:0 - Saving Contact Tab
+66b-00b1fbcd6723
+23:41:31 op 4: save
+23:41:31 saved
+23:41:31 op 5: waituntil
+23:41:31 reached 2026-11-01T23:41:00
+23:41:31 op 6: add_appointment
+23:41:31 added appointment A Daniel Jackson - confirm then reminder (Wed 04 Nov 10:00)
+23:41:31 op 7: waituntil
+23:43:31 reached 2026-11-01T23:43:00
+23:43:31 op 8: add_appointment
+23:43:31 added appointment B Jack O'Neil - email only, edited Monday (Tue 03 Nov 12:00)
+23:43:31 op 9: waituntil
+23:45:31 reached 2026-11-01T23:45:00
+23:45:31 op 10: add_appointment
+23:45:31 added appointment C Sam Carter - text only, deleted Monday (Mon 02 Nov 15:00)
+23:45:31 op 11: waituntil
+23:47:31 reached 2026-11-01T23:47:00
+23:47:31 op 12: add_appointment
+23:47:31 added appointment X Daniel Jackson - burst, deleted (Thu 05 Nov 09:00)
+23:47:31 op 13: waituntil
+23:49:31 reached 2026-11-01T23:49:00
+23:49:31 op 14: delete_appointment
+23:49:31 delete_appointment matched 1 appointment(s)
+23:49:31 op 15: waituntil
+23:51:31 reached 2026-11-01T23:51:00
+23:51:31 op 16: add_appointment
+23:51:32 added appointment Y Daniel Jackson - burst, final (Thu 05 Nov 09:00)
+23:51:32 op 17: waituntil
+23:53:32 reached 2026-11-01T23:53:00
+23:53:32 op 18: edit_appointment
+23:53:32 edit_appointment matched 1 appointment(s)
+23:53:32 op 19: waituntil
+08:00:00 reached 2026-11-02T08:00:00
+08:00:00 op 20: edit_appointment
+08:00:00 edit_appointment matched 1 appointment(s)
+08:00:00 op 21: waituntil
+09:00:02 reached 2026-11-02T09:00:00
+09:00:02 op 22: delete_appointment
+09:00:02 delete_appointment matched 1 appointment(s)
+09:00:02 op 23: waituntil
+11:00:07 reached 2026-11-02T11:00:00
+11:00:07 op 24: add_appointment
+11:00:07 added appointment G Daniel Jackson - same-day booking (Mon 02 Nov 17:00)
+11:00:07 op 25: waituntil
+12:30:11 reached 2026-11-02T12:30:00
+12:30:11 op 26: dump
+12:30:11 dumped /tmp/claude-0/-home-user/71c96aff-9ced-5108-9081-9d80725f7c21/scratchpad/outbox/run2/dump-mon1230.json
+12:30:11 op 27: waituntil
+23:58:42 reached 2026-11-02T23:58:00
+23:58:42 op 28: add_appointment
+23:58:42 added appointment H Jack O'Neil - booked late Monday night (Thu 05 Nov 14:00)
+23:58:42 op 29: waituntil
+12:30:16 reached 2026-11-03T12:30:00
+12:30:16 op 30: dump
+12:30:16 dumped /tmp/claude-0/-home-user/71c96aff-9ced-5108-9081-9d80725f7c21/scratchpad/outbox/run2/dump-tue1230.json
+12:30:16 op 31: waituntil
+23:05:51 reached 2026-11-03T23:05:00
+23:05:51 op 32: dump
+23:05:51 dumped /tmp/claude-0/-home-user/71c96aff-9ced-5108-9081-9d80725f7c21/scratchpad/outbox/run2/dump-final.json
+23:05:51 op 33: exit
+23:05:51 exit : accepted
+23:05:51 operations finished
+23:06:21 driver exited

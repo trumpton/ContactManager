@@ -11,6 +11,7 @@
 #include "appointment.h"
 #include "calendar.h"
 #include "contactdatabase.h"
+#include "ratepacer.h"
 
 // Appointments are downloaded from Google for this many days back, so a repeating appointment whose first occurrence is
 // within the year is still downloaded.  Google does not return a repeat whose first occurrence is before its range.
@@ -52,6 +53,12 @@ private:
     QString errorstatus ;
     bool connectionerror ;
     int errorcode ;
+    // What to do next when a request fails (issue #94): the sign-in, the connection, or the item named in the reason
+    QString errorrecovery ;
+    // The last request that failed, and its recovery step, kept until the phase is cleared: the sync report gives them after later requests
+    QString lastfailure, lastrecovery ;
+    // Pacing of the uploads after Google's rate limits (issue #94)
+    RatePacer pacer ;
     int logsequencenumber ;
 
     // Groups update record
@@ -91,8 +98,13 @@ private:
     QString googleGetResponse ;
 
     // Fetch information via an http put or post
-    QString googlePutPostDelete(QString link, enum googleAction action, QString data = "", QString logfile = "") ;
+    QString googlePutPostDelete(QString link, enum googleAction action, QString data = "", QString logfile = "", QString ifmatch = "*") ;
     QString googlePutPostResponse ;
+
+    // An appointment change that Google refused because its copy changed (412), resolved by the master (issues #86 and #105)
+    enum ConflictOutcome { ResendWithEtag, KeptGoogleVersion, ReadFailed } ;
+    ConflictOutcome resolveAppointmentConflict(Appointment &appt, QString &etag) ;
+    bool appointmentconflict = false ;
 
     // Load the groups
     QStringList groupslist ;
@@ -128,6 +140,16 @@ public:
     // Return the last network error string, or "" if OK
     QString getNetworkError() ;
     int getNetworkErrorCode() ;
+    // What to do next, when the last request failed (issue #94)
+    QString getRecoveryStep() { return errorrecovery ; }
+    QString getLastFailure() { return lastfailure ; }
+    QString getLastRecovery() { return lastrecovery ; }
+    void clearLastFailure() { lastfailure.clear() ; lastrecovery.clear() ; }
+    // The pacing messages for the sync report since the last call (issue #94)
+    QStringList takeSyncNotes() { return pacer.takeNotes() ; }
+    // True when the last appointment update was a conflict: both sides had changed.  Under ContactManager master the app's version was
+    // sent; under Google master Google's version was kept (issues #86 and #105)
+    bool isAppointmentConflict() { return appointmentconflict ; }
 
     // Returns true if last network error was network-connection related
     bool isConnectionError() ;
