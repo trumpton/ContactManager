@@ -249,6 +249,20 @@ def import_external_event(summary, start, end):
     return api("POST", CALENDAR + "/events/import", body)["id"]
 
 
+# The scenarios that run Tidy Contacts.  Tidy finds the possible duplicates among every contact on the account, so the upload
+# group's contacts (250 of them in U01) would make it stop at a prompt for each pair.  They are removed before these run.
+TIDY_SCENARIOS = {"F10", "F13", "LF02", "T01", "T02", "T03"}
+
+
+def clear_upload_contacts():
+    for p in all_connections():
+        if is_upload_contact(p):
+            try:
+                api("DELETE", PEOPLE + "/" + p["resourceName"] + ":deleteContact")
+            except RuntimeError as e:
+                print("clear: could not delete contact:", e)
+
+
 def delete_bench_events():
     for e in bench_events():
         try:
@@ -807,6 +821,8 @@ def run_scenario(code):
     keep_records = group_of(code) == GROUP_UPLOADS
     if not local and not keep_records:
         cleanup()                # local tests never touch the account, so they do not clean it either
+    if code in TIDY_SCENARIOS:
+        clear_upload_contacts()
     # Sessions carry local data between runs, so each scenario starts from none
     for name in os.listdir(RUNS):
         if name.startswith("session-"):
