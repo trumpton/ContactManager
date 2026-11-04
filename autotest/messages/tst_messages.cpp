@@ -5,10 +5,47 @@
 #include <QtTest>
 #include <QTemporaryDir>
 #include <QTextStream>
+#include <QFile>
 #include "messagedecision.h"
+#include "messagesend.h"
 #include "appointment.h"
 #include "calendar.h"
 #include "ratepacer.h"
+
+// The repository, for the shipped message templates.  run-messages-tests.sh gives it.
+#ifndef CM_REPO_DIR
+#define CM_REPO_DIR "."
+#endif
+
+// A transport that records each send, and returns the result and error that it is given.  It stands in for Email and SMS.
+class StubTransport : public MessageTransport
+{
+public:
+    struct Send {
+        bool email ;
+        QString from ;
+        QString to ;
+        QString subject ;
+        QString body ;
+    } ;
+    QList<Send> sent ;
+    int result = 1 ;
+    QString error ;
+
+    int sendEmail(const QString &from, const QString &to, const QString &subject, const QString &body, QString &err) override {
+        Send s { true, from, to, subject, body } ;
+        sent.append(s) ;
+        err = error ;
+        return result ;
+    }
+
+    int sendSMS(const QString &number, const QString &from, const QString &text, QString &err) override {
+        Send s { false, from, number, text, QString() } ;
+        sent.append(s) ;
+        err = error ;
+        return result ;
+    }
+} ;
 
 // A UTC time from a local date and time
 static QDateTime localAt(QDate date, QTime time)
@@ -1078,6 +1115,145 @@ private slots:
         QVERIFY(a.mergeSentState(remote)) ;
         QCOMPARE(a.getField(Appointment::Updated), QString("2026-10-30T09:00:00Z")) ;
         QCOMPARE(a.getField(Appointment::ReminderFor), QString("2026-10-30T16:00:00Z")) ;
+    }
+
+    // ---- Message senders: from ContactManager.ini only, never from the template ----
+
+    void blankEmailSenderSendsNothingAndSaysWhy()
+    {
+        StubTransport stub ;
+        QString errortext ;
+        int result = sendChannelMessage(stub, true, "", "pat@test.invalid", "Subject", "Body", errortext) ;
+        QCOMPARE(result, MESSAGE_RESULT_NO_SENDER) ;
+        QVERIFY(stub.sent.isEmpty()) ;
+        QVERIFY(errortext.contains("sender missing")) ;
+        QVERIFY(errortext.contains("[email-reminder]")) ;
+    }
+
+    void blankSmsSenderSendsNothingAndSaysWhy()
+    {
+        StubTransport stub ;
+        QString errortext ;
+        int result = sendChannelMessage(stub, false, "", "447700900000", "Reminder", "", errortext) ;
+        QCOMPARE(result, MESSAGE_RESULT_NO_SENDER) ;
+        QVERIFY(stub.sent.isEmpty()) ;
+        QVERIFY(errortext.contains("[sms-reminder]")) ;
+    }
+
+    void whitespaceOnlySenderCountsAsBlank()
+    {
+        StubTransport stub ;
+        QString errortext ;
+        QCOMPARE(sendChannelMessage(stub, true, "   ", "pat@test.invalid", "Subject", "Body", errortext), MESSAGE_RESULT_NO_SENDER) ;
+        QCOMPARE(sendChannelMessage(stub, false, " \t ", "447700900000", "Reminder", "", errortext), MESSAGE_RESULT_NO_SENDER) ;
+        QVERIFY(stub.sent.isEmpty()) ;
+    }
+
+    void emailIsSentWithTheIniSender()
+    {
+        StubTransport stub ;
+        QString errortext ;
+        int result = sendChannelMessage(stub, true, "My Co <me@example.invalid>", "pat@test.invalid", "Subject", "Body line", errortext) ;
+        QCOMPARE(result, 1) ;
+        QVERIFY(stub.sent.size()==1) ;
+        QVERIFY(stub.sent.at(0).email) ;
+        QCOMPARE(stub.sent.at(0).from, QString("My Co <me@example.invalid>")) ;
+        QCOMPARE(stub.sent.at(0).to, QString("pat@test.invalid")) ;
+        QCOMPARE(stub.sent.at(0).subject, QString("Subject")) ;
+        QCOMPARE(stub.sent.at(0).body, QString("Body line")) ;
+        QVERIFY(errortext.isEmpty()) ;
+    }
+
+    void smsIsSentWithTheIniSenderAndTheText()
+    {
+        StubTransport stub ;
+        QString errortext ;
+        int result = sendChannelMessage(stub, false, "MyCompany", "447700900000", "Reminder: appointment at 10:00", "", errortext) ;
+        QCOMPARE(result, 1) ;
+        QVERIFY(stub.sent.size()==1) ;
+        QVERIFY(!stub.sent.at(0).email) ;
+        QCOMPARE(stub.sent.at(0).from, QString("MyCompany")) ;
+        QCOMPARE(stub.sent.at(0).to, QString("447700900000")) ;
+        QCOMPARE(stub.sent.at(0).subject, QString("Reminder: appointment at 10:00")) ;
+    }
+
+    void transportFailureIsReturnedWithItsReason()
+    {
+        StubTransport stub ;
+        stub.result = -2 ;
+        stub.error = "Network down" ;
+        QString errortext ;
+        QCOMPARE(sendChannelMessage(stub, true, "me@example.invalid", "pat@test.invalid", "S", "B", errortext), -2) ;
+        QCOMPARE(errortext, QString("Network down")) ;
+        QVERIFY(stub.sent.size()==1) ;
+    }
+
+    void maybeSentIsReturnedAsMaybeSent()
+    {
+        StubTransport stub ;
+        stub.result = -4 ;
+        QString errortext ;
+        QCOMPARE(sendChannelMessage(stub, false, "MyCompany", "447700900000", "Reminder", "", errortext), -4) ;
+    }
+
+    // ---- Templates: the first line is the subject (or the text), and there is no sender line ----
+
+    void templateFirstLineIsTheSubjectAndTheRestIsTheBody()
+    {
+        QString title, body ;
+        QVERIFY(splitMessageTemplate("Sogfripp Confirmation for $TIME\n\nDear $NAME,\n  You have an appointment.\n\n", title, body)) ;
+        QCOMPARE(title, QString("Sogfripp Confirmation for $TIME")) ;
+        QCOMPARE(body, QString("Dear $NAME,\nYou have an appointment.")) ;
+    }
+
+    void smsTemplateIsOneLineOfText()
+    {
+        QString title, body ;
+        QVERIFY(splitMessageTemplate("Reminder: You have an appointment at $TIME\n", title, body)) ;
+        QCOMPARE(title, QString("Reminder: You have an appointment at $TIME")) ;
+        QVERIFY(body.isEmpty()) ;
+    }
+
+    void templateWithNoSubjectIsRejected()
+    {
+        QString title, body ;
+        QVERIFY(!splitMessageTemplate("", title, body)) ;
+        QVERIFY(!splitMessageTemplate("\n\nBody", title, body)) ;
+        QVERIFY(!splitMessageTemplate("   \nBody", title, body)) ;
+    }
+
+    void shippedTemplatesHaveNoSenderLine()
+    {
+        const QStringList names = {
+            "emailconfirmation.msg", "emaildelete.msg", "emailreminder.msg", "emailtoday.msg", "emailupdate.msg",
+            "smsconfirmation.msg", "smsdelete.msg", "smsreminder.msg", "smstoday.msg", "smsupdate.msg" } ;
+        for (const QString &name : names) {
+            QFile file(QString(CM_REPO_DIR) + "/Samples/messages/" + name) ;
+            QVERIFY2(file.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(name)) ;
+            QString text = QTextStream(&file).readAll() ;
+            file.close() ;
+
+            QString title, body ;
+            QVERIFY2(splitMessageTemplate(text, title, body), qPrintable(name)) ;
+            QVERIFY2(!text.contains("override with sender"), qPrintable(name)) ;
+            QVERIFY2(!title.contains("@"), qPrintable(name)) ;
+        }
+    }
+
+    // ---- Startup: a warning for each blank sender ----
+
+    void missingSenderWarningsNameEachBlankChannel()
+    {
+        QStringList both = missingSenderWarnings("", "") ;
+        QVERIFY(both.size()==2) ;
+        QVERIFY(both.at(0).contains("[email-reminder]")) ;
+        QVERIFY(both.at(1).contains("[sms-reminder]")) ;
+
+        QVERIFY(missingSenderWarnings("me@example.invalid", "MyCompany").isEmpty()) ;
+
+        QStringList smsOnly = missingSenderWarnings("me@example.invalid", "") ;
+        QVERIFY(smsOnly.size()==1) ;
+        QVERIFY(smsOnly.at(0).contains("[sms-reminder]")) ;
     }
 } ;
 
