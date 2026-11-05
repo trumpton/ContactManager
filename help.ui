@@ -404,7 +404,7 @@
     sms - SMS agent (Voodoo or Esendex), its username and API key, the sender, and debug files. The Settings page also has the API key expiry date (day/month/year, for example 25/01/2035, optional). A warning appears at startup from 30 days before it.
     email - Email configuration for sending reminder messages (server, username, sender, debug files), plus launching email application
     reminders - When messages are sent: the reminder (remindhoursbefore, default 24), the confirm-only window (confirmonlyhours, default remindhoursbefore x 1.5: an appointment made or changed this close to its start gets its confirmation or update only), the sending times (earliestsend and latestsend, local time), the hold before a message is sent after a change (waitbeforesendmins, default 5, 0 allowed), the most messages to one contact in any 24 hours (limitperday, default 10) and in any hour (limitperhour, default 5), counted over the last 24 hours and the last hour, so they hold across a restart, and whether an .ics is attached to emails (attachics, default no).  With Google sync, the sent state of each appointment with a contact is kept on its Google event, so copies of ContactManager on the same calendar do not send the same message twice
-    message - Email and SMS message files. The first line is the sender: the sender key in sms-reminder or email-reminder overrides it when set.
+    message - Email and SMS message files. The first line is the subject (email) or the text (SMS). The sender is not in the file: it is the sender key in email-reminder (email) or sms-reminder (SMS). A message is not sent while its sender is blank, and the log says so.
 
    The ini file supports a number of variables
     $HOME - The user's home directory
