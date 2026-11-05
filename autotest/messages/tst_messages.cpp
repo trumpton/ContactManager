@@ -1253,6 +1253,27 @@ private slots:
         QVERIFY(second.tryLock(0)) ;
     }
 
+    // Item 4: an SMS key is reported in the 30 days before it expires, and a send is recorded only when the provider took it
+    void smsKeyIsReportedInTheLastThirtyDays()
+    {
+        QDate expiry(2026, 12, 1) ;
+        QVERIFY(!smsKeyDueSoon(expiry, QDate(2026, 10, 31))) ;
+        QVERIFY(smsKeyDueSoon(expiry, QDate(2026, 11, 1))) ;
+        QVERIFY(smsKeyDueSoon(expiry, QDate(2026, 12, 1))) ;
+        QVERIFY(!smsKeyDueSoon(QDate(), QDate(2026, 12, 1))) ;
+    }
+
+    void onlyASentMessageIsRecorded()
+    {
+        QVERIFY(sendWasMade(1)) ;
+        QVERIFY(sendWasMade(-4)) ;        // no reply in time: it may have been sent
+        QVERIFY(!sendWasMade(0)) ;
+        QVERIFY(!sendWasMade(-1)) ;
+        QVERIFY(!sendWasMade(-2)) ;
+        QVERIFY(!sendWasMade(-3)) ;
+        QVERIFY(!sendWasMade(-6)) ;       // the template could not be loaded
+    }
+
 } ;
 
 QTEST_MAIN(TestMessages)

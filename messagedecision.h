@@ -1,6 +1,7 @@
 #ifndef MESSAGEDECISION_H
 #define MESSAGEDECISION_H
 
+#include <QDate>
 #include <QDateTime>
 #include <QList>
 #include <QString>
@@ -76,6 +77,13 @@ bool channelUsable(bool ticked, const QString &address) ;
 
 // The on-the-day template, or the reminder's when the on-the-day template is not set
 QString onTheDayTemplate(const QString &ontheday, const QString &reminder) ;
+
+// The SMS key is due for renewal when today is within 30 days of its expiry.  A date that is not valid gives no warning.
+bool smsKeyDueSoon(const QDate &expiry, const QDate &today) ;
+
+// Whether a send counts as made, so that it is recorded and not sent again: 1 is sent, and -4 (no reply in time) may have been
+// sent, so is treated as sent.  Any other result is a refusal or an error: nothing is recorded, and the message is tried again.
+bool sendWasMade(int result) ;
 
 // The on-the-day record of an appointment: the day, then the channels sent that day, e.g. "2026-10-30 email sms"
 bool dayChannelSent(const QString &record, const QString &day, const QString &channel) ;

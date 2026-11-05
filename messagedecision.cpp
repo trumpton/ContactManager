@@ -156,3 +156,14 @@ QString onTheDayTemplate(const QString &ontheday, const QString &reminder)
 {
     return ontheday.trimmed().isEmpty() ? reminder : ontheday ;
 }
+
+bool smsKeyDueSoon(const QDate &expiry, const QDate &today)
+{
+    if (!expiry.isValid()) return false ;
+    return today >= expiry.addDays(-30) ;
+}
+
+bool sendWasMade(int result)
+{
+    return result==1 || result==-4 ;
+}
