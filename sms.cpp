@@ -61,12 +61,11 @@ static void logSMSTransaction(const QString &name, const QString &request, int s
     writeToFile(gConf->getDatabasePath() + "/" + filename, text) ;
 }
 
-// The sender of a message: the sender= in the ini file if set, otherwise the template's first line.  Letters and digits
-// only, and at most 11 of them.  Blank if there is neither.
+// The sender of a message, as given by the caller: sender= from [sms-reminder] in ContactManager.ini.  Letters and digits
+// only, and at most 11 of them.  Blank if there is none.
 static QString smsSender(const QString &from)
 {
-    QString sender = (gConf && !gConf->getSMSSender().isEmpty()) ? gConf->getSMSSender() : from ;
-    return sender.remove(QRegularExpression("[^A-Za-z0-9]")).left(11) ;
+    return QString(from).remove(QRegularExpression("[^A-Za-z0-9]")).left(11) ;
 }
 
 // The agent is the name given in the ini file ("voodoo").  A blank or unknown name is Unknown, and send and getBalance
