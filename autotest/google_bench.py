@@ -2077,7 +2077,7 @@ def p30():
     start, end = at_day(2, "09:00"), at_day(2, "10:00")
     # Weeks from the start that fall in the appointment window (90 days before today to 730 days after)
     # The far edge is one day inside, as in in_scale_window (see G40)
-    weeks = [k for k in range(0, 200) if 2 + 7 * k <= 729]
+    weeks = repeat_weeks_in_window()
     run = Run("P30", [add_contact_op("P30C", email="p30c@test.invalid"),
                       {"op": "add_appointment", "fields": {"summary": "BENCH P30 weekly", "from": start, "to": end,
                                                          "repeat": "2", "repeatinterval": "1"}},
@@ -2150,12 +2150,21 @@ def create_recurring_event(summary, start, end, rule):
     return api("POST", CALENDAR + "/events", body)["id"]
 
 
+def repeat_weeks_in_window(hh="09:00"):
+    """The weeks (k) on which a weekly repeat starting two days from now has an occurrence the window lists.  The window's far
+    edge is 730 days from now, less an hour, so whether the occurrence on day 730 is inside depends on the time of day."""
+    now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+    edge = now + datetime.timedelta(days=730, hours=-1)
+    hour, minute = (int(x) for x in hh.split(":"))
+    first = now.replace(hour=hour, minute=minute, second=0, microsecond=0) + datetime.timedelta(days=2)
+    return [k for k in range(200) if first + datetime.timedelta(days=7 * k) <= edge]
+
+
 @scenario("G40", "#30: a repeating Google event is stored once, with its repeat, and listed on each week")
 def g40():
     start, end = at_day(2, "09:00"), at_day(2, "10:00")
     create_recurring_event("BENCH G40 weekly", start, end, "RRULE:FREQ=WEEKLY;INTERVAL=1")
-    # The far edge is one day inside, as in in_scale_window: an occurrence on day 730 starts after the window's end
-    weeks = [k for k in range(0, 200) if 2 + 7 * k <= 729]
+    weeks = repeat_weeks_in_window()
     run = Run("G40", [sync(), {"op": "calendar_rows", "name": "g40"}, dump()]).execute()
     r = run.dump_file("results.json")
     stored = [x for x in run.dump["appointments"] if x.get("summary") == "BENCH G40 weekly"]
