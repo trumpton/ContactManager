@@ -252,6 +252,7 @@ private:
     void doBackup() ;
     void sendMailSMS() ;
     void checkSMSKeyExpiry() ;
+    void checkMessageSenders() ;
 
     void beep() ;
     void msg(QString msg) ;
@@ -260,7 +261,7 @@ private:
     bool searchContactRecordSet(QString searchtext, Contact &contact, Contact::ContactRecord record) ;
 
     // EMail & SMS
-    bool loadMessage(QString filename, QString& from, QString& title,QString& message, Appointment& appt, Contact& contact) ;
+    bool loadMessage(QString filename, QString& title, QString& message, Appointment& appt, Contact& contact) ;
 
 };
 

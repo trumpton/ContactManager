@@ -2,6 +2,7 @@
 #include "mainwindow.h"
 #include "configuration.h"
 #include "messagedecision.h"
+#include "messagesend.h"
 #include "../Lib/alertsound.h"
 
 #include <algorithm>
@@ -126,6 +127,26 @@ static void reportOnce(const QString &key, const QString &text)
 // Result from sendMailSMS when the message file could not be loaded.  Other results are those of Email and SMS.
 static const int RESULT_NO_TEMPLATE = -6 ;
 
+// The application's transport: email and SMS, with the settings from ContactManager.ini
+class RealMessageTransport : public MessageTransport
+{
+public:
+    int sendEmail(const QString &from, const QString &to, const QString &subject, const QString &body, QString &error) override {
+        Email email(gConf->getSMTPServer(), gConf->getSMTPUsername(), gConf->getSMTPPassword(), gConf->getSMTPPort().toInt()) ;
+        int result = email.send(from, to, subject, body) ;
+        error = email.getErrorMessage() ;
+        return result ;
+    }
+
+    int sendSMS(const QString &number, const QString &from, const QString &text, QString &error) override {
+        // Voodoo wants the number in international form, without a leading + or 0 (the caller gives it so)
+        SMS sms(gConf->getSMSAgent(), gConf->getSMSUsername(), gConf->getSMSPassword()) ;
+        int result = sms.send(number, from, text) ;
+        error = sms.getErrorMessage() ;
+        return result ;
+    }
+} ;
+
 // Whether a message with this key may be tried now (it has not been given up on, and its wait is over)
 static bool maySend(const QString &key, const QDateTime &now)
 {
@@ -147,7 +168,7 @@ static QString contactLimitReason(const QString &contactid, const QDateTime &now
 
 void MainWindow::sendMailSMS()
 {
-    QString from, title, message ;
+    QString title, message ;
     static int mutex=0 ;
     QDateTime now = QDateTime::currentDateTimeUtc() ;
     QString today = now.toLocalTime().date().toString("yyyy-MM-dd") ;
@@ -267,23 +288,21 @@ void MainWindow::sendMailSMS()
         shown.setDate(Appointment::To, occurrence.addSecs(length)) ;
         QString apptdate = occurrence.toLocalTime().toString("dd-MMM-yyyy hh:mm") ;
 
-        from.clear() ;
         title.clear() ;
         message.clear() ;
 
+        // The sender is the one from ContactManager.ini for the channel (see sendChannelMessage)
+        QString sender = byemail ? gConf->getEmailSender() : gConf->getSMSSender() ;
+
         int result = RESULT_NO_TEMPLATE ;
         QString errortext ;
-        if (!loadMessage(cfgfile, from, title, message, shown, contact)) {
-            errortext = "could not load " + cfgfile + " (it is missing, or has no sender or subject line)" ;
-        } else if (byemail) {
-            Email email(gConf->getSMTPServer(), gConf->getSMTPUsername(), gConf->getSMTPPassword(), gConf->getSMTPPort().toInt()) ;
-            result = email.send(gConf->getEmailSender().isEmpty() ? from : gConf->getEmailSender(), emailaddress, title, message) ;
-            errortext = email.getErrorMessage() ;
+        if (!loadMessage(cfgfile, title, message, shown, contact)) {
+            errortext = "could not load " + cfgfile + " (it is missing, or has no subject or message line)" ;
         } else {
-            // Voodoo wants the number in international form, without a leading + or 0
-            SMS sms(gConf->getSMSAgent(), gConf->getSMSUsername(), gConf->getSMSPassword()) ;
-            result = sms.send(SMS::internationalNumber(mobile, gConf->getCountryDiallingCode()), from, title) ;
-            errortext = sms.getErrorMessage() ;
+            RealMessageTransport transport ;
+            // Voodoo wants the number in international form
+            QString address = byemail ? emailaddress : SMS::internationalNumber(mobile, gConf->getCountryDiallingCode()) ;
+            result = sendChannelMessage(transport, byemail, sender, address, title, message, errortext) ;
         }
 
         if (sendWasMade(result)) {
@@ -575,8 +594,10 @@ void MainWindow::sendMailSMS()
 
 }
 
+// Loads a message template.  The first line is the subject (email) or the text (SMS), and the rest is the body.  The sender
+// is not in the file: it comes from ContactManager.ini (see deliver).
 bool MainWindow::loadMessage(QString filename,
-       QString& from, QString& title,QString& message,
+       QString& title, QString& message,
        Appointment& appt, Contact& contact)
 {
 
@@ -585,18 +606,10 @@ bool MainWindow::loadMessage(QString filename,
         return false;
     QTextStream in(&file);
     in.setEncoding(QStringConverter::Utf8) ;
-
-    if (!in.atEnd()) from = in.readLine().trimmed() ;
-    if (!in.atEnd()) title = in.readLine().trimmed() ;
-
-    message="" ;
-
-    while (!in.atEnd()) {
-        message = message + in.readLine().trimmed() + "\n" ;
-    }
-
+    QString text = in.readAll() ;
     file.close() ;
-    message = message.trimmed() ;
+
+    if (!splitMessageTemplate(text, title, message)) return false ;
 
     // A copy of the start, read before the list of upcoming appointments is made, which reads other dates
     QDateTime start = appt.getDate(Appointment::From) ;
@@ -622,7 +635,14 @@ bool MainWindow::loadMessage(QString filename,
     title.replace("$FDATE", start.toLocalTime().toString("dd-MMM-yyyy")) ;
     title.replace("$APPOINTMENTS", upcomingAppointments(calendar, contact.getField(Contact::ID), "; ")) ;
 
-    return !title.isEmpty() && !from.isEmpty();
+    return !title.isEmpty();
+}
+
+// On startup, logs when the sender is blank in ContactManager.ini.  Messages for that channel are then not sent (see
+// deliver), so the log says why.
+void MainWindow::checkMessageSenders()
+{
+    for (const QString &warning : missingSenderWarnings(gConf->getEmailSender(), gConf->getSMSSender())) addLog(warning) ;
 }
 
 // On startup, warns when the SMS API key expires within 30 days (the expiry date is set in Settings)

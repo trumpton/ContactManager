@@ -84,6 +84,7 @@ SOURCES += main.cpp\
     logform.cpp \
     ../Lib/accessibledaterangeedit.cpp \
     sms.cpp \
+    messagesend.cpp \
     smtp.cpp \
     email.cpp \
     mainwindow_menu_transaction.cpp \
@@ -150,6 +151,7 @@ HEADERS  += mainwindow.h \
     logform.h \
     ../Lib/accessibledaterangeedit.h \
     sms.h \
+    messagesend.h \
     messagedecision.h \
     smtp.h \
     email.h \
