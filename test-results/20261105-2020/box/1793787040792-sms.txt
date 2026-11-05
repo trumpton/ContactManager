@@ -1,0 +1,4 @@
+sent: 2026-11-04T10:10:40
+from: My Company Name - override with sender= in ContactManager.ini
+number: 447718997189
+message: [TEST] Sam Carter - Reminder: Your appointment has been changed to 09:59 on Thursday 05 November

@@ -1,0 +1,18 @@
+sent: 2026-11-02T20:45:40
+from: My Company Name <email@domain.com> - override with sender= in ContactManager.ini
+to: jack.oneil@vizier.uk
+subject: [TEST] Jack O'Neil - Vizier Design Confirmation for 07:00 on 05-Nov-2026
+body:
+Dear Jack,
+
+This email is to confirm that you have an appointment at Sogfripp Enterprises at:
+
+07:00 on Thursday 05 November
+
+If you wish to modify your appointment, please contact Me at:
+
+contact@sogfripp.com
+
+or
+
+01234 567890

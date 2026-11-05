@@ -1,0 +1,18 @@
+sent: 2026-11-02T20:45:40
+from: My Company Name <email@domain.com> - override with sender= in ContactManager.ini
+to: vala.mandoran@vizier.uk
+subject: [TEST] Vala Mandoran - Vizier Design Confirmation for 09:00 on 04-Nov-2026
+body:
+Dear Vala,
+
+This email is to confirm that you have an appointment at Sogfripp Enterprises at:
+
+09:00 on Wednesday 04 November
+
+If you wish to modify your appointment, please contact Me at:
+
+contact@sogfripp.com
+
+or
+
+01234 567890

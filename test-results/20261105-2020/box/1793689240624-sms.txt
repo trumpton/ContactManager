@@ -1,0 +1,4 @@
+sent: 2026-11-03T07:00:40
+from: My Company Name - override with sender= in ContactManager.ini
+number: 447718997189
+message: [TEST] Daniel Jackson - Reminder: You have an appointment today at 12:00
