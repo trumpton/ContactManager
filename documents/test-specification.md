@@ -10,7 +10,7 @@ Results are as at 4 November 2026. Commit references are to the `messaging-tests
 
 | Area | What it tests | Count | Last result |
 |---|---|---|---|
-| Messaging unit tests | The message rules: reminders, confirm-only, send window, hold, same-day, on-the-day, repeats, contact links, pacing | 81 | 81 of 81 pass (`autotest/messages`) |
+| Messaging unit tests | The message rules: reminders, confirm-only, send window, hold, same-day, on-the-day, repeats, contact links, pacing | 81 | 81 of 81 pass (`autotest/archive/messages`) |
 | Accelerated messaging test (#89) | The rules end to end, on a scaled clock, with a real outbox | 25 scenarios, 60 messages | 60 of 60 sent and matched, in two runs (`test-results/20261102-2313`, `test-results/20261103-0140`) |
 | Live messaging run (#89) | The rules on the real clock with a fixed plan of 32 operations | 32 operations | Stopped at operation 18 (1 November, 23:58). Resumed on the accelerated clock at 60 times real speed. See section 4 |
 | Google sync bench (#105) | Every way data moves between ContactManager and Google, and the local files | 164 scenarios: 1 upload, 133 update, 30 local | Local 30 of 30. Updates: 64 of 67 in the second half and 66 of 66 in the first half before the 1970 fix. Re-run after the fix: E70, N107, G40, P30, W01 to W04, AR01, R08, X15, E01, LF01, LF02 pass. F10 fails (section 5) |
@@ -33,9 +33,9 @@ The rules are in `documents/messaging-rules.md`. In summary:
 
 ## 3. Messaging tests
 
-### 3.1 Unit tests (`autotest/messages`, QtTest, no Google)
+### 3.1 Unit tests (`autotest/archive/messages`, QtTest, no Google)
 
-Run with `sh autotest/messages/run-messages-tests.sh <build folder>`. Result: 81 of 81.
+Run with `sh autotest/archive/messages/run-messages-tests.sh <build folder>`. Result: 81 of 81.
 
 Tests, by name:
 
@@ -117,7 +117,7 @@ confirmation for H), so its result will show those as missing. The cause is not 
 
 ## 5. Google sync bench (#105)
 
-Run with `python3 autotest/google_bench.py run <codes or selections>`. Each scenario starts from a known state on the scratch
+Run with `python3 autotest/archive/google_bench.py run <codes or selections>`. Each scenario starts from a known state on the scratch
 account, checks the local files and the Google account, and writes its evidence to `runs/<scenario>/` (the report, the dump, the
 driver log, the Google state). Selections: `full`, `quick`, `google`, `google-quick`, `local`.
 
@@ -296,7 +296,7 @@ Conventions the tests rely on:
 | E30 | #30: a repeat ends after a number of times, or on a date, in the list and in the form |
 | F12 | #68: quitting with edits asks Save, Discard or Cancel: Save refuses a bad entry, Discard keeps the stored contact |
 | K24 | #24: when the app opens, overlapping appointments are listed, and nothing is changed |
-| L01 | Local: the message and appointment unit tests (autotest/messages, QtTest), with no Google |
+| L01 | Local: the message and appointment unit tests (autotest/archive/messages, QtTest), with no Google |
 | L02 | Local: an appointment and a contact made in ContactManager are saved, and are there after a restart (no Google) |
 | L03 | Local: an appointment file moved into the archive is not loaded at start-up, and start-up leaves it in the archive |
 | L04 | Local: a start with no to-do or history file opens and writes its data (#100) |
@@ -324,7 +324,7 @@ Conventions the tests rely on:
 
 - **Fault injection** (`CM_TEST_FAULTS`, read in `googleaccess_network.cpp`): `r<n>=<status>:<reason>` answers the nth read
   request, and `w<n>=...` answers the nth write request, without sending it to Google. `closed` gives a closed connection.
-- **Sync driver** (`autotest/bench/sync_driver.cpp`): the operations used by the scenarios (adding, editing and deleting
+- **Sync driver** (`autotest/archive/bench/sync_driver.cpp`): the operations used by the scenarios (adding, editing and deleting
   appointments and contacts; syncs; dumps; settings; folder listings; the calendar list; repeat operations; contact notes).
 - **Scaled clock** (`scratchpad/accel/clock/fakeclock.c`): a preloaded shim that scales the real-time clock by `FAKE_SPEED`, from
   `FAKE_START`. Used by the accelerated messaging test.

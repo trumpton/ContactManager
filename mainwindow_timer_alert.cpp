@@ -69,12 +69,8 @@ static QString upcomingAppointments(Calendar &calendar, QString contactid, QStri
 // messages, so a change to them does not send one.  A removed occurrence is sent as a cancellation instead.
 static QString messageSignature(Appointment &appt)
 {
-    const Appointment::AppointmentRecord fields[] = {
-        Appointment::From, Appointment::To, Appointment::Repeat, Appointment::RepeatInterval } ;
-
-    QStringList parts ;
-    for (Appointment::AppointmentRecord field : fields) parts.append(appt.getField(field)) ;
-    return parts.join(QChar(0x1f)) ;
+    return messageSignatureOf(appt.getField(Appointment::From), appt.getField(Appointment::To),
+                              appt.getField(Appointment::Repeat), appt.getField(Appointment::RepeatInterval)) ;
 }
 
 // An occurrence as it is stored in the reminder and cancellation records
@@ -133,8 +129,7 @@ static const int RESULT_NO_TEMPLATE = -6 ;
 // Whether a message with this key may be tried now (it has not been given up on, and its wait is over)
 static bool maySend(const QString &key, const QDateTime &now)
 {
-    if (sendfailures.value(key) >= MAXMESSAGERETRIES) return false ;
-    return !(sendretryafter.contains(key) && now<sendretryafter.value(key)) ;
+    return sendMayBeTried(sendfailures.value(key), MAXMESSAGERETRIES, sendretryafter.value(key), now) ;
 }
 
 // The reason no more messages can be sent to a contact now, or an empty string if they can.  The limits are rolling: the
@@ -147,9 +142,7 @@ static QString contactLimitReason(const QString &contactid, const QDateTime &now
         if (when > now.addSecs(-3600)) hour++ ;
     }
 
-    if (hour >= gConf->getLimitPerHour()) return QString("the limit of %1 messages an hour").arg(gConf->getLimitPerHour()) ;
-    if (sent.size() >= gConf->getLimitPerDay()) return QString("the limit of %1 messages a day").arg(gConf->getLimitPerDay()) ;
-    return QString() ;
+    return messageLimitReason(hour, sent.size(), gConf->getLimitPerHour(), gConf->getLimitPerDay()) ;
 }
 
 void MainWindow::sendMailSMS()
@@ -293,7 +286,7 @@ void MainWindow::sendMailSMS()
             errortext = sms.getErrorMessage() ;
         }
 
-        if (result==1 || result==-4) {
+        if (sendWasMade(result)) {
             gConf->addContactMessage(contactid, now) ;
             sendfailures.remove(key) ;
             sendretryafter.remove(key) ;
@@ -380,8 +373,8 @@ void MainWindow::sendMailSMS()
         QString mobile = contact.getField(Contact::Mobile) ;
         QString emailaddress = contact.getField(Contact::Email) ;
 
-        bool textme = contact.isSet(Contact::TextMe)  && !mobile.isEmpty();
-        bool emailme = contact.isSet(Contact::EmailMe) && !emailaddress.isEmpty() ;
+        bool textme = channelUsable(contact.isSet(Contact::TextMe), mobile) ;
+        bool emailme = channelUsable(contact.isSet(Contact::EmailMe), emailaddress) ;
 
         QString apptdate = occ.toLocalTime().toString("dd-MMM-yyyy hh:mm") ;
         bool remindermessagesent = reminderSentFor(appt, occ) ;
@@ -636,9 +629,7 @@ bool MainWindow::loadMessage(QString filename,
 void MainWindow::checkSMSKeyExpiry()
 {
     QDate expiry = gConf->getSMSKeyExpiry() ;
-    if (!expiry.isValid()) return ;
-
-    if (QDate::currentDate() >= expiry.addDays(-30)) {
+    if (smsKeyDueSoon(expiry, QDate::currentDate())) {
         warningOkDialog(this, "SMS Key Expiring", "SMS Key Expiring on " + expiry.toString("dd/MM/yyyy")) ;
     }
 }

@@ -125,3 +125,45 @@ QString dayChannelRecord(const QString &record, const QString &day, const QStrin
     if (!parts.contains(channel)) parts.append(channel) ;
     return parts.join(' ') ;
 }
+
+
+QString messageLimitReason(int sentLastHour, int sentLastDay, int perHour, int perDay)
+{
+    if (sentLastHour >= perHour) return QString("the limit of %1 messages an hour").arg(perHour) ;
+    if (sentLastDay >= perDay) return QString("the limit of %1 messages a day").arg(perDay) ;
+    return QString() ;
+}
+
+bool sendMayBeTried(int failures, int maxretries, const QDateTime &retryAfter, const QDateTime &now)
+{
+    if (failures >= maxretries) return false ;
+    if (retryAfter.isValid() && now < retryAfter) return false ;
+    return true ;
+}
+
+QString messageSignatureOf(const QString &from, const QString &to, const QString &repeat, const QString &repeatinterval)
+{
+    const QChar separator(0x1f) ;
+    return QStringList({from, to, repeat, repeatinterval}).join(separator) ;
+}
+
+bool channelUsable(bool ticked, const QString &address)
+{
+    return ticked && !address.isEmpty() ;
+}
+
+QString onTheDayTemplate(const QString &ontheday, const QString &reminder)
+{
+    return ontheday.trimmed().isEmpty() ? reminder : ontheday ;
+}
+
+bool smsKeyDueSoon(const QDate &expiry, const QDate &today)
+{
+    if (!expiry.isValid()) return false ;
+    return today >= expiry.addDays(-30) ;
+}
+
+bool sendWasMade(int result)
+{
+    return result==1 || result==-4 ;
+}

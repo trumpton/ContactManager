@@ -1,5 +1,5 @@
 //
-// Headless driver for the Google bench (autotest/google_bench.py).
+// Headless driver for the Google bench (autotest/archive/google_bench.py).
 //
 // Starts ContactManager without its single-instance check, runs the operations in a JSON file in order,
 // and writes a dump of the local contacts and appointments.  Dialogs are answered as the headless driver

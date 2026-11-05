@@ -154,13 +154,13 @@ written by an older version. Build one from the app's objects, not from the app'
 - Run it with `QT_QPA_PLATFORM=offscreen`, and in the background with a time limit, so a wait on a dialog does not
   hold up the session.
 
-**The old-file test (`autotest/oldfile/old_contact_test.cpp`).** It loads a contact file written before the label fields
+**The old-file test (`autotest/archive/oldfile/old_contact_test.cpp`).** It loads a contact file written before the label fields
 existed and checks the meaning of its emails and phones, then saves and reloads it. Build it in the build folder the same
 way as above, with `-I../contactmanager`, and link it with the app's objects (not `main.o`). Run it in an empty folder
 with the two fixture files copied in, using its own HOME with the settings from section 4a, and with
 `CM_TEST_SECRET` set:
 
-    cp autotest/oldfile/*.contact /some/empty/folder/
+    cp autotest/archive/oldfile/*.contact /some/empty/folder/
     CM_TEST_SECRET="$(cat /home/user/.cm-test-secret)" QT_QPA_PLATFORM=offscreen HOME=/some/home ./old_contact_test /some/empty/folder
 
 It prints PASS or FAIL for each check and exits with 1 if any check fails.
@@ -197,24 +197,24 @@ Scenario codes can be given instead: `google_bench.py run R01 L02`.
 Build the driver after the application (it links the application's objects, so rebuild it after each change to the app). It is built in a folder of its own, not in the build folder:
 
 ```bash
-sh autotest/bench/build_driver.sh /home/user/build-contactmanager    # writes sync_driver into that folder
+sh autotest/archive/bench/build_driver.sh /home/user/build-contactmanager    # writes sync_driver into that folder
 ```
 
-`sync_driver` (`autotest/bench/sync_driver.cpp`) is a superset of `bench_driver`. It adds `listdir` (a calendar sub-folder, such as `archive`), `dumplog`, `paths`, `setting`, `wait` and `key`.
+`sync_driver` (`autotest/archive/bench/sync_driver.cpp`) is a superset of `bench_driver`. It adds `listdir` (a calendar sub-folder, such as `archive`), `dumplog`, `paths`, `setting`, `wait` and `key`.
 
 ```bash
 export CM_BENCH_DRIVER=/home/user/build-contactmanager/sync_driver
 export CM_BUILD=/home/user/build-contactmanager          # for the messages tests (L01)
 export CM_TEST_SECRET="$(cat /home/user/.cm-test-secret)"
-python3 autotest/google_bench.py run local
-python3 autotest/google_bench.py run google-quick
-python3 autotest/google_bench.py run full
+python3 autotest/archive/google_bench.py run local
+python3 autotest/archive/google_bench.py run google-quick
+python3 autotest/archive/google_bench.py run full
 ```
 
 ### Purging the account
 
 ```bash
-python3 autotest/google_bench.py purge contacts|appointments|both --yes
+python3 autotest/archive/google_bench.py purge contacts|appointments|both --yes
 ```
 
 It removes **everything** of that kind on the account, not only the test entries, so run it only on the scratch account. Without `--yes` it does nothing. Google's contact-delete limit is per minute, so a purge of a full account takes a long time. The upload group purges the account itself before it uploads.
