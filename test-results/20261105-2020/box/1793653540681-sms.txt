@@ -1,0 +1,4 @@
+sent: 2026-11-02T21:05:40
+from: My Company Name - override with sender= in ContactManager.ini
+number: 447718997189
+message: [TEST] George Hammond - Confirmation: You have an appointment at 22:45 on Wednesday 04 November

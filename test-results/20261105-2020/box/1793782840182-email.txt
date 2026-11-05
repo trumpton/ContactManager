@@ -1,0 +1,18 @@
+sent: 2026-11-04T09:00:40
+from: My Company Name <email@domain.com> - override with sender= in ContactManager.ini
+to: vala.mandoran@vizier.uk
+subject: [TEST] Vala Mandoran - Vizier Design Cancellation
+body:
+Dear Vala,
+
+This email is to confirm that the following appointment has been cancelled:
+
+11:00 on Wednesday 04 November
+
+If you wish to re-book your appointment, please contact Me at:
+
+info@sogfripp.com
+
+or
+
+01234 567890

@@ -1,0 +1,14 @@
+sent: 2026-11-05T07:00:40
+from: My Company Name <email@domain.com> - override with sender= in ContactManager.ini
+to: vala.mandoran@vizier.uk
+subject: [TEST] Vala Mandoran - Appointment Today at 22:15 on Thursday
+body:
+Dear Vala,
+
+This email is a reminder that you have an appointment today, at:
+
+22:15 on Thursday 05 November
+
+If you have any problems, or are going to be late, please call me on:
+
+01234 567890

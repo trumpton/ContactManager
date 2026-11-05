@@ -83,7 +83,7 @@ With the test limits of 20000, none of this applies.
 ## 6. Evidence
 
 - **Accelerated test** (`test-results/20261102-2313/`): 25 scenarios on six contacts covering the send window, the 5-minute hold, the 24-hour reminder and the 36-hour confirm-only period. 60 expected messages; all 60 were sent and matched, each with the right appointment time, within one check of the expected minute. The full list of scenarios and the corner case each tests is in `README.md`.
-- **Unit tests** (`autotest/messages`): 77 of 77 pass. They cover same-day bookings with both channels, the hold, edits that return to the sent details, and the date parsing.
+- **Unit tests** (`autotest/archive/messages`): 77 of 77 pass. They cover same-day bookings with both channels, the hold, edits that return to the sent details, and the date parsing.
 
 ## 7. Confirmed decisions
 
