@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Google bench for ContactManager: contacts and appointments.
 
-Runs the app's Google sync headlessly (autotest/bench/bench_driver) against a test Google account, and
+Runs the app's Google sync headlessly (autotest/archive/bench/bench_driver) against a test Google account, and
 checks the result on both sides: the local dump the driver writes and the account as Google holds it.
 
 Only use a scratch account (see HEADLESS-TEST.md, section 0).  Everything the bench creates is named "Bench ..." (contacts) or
@@ -43,7 +43,7 @@ import urllib.parse
 import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPO = os.path.dirname(HERE)
+REPO = os.path.dirname(os.path.dirname(HERE))   # autotest/archive is two folders below the repository root
 DRIVER = os.environ.get("CM_BENCH_DRIVER", "bench_driver")
 CONF = os.environ.get("CM_CONF", "/root/.config/trumpton.org.uk/ContactManager.conf")
 HEADER = os.environ.get("CM_HEADER", os.path.join(REPO, "account-googleaccess.h"))
@@ -3145,7 +3145,7 @@ def build_folder():
     return os.environ.get("CM_BUILD", os.path.dirname(os.path.abspath(DRIVER)) if os.path.isabs(DRIVER) else "")
 
 
-@scenario("L01", "Local: the message and appointment unit tests (autotest/messages, QtTest), with no Google")
+@scenario("L01", "Local: the message and appointment unit tests (autotest/archive/messages, QtTest), with no Google")
 def l01():
     build = build_folder()
     if not build:

@@ -6,9 +6,9 @@
 #include <QDir>
 #include <cstdio>
 #include "configuration.h"
-#include "../../../Lib/encryption.h"
+#include "../../../../Lib/encryption.h"
 #include "contact.h"
-#include "../../../Lib/alertsound.h"
+#include "../../../../Lib/alertsound.h"
 #include <QTimer>
 #include <QLineEdit>
 #include <QPushButton>
