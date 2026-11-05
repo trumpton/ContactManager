@@ -1,0 +1,18 @@
+sent: 2026-11-03T09:09:34
+from: My Company Name <email@domain.com> - override with sender= in ContactManager.ini
+to: limit.hourly@vizier.uk
+subject: [TEST] Limit Hourly - Vizier Design Confirmation for 12:40 on 06-Nov-2026
+body:
+Dear Limit,
+
+This email is to confirm that you have an appointment at Sogfripp Enterprises at:
+
+12:40 on Friday 06 November
+
+If you wish to modify your appointment, please contact Me at:
+
+contact@sogfripp.com
+
+or
+
+01234 567890

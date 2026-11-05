@@ -1,0 +1,154 @@
+[
+{
+"time": "2026-11-03T09:05:00",
+"person": "Limit",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-06T10:00:00",
+"id": "L01"
+},
+{
+"time": "2026-11-03T09:06:00",
+"person": "Limit",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-06T10:40:00",
+"id": "L02"
+},
+{
+"time": "2026-11-03T09:07:00",
+"person": "Limit",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-06T11:20:00",
+"id": "L03"
+},
+{
+"time": "2026-11-03T09:08:00",
+"person": "Limit",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-06T12:00:00",
+"id": "L04"
+},
+{
+"time": "2026-11-03T09:09:00",
+"person": "Limit",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-06T12:40:00",
+"id": "L05"
+},
+{
+"time": "2026-11-03T10:05:00",
+"person": "Limit",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-06T13:20:00",
+"id": "L06"
+},
+{
+"time": "2026-11-03T10:05:00",
+"person": "Daily",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-06T09:00:00",
+"id": "D01"
+},
+{
+"time": "2026-11-03T10:06:00",
+"person": "Limit",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-06T14:00:00",
+"id": "L07"
+},
+{
+"time": "2026-11-03T12:05:00",
+"person": "Daily",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-06T10:00:00",
+"id": "D02"
+},
+{
+"time": "2026-11-03T14:05:00",
+"person": "Daily",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-06T11:00:00",
+"id": "D03"
+},
+{
+"time": "2026-11-03T14:15:00",
+"person": "Retry",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-06T10:00:00",
+"id": "R01"
+},
+{
+"time": "2026-11-03T16:05:00",
+"person": "Daily",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-06T12:00:00",
+"id": "D04"
+},
+{
+"time": "2026-11-03T18:05:00",
+"person": "Daily",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-06T13:00:00",
+"id": "D05"
+},
+{
+"time": "2026-11-03T20:05:00",
+"person": "Daily",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-06T14:00:00",
+"id": "D06"
+},
+{
+"time": "2026-11-04T07:00:00",
+"person": "Daily",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-06T15:00:00",
+"id": "D07"
+},
+{
+"time": "2026-11-04T07:00:00",
+"person": "Daily",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-06T16:00:00",
+"id": "D08"
+},
+{
+"time": "2026-11-04T07:00:00",
+"person": "Daily",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-06T17:00:00",
+"id": "D09"
+},
+{
+"time": "2026-11-04T07:00:00",
+"person": "Daily",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-06T18:00:00",
+"id": "D10"
+},
+{
+"time": "2026-11-04T10:05:00",
+"person": "Daily",
+"channel": "email",
+"kind": "confirm",
+"occ": "2026-11-06T19:00:00",
+"id": "D11"
+}
+]

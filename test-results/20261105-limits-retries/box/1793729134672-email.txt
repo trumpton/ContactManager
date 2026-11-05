@@ -1,0 +1,18 @@
+sent: 2026-11-03T18:05:34
+from: My Company Name <email@domain.com> - override with sender= in ContactManager.ini
+to: limit.daily@vizier.uk
+subject: [TEST] Daily Daily - Vizier Design Confirmation for 13:00 on 06-Nov-2026
+body:
+Dear Daily,
+
+This email is to confirm that you have an appointment at Sogfripp Enterprises at:
+
+13:00 on Friday 06 November
+
+If you wish to modify your appointment, please contact Me at:
+
+contact@sogfripp.com
+
+or
+
+01234 567890
