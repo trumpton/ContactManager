@@ -2,7 +2,7 @@
 #
 # Builds and runs the message and appointment tests (tst_messages.cpp).
 #
-#   autotest/messages/run-messages-tests.sh <build-folder>
+#   autotest/archive/messages/run-messages-tests.sh <build-folder>
 #
 # The build folder is the one ContactManager was built in (qmake6 ContactManager.pro, then make).  The tests link with every
 # object file there except main.o, so they use the application's own code.  They run headless, in a new empty home folder,
@@ -15,7 +15,7 @@ TZ=Europe/London
 export TZ
 
 here=$(cd "$(dirname "$0")" && pwd)
-repo=$(cd "$here/../.." && pwd)
+repo=$(cd "$here/../../.." && pwd)
 build=${1:?usage: run-messages-tests.sh <build-folder>}
 build=$(cd "$build" && pwd)
 
