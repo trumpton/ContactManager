@@ -286,7 +286,7 @@ void MainWindow::sendMailSMS()
             errortext = sms.getErrorMessage() ;
         }
 
-        if (result==1 || result==-4) {
+        if (sendWasMade(result)) {
             gConf->addContactMessage(contactid, now) ;
             sendfailures.remove(key) ;
             sendretryafter.remove(key) ;
@@ -629,9 +629,7 @@ bool MainWindow::loadMessage(QString filename,
 void MainWindow::checkSMSKeyExpiry()
 {
     QDate expiry = gConf->getSMSKeyExpiry() ;
-    if (!expiry.isValid()) return ;
-
-    if (QDate::currentDate() >= expiry.addDays(-30)) {
+    if (smsKeyDueSoon(expiry, QDate::currentDate())) {
         warningOkDialog(this, "SMS Key Expiring", "SMS Key Expiring on " + expiry.toString("dd/MM/yyyy")) ;
     }
 }
