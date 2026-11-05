@@ -10,6 +10,10 @@
 
 set -eu
 
+# The application runs in London time, and the tests about the on-the-day date and the clock change depend on it
+TZ=Europe/London
+export TZ
+
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/../.." && pwd)
 build=${1:?usage: run-messages-tests.sh <build-folder>}

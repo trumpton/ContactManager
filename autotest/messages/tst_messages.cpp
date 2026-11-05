@@ -4,6 +4,8 @@
 
 #include <QtTest>
 #include <QTemporaryDir>
+#include <QLockFile>
+#include <QTimeZone>
 #include <QTextStream>
 #include "messagedecision.h"
 #include "appointment.h"
@@ -1079,6 +1081,178 @@ private slots:
         QCOMPARE(a.getField(Appointment::Updated), QString("2026-10-30T09:00:00Z")) ;
         QCOMPARE(a.getField(Appointment::ReminderFor), QString("2026-10-30T16:00:00Z")) ;
     }
+    // ---- Corner cases from issue #110 ----
+
+    // Item 1: per-contact limits, rolling over the last hour and the last 24 hours
+    void limitsStopMessagesOnceReached()
+    {
+        QVERIFY(messageLimitReason(4, 9, 5, 10).isEmpty()) ;
+        QVERIFY(messageLimitReason(0, 0, 5, 10).isEmpty()) ;
+        QCOMPARE(messageLimitReason(5, 5, 5, 10), QString("the limit of 5 messages an hour")) ;
+        QCOMPARE(messageLimitReason(1, 10, 5, 10), QString("the limit of 10 messages a day")) ;
+    }
+
+    void limitsAreCheckedHourFirst()
+    {
+        // Both reached: the hour is reported, as it is the nearer limit
+        QCOMPARE(messageLimitReason(5, 10, 5, 10), QString("the limit of 5 messages an hour")) ;
+    }
+
+    // Item 2: a failed message waits five minutes, and is given up after maxretries failures
+    void failedMessageWaitsBeforeItIsTriedAgain()
+    {
+        QDateTime failed = localAt(QDate(2026, 11, 2), QTime(9, 0)) ;
+        QVERIFY(!sendMayBeTried(1, 10, failed.addSecs(300), failed.addSecs(299))) ;
+        QVERIFY(sendMayBeTried(1, 10, failed.addSecs(300), failed.addSecs(300))) ;
+    }
+
+    void failedMessageIsGivenUpAfterMaxRetries()
+    {
+        QDateTime past = localAt(QDate(2026, 11, 2), QTime(9, 0)) ;
+        QVERIFY(sendMayBeTried(9, 10, past, past.addSecs(3600))) ;
+        QVERIFY(!sendMayBeTried(10, 10, QDateTime(), past)) ;
+    }
+
+    void messageWithNoFailureMayBeTried()
+    {
+        QVERIFY(sendMayBeTried(0, 10, QDateTime(), localAt(QDate(2026, 11, 2), QTime(9, 0)))) ;
+    }
+
+    // Item 5: a channel is used only when ticked and an address is given; a missing address is not replaced by the other channel
+    void channelNeedsItsOwnAddress()
+    {
+        QVERIFY(!channelUsable(true, "")) ;
+        QVERIFY(!channelUsable(false, "daniel@example.test")) ;
+        QVERIFY(channelUsable(true, "daniel@example.test")) ;
+    }
+
+    void missingEmailAddressSendsNothingByEmailButTextStillGoes()
+    {
+        // Email ticked with no address, text ticked with a mobile: the text is sent, and no email is
+        MessageState s = newState(channelUsable(true, ""), channelUsable(true, "07700 900123")) ;
+        QCOMPARE(describeSteps(decideMessages(s)), QString("confirm:sms")) ;
+    }
+
+    void noUsableChannelSendsNothing()
+    {
+        MessageState s = newState(channelUsable(true, ""), channelUsable(true, "")) ;
+        QVERIFY(decideMessages(s).isEmpty()) ;
+    }
+
+    // Item 6: the on-the-day template is the reminder's when it is not set
+    void onTheDayUsesTheReminderTemplateWhenNotSet()
+    {
+        QCOMPARE(onTheDayTemplate("", "reminder.msg"), QString("reminder.msg")) ;
+        QCOMPARE(onTheDayTemplate("   ", "reminder.msg"), QString("reminder.msg")) ;
+        QCOMPARE(onTheDayTemplate("today.msg", "reminder.msg"), QString("today.msg")) ;
+    }
+
+    // Item 7: clocks going forward (28 March 2027) and back (31 October 2027), in London time
+    void reminderIs24ElapsedHoursAcrossTheClockChange()
+    {
+        QTimeZone london("Europe/London") ;
+        QDateTime occurrence(QDate(2027, 3, 29), QTime(10, 0), london) ;   // 09:00 UTC, after the change
+        QVERIFY(!isReminderDue(occurrence, QDateTime(QDate(2027, 3, 28), QTime(9, 59, 59), london), 24)) ;
+        QVERIFY(isReminderDue(occurrence, QDateTime(QDate(2027, 3, 28), QTime(10, 0, 1), london), 24)) ;
+        QDateTime backOccurrence(QDate(2027, 11, 1), QTime(10, 0), london) ;
+        QVERIFY(!isReminderDue(backOccurrence, QDateTime(QDate(2027, 10, 31), QTime(9, 59, 59), london), 24)) ;
+        QVERIFY(isReminderDue(backOccurrence, QDateTime(QDate(2027, 10, 31), QTime(10, 0, 1), london), 24)) ;
+    }
+
+    void onTheDayIsTheLocalDateAcrossTheClockChange()
+    {
+        QTimeZone london("Europe/London") ;
+        QDateTime now(QDate(2027, 3, 28), QTime(8, 0), london) ;
+        QVERIFY(isOnTheDay(QDateTime(QDate(2027, 3, 28), QTime(23, 30), london), now)) ;
+        QVERIFY(!isOnTheDay(QDateTime(QDate(2027, 3, 29), QTime(0, 10), london), now)) ;
+    }
+
+    // Item 8: the year boundary and the leap day
+    void onTheDayAndReminderAcrossTheYearBoundary()
+    {
+        QTimeZone london("Europe/London") ;
+        QDateTime now(QDate(2026, 12, 31), QTime(10, 0), london) ;
+        QVERIFY(isOnTheDay(QDateTime(QDate(2026, 12, 31), QTime(23, 50), london), now)) ;
+        QVERIFY(!isOnTheDay(QDateTime(QDate(2027, 1, 1), QTime(0, 30), london), now)) ;
+        QVERIFY(isReminderDue(QDateTime(QDate(2027, 1, 1), QTime(0, 30), london),
+                              QDateTime(QDate(2026, 12, 31), QTime(0, 31), london), 24)) ;
+    }
+
+    void onTheDayAndReminderAcrossTheLeapDay()
+    {
+        QTimeZone london("Europe/London") ;
+        QDateTime now(QDate(2028, 2, 28), QTime(10, 0), london) ;
+        QVERIFY(!isOnTheDay(QDateTime(QDate(2028, 2, 29), QTime(9, 0), london), now)) ;
+        QVERIFY(!isReminderDue(QDateTime(QDate(2028, 2, 29), QTime(9, 0), london),
+                               QDateTime(QDate(2028, 2, 28), QTime(8, 59, 59), london), 24)) ;
+        QVERIFY(isReminderDue(QDateTime(QDate(2028, 2, 29), QTime(9, 0), london),
+                              QDateTime(QDate(2028, 2, 28), QTime(9, 0, 1), london), 24)) ;
+    }
+
+    // Item 10: a backlog of changes gives one update, not one per change
+    void backlogOfChangesGivesOneUpdate()
+    {
+        MessageState s = sentState(true, false) ;
+        s.changed = true ;
+        QCOMPARE(describeSteps(decideMessages(s)), QString("update:email")) ;
+    }
+
+    // Item 12: deleted inside the hold sends nothing, and a new appointment made the same way sends one confirmation
+    void deletedAndRecreatedInsideTheHoldSendsOneConfirmation()
+    {
+        MessageState deleted = newState(true, false) ;
+        deleted.deleted = true ;
+        QVERIFY(decideMessages(deleted).isEmpty()) ;
+        QCOMPARE(describeSteps(decideMessages(newState(true, false))), QString("confirm:email")) ;
+    }
+
+    // Item 13: each occurrence of a repeat has its own reminder
+    void secondOccurrenceOfARepeatIsStillReminded()
+    {
+        MessageState e = sentState(true, false) ;
+        e.isrepeating = true ;
+        e.istime = true ;
+        e.remindersent = false ;
+        e.occurrence = localAt(QDate(2026, 11, 9), QTime(15, 0)) ;
+        QList<MessageStep> steps = decideMessages(e) ;
+        QCOMPARE(describeSteps(steps), QString("reminder:email")) ;
+        QCOMPARE(steps.first().occurrence, e.occurrence) ;
+    }
+
+    // Item 14: a change to the start, end or repeat is an update, and a title or location change is not (it is not part of the signature)
+    void signatureChangesOnlyForWhatMessagesShow()
+    {
+        QString base = messageSignatureOf("2026-11-02T15:00Z", "2026-11-02T16:00Z", "", "") ;
+        QCOMPARE(messageSignatureOf("2026-11-02T15:00Z", "2026-11-02T16:00Z", "", ""), base) ;
+        QVERIFY(messageSignatureOf("2026-11-02T15:30Z", "2026-11-02T16:00Z", "", "") != base) ;
+        QVERIFY(messageSignatureOf("2026-11-02T15:00Z", "2026-11-02T17:00Z", "", "") != base) ;
+        QVERIFY(messageSignatureOf("2026-11-02T15:00Z", "2026-11-02T16:00Z", "2", "1") != base) ;
+    }
+
+    // Item 16: an edit less than 36 hours before the start is sent as an update in place of the reminder
+    void editWithinConfirmOnlyReplacesTheReminder()
+    {
+        MessageState s = sentState(true, false) ;
+        s.changed = true ;
+        s.confirmonly = true ;
+        s.istime = true ;
+        s.remindersent = false ;
+        QCOMPARE(describeSteps(decideMessages(s)), QString("update:email")) ;
+    }
+
+    // Item 11: a second copy of ContactManager cannot take the data folder's lock while the first holds it
+    void secondCopyCannotTakeTheDataLock()
+    {
+        QTemporaryDir dir ;
+        QVERIFY(dir.isValid()) ;
+        QLockFile first(dir.path() + "/ContactManager.lock") ;
+        QLockFile second(dir.path() + "/ContactManager.lock") ;
+        QVERIFY(first.tryLock(0)) ;
+        QVERIFY(!second.tryLock(0)) ;
+        first.unlock() ;
+        QVERIFY(second.tryLock(0)) ;
+    }
+
 } ;
 
 QTEST_MAIN(TestMessages)

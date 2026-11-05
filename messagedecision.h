@@ -60,6 +60,23 @@ bool inSendWindow(QTime localtime, QTime start, QTime end) ;
 int resolveRemindHours(const QString &text) ;
 int resolveConfirmOnlyHours(const QString &text, int remindhours) ;
 
+// The reason no more messages can be sent to a contact, given the messages sent in the last hour and the last 24 hours, or an
+// empty string if they can.  The hour is checked first (limitperhour, then limitperday).
+QString messageLimitReason(int sentLastHour, int sentLastDay, int perHour, int perDay) ;
+
+// Whether a message that has failed may be tried now: it has not been given up on (maxretries failures), and its wait is over
+// (a retryAfter that is not valid gives no wait)
+bool sendMayBeTried(int failures, int maxretries, const QDateTime &retryAfter, const QDateTime &now) ;
+
+// What a message shows about an appointment: its start, end and repeat.  A title or location is not shown, so is not part of it
+QString messageSignatureOf(const QString &from, const QString &to, const QString &repeat, const QString &repeatinterval) ;
+
+// A channel is used only if the contact has it ticked and has an address for it.  There is no fallback to the other channel.
+bool channelUsable(bool ticked, const QString &address) ;
+
+// The on-the-day template, or the reminder's when the on-the-day template is not set
+QString onTheDayTemplate(const QString &ontheday, const QString &reminder) ;
+
 // The on-the-day record of an appointment: the day, then the channels sent that day, e.g. "2026-10-30 email sms"
 bool dayChannelSent(const QString &record, const QString &day, const QString &channel) ;
 QString dayChannelRecord(const QString &record, const QString &day, const QString &channel) ;
