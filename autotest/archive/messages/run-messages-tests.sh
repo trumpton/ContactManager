@@ -28,7 +28,7 @@ qtlibs=$(pkg-config --libs Qt6Core Qt6Gui Qt6Widgets Qt6Network Qt6Xml Qt6Multim
 
 # The test's moc output, which the test includes at its end, then the test itself
 "$moc" "$here/tst_messages.cpp" -o "$work/tst_messages.moc"
-g++ -std=gnu++17 -fPIC -DQT_NO_DEBUG \
+g++ -std=gnu++17 -fPIC -DQT_NO_DEBUG -DCM_REPO_DIR="\"$repo\"" \
     -I"$repo" -I"$repo/../Lib" -I"$build" -I"$here" -I"$work" $qtcflags \
     -c "$here/tst_messages.cpp" -o "$work/tst_messages.o"
 

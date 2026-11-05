@@ -1,4 +1,3 @@
-My Company Name <email@domain.com> - override with sender= in ContactManager.ini
 Sogfripp Enterprises Cancellation
 
 Dear $NAME,
