@@ -378,3 +378,329 @@ def ig041(t):
     # The program drops the (0) after a country code, so it holds the number without that trunk zero
     want_app = sorted(_digits(p.replace("(0)", "")) for p, _ in phones)
     t.check("the app holds all three numbers, without the (0)", app_digits == want_app, "got %s" % app_digits)
+
+
+# ------------------------------------------------------------------------------------------------ batch 2: edge cases and labels
+
+def _types_by_email(resource):
+    """The Google type (lower case) of each email on a contact, keyed by the address."""
+    person = g.google_person(resource)
+    return {e.get("value", ""): (e.get("type") or "").lower() for e in person.get("emailAddresses", [])}
+
+
+def _types_by_digits(resource):
+    """The Google type (lower case) of each phone on a contact, keyed by its digits."""
+    person = g.google_person(resource)
+    return {_digits(p.get("value", "")): (p.get("type") or "").lower() for p in person.get("phoneNumbers", [])}
+
+
+def _date(days):
+    import datetime
+    return (datetime.datetime.now(datetime.timezone.utc).date() + datetime.timedelta(days=days)).isoformat()
+
+
+@gs("IG-042", "Same email on two different contacts: both kept, not merged")
+def ig042(t):
+    tag_a, tag_b = "IG-042A", "IG-042B"
+    address = _mail("IG-042")
+    home = t.home()
+    _create(tag_a, emails=[address])
+    r = t.run(home, "add the second contact with the same email, sync", [_add(tag_b, email=address), g.sync(), g.dump("d1.json")])
+    t.check("Google keeps both", len(_google_tagged(tag_a)) == 1 and len(_google_tagged(tag_b)) == 1,
+            "copies %d and %d" % (len(_google_tagged(tag_a)), len(_google_tagged(tag_b))))
+    t.check("the app keeps both", len(_app(r, tag_a)) == 1 and len(_app(r, tag_b)) == 1,
+            "found %d and %d" % (len(_app(r, tag_a)), len(_app(r, tag_b))))
+
+
+@gs("IG-043", "Six emails on Google: the app holds four, and the rest go to Comments")
+def ig043(t):
+    tag = "IG-043"
+    home = t.home()
+    emails = [_mail(tag, i) for i in range(1, 7)]
+    resource = _create(tag, emails=emails)
+    r1 = t.run(home, "first sync", [g.sync(), g.dump("d1.json")])
+    t.run(home, "second sync", [g.sync(), g.dump("d2.json")])
+    local = _app(r1, tag)
+    held = sum(1 for k in EMAIL_KEYS if local and local[0].get(k))
+    t.check("the app holds four emails", held == 4, "held %d" % held)
+    comments = str(local[0].get("comments", "")) if local else ""
+    t.check("the other two are kept in Comments", emails[4] in comments and emails[5] in comments, "comments %r" % comments[:80])
+    t.check("Google still holds all six emails after a second sync", len(_info(g.google_person(resource))["emails"]) == 6,
+            "Google holds %d" % len(_info(g.google_person(resource))["emails"]))
+
+
+@gs("IG-044", "Birthdays: leap day and no-year birthday are not changed by the sync")
+def ig044(t):
+    home = t.home()
+    leap = g.create_google_contact({"names": [{"givenName": "Bench", "familyName": "IG-044 leap"}],
+                                    "emailAddresses": [{"value": _mail("IG-044", 1)}],
+                                    "birthdays": [{"date": {"year": 1980, "month": 2, "day": 29}}]})
+    noyear = g.create_google_contact({"names": [{"givenName": "Bench", "familyName": "IG-044 no year"}],
+                                      "emailAddresses": [{"value": _mail("IG-044", 2)}],
+                                      "birthdays": [{"date": {"month": 12, "day": 25}}]})
+    before = {r: g.google_person(r).get("etag") for r in (leap, noyear)}
+    t.run(home, "two syncs", [g.sync(), g.sync(), g.dump("d1.json")])
+    after = {r: g.google_person(r).get("etag") for r in (leap, noyear)}
+    t.check("Google not written by the syncs (leap day)", before[leap] == after[leap], "etag changed")
+    t.check("Google not written by the syncs (no year)", before[noyear] == after[noyear], "etag changed")
+
+
+@gs("IG-045", "Multi-line address round-trips with formatting ignored")
+def ig045(t):
+    tag = "IG-045"
+    home = t.home()
+    address = "12 High Street\n  London\n\tSW1A 1AA"
+    resource = _create(tag, emails=[_mail(tag)], addresses=[address])
+    r = t.run(home, "sync", [g.sync(), g.dump("d1.json")])
+    gaddr = [_norm(a) for a in _info(g.google_person(resource))["addresses"]]
+    t.check("the Google address is unchanged (formatting ignored)", gaddr == [_norm(address)], "got %s" % gaddr)
+    local = _app(r, tag)
+    held = bool(local) and any(_norm(local[0].get(k, "")) == _norm(address) for k in ("address", "address2", "address3"))
+    t.check("the app holds the address", held, "")
+
+
+@gs("IG-046", "Hidden, then shown again: the contact is back on Google")
+def ig046(t):
+    tag = "IG-046"
+    home = t.home()
+    _create(tag, emails=[_mail(tag)])
+    t.run(home, "sync", [g.sync()])
+    t.run(home, "hide in the app, sync", [{"op": "hide_contact", "match": {"surname": tag}}, g.sync()])
+    r = t.run(home, "show again in the app, sync",
+              [{"op": "edit_contact", "match": {"surname": tag}, "fields": {"hidden": "false"}}, g.sync(), g.dump("d1.json")])
+    t.check("Google copy back after unhiding", len(_google_tagged(tag)) == 1, "copies %d" % len(_google_tagged(tag)))
+    shown = [c for c in _app(r, tag) if c.get("hidden") not in (True, "true")]
+    t.check("the app shows it as not hidden", len(shown) == 1, "found %d" % len(shown))
+
+
+@gs("IG-047", "Edit then delete between syncs: the stale edit is not uploaded")
+def ig047(t):
+    tag = "IG-047"
+    home = t.home()
+    _create(tag, emails=[_mail(tag)])
+    t.run(home, "sync", [g.sync()])
+    t.run(home, "edit, delete in the app, sync",
+          [{"op": "edit_contact", "match": {"surname": tag}, "fields": {"surname": tag + " stale edit"}},
+           {"op": "delete_contact", "match": {"surname": tag + " stale edit"}}, g.sync(), g.dump("d2.json")])
+    t.check("Google no longer holds the contact in any form",
+            not _google_tagged(tag) and not _google_tagged(tag + " stale edit"), "copies remain")
+
+
+@gs("IG-048", "All-day event on Google: read without crashing, not rewritten")
+def ig048(t):
+    summary = _ev("IG-048", "all day")
+    home = t.home()
+    eid = g.api("POST", g.CALENDAR + "/events", {"summary": summary, "start": {"date": _date(21)},
+                                                  "end": {"date": _date(22)}})["id"]
+    before = g.get_event(eid).get("etag")
+    r1 = t.run(home, "first sync", [g.sync(), g.dump("d1.json")])
+    t.run(home, "second sync", [g.sync(), g.dump("d2.json")])
+    after = g.get_event(eid).get("etag")
+    t.check("the Google event is not rewritten", before == after, "etag changed")
+    t.check("the app holds one entry", len(_app_appts(r1, summary)) == 1, "found %d" % len(_app_appts(r1, summary)))
+
+
+@gs("IG-049", "Event crossing midnight with a timezone offset keeps the same instant")
+def ig049(t):
+    summary = _ev("IG-049", "midnight")
+    home = t.home()
+    g.create_event(summary, _date(22) + "T23:30:00+01:00", _date(23) + "T01:00:00+01:00")
+    r1 = t.run(home, "first sync", [g.sync(), g.dump("d1.json")])
+    r2 = t.run(home, "second sync", [g.sync(), g.dump("d2.json")])
+    a, b = _app_appts(r1, summary), _app_appts(r2, summary)
+    t.check("one entry after two syncs", len(a) == 1 and len(b) == 1, "found %d and %d" % (len(a), len(b)))
+    t.check("the same local ID after two syncs", len(a) == 1 and len(b) == 1 and a[0].get("id") == b[0].get("id"), "")
+
+
+@gs("IG-051", "Unicode summary and multi-line description round-trip")
+def ig051(t):
+    summary = _ev("IG-051", "Café meeting – \U0001F4C5")
+    description = "Line one\nLine two é\n\nLine four"
+    home = t.home()
+    g.api("POST", g.CALENDAR + "/events", {"summary": summary, "description": description,
+                                            "start": {"dateTime": _now(24)}, "end": {"dateTime": _now(24, "10:00")}})
+    r = t.run(home, "sync", [g.sync(), g.dump("d1.json")])
+    t.check("the Google summary is unchanged", len(_google_events(summary)) == 1, "found %d" % len(_google_events(summary)))
+    local = _app_appts(r, summary)
+    t.check("the description is intact in the app",
+            bool(local) and _norm(local[0].get("description")) == _norm(description), "")
+
+
+@gs("IG-053", "Appointment deleted on both sides before sync: no error, nothing left")
+def ig053(t):
+    summary = _ev("IG-053", "both sides")
+    home = t.home()
+    eid = g.create_event(summary, _now(25), _now(25, "10:00"))
+    t.run(home, "first sync", [g.sync()])
+    t.run(home, "delete in the app", [{"op": "delete_appointment", "match": {"summary": summary}}])
+    g.delete_event(eid)
+    r = t.run(home, "sync", [g.sync(), g.dump("d1.json")])
+    t.check("Google holds none", not _google_events(summary), "found %d" % len(_google_events(summary)))
+    t.check("the app holds no live copy", not _app_appts(r, summary), "found %d" % len(_app_appts(r, summary)))
+
+
+@gs("IG-055", "Five back-to-back syncs with no change: no writes after the first")
+def ig055(t):
+    tag = "IG-055"
+    home = t.home()
+    resource = _create(tag, emails=[_mail(tag)])
+    t.run(home, "first sync", [g.sync()])
+    etag = g.google_person(resource).get("etag")
+    t.run(home, "five syncs", [g.sync(), g.sync(), g.sync(), g.sync(), g.sync()])
+    t.check("the etag is unchanged after five syncs", g.google_person(resource).get("etag") == etag, "etag changed")
+
+
+@gs("IG-056", "Twenty contacts made in ContactManager master, then edits on Google under Google master", configs=(CM,))
+def ig056(t):
+    home = t.home()
+    tags = ["IG-056-%02d" % i for i in range(20)]
+    t.run(home, "twenty contacts in the app, sync", [_add(tg, email=_mail(tg)) for tg in tags] + [g.sync()])
+    home.set_master(True)
+    people = _google_prefixed("IG-056-")
+    for p in people[:5]:
+        tag = _info(p)["tag"]
+        g.update_google_contact(p["resourceName"], "names", [{"givenName": "Bench", "familyName": tag + " edited"}])
+    t.run(home, "sync under Google master", [g.sync()])
+    home.set_master(False)
+    t.run(home, "sync back under ContactManager master", [g.sync(), g.dump("d1.json")])
+    people = _google_prefixed("IG-056-")
+    t.check("twenty contacts on Google, no duplicates", len(people) == 20, "found %d" % len(people))
+    edited = [p for p in people if _info(p)["tag"].endswith(" edited")]
+    t.check("the five edits from Google survive the switch back", len(edited) == 5, "found %d" % len(edited))
+
+
+@gs("IG-057", "Four emails from Google (home, other, work, Partner): each keeps its slot and label, no write")
+def ig057(t):
+    tag = "IG-057"
+    home = t.home()
+    resource = g.create_google_contact({"names": [{"givenName": "Bench", "familyName": tag}],
+                                        "emailAddresses": [{"value": _mail(tag, 1), "type": "home"},
+                                                           {"value": _mail(tag, 2), "type": "other"},
+                                                           {"value": _mail(tag, 3), "type": "work"},
+                                                           {"value": _mail(tag, 4), "type": "Partner"}]})
+    before = g.google_person(resource).get("etag")
+    r = t.run(home, "sync", [g.sync(), g.dump("d1.json")])
+    t.check("Google is not written by the sync", before == g.google_person(resource).get("etag"), "etag changed")
+    local = _app(r, tag)
+    c = local[0] if local else {}
+    got = (c.get("email"), c.get("email2"), c.get("email3"), c.get("email4"))
+    t.check("the app holds the four addresses in their slots", got == tuple(_mail(tag, i) for i in range(1, 5)), "got %s" % (got,))
+    labels = (c.get("emailtitle"), c.get("email2title"), c.get("email3title"), c.get("email4title"))
+    t.check("the app holds the labels (home, other, work, Partner)", tuple(str(x).lower() for x in labels) ==
+            ("home", "other", "work", "partner"), "labels %s" % (labels,))
+
+
+@gs("IG-058", "A label changed in the app is sent to Google as that email's type")
+def ig058(t):
+    tag = "IG-058"
+    home = t.home()
+    resource = g.create_google_contact({"names": [{"givenName": "Bench", "familyName": tag}],
+                                        "emailAddresses": [{"value": _mail(tag, 1), "type": "home"},
+                                                           {"value": _mail(tag, 2), "type": "other"}]})
+    t.run(home, "sync", [g.sync()])
+    t.run(home, "label the second email Mobile in the app, sync",
+          [{"op": "edit_contact", "match": {"surname": tag}, "fields": {"email2title": "Mobile"}}, g.sync(),
+           g.dump("d2.json")])
+    types = _types_by_email(resource)
+    t.check("the second email is sent as Mobile", types.get(_mail(tag, 2)) == "mobile", "Google types %s" % types)
+    t.check("the first email keeps its home type", types.get(_mail(tag, 1)) == "home", "Google types %s" % types)
+
+
+@gs("IG-059", "Emails with no labels set are sent with the labels they always had")
+def ig059(t):
+    tag = "IG-059"
+    home = t.home()
+    t.run(home, "add four emails, sync",
+          [_add(tag, email=_mail(tag, 1), email2=_mail(tag, 2), email3=_mail(tag, 3), email4=_mail(tag, 4)),
+           g.sync(), g.dump("d1.json")])
+    copies = _google_tagged(tag)
+    t.check("one copy on Google", len(copies) == 1, "copies %d" % len(copies))
+    types = _types_by_email(copies[0]["resourceName"]) if copies else {}
+    want = ("home", "other", "other", "other")
+    got = tuple(types.get(_mail(tag, i)) for i in range(1, 5))
+    t.check("Home, Other, Other, Other as Google types", got == want, "Google types %s" % (got,))
+
+
+@gs("IG-060", "An address with no type is held in the first address slot")
+def ig060(t):
+    tag = "IG-060"
+    home = t.home()
+    _create(tag, emails=[_mail(tag)], addresses=["1 Test Road London"])
+    r = t.run(home, "sync", [g.sync(), g.dump("d1.json")])
+    local = _app(r, tag)
+    t.check("the app holds the address in the first slot",
+            bool(local) and _norm(local[0].get("address", "")) == _norm("1 Test Road London"),
+            "address slots %s" % ({k: v for k, v in (local[0].items() if local else []) if "address" in k},))
+
+
+@gs("IG-061", "Four phones from Google (home, work, mobile, Pager): each keeps its slot and label, no write")
+def ig061(t):
+    tag = "IG-061"
+    home = t.home()
+    resource = g.create_google_contact({"names": [{"givenName": "Bench", "familyName": tag}],
+                                        "emailAddresses": [{"value": _mail(tag)}],
+                                        "phoneNumbers": [{"value": "+44 20 7946 0101", "type": "home"},
+                                                         {"value": "+44 20 7946 0102", "type": "work"},
+                                                         {"value": "+44 20 7946 0103", "type": "mobile"},
+                                                         {"value": "+44 20 7946 0104", "type": "Pager"}]})
+    before = g.google_person(resource).get("etag")
+    r = t.run(home, "sync", [g.sync(), g.dump("d1.json")])
+    t.check("Google is not written by the sync", before == g.google_person(resource).get("etag"), "etag changed")
+    local = _app(r, tag)
+    c = local[0] if local else {}
+    got = tuple(_digits(c.get(k, "")) for k in ("phone", "work", "mobile", "phone2"))
+    t.check("the app holds the four numbers in their slots", got == ("442079460101", "442079460102", "442079460103",
+                                                                      "442079460104"), "got %s" % (got,))
+    labels = tuple(str(c.get(k, "")).lower() for k in ("phonetitle", "worktitle", "mobiletitle", "phone2title"))
+    t.check("the app holds the labels", labels == ("home", "work", "mobile", "pager"), "labels %s" % (labels,))
+
+
+@gs("IG-062", "A phone label changed in the app is sent to Google as that number's type")
+def ig062(t):
+    tag = "IG-062"
+    home = t.home()
+    resource = g.create_google_contact({"names": [{"givenName": "Bench", "familyName": tag}],
+                                        "emailAddresses": [{"value": _mail(tag)}],
+                                        "phoneNumbers": [{"value": "+44 20 7946 0201", "type": "home"},
+                                                         {"value": "+44 20 7946 0202", "type": "other"}]})
+    t.run(home, "sync", [g.sync()])
+    t.run(home, "label the second number Fax in the app, sync, twice",
+          [{"op": "edit_contact", "match": {"surname": tag}, "fields": {"phone2title": "Fax"}}, g.sync(), g.sync(),
+           g.dump("d2.json")])
+    types = _types_by_digits(resource)
+    t.check("the second number is sent as Fax", types.get(_digits("+44 20 7946 0202")) == "fax", "Google types %s" % types)
+    t.check("the first number keeps its home type", types.get(_digits("+44 20 7946 0201")) == "home", "Google types %s" % types)
+
+
+@gs("IG-063", "Phones with no labels set are sent with the labels they always had")
+def ig063(t):
+    tag = "IG-063"
+    home = t.home()
+    t.run(home, "add six phones, sync",
+          [_add(tag, phone="+44 20 7946 0301", work="+44 20 7946 0302", mobile="+44 20 7946 0303",
+                phone2="+44 20 7946 0304", phone3="+44 20 7946 0305", phone4="+44 20 7946 0306"),
+           g.sync(), g.dump("d1.json")])
+    copies = _google_tagged(tag)
+    t.check("one copy on Google", len(copies) == 1, "copies %d" % len(copies))
+    types = _types_by_digits(copies[0]["resourceName"]) if copies else {}
+    want = [("+44 20 7946 030%d" % i, ty) for i, ty in enumerate(("home", "work", "mobile", "other", "other", "other"), 1)]
+    got = [types.get(_digits(v)) for v, _ in want]
+    t.check("Home, Work, Mobile, Other, Other, Other as Google types", got == [ty for _, ty in want], "Google types %s" % got)
+
+
+@gs("IG-064", "Seven phones on Google: the app holds six, the seventh goes to Comments")
+def ig064(t):
+    tag = "IG-064"
+    home = t.home()
+    types = ("home", "work", "mobile", "other", "other", "other", "other")
+    phones = ["+44 20 7946 04%02d" % i for i in range(1, 8)]
+    g.create_google_contact({"names": [{"givenName": "Bench", "familyName": tag}],
+                             "emailAddresses": [{"value": _mail(tag)}],
+                             "phoneNumbers": [{"value": v, "type": ty} for v, ty in zip(phones, types)]})
+    r1 = t.run(home, "first sync", [g.sync(), g.dump("d1.json")])
+    t.run(home, "second sync", [g.sync(), g.dump("d2.json")])
+    local = _app(r1, tag)
+    held = sum(1 for k in PHONE_KEYS if local and local[0].get(k))
+    t.check("the app holds six phones", held == 6, "held %d" % held)
+    t.check("the seventh number is kept in Comments",
+            bool(local) and _digits(phones[6]) in _digits(local[0].get("comments", "")), "")
