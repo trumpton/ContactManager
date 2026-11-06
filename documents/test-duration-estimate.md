@@ -8,15 +8,15 @@ A cycle runs every test once. It takes about **8 hours 30 minutes to 12 hours 24
 
 ## 1. Summary
 
-| Area | Tests | Automated | Person's time | Total (low to high) |
-|---|---|---|---|---|
-| 1 Google sync (live system access) | 24 tests (47 runs), 142 imported (U01 is in section 5) | 5 h 38 min to 8 h 26 min | none | 5 h 38 min to 8 h 26 min |
-| 5 Capacity stress test (not part of the normal cycle) | CS-001, the imported U01 | 17 min 42 s | none | 17 min 42 s, shown separately |
-| 2 Announcements (offline, accelerated clock, stub transports) | 48 new, in 10 parallel runs | 16 min to 17 min (the longest run) | none | 16 min to 17 min |
-| 6 Unit suite | 114 imported | 3 min to 5 min | none | 3 min to 5 min |
-| 3 Operation testing | 97 new, 20 imported (IO-001 to IO-020), 1 old-file test (OF-001) | 1 h 18 min to 2 h 03 min | none | 1 h 18 min to 2 h 03 min |
-| 4 Accessibility (manual, with automated checks) | 18 new, 2 imported | 3 min | 1 h 12 min to 1 h 30 min | 1 h 15 min to 1 h 33 min |
-| **Total (cycle, excluding section 5)** | **187 new, 278 imported** | **7 h 18 min to 10 h 54 min** | **1 h 12 min to 1 h 30 min** | **8 h 30 min to 12 h 24 min** |
+| Area | Prefixes | Tests | Automated | Person's time | Total (low to high) |
+|---|---|---|---|---|---|
+| 1 Google sync (live system access) | `GS`, `IG` | 24 tests (47 runs), 142 imported (U01 is in section 5) | 5 h 38 min to 8 h 26 min | none | 5 h 38 min to 8 h 26 min |
+| 5 Capacity stress test (not part of the normal cycle) | `CS` (CS-001); the imported U01 keeps its archive ID | CS-001, the imported U01 | 17 min 42 s | none | 17 min 42 s, shown separately |
+| 2 Announcements (offline, accelerated clock, stub transports) | `AN` | 48 new, in 10 parallel runs | 16 min to 17 min (the longest run) | none | 16 min to 17 min |
+| 6 Unit suite | `UT-001` to `UT-114` | 114 imported | 3 min to 5 min | none | 3 min to 5 min |
+| 3 Operation testing | `SS`, `MF`, `DL`, `IO`, `OF` | 97 new, 20 imported (IO-001 to IO-020), 1 old-file test (OF-001) | 1 h 18 min to 2 h 03 min | none | 1 h 18 min to 2 h 03 min |
+| 4 Accessibility (manual, with automated checks) | `AC`, `IA` | 18 new, 2 imported | 3 min | 1 h 12 min to 1 h 30 min | 1 h 15 min to 1 h 33 min |
+| **Total (cycle, excluding section 5)** | — | **187 new, 278 imported** | **7 h 18 min to 10 h 54 min** | **1 h 12 min to 1 h 30 min** | **8 h 30 min to 12 h 24 min** |
 
 The unit suite is one build and one run, covering all 114 unit tests: 84 announcement tests (area 2), 22 calendar tests (area 3b) and 8 sync tests (area 1). The bench scenario L01 is the bench's runner for the same suite, so it is not counted again.
 
