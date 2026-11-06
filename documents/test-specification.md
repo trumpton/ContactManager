@@ -36,9 +36,12 @@ Every test has a unique ID and a one-line title. The prefix is the area:
 | `MF` | By menu and function (3b) |
 | `DL` | By dialog (3c) |
 | `AC` | Accessibility (area 4) |
+| `IG` | Imported Google sync scenarios from the archive bench (area 1) |
+| `IA` | Imported accessibility scenarios from the archive bench (area 4) |
+| `OF` | The imported old-file test (area 3) |
 | `UT-001` to `UT-114` | Unit suite (section 6), one number for each unit test |
 
-Each test has its own number within its area.
+Each test has its own number within its area. The imported tests (`IG`, `IA` and `OF`) keep their archive IDs for reference, but the archive's IDs are not unique, so they are tracked by the IDs in `documents/imported-tests.md`.
 
 ### 0.2 Result states
 
@@ -613,7 +616,7 @@ Its tests are being rewritten and moved with the archive (ticket #121), and its 
 | 2.5 Encryption and passwords | SS-002, SS-003, SS-014, MF-007, DL-025, DL-026, GS-012 |
 | 2.6 Linking services | DL-007, GS-031, GS-041, AN-043 |
 | 3.1 Opening and creating contacts | MF-001, MF-022, MF-035 |
-| 3.2 Editing a contact | DL-014 to DL-018, GS-001 to GS-014 |
+| 3.2 Editing a contact | DL-014 to DL-018, GS-001, GS-002, GS-003, GS-005, GS-008, GS-010, GS-011, GS-012 |
 | 3.3 Storage | GS-002, GS-008, GS-012, SS-009 |
 | 3.4 Searching | MF-014 to MF-021 |
 | 3.5 Tidy Records | MF-006, DL-028 |
