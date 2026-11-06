@@ -940,6 +940,11 @@ def run_one(test_id, config, fn, driver, outroot):
             "cleared_after": cleared}
 
 
+# The imported tests (IG-nnn, from the archive's Google bench) are in their own module and are registered here
+import tests_imported as _imported          # noqa: E402
+TESTS.extend(_imported.TESTS)
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description="Google sync tests (area 1, section 1 of the test specification).")
     p.add_argument("tests", nargs="*", help="test IDs to run, for example GS-008 (default: all, one after another)")

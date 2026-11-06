@@ -259,6 +259,33 @@ The default clean-up (`autotest/utilities/clean_test_data.py`) finds the test re
 
 The driver's contact dump includes `hidden` and `deleted` flags for each contact (GS-008, GS-011). The driver must be rebuilt before the next run.
 
+### 1.9 Imported Google sync tests
+
+These tests were imported from the archive bench (`documents/imported-tests.md`), and are in `autotest/googlesync/tests_imported.py`. Each runs with the same driver and checks as the tests above, in the CM configuration (ContactManager is the master) unless its procedure says otherwise. Each test uses its own contacts and events, named for the test, so the clean-up finds them.
+
+| ID | Title | Procedure and expected result | Run |
+|---|---|---|---|
+| IG-001 | Add a contact locally, no sync: Google unchanged | Add a contact in the app; do not sync. Expect no copy on Google, and the contact held in the app. | CM |
+| IG-003 | Add then delete locally before any sync: nothing reaches Google | Add a contact, delete it, then sync. Expect no copy on Google and no live contact in the app. | CM |
+| IG-007 | Same name on both sides before sync: both kept | A Google contact and an app contact with the same name, different phones; sync. Expect two contacts with the name on Google, both phones there, and two in the app. | CM |
+| IG-010 | Out-of-sequence phones and emails: each value kept in some slot | A Google contact with three emails and four phones in odd slots; sync twice. Expect each value held in some slot in the app, and three emails still on Google after the second sync. | CM |
+| IG-011 | Stray spaces and newlines in Google data: no spurious upload | A Google contact with a padded email and a multi-line address; sync. Expect the Google record unchanged (its etag), and the app holding the trimmed email. | CM |
+| IG-012 | Large upload: 40 local contacts reach Google once | Add 40 contacts in the app; sync. Expect 40 contacts on Google, with no duplicates. | CM |
+| IG-013 | Unicode and apostrophes in names round-trip exactly | A contact with a Unicode surname containing an apostrophe; sync. Expect Google to hold the name exactly, once. | CM |
+| IG-014 | Email-only contact (no name) is uploaded with its email | A contact with an email and no name; sync. Expect one Google contact with that email. | CM |
+| IG-015 | Repeated syncs with no changes do not write to Google | A Google contact; sync; then sync twice more. Expect its etag unchanged after the later syncs. | CM |
+| IG-016 | Edit keeps URLs the app does not hold (option 1 regression) | A Google contact with two URLs, a nickname and a biography; sync; change the surname in the app; sync. Expect both URLs, the nickname and the biography kept on Google, and the new surname there. | CM |
+| IG-017 | Add an appointment locally, no sync: Google unchanged | Add an appointment in the app; do not sync. Expect no copy on Google, and the appointment held in the app. | CM |
+| IG-019 | Identical events on Google (duplicates): both kept, no growth on re-sync | Two identical events on Google; sync; sync again. Expect both in the app after each sync, and two on Google. | CM |
+| IG-020 | Same event added locally and on Google before sync: both kept | An event made on Google and the same event added in the app; sync. Expect two copies on Google. | CM |
+| IG-026 | Large upload: 40 local appointments reach Google once | Add 40 appointments in the app; sync. Expect 40 appointments on Google, with no duplicates. | CM |
+| IG-028 | Stray spaces and newlines in a location: no spurious upload | A Google event with a padded multi-line location; sync. Expect the Google event unchanged (its etag), and the app holding the trimmed location. | CM |
+| IG-029 | Local ID of a Google event is the same across syncs | A Google event; sync; sync again. Expect one entry each time, with the same local ID. | CM |
+| IG-038 | Blank and whitespace-only name fields: no crash, no duplicate | Two contacts with blank names (one with a test-domain email); sync. Expect the run to complete, and no more than one Google copy of the nameless contact. | CM |
+| IG-039 | Very long comment (6000 characters) round-trips intact | A Google contact with a 6000-character biography; sync. Expect the text unchanged on Google, and the full text in the app. | CM |
+| IG-040 | Quotes, backslashes, ampersands, angle brackets, emoji and right-to-left text round-trip | A contact whose name and comment hold quotes, backslashes, ampersands, angle brackets, emoji and right-to-left text; sync. Expect the name held exactly on Google and in the app. | CM |
+| IG-041 | Phone number formats (international, brackets, extensions) keep their digits | A Google contact with three phone formats; sync. Expect the digits unchanged on Google, and in the app without the (0) trunk zero. | CM |
+
 ---
 
 ## 2. Announcements (offline, accelerated clock, stub transports)

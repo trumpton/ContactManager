@@ -10,35 +10,35 @@ How the imports are split: a scenario is an operation test (`IO`) if its body ca
 
 | ID | Archive ID | Line in `google_bench.py` | Title (from the archive)  | Status |
 |---|---|---|---|---|
-| IG-001 | C01 | 512 | Add a contact locally, no sync: Google unchanged | To port |
+| IG-001 | C01 | 512 | Add a contact locally, no sync: Google unchanged | Ported to the Google bench, not run |
 | IG-002 | C02 | 519 | Contact made on Google: downloaded once across two syncs | Covered by GS-002 |
-| IG-003 | C03 | 530 | Add then delete locally before any sync: nothing reaches Google | To port |
+| IG-003 | C03 | 530 | Add then delete locally before any sync: nothing reaches Google | Ported to the Google bench, not run |
 | IG-004 | C04 | 539 | Contact deleted on Google between syncs: removed from the app | Covered by GS-010 |
 | IG-005 | C05 | 548 | Contact deleted in the app after it synced: deleted on Google | Covered by GS-008 |
 | IG-006 | C06 | 557 | Contact hidden in the app after it synced: Google agrees with the app | Covered by GS-011 |
-| IG-007 | C07 | 570 | Same name on both sides before sync: both kept | To port |
+| IG-007 | C07 | 570 | Same name on both sides before sync: both kept | Ported to the Google bench, not run |
 | IG-008 | C08 | 582 | Edit a downloaded contact before a second sync: change reaches Google | Covered by GS-003 |
 | IG-009 | C09 | 593 | Edit on Google between syncs: app picks it up without duplicating | Covered by GS-003 |
-| IG-010 | C10 | 602 | Out-of-sequence phones and emails: each value kept in some slot | To port |
-| IG-011 | C11 | 622 | Stray spaces and newlines in Google data: no spurious upload | To port |
-| IG-012 | C12 | 634 | Large upload: 40 local contacts reach Google once | To port |
-| IG-013 | C13 | 644 | Unicode and apostrophes in names round-trip exactly | To port |
-| IG-014 | C14 | 652 | Email-only contact (no name) is uploaded with its email | To port |
-| IG-015 | C15 | 659 | Repeated syncs with no changes do not write to Google | To port |
-| IG-016 | C16 | 669 | Edit keeps URLs the app does not hold (option 1 regression) | To port |
-| IG-017 | A01 | 687 | Add an appointment locally, no sync: Google unchanged | To port |
+| IG-010 | C10 | 602 | Out-of-sequence phones and emails: each value kept in some slot | Ported to the Google bench, not run |
+| IG-011 | C11 | 622 | Stray spaces and newlines in Google data: no spurious upload | Ported to the Google bench, not run |
+| IG-012 | C12 | 634 | Large upload: 40 local contacts reach Google once | Ported to the Google bench, not run |
+| IG-013 | C13 | 644 | Unicode and apostrophes in names round-trip exactly | Ported to the Google bench, not run |
+| IG-014 | C14 | 652 | Email-only contact (no name) is uploaded with its email | Ported to the Google bench, not run |
+| IG-015 | C15 | 659 | Repeated syncs with no changes do not write to Google | Ported to the Google bench, not run |
+| IG-016 | C16 | 669 | Edit keeps URLs the app does not hold (option 1 regression) | Ported to the Google bench, not run |
+| IG-017 | A01 | 687 | Add an appointment locally, no sync: Google unchanged | Ported to the Google bench, not run |
 | IG-018 | A02 | 695 | Event made on Google: downloaded once across two syncs | Covered by GS-016 |
-| IG-019 | A03 | 704 | Identical events on Google (duplicates): both kept, no growth on re-sync | To port |
-| IG-020 | A04 | 716 | Same event added locally and on Google before sync: both kept | To port |
+| IG-019 | A03 | 704 | Identical events on Google (duplicates): both kept, no growth on re-sync | Ported to the Google bench, not run |
+| IG-020 | A04 | 716 | Same event added locally and on Google before sync: both kept | Ported to the Google bench, not run |
 | IG-021 | A05 | 724 | Edit a downloaded event before a second sync: change reaches Google | Covered by GS-017 |
 | IG-022 | A06 | 735 | Event moved on Google between syncs: app picks it up | Covered by GS-017 |
 | IG-023 | A07 | 745 | Event deleted in the app after it synced: deleted on Google | Covered by GS-017 |
 | IG-024 | A08 | 752 | Event deleted on Google between syncs: app does not keep a live copy | Covered by GS-017 |
 | IG-025 | A09 | 760 | Overlapping appointments added locally: both uploaded, neither merged | Covered by GS-030 |
-| IG-026 | A10 | 770 | Large upload: 40 local appointments reach Google once | To port |
+| IG-026 | A10 | 770 | Large upload: 40 local appointments reach Google once | Ported to the Google bench, not run |
 | IG-027 | A11 | 781 | Read-only event (organised by someone else): not uploaded across syncs | Covered by GS-025 |
-| IG-028 | A12 | 792 | Stray spaces and newlines in a location: no spurious upload | To port |
-| IG-029 | A13 | 803 | Local ID of a Google event is the same across syncs | To port |
+| IG-028 | A12 | 792 | Stray spaces and newlines in a location: no spurious upload | Ported to the Google bench, not run |
+| IG-029 | A13 | 803 | Local ID of a Google event is the same across syncs | Ported to the Google bench, not run |
 | IG-030 | M01 | 854 | ContactManager master adds a contact; Google master syncs it: no duplicate | Covered by GS-040 |
 | IG-031 | M02 | 865 | Google master downloads; ContactManager master edits; Google master re-syncs: one copy | Covered by GS-040 |
 | IG-032 | M03 | 881 | Deleted in ContactManager master: Google master does not bring it back | Covered by GS-009 |
@@ -47,10 +47,10 @@ How the imports are split: a scenario is an operation test (`IO`) if its body ca
 | IG-035 | M06 | 929 | Repeated switching with edits: values and notes survive, no duplicates | Covered by GS-040 |
 | IG-036 | M07 | 951 | Google master: a local-only edit is not sent, and Google's values stay | Covered by GS-007 |
 | IG-037 | M08 | 965 | ContactManager master: a change made on Google is kept, not overwritten | Covered by GS-005 |
-| IG-038 | X01 | 991 | Blank and whitespace-only name fields: no crash, no duplicate | To port |
-| IG-039 | X02 | 1002 | Very long comment (6000 characters) round-trips intact | To port |
-| IG-040 | X03 | 1016 | Quotes, backslashes, ampersands, angle brackets, emoji and right-to-left text round-trip | To port |
-| IG-041 | X04 | 1028 | Phone number formats (international, brackets, extensions) keep their digits | To port |
+| IG-038 | X01 | 991 | Blank and whitespace-only name fields: no crash, no duplicate | Ported to the Google bench, not run |
+| IG-039 | X02 | 1002 | Very long comment (6000 characters) round-trips intact | Ported to the Google bench, not run |
+| IG-040 | X03 | 1016 | Quotes, backslashes, ampersands, angle brackets, emoji and right-to-left text round-trip | Ported to the Google bench, not run |
+| IG-041 | X04 | 1028 | Phone number formats (international, brackets, extensions) keep their digits | Ported to the Google bench, not run |
 | IG-042 | X05 | 1046 | Same email on two different contacts: both kept, not merged | To port |
 | IG-043 | X06 | 1054 | Six emails on Google: the app holds four, and the rest go to Comments | To port |
 | IG-044 | X07 | 1070 | Birthdays: leap day and no-year birthday are not changed by the sync | To port |
