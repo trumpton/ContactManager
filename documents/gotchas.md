@@ -252,7 +252,7 @@ Test builds reach a window's private members with `#define private public`, as t
 
 The data folder is `[database] path` in `ContactManager.ini`. If the file is missing, the path is empty and the default is `~/TrumptonApps/ContactManager`. An earlier version of `Lib` returned the text `ERROR` for a missing setting, which made the path `ERROR/` and the dialling codes `error202020202`. That was fixed in `Lib` (commit `ad2c0d3`).
 
-**Status: Fixed.** The bench gives each run its own HOME folder (`prepare_home`, `google_bench.py`), so one run cannot load another's contacts.
+**Status: Fixed.** The bench gives each run its own HOME folder (`Home`, `autotest/googlesync/gs_common.py`), so one run cannot load another's contacts.
 
 ### 4.11 Test contacts from the first experiment
 
