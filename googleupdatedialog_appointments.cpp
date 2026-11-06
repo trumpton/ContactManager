@@ -64,6 +64,14 @@ bool GoogleUpdateDialog::processCalendarUpdate(QDateTime &lastsync, GoogleAccess
     QString stored = gConf->getLastGoogleCalendarSyncToken() ;
     QString syncToken = stored.startsWith(tokenkey + "|") ? stored.mid(tokenkey.size() + 1) : QString() ;
     bool incremental = !syncToken.isEmpty() ;
+    // The stored token describes the calendar as it was at the last listing.  With no appointments here (the data folder was
+    // cleared, or is new) the token has nothing to change, and an incremental listing would download every deletion Google
+    // still holds.  So everything is listed, as on a first sync.
+    if (incremental && cal.size()==0) {
+        ui->updateStatusReport->append(QString("  There are no appointments here, so every appointment is listed.")) ;
+        incremental = false ;
+        syncToken.clear() ;
+    }
     if (incremental && gConf->googleMaster() && anyEntryWithoutGoogleSnapshot(cal, fromwindow, towindow)) {
         // Under Google master the entries are compared with their snapshots, so the listing is done in full, once, to give each
         // entry in the window its snapshot (issue #105)
