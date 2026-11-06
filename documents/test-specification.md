@@ -14,7 +14,7 @@ Companions: `documents/specification.md` (what the program does, the reference f
    - 3a. Start-up and shutdown
    - 3b. By menu and function (F9 is covered in area 1)
    - 3c. By dialog
-4. Accessibility
+4. Accessibility (manual, with automated checks)
 5. Capacity stress test (not part of the normal cycle)
 - Appendix A. Traceability: specification section to tests
 - Appendix B. Requirements that have no test yet
@@ -115,7 +115,7 @@ Read `headless-test.md` (how to run the bench and the accelerated harness) and `
 - Area 1 needs the Google account and the network. It runs last in any cycle, because it changes the account.
 - Area 2 needs no network, and runs in the accelerated harness.
 - Area 3 needs the program only.
-- Area 4 needs the program and a screen reader (NVDA, or the accessibility inspection tools of the platform), and a person to listen.
+- Area 4's manual tests need the program, a screen reader (NVDA, or the accessibility inspection tools of the platform), and a person to listen. Its automated checks (AC-019 to AC-029) need the program only.
 
 The durations are estimated in `documents/test-duration-estimate.md`.
 
@@ -298,7 +298,7 @@ The announcement tests run as **runs**. A run is one headless process of the pro
 
 ## 3. Operation testing
 
-Operation tests check the program without Google, sync or messages, unless a test says otherwise. **All of the tests in this section are automated.** Each one is run by the operation runner (`autotest/operation/operation_tests.py`), which starts the program headless through the test driver, presses the keys or triggers the menu item, and checks the result. The driver answers each dialog with its default button and writes the dialog's title to its log, so a dialog is checked by its title. A test passes when every expected result in its row is observed. A test that cannot run in the test environment is reported as blocked, with the reason. No test in this section needs a person to look at the screen or listen. The screen-reader checks are in section 4, and are the only manual tests.
+Operation tests check the program without Google, sync or messages, unless a test says otherwise. **All of the tests in this section are automated.** Each one is run by the operation runner (`autotest/operation/operation_tests.py`), which starts the program headless through the test driver, presses the keys or triggers the menu item, and checks the result. The driver answers each dialog with its default button and writes the dialog's title to its log, so a dialog is checked by its title. A test passes when every expected result in its row is observed. A test that cannot run in the test environment is reported as blocked, with the reason. No test in this section needs a person to look at the screen or listen. The manual tests are the screen-reader checks in section 4. Section 4 also has automated checks, which need only the program.
 
 ### 3a. Start-up and shutdown
 
@@ -418,7 +418,10 @@ Each menu item is tested by choosing it from the menu, and by its key where it h
 
 ## 4. Accessibility
 
-Accessibility tests are carried out with a screen reader (NVDA or the platform's inspector) and with keyboard only. Each test states what a person should hear or see, and the expected result is recorded by the person running it.
+Accessibility tests come in two groups.
+
+- **Manual (AC-001 to AC-018).** Carried out with a screen reader (NVDA or the platform's inspector) and with keyboard only. Each test states what a person should hear or see, and the expected result is recorded by the person running it. Their data is set up by an automated step, `autotest/accessibility/setup_manual_data.py`, which uploads the fixture contacts and appointments to the scratch Google account. It then asks the tester to set both masters to Google and run a sync in ContactManager, and waits for the tester to confirm before the manual tests begin.
+- **Automated (AC-019 to AC-029, table 4a).** Each one supports a manual test. They check what the program gives a screen reader: the names of menus, tabs and controls, the focus, and the text of the screen reader text. They do not check that a screen reader speaks it well, or how it sounds, or that focus can be seen. Those stay with the manual tests.
 
 | ID | Title | Procedure and expected result | Run |
 |---|---|---|---|
@@ -441,6 +444,26 @@ Accessibility tests are carried out with a screen reader (NVDA or the platform's
 | AC-017 | A state is shown in words, not only by colour or layout | Check deleted items (braces), disabled tabs and disabled menu items. Expect each to say so in words. | Manual |
 | AC-018 | The keyboard focus is always visible | Tab through the window. Expect a visible focus on each control. | Manual |
 
+### 4a. Automated checks of what a screen reader is given
+
+Run by `autotest/accessibility/automated_tests.py`, through the operation driver. They need the program only: no Google account, no message. Each reads the program's own records (names, roles, focus, the screen reader text) and checks them against the expected result.
+
+| ID | Title | Procedure and expected result | Run |
+|---|---|---|---|
+| AC-019 | Every menu and submenu item is named, and every top menu has its Alt letter (supports AC-001) | Read the menu bar. Expect every item to have a name, and every top menu to have a letter (&). | Automated |
+| AC-020 | Every tab is named, and has its Alt letter (supports AC-002) | Read the main window's tabs. Expect each to have a name and a letter (&). | Automated |
+| AC-021 | Every control in each dialog that Tab reaches has a name (supports AC-003) | Open, in turn, Setup, the appointment form, Advanced Global Find, the text form and the transaction form. For each, read the controls Tab reaches. Expect each to have a name. | Automated |
+| AC-022 | Show Screen Reader Text follows the focus and updates its values (supports AC-004) | Open it. Select a calendar entry: expect its text to name the calendar list. Press Tab: expect the text to name the new control. | Automated |
+| AC-023 | Calendar entries are read with their date, time and summary, at a usable length (supports AC-005) | Read the accessible text of three test appointments. Expect each to hold its time and summary, no program path, and 200 characters or fewer. | Automated |
+| AC-024 | Each field of the contact form is read with its label and its title (supports AC-006) | Open a contact for editing. Expect each field (names, surname, email, home, work and mobile) to be reached and named, and each label and title to have text. | Automated |
+| AC-025 | An error or warning takes the focus, so that it is read at once (supports AC-008) | Enter an invalid SMS key expiry in Setup and press OK. Expect the warning to be the active window, the focus to be in it, and its message to have text. | Automated |
+| AC-026 | Escape closes every dialog and returns focus to the window that opened it (supports AC-009) | From the calendar list, open Setup, Advanced Global Find and About, and press Escape in each. Expect each to close and the focus to return to the calendar list. | Automated |
+| AC-027 | Every action has a key: Enter on a calendar entry does what a double-click does (supports AC-010) | Double-click an entry, and note the contact, the entry and the windows open. Select the same entry and press Enter. Expect the same three. | Automated |
+| AC-028 | The typed-date box has a short name and a description (supports AC-011) | Open the typed-date box. Expect a name of four words or fewer, and a description. | Automated |
+| AC-029 | Focus stays on the entry after Tidy Records (supports the Tidy part of AC-012) | Select a calendar entry, run Tidy Records. Expect the focus on the calendar list and the same entry selected. The sync part of AC-012 stays manual. | Automated |
+
+The automated checks cover the dialogs and controls named above, not every control in the program. A control that is not in those dialogs is checked only by the manual tests.
+
 ---
 
 ## 5. Capacity stress test
@@ -455,7 +478,7 @@ This is not part of the normal test cycle. It checks how the program and Google 
 
 | Specification section | Tests |
 |---|---|
-| 1 Overview (keyboard operation, screen reader) | AC-001 to AC-018 |
+| 1 Overview (keyboard operation, screen reader) | AC-001 to AC-018 (manual); AC-019 to AC-029 (automated) |
 | 2.1 Files and folders | SS-001, SS-008, SS-011, SS-013, GS-012 |
 | 2.2 The ini file | SS-012, AN-036, AN-037, AN-038, AN-039, AN-045 |
 | 2.3 Settings (Setup) | DL-001 to DL-007 |
@@ -514,4 +537,4 @@ This is not part of the normal test cycle. It checks how the program and Google 
 | 6 | Google sync for a token refused on a later page of a listing (issue #110, item 19) | A test in area 1. |
 | 7 | Read-back of archive and deleted-folder writes (issue #110, item 18) | Add read-back checks to the archive and deleted-folder tests. |
 | 8 | Google-made appointments get no confirmation (issue #110, item 15) | Decide the rule first, then add a test in area 2. |
-| 9 | Area 4 tests need a person and a screen reader | Schedule with the tester; the expected results are recorded by hand. |
+| 9 | Area 4 manual tests need a person and a screen reader | Schedule with the tester; the expected results are recorded by hand. The automated set-up step is `autotest/accessibility/setup_manual_data.py`. |
