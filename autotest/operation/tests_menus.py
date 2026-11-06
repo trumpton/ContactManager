@@ -587,8 +587,9 @@ def _mf037_check(runs, home):
     r = runs[1]
     kept = r.contact(oc.surname(1), "declined.json")
     gone = r.contact(oc.surname(1), "accepted.json")
-    return [check("declining changes nothing", bool(kept), "contact not there after No"),
-            check("accepting moves the contact to the deleted folder", not gone, "contact still in the program")]
+    return [check("declining changes nothing", bool(kept) and kept.get("deleted") is not True, "contact not there after No"),
+            check("accepting moves the contact to the deleted folder", bool(gone) and gone.get("deleted") is True,
+                  "contact still in the program")]
 
 
 test("MF-037", "Delete Contact asks for confirmation, then moves the contact to the deleted folder", _mf037_build, _mf037_check)
