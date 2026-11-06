@@ -19,6 +19,7 @@
 #
 
 import argparse
+import ast
 import datetime
 import hashlib
 import json
@@ -881,11 +882,27 @@ def gs_041(t):
     rf = t.run(fresh, "next sync starts empty", [g.sync(), g.dump("d2.json")])
     t.check("the next sync starts from an empty program", rf.contacts == [] and rf.appointments == [])
 
+    # The listing calls may appear only inside the --all-data branch of the clean-up.
     with open(clean, encoding="utf-8") as f:
-        text = f.read()
-    whole = "people/me/connections" in text or "list_contacts(token)" in text
-    t.check("the default clean-up finds records by search, not by listing the account", not whole,
-            "clean_test_data.py lists every contact (people/me/connections) and every event by default")
+        tree = ast.parse(f.read())
+    parents = {}
+    for node in ast.walk(tree):
+        for child in ast.iter_child_nodes(node):
+            parents[child] = node
+    unguarded = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and getattr(node.func, "id", "") in ("list_contacts", "list_events"):
+            child, guarded = node, False
+            while child in parents:
+                parent = parents[child]
+                if isinstance(parent, ast.If) and "all_data" in ast.unparse(parent.test) and child in parent.body:
+                    guarded = True
+                    break
+                child = parent
+            if not guarded:
+                unguarded.append("%s at line %d" % (node.func.id, node.lineno))
+    t.check("the default clean-up finds records by search, not by listing the account", not unguarded,
+            "listing outside --all-data: " + ", ".join(unguarded))
 
 
 # ------------------------------------------------------------------------------------------------ the runner
