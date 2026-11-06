@@ -72,7 +72,7 @@ The unit suite is one build and one run, covering all 112 unit tests (84 in area
 | Risk | Effect | Mitigation |
 |---|---|---|
 | Google changes its limits or latency | Area 1 takes longer, and the rate-limit tests (GS-036) change | Measure again at the first full cycle, and update this estimate. |
-| The accelerated harness is not yet in the repository (specification Appendix C, item 3) | Area 2 cannot be run from the repository until it is brought in | A prerequisite. The estimate assumes it is in place. |
+| The accelerated harness is not yet in the repository (test specification Appendix C, item 3) | Area 2 cannot be run from the repository until it is brought in | A prerequisite. The estimate assumes it is in place. |
 | The screen-reader tests need a person to listen | The area 4 time depends on the tester | Schedule the tests with the tester, and record the time spent. |
 | The "Both" tests in area 1 are run under each configuration | Area 1 runs more than once for those tests | The estimate counts each run. The high figure allows for the second configuration. |
 
