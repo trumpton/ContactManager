@@ -337,6 +337,31 @@ int main(int argc, char *argv[])
             return ;
         }
 
+        // The Go To Date box (dateInputDialog, a plain QDialog holding a date-time edit): recorded, then answered with the
+        // next date answer, or cancelled
+        if (QString(m->metaObject()->className()) == "QDialog" && m->findChild<QDateTimeEdit*>()) {
+            QDateTimeEdit *dte = m->findChild<QDateTimeEdit*>() ;
+            QLineEdit *le = dte->findChild<QLineEdit*>() ;
+            QString answer = dateAnswers.isEmpty() ? QString() : dateAnswers.takeFirst() ;
+            dialogCount++ ;
+            QString prefix = QString("dialog_%1").arg(dialogCount) ;
+            record(prefix + "_title", QJsonValue(m->windowTitle())) ;
+            record(prefix + "_text", QJsonValue(le ? le->text() : dte->text())) ;
+            record(prefix + "_cursor", QJsonValue(le ? le->cursorPosition() : -1)) ;
+            record(prefix + "_length", QJsonValue(le ? le->text().length() : dte->text().length())) ;
+            record(prefix + "_accname", QJsonValue(dte->accessibleName())) ;
+            record(prefix + "_accdesc", QJsonValue(dte->accessibleDescription())) ;
+            if (answer.isEmpty() || !le) {
+                note("date box cancelled") ;
+                QTest::keyClick(m, Qt::Key_Escape) ;
+            } else {
+                note("date box answered") ;
+                le->setText(answer) ;
+                QTest::keyClick(le, Qt::Key_Return) ;
+            }
+            return ;
+        }
+
         // A choice dialog is answered with the letter set by "choose", or cancelled when none is set
         if (auto *choice = qobject_cast<WarningChoice*>(m)) {
             QString letter = pendingChoice ;
@@ -1132,6 +1157,11 @@ int main(int argc, char *argv[])
             for (const QJsonValue &v : op["objects"].toArray()) {
                 QString obj = v.toString() ;
                 QWidget *c = top->findChild<QWidget*>(obj, Qt::FindChildrenRecursively) ;
+                if (!c) {
+                    // A window that is not modal (the appointment form, for one) is found among the visible windows
+                    for (QWidget *tl : QApplication::topLevelWidgets())
+                        if (!c && tl->isVisible()) c = tl->findChild<QWidget*>(obj, Qt::FindChildrenRecursively) ;
+                }
                 QString value = "MISSING" ;
                 if (c) {
                     value = QString() ;
@@ -1151,7 +1181,16 @@ int main(int argc, char *argv[])
                 record(name + "_" + obj, QJsonValue(value)) ;
             }
             if (op["rows"].toBool(false)) {
-                QAbstractItemView *view = top->findChild<QAbstractItemView*>(QString(), Qt::FindChildrenRecursively) ;
+                QAbstractItemView *view = nullptr ;
+                for (QWidget *tl : QApplication::topLevelWidgets()) {
+                    if (!tl->isVisible()) continue ;
+                    for (QAbstractItemView *v : tl->findChildren<QAbstractItemView*>()) {
+                        if (!v->isVisibleTo(tl)) continue ;
+                        if (v->hasFocus()) { view = v ; break ; }
+                        if (!view || (view->model() && view->model()->rowCount() == 0 && v->model() && v->model()->rowCount() > 0)) view = v ;
+                    }
+                    if (view && view->hasFocus()) break ;
+                }
                 QJsonArray rows ;
                 int current = -1 ;
                 if (view && view->model()) {
