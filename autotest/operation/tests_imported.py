@@ -418,6 +418,38 @@ test("IO-020", "Notes in plain text: a contact's to-do list and history are save
 
 # ------------------------------------------------------------------------------------------------ IO-011: birthdays
 
+def _io011_dates():
+    # birthdays repeat each year, so two dates a few days ahead of today show in the calendar window
+    today = dt.date.today()
+    first = today + dt.timedelta(days=3)
+    second = today + dt.timedelta(days=6)
+    return first.replace(year=1980).isoformat(), second.replace(year=1980).isoformat()
+
+
+def _io011_build(home):
+    first, second = _io011_dates()
+    return [run_spec(oc.fixtures_ops()),
+            run_spec([oc.setting_op("showbirthdays", "yes"), oc.open_op(1, "o"), oc.hold_op(),
+                      oc.form_set_op({"birthday": first}), oc.form_save_op("saved1"),
+                      oc.calendar_rows_op("cal1"),
+                      oc.form_set_op({"birthday": second}), oc.form_save_op("saved2"),
+                      oc.calendar_rows_op("cal2"), oc.hold_op(False), oc.dump_op()])]
+
+
+def _io011_check(runs, home):
+    r = runs[1]
+    first, second = _io011_dates()
+    def shown(d):                                   # the calendar's own text for this year's birthday: "Mon 09 Nov 2026 All Day: ..."
+        b = dt.date.fromisoformat(d)
+        this_year = dt.date(dt.date.today().year, b.month, b.day)
+        return this_year.strftime("%a %d %b %Y") + " All Day: Jack O'Neil - Birthday"
+    t1 = " | ".join(r.value("cal1_titles") or [])
+    t2 = " | ".join(r.value("cal2_titles") or [])
+    return [check("the first birthday is saved", r.value("saved1_saved") is True, "saved %r" % r.value("saved1_saved")),
+            check("the new date is shown in the calendar", shown(first) in t1, "titles %r" % t1[:200]),
+            check("the second date is shown after the change", shown(second) in t2, "titles %r" % t2[:200]),
+            check("and the old date is gone after the change", shown(first) not in t2, "titles %r" % t2[:200])]
+
+
 test("IO-011", "A birthday saved on a contact shows in the calendar straight away, with birthdays shown",
-     lambda home: [run_spec([oc.dump_op()])], lambda runs, home: [],
-     blocked_reason="the driver cannot set a birthday yet (no birthday field in its contact map, and no birthday calendar row).")
+     _io011_build, _io011_check)
