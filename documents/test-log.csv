@@ -49,15 +49,15 @@ AN-047,2026-11-06,06d7256,FAIL,,"Run-level check. Fails because AN-011, AN-012, 
 AN-048,2026-11-06,06d7256,PASS,,
 AC-019,2026-11-06,9283d87,PASS,,
 AC-020,2026-11-06,9283d87,PASS,,
-AC-021,2026-11-06,9283d87,FAIL,"Program: the spin boxes' own text fields have no name (qt_spinbox_lineedit), in Setup and the appointment form. Real, minor.",
-AC-022,2026-11-06,9283d87,FAIL,,Bench: the check expects a different text after Tab; the text does follow the focus. Check the expectation.
+AC-021,2026-11-06,f58b29b,PASS,,
+AC-022,2026-11-06,f58b29b,FAIL,"Possible program bug: with Show Screen Reader Text open, Tab from the calendar list moves the focus into that dialog's text box, not to the tab bar as it does with the dialog closed, so the text does not follow the main window's focus.","Bench check reads the text after Tab; the focus leaves the main window, so the text does not change. Not yet decided whether the program or the test is wrong."
 AC-023,2026-11-06,9283d87,PASS,,
 AC-024,2026-11-06,9283d87,PASS,,
-AC-025,2026-11-06,9283d87,FAIL,,Needs checking: the focus read inside the warning is empty (no focus widget recorded).
-AC-026,2026-11-06,9283d87,FAIL,,"Needs checking: Escape left Setup open with focus on a combo box (IdentifyMe), which may take Escape for its popup. Check the key target."
+AC-025,2026-11-06,f58b29b,PASS,,"Headless run: the application focus is empty when no window is active, so the check reads the warning's own focus control (driver focus op now records it)."
+AC-026,2026-11-06,f58b29b,FAIL,,"Not resolved. Escape reaches the focused control, but Setup, Advanced Search and About stay open. The program has no Escape handling of its own, so the cause is probably in the driver's key delivery. Needs investigation."
 AC-027,2026-11-06,9283d87,PASS,,
-AC-028,2026-11-06,9283d87,FAIL,,"Bench: the date box read is empty, although Go To Date sets its name and description. The bench reads the wrong dialog or none."
-AC-029,2026-11-06,9283d87,FAIL,,Bench: the check reads focus while the Tidy summary is still open. It must close it first.
+AC-028,2026-11-06,f58b29b,PASS,,
+AC-029,2026-11-06,f58b29b,PASS,,"Closes the Tidy summary through the operation driver's tidy op, and reads the main window's focus when the application focus is empty (headless)."
 UT-001,2026-11-06,02c08c7,PASS,,
 UT-002,2026-11-06,02c08c7,PASS,,
 UT-003,2026-11-06,02c08c7,PASS,,

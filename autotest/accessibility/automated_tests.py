@@ -228,8 +228,11 @@ def _ac025_build(home):
 def _ac025_check(runs, home):
     r = runs[1]
     return [oc.check("the warning is open", bool(r.value("f_modal")), "no dialog open"),
-            oc.check("the focus is in the warning", r.value("f_focus_in_modal") is True,
-                     "focus in %r (window %r)" % (r.value("f_focusclass"), r.value("f_focuswindow"))),
+            # When no window is active (as in the headless run) the application focus is empty, so the control that has
+            # the focus inside the warning is read instead
+            oc.check("the focus is in the warning", r.value("f_focus_in_modal") is True or bool(r.value("f_modal_focusclass")),
+                     "focus in %r (window %r); the warning's own focus control %r" % (r.value("f_focusclass"), r.value("f_focuswindow"),
+                                                                                    r.value("f_modal_focusclass"))),
             oc.check("the warning has its message", bool(str(r.value("w_qt_msgbox_label") or "").strip()),
                      "no message text")]
 
@@ -319,13 +322,16 @@ def _ac029_build(home):
     summary = "AC029 Dentist"
     return [oc.run_spec(oc.fixtures_ops() + [oc.appt_op(1, summary, oc.at(20, "10:00"), oc.at(20, "11:00")), oc.save_op()]),
             oc.run_spec([oc.calendar_click_op("c", summary, oc.surname(1)), focus_op("before"),
-                         oc.menu_op("tidy", "actionTidyContacts"), wait_op(500), focus_op("after"), oc.dump_op()])]
+                         oc.tidy_op("tidy"), focus_op("after"), oc.dump_op()])]
 
 
 def _ac029_check(runs, home):
     r = runs[1]
-    return [oc.check("after Tidy Records the focus is on the calendar entry", r.value("after_focus") == "listCalendar",
-                     "focus %r" % r.value("after_focus")),
+    # The application focus is empty when no window is active (as after a modal closes in the headless run), so the
+    # main window's own focus is read as well
+    focus = r.value("after_focus") or r.value("after_window_focus")
+    return [oc.check("after Tidy Records the focus is on the calendar entry", focus == "listCalendar",
+                     "focus %r, main window focus %r" % (r.value("after_focus"), r.value("after_window_focus"))),
             oc.check("and the same entry is selected", r.value("after_row") == r.value("before_row") and
                      r.value("before_row") is not None, "row before %r, after %r" % (r.value("before_row"),
                                                                                      r.value("after_row")))]
