@@ -1301,6 +1301,13 @@ int main(int argc, char *argv[])
             record(name + "_modal", QJsonValue(modal ? modal->windowTitle() : QString())) ;
             record(name + "_focus_in_modal", QJsonValue(f && modal ? (f->window() == modal) : false)) ;
             record(name + "_row", QJsonValue(w.ui->listCalendar->currentIndex().row())) ;
+            // The control the main window would give the focus to, when no window is active (the application focus is empty then)
+            QWidget *mf = w.focusWidget() ;
+            record(name + "_window_focus", QJsonValue(mf ? mf->objectName() : QString())) ;
+            // The control that has the focus inside the dialog that is open, and the class of that control
+            QWidget *mdf = modal ? modal->focusWidget() : nullptr ;
+            record(name + "_modal_focus", QJsonValue(mdf ? mdf->objectName() : QString())) ;
+            record(name + "_modal_focusclass", QJsonValue(mdf ? QString(mdf->metaObject()->className()) : QString())) ;
 
         } else if (kind == "acc_rows") {
             // The accessible text of each calendar entry, as a screen reader reads it
