@@ -47,17 +47,17 @@ AN-045,2026-11-06,06d7256,FAIL,,"Appointment made 26 hours ahead, so the reminde
 AN-046,2026-11-06,06d7256,PASS,,
 AN-047,2026-11-06,06d7256,FAIL,,"Run-level check. Fails because AN-011, AN-012, AN-015 and AN-019 failed."
 AN-048,2026-11-06,06d7256,PASS,,
-AC-019,2026-11-06,73f67d8,PASS,,
-AC-020,2026-11-06,73f67d8,PASS,,
-AC-021,2026-11-06,73f67d8,FAIL,,"Zero controls found in all five dialogs, so the dialogs were probably not opened. Not yet investigated."
-AC-022,2026-11-06,73f67d8,FAIL,,The check after Tab expects different text from what is read. Not yet investigated.
-AC-023,2026-11-06,73f67d8,PASS,,
-AC-024,2026-11-06,73f67d8,PASS,,
-AC-025,2026-11-06,73f67d8,FAIL,,"Calls oc.focus_op, which does not exist; focus_op is defined in automated_tests.py."
-AC-026,2026-11-06,73f67d8,FAIL,,Same cause as AC-025: oc.focus_op does not exist.
-AC-027,2026-11-06,73f67d8,PASS,,
-AC-028,2026-11-06,73f67d8,FAIL,Typed-date box has an empty accessible name and description (to confirm).,
-AC-029,2026-11-06,73f67d8,FAIL,Focus is empty after Tidy Records (to confirm).,Could be the bench's focus read. Not yet investigated.
+AC-019,2026-11-06,9283d87,PASS,,
+AC-020,2026-11-06,9283d87,PASS,,
+AC-021,2026-11-06,9283d87,FAIL,"Program: the spin boxes' own text fields have no name (qt_spinbox_lineedit), in Setup and the appointment form. Real, minor.",
+AC-022,2026-11-06,9283d87,FAIL,,Bench: the check expects a different text after Tab; the text does follow the focus. Check the expectation.
+AC-023,2026-11-06,9283d87,PASS,,
+AC-024,2026-11-06,9283d87,PASS,,
+AC-025,2026-11-06,9283d87,FAIL,,Needs checking: the focus read inside the warning is empty (no focus widget recorded).
+AC-026,2026-11-06,9283d87,FAIL,,"Needs checking: Escape left Setup open with focus on a combo box (IdentifyMe), which may take Escape for its popup. Check the key target."
+AC-027,2026-11-06,9283d87,PASS,,
+AC-028,2026-11-06,9283d87,FAIL,,"Bench: the date box read is empty, although Go To Date sets its name and description. The bench reads the wrong dialog or none."
+AC-029,2026-11-06,9283d87,FAIL,,Bench: the check reads focus while the Tidy summary is still open. It must close it first.
 UT-001,2026-11-06,02c08c7,PASS,,
 UT-002,2026-11-06,02c08c7,PASS,,
 UT-003,2026-11-06,02c08c7,PASS,,
@@ -475,7 +475,7 @@ IO-018,2026-11-06,8c6434b,FAIL,,Bench: the appointment file is not found where t
 IO-019,2026-11-06,8c6434b,PASS,,
 IO-020,2026-11-06,8c6434b,PASS,,
 IA-001,,,NOT RUN,,
-IA-002,,,NOT RUN,,
+IA-002,2026-11-06,9283d87,PASS,,
 OF-001,2026-11-06,8c6434b,PASS,,The first run hung on an error box until the run script gave the home folder its ini file (fixed in 8c6434b).
 GS-004,,,NOT RUN,,Merged into GS-003 (section 1); its checks run as part of GS-003
 GS-006,,,NOT RUN,,Merged into GS-005 (section 1); its checks run as part of GS-005
