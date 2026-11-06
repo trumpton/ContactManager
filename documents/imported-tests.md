@@ -51,29 +51,29 @@ How the imports are split: a scenario is an operation test (`IO`) if its body ca
 | IG-039 | X02 | 1002 | Very long comment (6000 characters) round-trips intact | Ported to the Google bench, not run |
 | IG-040 | X03 | 1016 | Quotes, backslashes, ampersands, angle brackets, emoji and right-to-left text round-trip | Ported to the Google bench, not run |
 | IG-041 | X04 | 1028 | Phone number formats (international, brackets, extensions) keep their digits | Ported to the Google bench, not run |
-| IG-042 | X05 | 1046 | Same email on two different contacts: both kept, not merged | To port |
-| IG-043 | X06 | 1054 | Six emails on Google: the app holds four, and the rest go to Comments | To port |
-| IG-044 | X07 | 1070 | Birthdays: leap day and no-year birthday are not changed by the sync | To port |
-| IG-045 | X08 | 1084 | Multi-line address round-trips with formatting ignored | To port |
-| IG-046 | X09 | 1096 | Hidden, then shown again: the contact is back on Google | To port |
-| IG-047 | X10 | 1109 | Edit then delete between syncs: the stale edit is not uploaded | To port |
-| IG-048 | X11 | 1121 | All-day event on Google: read without crashing, not rewritten | To port |
-| IG-049 | X12 | 1132 | Event crossing midnight with a timezone offset keeps the same instant | To port |
+| IG-042 | X05 | 1046 | Same email on two different contacts: both kept, not merged | Ported to the Google bench, not run |
+| IG-043 | X06 | 1054 | Six emails on Google: the app holds four, and the rest go to Comments | Ported to the Google bench, not run |
+| IG-044 | X07 | 1070 | Birthdays: leap day and no-year birthday are not changed by the sync | Ported to the Google bench, not run |
+| IG-045 | X08 | 1084 | Multi-line address round-trips with formatting ignored | Ported to the Google bench, not run |
+| IG-046 | X09 | 1096 | Hidden, then shown again: the contact is back on Google | Ported to the Google bench, not run |
+| IG-047 | X10 | 1109 | Edit then delete between syncs: the stale edit is not uploaded | Ported to the Google bench, not run |
+| IG-048 | X11 | 1121 | All-day event on Google: read without crashing, not rewritten | Ported to the Google bench, not run |
+| IG-049 | X12 | 1132 | Event crossing midnight with a timezone offset keeps the same instant | Ported to the Google bench, not run |
 | IG-050 | X13 | 1142 | Local appointment with no end time: uploaded or refused, but no crash and no duplicate | Covered by GS-025 |
-| IG-051 | X14 | 1167 | Unicode summary and multi-line description round-trip | To port |
+| IG-051 | X14 | 1167 | Unicode summary and multi-line description round-trip | Ported to the Google bench, not run |
 | IG-052 | X15 | 1180 | Event outside the sync window is not duplicated across syncs | Covered by GS-023 |
-| IG-053 | X16 | 1188 | Appointment deleted on both sides before sync: no error, nothing left | To port |
+| IG-053 | X16 | 1188 | Appointment deleted on both sides before sync: no error, nothing left | Ported to the Google bench, not run |
 | IG-054 | X17 | 1197 | Conflict: location changed in the app and on Google; ContactManager master, so the app's change wins (item 4) | Covered by GS-005 |
-| IG-055 | X18 | 1211 | Five back-to-back syncs with no change: no writes after the first | To port |
-| IG-056 | X19 | 1220 | Twenty contacts made in ContactManager master, then edits on Google under Google master | To port |
-| IG-057 | LB01 | 1251 | Four emails from Google (home, other, work, Partner): each keeps its slot and label, no write | To port |
-| IG-058 | LB02 | 1272 | A label changed in the app is sent to Google as that email's type | To port |
-| IG-059 | LB03 | 1290 | Emails with no labels set are sent with the labels they always had | To port |
-| IG-060 | X20 | 1304 | An address with no type is held in the first address slot | To port |
-| IG-061 | P01 | 1325 | Four phones from Google (home, work, mobile, Pager): each keeps its slot and label, no write | To port |
-| IG-062 | P02 | 1346 | A phone label changed in the app is sent to Google as that number's type | To port |
-| IG-063 | P03 | 1365 | Phones with no labels set are sent with the labels they always had | To port |
-| IG-064 | P04 | 1379 | Seven phones on Google: the app holds six, the seventh goes to Comments | To port |
+| IG-055 | X18 | 1211 | Five back-to-back syncs with no change: no writes after the first | Ported to the Google bench, not run |
+| IG-056 | X19 | 1220 | Twenty contacts made in ContactManager master, then edits on Google under Google master | Ported to the Google bench, not run |
+| IG-057 | LB01 | 1251 | Four emails from Google (home, other, work, Partner): each keeps its slot and label, no write | Ported to the Google bench, not run |
+| IG-058 | LB02 | 1272 | A label changed in the app is sent to Google as that email's type | Ported to the Google bench, not run |
+| IG-059 | LB03 | 1290 | Emails with no labels set are sent with the labels they always had | Ported to the Google bench, not run |
+| IG-060 | X20 | 1304 | An address with no type is held in the first address slot | Ported to the Google bench, not run |
+| IG-061 | P01 | 1325 | Four phones from Google (home, work, mobile, Pager): each keeps its slot and label, no write | Ported to the Google bench, not run |
+| IG-062 | P02 | 1346 | A phone label changed in the app is sent to Google as that number's type | Ported to the Google bench, not run |
+| IG-063 | P03 | 1365 | Phones with no labels set are sent with the labels they always had | Ported to the Google bench, not run |
+| IG-064 | P04 | 1379 | Seven phones on Google: the app holds six, the seventh goes to Comments | Ported to the Google bench, not run |
 | IG-065 | D01 | 1399 | Clearing an email and a phone in the app removes them from Google | To port |
 | IG-066 | ED01 | 1436 | Editor: a label typed after an address becomes its title, and Google gets it as that type | Covered by DL-015 |
 | IG-067 | ED02 | 1453 | Editor: a save with a bad entry is refused, focus goes to the first, nothing is saved, and the typed text is kept | Covered by DL-014 |

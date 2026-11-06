@@ -286,6 +286,27 @@ These tests were imported from the archive bench (`documents/imported-tests.md`)
 | IG-040 | Quotes, backslashes, ampersands, angle brackets, emoji and right-to-left text round-trip | A contact whose name and comment hold quotes, backslashes, ampersands, angle brackets, emoji and right-to-left text; sync. Expect the name held exactly on Google and in the app. | CM |
 | IG-041 | Phone number formats (international, brackets, extensions) keep their digits | A Google contact with three phone formats; sync. Expect the digits unchanged on Google, and in the app without the (0) trunk zero. | CM |
 
+| IG-042 | Same email on two different contacts: both kept, not merged | A Google contact and an app contact with the same email; sync. Expect both kept on Google and both in the app. | CM |
+| IG-043 | Six emails on Google: the app holds four, and the rest go to Comments | A Google contact with six emails; sync twice. Expect four emails held in the app, the other two in Comments, and all six still on Google. | CM |
+| IG-044 | Birthdays: leap day and no-year birthday are not changed by the sync | Two Google contacts, one with a 29 February birthday and one with a birthday without a year; sync twice. Expect neither Google record written. | CM |
+| IG-045 | Multi-line address round-trips with formatting ignored | A Google contact with a multi-line address; sync. Expect the Google address unchanged (formatting ignored), and the app holding the address. | CM |
+| IG-046 | Hidden, then shown again: the contact is back on Google | A contact synced, hidden in the app, synced, shown again in the app, synced. Expect one Google copy, and the app showing it as not hidden. | CM |
+| IG-047 | Edit then delete between syncs: the stale edit is not uploaded | A contact synced, edited and deleted in the app, then synced. Expect the contact gone from Google in every name. | CM |
+| IG-048 | All-day event on Google: read without crashing, not rewritten | An all-day Google event; sync twice. Expect the Google event not rewritten, and one entry in the app. | CM |
+| IG-049 | Event crossing midnight with a timezone offset keeps the same instant | A Google event crossing midnight with a timezone offset; sync twice. Expect one entry each time, with the same local ID. | CM |
+| IG-051 | Unicode summary and multi-line description round-trip | A Google event with a Unicode summary and a multi-line description; sync. Expect the summary unchanged on Google, and the description intact in the app. | CM |
+| IG-053 | Appointment deleted on both sides before sync: no error, nothing left | An event synced, deleted in the app and deleted on Google, then synced. Expect no Google event and no live copy in the app. | CM |
+| IG-055 | Five back-to-back syncs with no change: no writes after the first | A Google contact; sync; then five syncs. Expect its etag unchanged after the five. | CM |
+| IG-056 | Twenty contacts made in ContactManager master, then edits on Google under Google master | Twenty contacts made in the app and synced (ContactManager master); five are renamed on Google under Google master; the master is changed back. Expect twenty contacts on Google, no duplicates, and the five edits kept. | CM |
+| IG-057 | Four emails from Google (home, other, work, Partner): each keeps its slot and label, no write | A Google contact with four emails, each with a type; sync. Expect the Google record not written, the four addresses in their slots, and their labels held. | CM |
+| IG-058 | A label changed in the app is sent to Google as that email's type | A Google contact with two emails; sync; label the second Mobile in the app; sync. Expect the second email sent as Mobile and the first kept as Home. | CM |
+| IG-059 | Emails with no labels set are sent with the labels they always had | A contact with four emails and no labels, added in the app; sync. Expect Home, Other, Other, Other as their Google types. | CM |
+| IG-060 | An address with no type is held in the first address slot | A Google contact with an untyped address; sync. Expect the app to hold the address in its first slot. | CM |
+| IG-061 | Four phones from Google (home, work, mobile, Pager): each keeps its slot and label, no write | A Google contact with four phones, each typed; sync. Expect the Google record not written, the numbers in their slots, and their labels held. | CM |
+| IG-062 | A phone label changed in the app is sent to Google as that number's type | A Google contact with two phones; sync; label the second Fax in the app; sync twice. Expect the second number sent as Fax and the first kept as Home. | CM |
+| IG-063 | Phones with no labels set are sent with the labels they always had | A contact with six phones and no labels, added in the app; sync. Expect Home, Work, Mobile, Other, Other, Other as their Google types. | CM |
+| IG-064 | Seven phones on Google: the app holds six, the seventh goes to Comments | A Google contact with seven phones; sync twice. Expect six phones held in the app, and the seventh kept in Comments. | CM |
+
 ---
 
 ## 2. Announcements (offline, accelerated clock, stub transports)
