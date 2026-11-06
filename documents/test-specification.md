@@ -516,6 +516,7 @@ These tests were imported from the archive bench (`documents/imported-tests.md`)
 | IO-018 | An appointment file moved into the archive is not loaded at start-up, and start-up leaves it in the archive | Save an appointment; move its file into the calendar's archive folder; start the program. Expect the appointment not loaded, and the file still in the archive. | Automated |
 | IO-019 | A start with no to-do or history file opens and writes its data | Start the program in an empty home folder. Expect the program to start and write its data. | Automated |
 | IO-020 | Notes in plain text: a contact's to-do list and history are saved as plain files, and a restart reads them back | Give a contact a to-do list and a history; save; restart. Expect plain `.todolist` and `.history` files holding the text, and the contact read back after the restart. | Automated |
+| OF-001 | A contact file written by an older version keeps its meaning: its labels, addresses and phones load, and survive a save | Build `autotest/unit/oldfile/old_contact_test.cpp` (`autotest/unit/run-old-contact-test.sh`). Expect each check to pass: the three addresses in their slots, the old email and phone labels, a phone2 title kept as a label, and the file unchanged after a save. | Automated (test program) |
 
 ---
 
@@ -568,6 +569,14 @@ Run by `autotest/accessibility/automated_tests.py`, through the operation driver
 The automated checks cover the dialogs and controls named above, not every control in the program. A control that is not in those dialogs is checked only by the manual tests.
 
 ---
+
+### 4b. Imported accessibility test
+
+This test was imported from the archive bench (`documents/imported-tests.md`), and is run with the section 4a checks.
+
+| ID | Title | Procedure and expected result | How run |
+|---|---|---|---|
+| IA-002 | The accessibility debug checkbox in the screen reader text dialog turns console tracing on and off | Open Show Screen Reader Text; tick its debug checkbox, then clear it. Expect the box to follow each change, and the console to log `AccessibleDebug on` and then `AccessibleDebug off`. | Automated |
 
 ## 5. Capacity stress test (not part of the normal cycle)
 

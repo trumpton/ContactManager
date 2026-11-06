@@ -337,6 +337,26 @@ test("AC-029", "Focus stays on the entry after Tidy Records (automates the Tidy 
 
 # ------------------------------------------------------------------------------------------------ the runner
 
+# ------------------------------------------------------------------------------------------------ IA-002: the debug checkbox
+
+def _ia002_build(home):
+    return [oc.run_spec([{"op": "call", "name": "ia002", "fn": "showacc"},
+                         {"op": "accdebug", "name": "ia002on", "value": True},
+                         {"op": "accdebug", "name": "ia002off", "value": False}, oc.dump_op()])]
+
+
+def _ia002_check(runs, home):
+    r = runs[0]
+    return [oc.check("the debug checkbox is ticked", r.value("ia002on_box") is True, "box %r" % r.value("ia002on_box")),
+            oc.check("and cleared again", r.value("ia002off_box") is False, "box %r" % r.value("ia002off_box")),
+            oc.check("switching on is logged to the console", r.logged("AccessibleDebug on"), ""),
+            oc.check("switching off is logged to the console", r.logged("AccessibleDebug off"), "")]
+
+
+test("IA-002", "The accessibility debug checkbox in the screen reader text dialog turns console tracing on and off",
+     _ia002_build, _ia002_check, "imported (archive L06)")
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description="Automated checks for section 4 (AC-019 to AC-029).")
     p.add_argument("--list", action="store_true")
