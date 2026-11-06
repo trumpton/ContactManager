@@ -102,7 +102,7 @@ Every record the tests create carries an identifier, so it can be found and remo
 
 Area 2 runs on a clock that goes faster than real time: **10 real seconds = 1 hour**, that is 360 times real time. Three days (72 hours) take 12 minutes.
 
-At 360 times, one real second is 6 minutes of program time. The program checks for due messages once per real second, so a message can be up to one check (6 minutes) late in program time. Area 2 expectations allow this: a message is **on time** when it is sent at the expected minute, or at the next check (within 6 minutes), and not later. Any later is a failure.
+At 360 times, one real second is 6 minutes of program time. The program checks for due messages once per real second, so a message can be up to one check (6 minutes) late in program time. Area 2 expectations allow this: a message is **on time** when it is sent at the expected minute, or at the next check (within 6 minutes), and not later. Any later is a failure. A confirmation is the exception: it may arrive up to **15 virtual minutes** after its expected time, and not later.
 
 The clock is set by the test harness, through a shim that changes the time the program reads (the shim is in the scratch folder, with the harness: Appendix B, item 3). The program's own timers and time reads all follow it.
 
@@ -242,7 +242,7 @@ The announcement tests run as **runs**. A run is one headless process of the pro
 | AN-013 | An appointment created and deleted before confirmation sends nothing | Create at 10:00; delete at 10:01. Expect nothing sent. | Accelerated, run A |
 | AN-014 | A title or location change alone sends no update | Confirm; change the title only. Expect nothing sent. | Accelerated, run A |
 | AN-015 | A repeat occurrence removed after confirmation sends a cancellation for that date only | Weekly repeat for contact 2, confirmed; delete one occurrence. Expect one cancellation for that date, by email, and no other message. | Accelerated, run A |
-| AN-016 | Each occurrence of a repeat is reminded once | Daily repeat for contact 5, made at 09:00 on day 0, first on day 1 at 10:00, with occurrences on days 1, 2 and 3. Expect one confirmation, one reminder before each occurrence, and one email and one text on each day, none twice. | Accelerated, run A |
+| AN-016 | Each occurrence of a repeat is reminded once | Daily repeat for contact 5, made at 09:00 on day 0, first on day 1 at 10:00, with occurrences on days 1, 2 and 3. Expect one confirmation. The first occurrence gets no reminder, since it was confirmed less than 36 hours before its start (the reminder rule). Expect one reminder before each of the second and third occurrences, and one email and one text on each day, none twice. | Accelerated, run A |
 
 ### 2.2 Send window, silent period and backlogs
 
