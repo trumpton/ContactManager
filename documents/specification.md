@@ -16,7 +16,7 @@ This specification describes what the program should do.
 5. Announcements and alerts
 6. Menus and keys
 7. Synchronisation with Google
-- Appendix B. Glossary
+- Appendix A. Glossary
 
 ---
 
@@ -758,7 +758,7 @@ When a sync stops, the last line of the report gives the reason and what to do:
 
 #---
 
-## Appendix B. Glossary
+## Appendix A. Glossary
 
 | Term | Meaning |
 |---|---|
