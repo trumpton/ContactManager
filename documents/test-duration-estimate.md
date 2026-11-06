@@ -10,11 +10,11 @@ A cycle runs every test once. It takes about **8 hours 01 minutes to 11 hours 41
 
 | Area | Tests | Automated | Person's time | Total (low to high) |
 |---|---|---|---|---|
-| 1 Google sync (live system access) | 42 new, 162 imported (U01 is in section 5) | 5 h 09 min to 7 h 43 min | none | 5 h 09 min to 7 h 43 min |
+| 1 Google sync (live system access) | 42 new, 142 imported (U01 is in section 5) | 5 h 09 min to 7 h 43 min | none | 5 h 09 min to 7 h 43 min |
 | 5 Capacity stress test (not part of the normal cycle) | CS-001, the imported U01 | 17 min 42 s | none | 17 min 42 s, shown separately |
 | 2 Announcements (offline, accelerated clock, stub transports) | 48 new, in 10 parallel runs | 16 min to 17 min (the longest run) | none | 16 min to 17 min |
 | 6 Unit suite | 114 imported | 3 min to 5 min | none | 3 min to 5 min |
-| 3 Operation testing | 97 new, 31 imported (not yet identified), 1 old-file test (OF-001) | 1 h 18 min to 2 h 03 min | none | 1 h 18 min to 2 h 03 min |
+| 3 Operation testing | 97 new, 20 imported (IO-001 to IO-020), 1 old-file test (OF-001) | 1 h 18 min to 2 h 03 min | none | 1 h 18 min to 2 h 03 min |
 | 4 Accessibility (manual, with automated checks) | 18 new, 2 imported | 3 min | 1 h 12 min to 1 h 30 min | 1 h 15 min to 1 h 33 min |
 | **Total (cycle, excluding section 5)** | **205 new, 278 imported** | **6 h 49 min to 10 h 11 min** | **1 h 12 min to 1 h 30 min** | **8 h 01 min to 11 h 41 min** |
 
@@ -53,10 +53,10 @@ Area 3 is automated. Its figures are the operation runner's runs through the tes
 
 ### 2.3 What each area counts
 
-- **Area 1** counts the 42 new live tests and the 162 imported Google scenarios (`documents/imported-tests.md`), at the median (77 s) for the low figure and the 90th percentile (102 s) for the high figure. The durations were calculated on 131 scenarios, not 162, and have not been recalculated; this needs checking. The clean-up is counted once. U01 is not counted here: it is the capacity stress test in section 5 of the test specification (CS-001), and is shown on its own line.
+- **Area 1** counts the 42 new live tests and the 142 imported Google scenarios (`documents/imported-tests.md`), at the median (77 s) for the low figure and the 90th percentile (102 s) for the high figure. The durations were calculated on 131 Google scenarios and 31 operation scenarios. The register now has 142 and 20, and the durations have not been recalculated; this needs checking. The clean-up is counted once. U01 is not counted here: it is the capacity stress test in section 5 of the test specification (CS-001), and is shown on its own line.
 - **Section 5 (capacity stress test)** counts U01 (CS-001) at its measured time, 17 min 42 s. It runs on the scratch account only, when capacity is in question.
 - **Area 2** counts the 48 new accelerated tests (AN-001 to AN-048).
-- **Area 3** counts the 97 new operation tests (SS: 15, MF: 53, DL: 29, including DL-022) at 20 to 40 seconds each, the five minutes for the multi-run tests, and the 31 imported scenarios (SS: 6, MF: 13, DL: 12) at the measured times, plus the old-file test.
+- **Area 3** counts the 97 new operation tests (SS: 15, MF: 53, DL: 29, including DL-022) at 20 to 40 seconds each, the five minutes for the multi-run tests, and the 20 imported operation scenarios (IO-001 to IO-020, see `documents/imported-tests.md`; the estimate's earlier figure was 31 SS 6, MF 13, DL 12) at the measured times, plus the old-file test.
 - **Area 4** counts the 18 new screen-reader tests (manual) and the two imported accessibility scenarios (automated).
 
 ---

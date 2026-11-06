@@ -38,6 +38,7 @@ Every test has a unique ID and a one-line title. The prefix is the area:
 | `AC` | Accessibility (area 4) |
 | `IG` | Imported Google sync scenarios from the archive bench (area 1) |
 | `IA` | Imported accessibility scenarios from the archive bench (area 4) |
+| `IO` | Imported operation scenarios from the archive bench (area 3) |
 | `OF` | The imported old-file test (area 3) |
 | `UT-001` to `UT-114` | Unit suite (section 6), one number for each unit test |
 
