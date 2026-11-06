@@ -37,7 +37,10 @@ done
 
 g++ -o "$work/old_contact_test" "$work/old_contact_test.o" $objects $qtlibs -lpthread -lGLX -lOpenGL
 
-mkdir -p "$work/home" "$work/data"
+mkdir -p "$work/home/TrumptonApps" "$work/home/.config/trumpton.org.uk" "$work/data"
+# The program's ini file, as the bench writes it (documents/headless-test.md, section 4a); without it the program shows
+# an error box that this test does not answer, so it waits for ever.
+printf '[phone]\nlocalcode=\ncountrycode=\n\n[reminders]\nearliestsend=00:00\nlatestsend=23:59\n' > "$work/home/TrumptonApps/ContactManager.ini"
 cp "$here/oldfile/old-contact.contact" "$here/oldfile/old-other.contact" "$work/data/"
 cd "$work"
 env HOME="$work/home" QT_QPA_PLATFORM=offscreen CM_TEST_SECRET="${CM_TEST_SECRET:-announcement-bench-only}" \
