@@ -305,6 +305,15 @@ int main(int argc, char *argv[])
         QString text ;
         if (auto *box = qobject_cast<QMessageBox*>(m)) text = box->text() ;
         note(QString("dialog %1 \"%2\": %3").arg(m->metaObject()->className(), m->windowTitle(), text)) ;
+        // A fresh data folder has no key: the operation-test runner sets CM_TEST_SETKEY, and the question that offers to
+        // set the key is then answered Yes (the key and password are then entered by the Encryption dialog, above)
+        if (!qgetenv("CM_TEST_SETKEY").isEmpty() && text.startsWith("You have failed to login")) {
+            if (QPushButton *yes = m->findChild<QPushButton*>()) {
+                for (QPushButton *pb : m->findChildren<QPushButton*>()) if (pb->text().contains("Yes")) yes = pb ;
+                yes->click() ;
+                return ;
+            }
+        }
         QPushButton *b = defaultButton(m) ;
         if (b) b->click() ;
         else m->close() ;
@@ -920,6 +929,65 @@ int main(int argc, char *argv[])
             record(name + "_contacts", contactsChanged) ;
             record(name + "_unfixed", lines) ;
             note(QString("%1: %2 entries put right in %3 contacts, %4 not fixed").arg(name).arg(changed).arg(contactsChanged).arg(unfixed.size())) ;
+
+        } else if (kind == "keys") {
+            // Keys typed as a user types them, into the window with the focus: one shortcut ("Ctrl+Shift+N", "F9") or
+            // a sequence of them ("Alt+E, D").  Records the name of the window that has the focus afterwards.
+            QString name = op["name"].toString() ;
+            QKeySequence seq(op["sequence"].toString()) ;
+            QWidget *target = QApplication::focusWidget() ? QApplication::focusWidget() : (QWidget*)&w ;
+            for (int i = 0; i < (int)seq.count(); i++) {
+                int combo = seq[i] ;
+                Qt::Key key = (Qt::Key)(combo & ~Qt::KeyboardModifierMask) ;
+                Qt::KeyboardModifiers mods = (Qt::KeyboardModifiers)(combo & Qt::KeyboardModifierMask) ;
+                QTest::keyClick(target, key, mods) ;
+                QTest::qWait(30) ;
+            }
+            record(name + "_focus", QJsonValue(QApplication::focusWidget() ? QApplication::focusWidget()->objectName() : QString())) ;
+
+        } else if (kind == "shortcut") {
+            // The action that the shortcut is bound to, found on the main window's menus, and whether it is enabled
+            QString name = op["name"].toString() ;
+            QKeySequence want(op["sequence"].toString()) ;
+            QString found ;
+            bool enabled = false ;
+            for (QAction *a : w.findChildren<QAction*>()) {
+                if (!a->shortcut().isEmpty() && a->shortcut() == want) { found = a->objectName() ; enabled = a->isEnabled() ; break ; }
+            }
+            record(name + "_action", QJsonValue(found)) ;
+            record(name + "_enabled", QJsonValue(enabled)) ;
+
+        } else if (kind == "menu") {
+            // An action by its object name: records its text and whether it is enabled, and triggers it when asked
+            QString name = op["name"].toString() ;
+            QAction *a = w.findChild<QAction*>(op["action"].toString()) ;
+            if (!a) { record(name + "_found", QJsonValue(false)) ; }
+            else {
+                record(name + "_found", QJsonValue(true)) ;
+                record(name + "_text", QJsonValue(a->text())) ;
+                record(name + "_enabled", QJsonValue(a->isEnabled())) ;
+                if (op["trigger"].toBool() && a->isEnabled()) a->trigger() ;
+            }
+
+        } else if (kind == "actions") {
+            // Enabled state of several actions by object name
+            QString name = op["name"].toString() ;
+            QJsonObject states ;
+            for (const QJsonValue &v : op["actions"].toArray()) {
+                QAction *a = w.findChild<QAction*>(v.toString()) ;
+                states.insert(v.toString(), a ? QJsonValue(a->isEnabled()) : QJsonValue(QString("missing"))) ;
+            }
+            record(name + "_states", states) ;
+
+        } else if (kind == "windows") {
+            // The titles of the visible windows other than the main window, for checks that a dialog or window is open
+            QString name = op["name"].toString() ;
+            QJsonArray titles ;
+            for (QWidget *tl : QApplication::topLevelWidgets()) {
+                if (tl == &w || !tl->isVisible() || tl->windowTitle().isEmpty()) continue ;
+                titles.append(tl->windowTitle()) ;
+            }
+            record(name + "_windows", titles) ;
 
         } else if (kind == "dump") {
             QJsonArray contacts ;
