@@ -549,12 +549,11 @@ def an038(B):
 def an039(B):
     occ, cr = T(B, 3, "10:00"), T(B, 0, "10:00")
     return dict(events=[(cr, op_add(1, "AN-039 Jack missing file", occ, occ + H))],
-                expect=[],
+                expect=[rem("AN-039", "email", 1, occ), tod("AN-039", "email", 1, occ)],
                 logs=[("could not load", True)],
                 note="emailconfirmation points at a file that does not exist (run G2b). The confirmation is never sent, and "
-                     "the program then sends nothing else for the appointment: the confirmation is the next step until it is "
-                     "sent (messagedecision.cpp), so the reminder and the on-the-day message are not sent either. The spec "
-                     "row says the appointment 'sends nothing'.")
+                     "it is given up after ten tries. The reminder and the on-the-day message still use their own templates "
+                     "and are sent: a given-up confirmation does not hold them back (messagedecision.cpp).")
 
 
 def an040(B):
@@ -571,12 +570,12 @@ def an040(B):
 def an041(B):
     occ, cr = T(B, 3, "10:00"), T(B, 0, "10:00")
     return dict(events=[(cr, op_add(2, "AN-041 Samantha gives up", occ, occ + H))], expect=[],
-                refused=[("AN-041", "Confirmation", 10), ("AN-041", "Reminder", 0), ("AN-041", "Today", 0)],
+                refused=[("AN-041", "Confirmation", 10), ("AN-041", "Reminder", 10), ("AN-041", "Today", 10)],
                 logs=[("given up", True)],
                 note="The stub refuses every send to this address (run G3b). The confirmation is tried ten times and then "
-                     "given up, and the log says 'Given up on ... after 10 tries' (mainwindow_timer_alert.cpp). Nothing else "
-                     "is tried after that: the confirmation is still the next step, so no reminder or on-the-day message is "
-                     "attempted (messagedecision.cpp; the spec row says 'then no more').")
+                     "given up, and the log says 'Given up on ... after 10 tries' (mainwindow_timer_alert.cpp). The reminder "
+                     "and the on-the-day message are then each tried ten times and given up, since a given-up confirmation "
+                     "does not hold them back (messagedecision.cpp).")
 
 
 def an042(B):

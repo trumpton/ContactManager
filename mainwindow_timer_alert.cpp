@@ -416,6 +416,10 @@ void MainWindow::sendMailSMS()
         state.emailme = emailme ;
         state.textme = textme ;
         state.remindersent = remindermessagesent ;
+        // A kind of message given up on after MAXMESSAGERETRIES failures is not tried again (see decideMessages)
+        for (const QString &givenupkind : QStringList({"confirm", "update", "cancel", "reminder"})) {
+            if (sendfailures.value(id + "|" + givenupkind) >= MAXMESSAGERETRIES) state.givenup << givenupkind ;
+        }
         state.istime = istime ;
         state.confirmonly = confirmonly ;
         state.isrepeating = appt.isRepeating() ;

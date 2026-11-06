@@ -5,6 +5,7 @@
 #include <QDateTime>
 #include <QList>
 #include <QString>
+#include <QStringList>
 #include <QTime>
 
 // What is known about an appointment at one check of the send loop.  The decision does not read the clock or the settings:
@@ -25,6 +26,8 @@ struct MessageState {
     bool emaildone ;            // the on-the-day email has gone today, or a confirmation or update by email has given it
     bool smsdone ;              // the on-the-day text has gone today, or a confirmation or update by text has given it
     QDateTime occurrence ;      // the occurrence the messages are about
+    QStringList givenup ;       // the kinds (confirm, update, cancel, reminder) given up on after their maximum tries: they are
+                                // not decided again, so they do not hold back the other messages (the on-the-day ones too)
 } ;
 
 // One message to send.  kind is confirm, update, cancel, reminder, cancelocc (a removed occurrence) or onday.
