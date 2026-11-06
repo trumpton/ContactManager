@@ -16,9 +16,8 @@ Companions: `documents/specification.md` (what the program does, the reference f
    - 3c. By dialog
 4. Accessibility
 5. Capacity stress test (not part of the normal cycle)
-- Appendix A. Tests imported from the archive, with their titles
-- Appendix B. Traceability: specification section to tests
-- Appendix C. Requirements that have no test yet
+- Appendix A. Traceability: specification section to tests
+- Appendix B. Requirements that have no test yet
 
 ---
 
@@ -37,7 +36,7 @@ Every test has a unique ID and a one-line title. The prefix is the area:
 | `DL` | By dialog (3c) |
 | `AC` | Accessibility (area 4) |
 
-Numbers 001 to 099 are new tests written for this specification. Numbers from 101 are tests **imported** from the archive (`autotest/archive/`). Their original names are kept in Appendix A, so each can be traced to the code that runs it.
+Each test has its own number within its area.
 
 ### 0.2 Result states
 
@@ -74,7 +73,7 @@ Six contacts are used throughout the tests. They are the same for every area, so
 
 Notes:
 - Email addresses are `firstname.surname@sgc.contacmanagertest`, with the surname written without spaces or apostrophes (an address cannot hold them). Tealc's is `tealc.dechulak`, and Vala's is `vala.maldoran`.
-- The domain is spelled as specified: `sgc.contacmanagertest`. Appendix C, item 1, asks for the spelling to be confirmed before the first live run, because the clean-up utility finds test records by this domain.
+- The domain is spelled as specified: `sgc.contacmanagertest`. Appendix B, item 1, asks for the spelling to be confirmed before the first live run, because the clean-up utility finds test records by this domain.
 - Only odd-numbered contacts (1, 3, 5) have a date of birth.
 - Phone numbers are in the range +44 7700 900000 to +44 7700 900999.
 - The fixtures are in `autotest/utilities/test_fixtures.json`. The tests and the utilities read them from there.
@@ -103,11 +102,11 @@ Area 2 runs on a clock that goes faster than real time: **10 real seconds = 1 ho
 
 At 360 times, one real second is 6 minutes of program time. The program checks for due messages once per real second, so a message can be up to one check (6 minutes) late in program time. Area 2 expectations allow this: a message is **on time** when it is sent at the expected minute, or at the next check (within 6 minutes), and not later. Any later is a failure.
 
-The clock is set by the test harness, through a shim that changes the time the program reads (the shim is in the scratch folder, with the harness: Appendix C, item 3). The program's own timers and time reads all follow it.
+The clock is set by the test harness, through a shim that changes the time the program reads (the shim is in the scratch folder, with the harness: Appendix B, item 3). The program's own timers and time reads all follow it.
 
 ### 0.8 Stub transports
 
-Area 2 does not send real email or text. The send functions are replaced by stubs that record each message (recipient, subject or text, body, time) and return a chosen result (sent, refused, timed out). The unit tests already use this approach (`StubTransport` in `autotest/archive/messages/tst_messages.cpp`). The accelerated harness used in earlier runs keeps its stub in a scratch folder: bringing that stub into the repository is a prerequisite for area 2 (Appendix C, item 3).
+Area 2 does not send real email or text. The send functions are replaced by stubs that record each message (recipient, subject or text, body, time) and return a chosen result (sent, refused, timed out). The accelerated harness keeps its stub in a scratch folder: bringing that stub into the repository is a prerequisite for area 2 (Appendix B, item 3).
 
 ### 0.9 Run order and locations
 
@@ -115,7 +114,7 @@ Read `headless-test.md` (how to run the bench and the accelerated harness) and `
 
 - Area 1 needs the Google account and the network. It runs last in any cycle, because it changes the account.
 - Area 2 needs no network, and runs in the accelerated harness.
-- Area 3 needs the program only. Imported tests in 3a to 3c run from `autotest/archive/`.
+- Area 3 needs the program only.
 - Area 4 needs the program and a screen reader (NVDA, or the accessibility inspection tools of the platform), and a person to listen.
 
 The durations are estimated in `documents/test-duration-estimate.md`.
@@ -450,329 +449,9 @@ This is not part of the normal test cycle. It checks how the program and Google 
 
 | ID | Title | Procedure and expected result | How run |
 |---|---|---|---|
-| CS-001 | Purge the account, then upload 250 contacts and 1,000 appointments, half by the Google API and half by ContactManager, and leave them in place | Imported from the archive as `U01` (`autotest/archive/google_bench.py`). The purge removes everything of each kind on the account, so run it only on the scratch account. Expect every contact and appointment on Google once, and the sync to finish within its time. Records are left in place. | Automated (bench), capacity only |
+| CS-001 | Purge the account, then upload 250 contacts and 1,000 appointments, half by the Google API and half by ContactManager, and leave them in place | The purge removes everything of each kind on the account, so run it only on the scratch account. Expect every contact and appointment on Google once, and the sync to finish within its time. Records are left in place. | Automated (bench), capacity only |
 
-## Appendix A. Tests imported from the archive
-
-These tests were written earlier and exist in `autotest/archive/`. They are kept, with their titles as they were written. Each is given a new ID in its area, with its original code. Those that use the test bench's own test data (the `Bench` contacts and `BENCH ` appointments) will be re-pointed to the six fixtures (0.4) when the benches are rewritten.
-
-Sources: `autotest/archive/google_bench.py` (bench scenarios), `autotest/archive/messages/tst_messages.cpp` (unit tests), `autotest/archive/oldfile/old_contact_test.cpp` (old-file test).
-
-Area assignment is by the test's content: a test that calls the sync, or whose title is about Google or sync, is in area 1; the other tests are placed in the area of the feature they check. The code letters are not reused between tests: two bench scenarios share the code L05 and L06 (the screen-reader tests of #101 and the notes tests of #105). Their new IDs keep them apart.
-
-Counts: Google sync 143, Announcements 85, Start-up and shutdown 7, By menu and function 29, By dialog 12, Accessibility 2. Total 278 (U01 is in section 5, a capacity stress test).
-
-### A.1 Google sync (area 1)
-
-| New ID | Archive code or name | Title, as written in the archive |
-|---|---|---|
-| GS-101 | `C01` | Add a contact locally, no sync: Google unchanged |
-| GS-102 | `C02` | Contact made on Google: downloaded once across two syncs |
-| GS-103 | `C03` | Add then delete locally before any sync: nothing reaches Google |
-| GS-104 | `C04` | Contact deleted on Google between syncs: removed from the app |
-| GS-105 | `C05` | Contact deleted in the app after it synced: deleted on Google |
-| GS-106 | `C06` | Contact hidden in the app after it synced: Google agrees with the app |
-| GS-107 | `C07` | Same name on both sides before sync: both kept |
-| GS-108 | `C08` | Edit a downloaded contact before a second sync: change reaches Google |
-| GS-109 | `C09` | Edit on Google between syncs: app picks it up without duplicating |
-| GS-110 | `C10` | Out-of-sequence phones and emails: each value kept in some slot |
-| GS-111 | `C11` | Stray spaces and newlines in Google data: no spurious upload |
-| GS-112 | `C12` | Large upload: 40 local contacts reach Google once |
-| GS-113 | `C13` | Unicode and apostrophes in names round-trip exactly |
-| GS-114 | `C14` | Email-only contact (no name) is uploaded with its email |
-| GS-115 | `C15` | Merged into X18 (above): repeated syncs with no changes do not write to Google |
-| GS-116 | `C16` | Edit keeps URLs the app does not hold (option 1 regression) |
-| GS-117 | `A01` | Add an appointment locally, no sync: Google unchanged |
-| GS-118 | `A02` | Event made on Google: downloaded once across two syncs |
-| GS-119 | `A03` | Identical events on Google (duplicates): both kept, no growth on re-sync |
-| GS-120 | `A04` | Same event added locally and on Google before sync: both kept |
-| GS-121 | `A05` | Edit a downloaded event before a second sync: change reaches Google |
-| GS-122 | `A06` | Event moved on Google between syncs: app picks it up |
-| GS-123 | `A07` | Event deleted in the app after it synced: deleted on Google |
-| GS-124 | `A08` | Event deleted on Google between syncs: app does not keep a live copy |
-| GS-125 | `A09` | Overlapping appointments added locally: both uploaded, neither merged |
-| GS-126 | `A10` | Large upload: 40 local appointments reach Google once |
-| GS-127 | `A11` | Read-only event (organised by someone else): not uploaded across syncs |
-| GS-128 | `A12` | Stray spaces and newlines in a location: no spurious upload |
-| GS-129 | `A13` | Local ID of a Google event is the same across syncs |
-| GS-130 | `M01` | ContactManager master adds a contact; Google master syncs it: no duplicate |
-| GS-131 | `M02` | Google master downloads; ContactManager master edits; Google master re-syncs: one copy |
-| GS-132 | `M03` | Deleted in ContactManager master: Google master does not bring it back |
-| GS-133 | `M04` | Deleted on Google in Google master: ContactManager master does not bring it back |
-| GS-134 | `M05` | Appointment: ContactManager master adds, Google master edits, ContactManager master picks it up |
-| GS-135 | `M06` | Repeated switching with edits: values and notes survive, no duplicates |
-| GS-136 | `M07` | Google master: a local-only edit is not sent, and Google's values stay |
-| GS-137 | `M08` | ContactManager master: a change made on Google is kept, not overwritten |
-| GS-138 | `X01` | Blank and whitespace-only name fields: no crash, no duplicate |
-| GS-139 | `X02` | Very long comment (6000 characters) round-trips intact |
-| GS-140 | `X03` | Quotes, backslashes, ampersands, angle brackets, emoji and right-to-left text round-trip |
-| GS-141 | `X04` | Phone number formats (international, brackets, extensions) keep their digits |
-| GS-142 | `X05` | Same email on two different contacts: both kept, not merged |
-| GS-143 | `X06` | Six emails on Google: the app holds four, and the rest go to Comments |
-| GS-144 | `X07` | Birthdays: leap day and no-year birthday are not changed by the sync |
-| GS-145 | `X08` | Multi-line address round-trips with formatting ignored |
-| GS-146 | `X09` | Hidden, then shown again: the contact is back on Google |
-| GS-147 | `X10` | Edit then delete between syncs: the stale edit is not uploaded |
-| GS-148 | `X11` | All-day event on Google: read without crashing, not rewritten |
-| GS-149 | `X12` | Event crossing midnight with a timezone offset keeps the same instant |
-| GS-150 | `X13` | Local appointment with no end time: uploaded or refused, but no crash and no duplicate |
-| GS-151 | `X14` | Unicode summary and multi-line description round-trip |
-| GS-152 | `X15` | Event outside the sync window is not duplicated across syncs |
-| GS-153 | `X16` | Appointment deleted on both sides before sync: no error, nothing left |
-| GS-154 | `X17` | Conflict: location changed in the app and on Google; ContactManager master, so the app's change wins (item 4) |
-| GS-155 | `X18` | Two back-to-back syncs with no change: no writes after the first (shortened from five; merges C15, see its entry) |
-| GS-156 | `X19` | Twenty contacts made in ContactManager master, then edits on Google under Google master |
-| GS-157 | `LB01` | Four emails from Google (home, other, work, Partner): each keeps its slot and label, no write |
-| GS-158 | `LB02` | A label changed in the app is sent to Google as that email's type |
-| GS-159 | `LB03` | Emails with no labels set are sent with the labels they always had |
-| GS-160 | `X20` | An address with no type is held in the first address slot |
-| GS-161 | `P01` | Four phones from Google (home, work, mobile, Pager): each keeps its slot and label, no write |
-| GS-162 | `P02` | A phone label changed in the app is sent to Google as that number's type |
-| GS-163 | `P03` | Phones with no labels set are sent with the labels they always had |
-| GS-164 | `P04` | Seven phones on Google: the app holds six, the seventh goes to Comments |
-| GS-165 | `D01` | Clearing an email and a phone in the app removes them from Google |
-| GS-166 | `ED01` | Editor: a label typed after an address becomes its title, and Google gets it as that type |
-| GS-167 | `F01` | More emails on Google than the app has slots: all of them are still on Google after an upload |
-| GS-168 | `F02` | Google master: a bad entry downloaded from Google stops a save of the form, and nothing is uploaded |
-| GS-169 | `F03` | More phones on Google than the app has slots: all of them are still on Google after an upload |
-| GS-170 | `F04` | A save refused for a bad entry stops the next sync, so nothing is sent to Google |
-| GS-171 | `F06` | #66: with a contact holding an unchanged bad entry open, a Google sync still runs |
-| GS-172 | `F07` | #66: a contact kept with an unfixable entry is uploaded once, then not again on later syncs |
-| GS-173 | `F08` | A contact with a clean address and no titles set: uploaded once, then not again on later syncs |
-| GS-174 | `F10` | #69: the report's steps: a bad entry from Google, Alt-E,D, Ctrl-S, Exit, relaunch, Tidy Contacts, Alt-E,D, Exit |
-| GS-175 | `F13` | #68: switching contact, Tidy Contacts and sync ask Save or Discard when the contact has edits |
-| GS-176 | `T01` | Tidy Contacts puts right an older address label and a phone label; they go to Google; a second tidy changes nothing |
-| GS-177 | `G40` | #30: a repeating Google event is stored once, with its repeat, and listed on each week |
-| GS-178 | `X81D` | #81: deleting just one occurrence of a repeat keeps the others, and Google leaves that date out |
-| GS-179 | `X81E` | #81: changing one occurrence and all following splits the repeat, and Google gets both parts |
-| GS-180 | `X81C` | #81: cancelling the change of a repeat changes nothing |
-| GS-181 | `X81G` | #81: an occurrence deleted on Google is left out of the repeat in the app, when Google is the master |
-| GS-182 | `X81H` | #81: a split that moves the time keeps Google's deleted occurrence on the right time, in London time |
-| GS-183 | `G41` | #30: an edit of a repeat in the app changes the Google event, and the event stays repeating |
-| GS-184 | `G42` | #30: a repeating Google event whose first occurrence is older than the window still lists its repeats |
-| GS-185 | `G43` | #30: a Google repeat with a count is stored once and listed that many times, and an app edit keeps the count |
-| GS-186 | `G44` | #30: an appointment on Google older than the one-year lookback is not downloaded |
-| GS-187 | `E01` | #86: an ETag is stored from Google and sent with a change: a local edit reaches Google, with no conflict |
-| GS-188 | `E02` | #86: Google's copy changed in its details since the last sync (non-matching ETag) and the app changed it too, ContactManager master: the app's version is sent, and the conflict is reported (item 4) |
-| GS-189 | `E03` | #86: Google's ETag changed, but not its details (a field the app does not hold): the change is sent again with the new ETag, and reaches Google |
-| GS-190 | `C103` | #103: the contact on the form stays loaded through a sync, in ContactManager master and in Google master, and the calendar entry does not move |
-| GS-191 | `N107` | #107: an appointment with no end time, or one ending on 1 Jan 1970, is not uploaded; the sync completes and the others reach Google |
-| GS-192 | `N108` | #108: with the last calendar sync back at the epoch (as after a failed sync), the next sync sends only the appointment that was edited, not the ones it downloaded |
-| GS-193 | `R01` | #105 ContactManager master, edit in Google, repeat: the Google change reaches the app, one repeat on Google |
-| GS-194 | `R02` | #105 Google master, edit in ContactManager, single: the next sync takes Google's location, and nothing is uploaded |
-| GS-195 | `R03` | #105 Google master, edit in ContactManager, repeat: the next sync keeps the repeat and Google's location |
-| GS-196 | `R04` | #105 Google master, edit in Google, single: the Google change is downloaded |
-| GS-197 | `R05` | #105 Google master, edit in Google, repeat: the Google change is downloaded, and the repeat is kept |
-| GS-198 | `AR01` | #105 Archive: an entry that the window leaves behind is archived; moved into the window on Google, it is restored and leaves the archive |
-| GS-199 | `U02` | #105 Uploads: 40 appointments added in the app inside the window are all on Google after one sync (the 66 not uploaded) |
-| GS-201 | `W01` | #105 Window: an entry that starts before the window and ends inside it is downloaded, once |
-| GS-202 | `W02` | #105 Window: an entry that ends before the window is not downloaded, and stays on Google once |
-| GS-203 | `W03` | #105 Window: an entry beyond the far edge of the window is not downloaded, and stays on Google once |
-| GS-204 | `W04` | #105 Window: widening the window downloads the entries it now reaches, once |
-| GS-205 | `TK01` | #105 Token: a sync token Google refuses is replaced by a full listing, and the sync completes |
-| GS-206 | `TK03` | #105 Token: a sync token Google answers with 410 (gone), as with 400, is replaced by a full listing, and the sync completes |
-| GS-207 | `TK04` | #105 Listing: after a full sync, the next sync lists only the changes since the last sync, and downloads no unchanged appointment |
-| GS-208 | `TK02` | #105 Token: with no sync token, the listing is full and every entry in the window is downloaded |
-| GS-209 | `R06` | #105 ContactManager master, repeat changed in both places since the last sync: the app's version wins, and the report says so (item 4) |
-| GS-210 | `R07` | #105 ContactManager master, repeat moved on Google: the app shows the moved start, and one repeat |
-| GS-211 | `R08` | #105 Repeat with no occurrence in the window: not downloaded, and it stays on Google once |
-| GS-212 | `R09` | #105 Repeat with an exception: the excluded occurrence is not listed, and the other five are |
-| GS-213 | `TC01` | #105 Two copies of ContactManager on one calendar: each sees the other's change, and nothing is duplicated |
-| GS-214 | `RS01` | #105 A sync that stops part-way resumes without repeating or losing its uploads (#93) |
-| GS-215 | `AR02` | #105 Archive: an archived entry changed on Google, still outside the window, has its archived copy brought up to date |
-| GS-216 | `AR03` | #105 Archive: an archived entry cancelled on Google leaves the archive, and is kept in the deleted folder |
-| GS-217 | `E70` | #104 A local entry dated 1 January 1970, or with no start, is neither stored nor uploaded; a normal entry alongside is unaffected |
-| GS-218 | `RL01` | #94 A rate-limit answer (403 rateLimitExceeded) is retried with backoff, and the upload then completes |
-| GS-219 | `RL02` | #94 A failure that is not a rate limit (400 badRequest) is not retried, and its reason is reported |
-| GS-220 | `RL03` | #94 A rate limit that keeps coming back is given up after four retries, and the report gives the reason and a recovery step |
-| GS-221 | `RL04` | #94 Repeated rate limits start the adaptive pacing, and the report says so |
-| GS-222 | `RL05` | #94 A connection closed by Google part-way: the report says so and what to do, and a second sync finishes the uploads |
-| GS-223 | `C17` | #105 Contact changed in both places since the last sync, ContactManager master: the app's change is kept, once |
-| GS-224 | `C18` | #105 Contact changed in both places since the last sync, Google master: Google's change is kept, once |
-| GS-225 | `C19` | #105 Contact deleted on Google and changed in the app, ContactManager master: created on Google again with the app's change (item 4) |
-| GS-226 | `C20` | #105 Contact deleted in the app and changed on Google, ContactManager master: the app's delete wins, so Google deletes it too (item 4) |
-| GS-227 | `LF01` | #105 Local files: after two syncs the calendar folder holds each appointment once, and no file is empty |
-| GS-228 | `LF02` | #105 Local files: a deleted appointment moves to the deleted folder, and is not left in the calendar folder |
-| GS-229 | `A14` | #105 Appointment deleted in the app and changed on Google, ContactManager master: the app's delete wins, so Google deletes it too (item 4) |
-| GS-230 | `A15` | #105 Appointment deleted on Google and changed in the app, ContactManager master: created on Google again with the app's change (item 4) |
-| GS-231 | `R11` | #105 Repeat with no occurrence left: every occurrence cancelled on Google, the app removes the repeat, and Google holds none |
-| GS-232 | `R10` | #102 A changed occurrence of a repeat, changed on Google, is downloaded as its own entry; the other occurrences are unchanged |
-| GS-233 | `sentStateDoesNotCountAsAnEdit` | Sent State Does Not Count As An Edit |
-| GS-234 | `googleRecordCopyDoesNotRestartTheWait` | Google Record Copy Does Not Restart The Wait |
-| GS-235 | `contactLinkIsKeptWhenTheContactExists` | Contact Link Is Kept When The Contact Exists |
-| GS-236 | `contactLinkIsSetByAnExactNameMatch` | Contact Link Is Set By An Exact Name Match |
-| GS-237 | `contactLinkIsRemovedWhenTheNameMatchesMoreThanOne` | Contact Link Is Removed When The Name Matches More Than One |
-| GS-238 | `contactLinkIsRemovedWhenNoNameMatches` | Contact Link Is Removed When No Name Matches |
-| GS-239 | `ratePacerIsOffWithoutRateLimits` | Rate Pacer Is Off Without Rate Limits |
-| GS-240 | `ratePacerStartsAtFourSecondsAfterFiveLimitedOfAHundred` | Rate Pacer Starts At Four Seconds After Five Limited Of AHundred |
-| GS-241 | `ratePacerHalvesEvery500DownToHalfASecond` | Rate Pacer Halves Every500 Down To Half ASecond |
-| GS-242 | `ratePacerCountsOnlyTheLastHundred` | Rate Pacer Counts Only The Last Hundred |
-| GS-243 | `loadKeepsTheSavedUpdatedDate` | Load Keeps The Saved Updated Date |
-| GS-244 | `mergedSentStateDoesNotCountAsAnEdit` | Merged Sent State Does Not Count As An Edit |
-
-### A.2 Announcements (area 2)
-
-| New ID | Archive code or name | Title, as written in the archive |
-|---|---|---|
-| AN-101 | `L01` | Local: the message and appointment unit tests (autotest/archive/messages, QtTest), with no Google |
-| AN-102 | `reminderDueWithinTheReminderHours` | Reminder Due Within The Reminder Hours |
-| AN-103 | `reminderDueAtTheStartOfTheDayBefore` | Reminder Due At The Start Of The Day Before |
-| AN-104 | `reminderDueForAnAppointmentThatHasStarted` | Reminder Due For An Appointment That Has Started |
-| AN-105 | `reminderFollowsRemindHours` | Reminder Follows Remind Hours |
-| AN-106 | `confirmOnlyJustInside36Hours` | Confirm Only Just Inside36 Hours |
-| AN-107 | `confirmOnlyExactly36HoursIsNot` | Confirm Only Exactly36 Hours Is Not |
-| AN-108 | `confirmOnlyForShortNotice` | Confirm Only For Short Notice |
-| AN-109 | `confirmOnlyAndReminderMeetAtTheBoundary` | Confirm Only And Reminder Meet At The Boundary |
-| AN-110 | `confirmOnlyDefaultIs1Point5TimesRemind` | Confirm Only Default Is1 Point5 Times Remind |
-| AN-111 | `confirmOnlyUsesAValidValue` | Confirm Only Uses AValid Value |
-| AN-112 | `confirmOnlyLessThanRemindUsesTheDefault` | Confirm Only Less Than Remind Uses The Default |
-| AN-113 | `confirmOnlyNotANumberUsesTheDefault` | Confirm Only Not ANumber Uses The Default |
-| AN-114 | `remindHoursDefaultsAndLimits` | Remind Hours Defaults And Limits |
-| AN-115 | `holdLastsWaitMinutes` | Hold Lasts Wait Minutes |
-| AN-116 | `sendWindowIsStartInclusiveEndExclusive` | Send Window Is Start Inclusive End Exclusive |
-| AN-117 | `onTheDayUsesLocalDate` | On The Day Uses Local Date |
-| AN-118 | `dayRecordKeepsTheChannelsOfTheDay` | Day Record Keeps The Channels Of The Day |
-| AN-119 | `newAppointmentByEmailGetsAConfirmation` | New Appointment By Email Gets AConfirmation |
-| AN-120 | `newAppointmentByTextGetsAConfirmation` | New Appointment By Text Gets AConfirmation |
-| AN-121 | `newAppointmentWithBothGetsEmailOnly` | New Appointment With Both Gets Email Only |
-| AN-122 | `newAppointmentWithNoChannelGetsNothing` | New Appointment With No Channel Gets Nothing |
-| AN-123 | `confirmOnlyFoldsTheReminderIntoTheConfirmation` | Confirm Only Folds The Reminder Into The Confirmation |
-| AN-124 | `changedAppointmentGetsAnUpdateOnItsChannel` | Changed Appointment Gets An Update On Its Channel |
-| AN-125 | `unchangedSentAppointmentGetsNothing` | Unchanged Sent Appointment Gets Nothing |
-| AN-126 | `deletedSentAppointmentGetsACancellationOnItsChannel` | Deleted Sent Appointment Gets ACancellation On Its Channel |
-| AN-127 | `deletedUnsentAppointmentGetsNothing` | Deleted Unsent Appointment Gets Nothing |
-| AN-128 | `reminderOnceByTheChannelOfTheContact` | Reminder Once By The Channel Of The Contact |
-| AN-129 | `reminderIsNotSentTwice` | Reminder Is Not Sent Twice |
-| AN-130 | `reminderNotDueIsNotSent` | Reminder Not Due Is Not Sent |
-| AN-131 | `removedOccurrenceIsCancelledOnItsChannel` | Removed Occurrence Is Cancelled On Its Channel |
-| AN-132 | `onTheDayBothChannelsAreSentOnTheDay` | On The Day Both Channels Are Sent On The Day |
-| AN-133 | `onTheDayTextIsSentWhenEmailHasGone` | On The Day Text Is Sent When Email Has Gone |
-| AN-134 | `onTheDayEmailIsSentWhenTextHasGone` | On The Day Email Is Sent When Text Has Gone |
-| AN-135 | `onTheDayIsNotSentAgainOnceBothHaveGone` | On The Day Is Not Sent Again Once Both Have Gone |
-| AN-136 | `onTheDayIsSentForASingleChannel` | On The Day Is Sent For ASingle Channel |
-| AN-137 | `onTheDayIsNotSentOnAnotherDay` | On The Day Is Not Sent On Another Day |
-| AN-138 | `sameDayBookingGivesItsEmailAndThenTheOnTheDayText` | Same Day Booking Gives Its Email And Then The On The Day Text |
-| AN-139 | `sameDayTextBookingCoversTheDaysText` | Same Day Text Booking Covers The Days Text |
-| AN-140 | `sameDaySmsIsSentWhenBookedEarlierAndTheDayComes` | Same Day Sms Is Sent When Booked Earlier And The Day Comes |
-| AN-141 | `caseSevenEmailIsTheConfirmationWhenWindowOpensLate` | Case Seven Email Is The Confirmation When Window Opens Late |
-| AN-142 | `caseSevenTextIsTheOnTheDayTextWhenWindowOpensLate` | Case Seven Text Is The On The Day Text When Window Opens Late |
-| AN-143 | `caseSevenBothIsEmailThenTheOnTheDayText` | Case Seven Both Is Email Then The On The Day Text |
-| AN-144 | `caseEightNoReminderOnTheDay` | Case Eight No Reminder On The Day |
-| AN-145 | `reminderOnTheDayIsReplacedByTheOnTheDayText` | Reminder On The Day Is Replaced By The On The Day Text |
-| AN-146 | `channelSwitchedToTextSendsOnlyWhatIsPending` | Channel Switched To Text Sends Only What Is Pending |
-| AN-147 | `scenarioCreatedThirtySixHoursAheadBothChannels` | Scenario Created Thirty Six Hours Ahead Both Channels |
-| AN-148 | `scenarioCreatedTwentyFiveHoursAheadBothChannels` | Scenario Created Twenty Five Hours Ahead Both Channels |
-| AN-149 | `scenarioBookedOnTheDayBothChannels` | Scenario Booked On The Day Both Channels |
-| AN-150 | `singleAppointmentEndedBeforeTheEdgeIsExpired` | Single Appointment Ended Before The Edge Is Expired |
-| AN-151 | `repeatTrimKeepsOnlyTheExceptionsStillToCome` | Repeat Trim Keeps Only The Exceptions Still To Come |
-| AN-152 | `trimKeepsTheMessageSignatureSoTheContactIsNotMessaged` | Trim Keeps The Message Signature So The Contact Is Not Messaged |
-| AN-153 | `limitsStopMessagesOnceReached` | Limits Stop Messages Once Reached |
-| AN-154 | `limitsAreCheckedHourFirst` | Limits Are Checked Hour First |
-| AN-155 | `failedMessageWaitsBeforeItIsTriedAgain` | Failed Message Waits Before It Is Tried Again |
-| AN-156 | `failedMessageIsGivenUpAfterMaxRetries` | Failed Message Is Given Up After Max Retries |
-| AN-157 | `messageWithNoFailureMayBeTried` | Message With No Failure May Be Tried |
-| AN-158 | `channelNeedsItsOwnAddress` | Channel Needs Its Own Address |
-| AN-159 | `missingEmailAddressSendsNothingByEmailButTextStillGoes` | Missing Email Address Sends Nothing By Email But Text Still Goes |
-| AN-160 | `noUsableChannelSendsNothing` | No Usable Channel Sends Nothing |
-| AN-161 | `onTheDayUsesTheReminderTemplateWhenNotSet` | On The Day Uses The Reminder Template When Not Set |
-| AN-162 | `reminderIs24ElapsedHoursAcrossTheClockChange` | Reminder Is24 Elapsed Hours Across The Clock Change |
-| AN-163 | `onTheDayIsTheLocalDateAcrossTheClockChange` | On The Day Is The Local Date Across The Clock Change |
-| AN-164 | `onTheDayAndReminderAcrossTheYearBoundary` | On The Day And Reminder Across The Year Boundary |
-| AN-165 | `onTheDayAndReminderAcrossTheLeapDay` | On The Day And Reminder Across The Leap Day |
-| AN-166 | `backlogOfChangesGivesOneUpdate` | Backlog Of Changes Gives One Update |
-| AN-167 | `deletedAndRecreatedInsideTheHoldSendsOneConfirmation` | Deleted And Recreated Inside The Hold Sends One Confirmation |
-| AN-168 | `secondOccurrenceOfARepeatIsStillReminded` | Second Occurrence Of ARepeat Is Still Reminded |
-| AN-169 | `signatureChangesOnlyForWhatMessagesShow` | Signature Changes Only For What Messages Show |
-| AN-170 | `editWithinConfirmOnlyReplacesTheReminder` | Edit Within Confirm Only Replaces The Reminder |
-| AN-171 | `secondCopyCannotTakeTheDataLock` | Second Copy Cannot Take The Data Lock |
-| AN-172 | `smsKeyIsReportedInTheLastThirtyDays` | Sms Key Is Reported In The Last Thirty Days |
-| AN-173 | `onlyASentMessageIsRecorded` | Only ASent Message Is Recorded |
-| AN-174 | `blankEmailSenderSendsNothingAndSaysWhy` | Blank Email Sender Sends Nothing And Says Why |
-| AN-175 | `blankSmsSenderSendsNothingAndSaysWhy` | Blank Sms Sender Sends Nothing And Says Why |
-| AN-176 | `whitespaceOnlySenderCountsAsBlank` | Whitespace Only Sender Counts As Blank |
-| AN-177 | `emailIsSentWithTheIniSender` | Email Is Sent With The Ini Sender |
-| AN-178 | `smsIsSentWithTheIniSenderAndTheText` | Sms Is Sent With The Ini Sender And The Text |
-| AN-179 | `transportFailureIsReturnedWithItsReason` | Transport Failure Is Returned With Its Reason |
-| AN-180 | `maybeSentIsReturnedAsMaybeSent` | Maybe Sent Is Returned As Maybe Sent |
-| AN-181 | `templateFirstLineIsTheSubjectAndTheRestIsTheBody` | Template First Line Is The Subject And The Rest Is The Body |
-| AN-182 | `smsTemplateIsOneLineOfText` | Sms Template Is One Line Of Text |
-| AN-183 | `templateWithNoSubjectIsRejected` | Template With No Subject Is Rejected |
-| AN-184 | `shippedTemplatesHaveNoSenderLine` | Shipped Templates Have No Sender Line |
-| AN-185 | `missingSenderWarningsNameEachBlankChannel` | Missing Sender Warnings Name Each Blank Channel |
-
-### A.3 Start-up and shutdown (3a)
-
-| New ID | Archive code or name | Title, as written in the archive |
-|---|---|---|
-| SS-101 | `K24` | #24: when the app opens, overlapping appointments are listed, and nothing is changed |
-| SS-102 | `L02` | Local: an appointment and a contact made in ContactManager are saved, and are there after a restart (no Google) |
-| SS-103 | `L03` | Local: an appointment file moved into the archive is not loaded at start-up, and start-up leaves it in the archive |
-| SS-104 | `L04` | Local: a start with no to-do or history file opens and writes its data (#100) |
-| SS-105 | `L05` | #105 Notes, plain text: a contact's to-do list and history are saved as plain files, and a restart reads them back |
-| SS-106 | `L06` | #105 Notes, encrypted: a contact's to-do list and history are saved encrypted, with no plain text on disk, and a restart reads them back |
-| SS-107 | `old_contact_test` | Loads a contact file written before the email and phone labels existed, and checks that it keeps its meaning. |
-
-### A.4 By menu and function (3b)
-
-| New ID | Archive code or name | Title, as written in the archive |
-|---|---|---|
-| MF-101 | `MG01` | Tidy Contacts merges two entries for one person when they share an address and do not conflict |
-| MF-102 | `MG02` | Tidy Contacts does not merge two entries that share an address but have different names |
-| MF-103 | `T02` | Tidy Contacts lists an entry it cannot fix, leaves it alone, and still fixes the other entry on the contact |
-| MF-104 | `T03` | Tidy Contacts lists a title with a colon, and leaves it and its number as they are |
-| MF-105 | `U34` | #34: double-clicking a calendar entry opens its contact, and keeps the calendar row and its focus |
-| MF-106 | `P30` | #30: a weekly appointment is listed on each week in the repeats window, and stored once |
-| MF-107 | `P31` | #30: an edit of a repeat changes its appointment; a move to another day moves the appointment and the focus with it |
-| MF-108 | `T40` | #75: a weekly repeat keeps its 14:00 London time across the clocks going back |
-| MF-109 | `B78` | #78: a birthday saved on a contact shows in the calendar straight away, with birthdays shown |
-| MF-110 | `O79` | #79: a repeat that started before today, with later dates, is in the overview's future appointments |
-| MF-111 | `W30` | #30: a repeat whose source is older than the window is listed, and the source is not |
-| MF-112 | `T30` | #30: Goto Today selects the first entry that has not ended, including a repeat, rather than the end of the list |
-| MF-113 | `P33` | #73: shortening a repeat from a later entry keeps the focus on the nearest entry of that repeat |
-| MF-114 | `removedOccurrenceOnlyForARepeat` | Removed Occurrence Only For ARepeat |
-| MF-115 | `listedOccurrencesOfARepeat` | Listed Occurrences Of ARepeat |
-| MF-116 | `removedOccurrenceIsNotListed` | Removed Occurrence Is Not Listed |
-| MF-117 | `repeatWithEveryOccurrenceRemovedListsNothing` | Repeat With Every Occurrence Removed Lists Nothing |
-| MF-118 | `periodsTouchingAtAnEndDoNotClash` | Periods Touching At An End Do Not Clash |
-| MF-119 | `clashIgnoresARemovedOccurrence` | Clash Ignores ARemoved Occurrence |
-| MF-120 | `clashWithAListedOccurrence` | Clash With AListed Occurrence |
-| MF-121 | `repeatWithNoOccurrenceLeftIsFound` | Repeat With No Occurrence Left Is Found |
-| MF-122 | `clashIsNotReportedForAnEmptyRepeat` | Clash Is Not Reported For An Empty Repeat |
-| MF-123 | `getDateGivesACopyThatStaysTheSame` | Get Date Gives ACopy That Stays The Same |
-| MF-124 | `repeatStartMovesToTheFirstOccurrenceInTheWindow` | Repeat Start Moves To The First Occurrence In The Window |
-| MF-125 | `repeatWithNoOccurrenceLeftIsExpired` | Repeat With No Occurrence Left Is Expired |
-| MF-126 | `focusGoesToTheNearestDate` | Focus Goes To The Nearest Date |
-| MF-127 | `twoDigitYearsUseTheCenturyOfThisYear` | Two Digit Years Use The Century Of This Year |
-| MF-128 | `numericDatesAreParsed` | Numeric Dates Are Parsed |
-| MF-129 | `typedDatesAreParsed` | Typed Dates Are Parsed |
-
-### A.5 By dialog (3c)
-
-| New ID | Archive code or name | Title, as written in the archive |
-|---|---|---|
-| DL-101 | `ED02` | Editor: a save with a bad entry is refused, focus goes to the first, nothing is saved, and the typed text is kept |
-| DL-102 | `E06` | Editor: an older bad entry that was never edited still stops a save, and is shown with focus |
-| DL-103 | `F05` | #66: an unchanged bad entry does not stop switching to another contact |
-| DL-104 | `F09` | #66: moving the selection on, as Tidy Contacts does, does not check the open contact's entries |
-| DL-105 | `F12` | #68: quitting with edits asks Save, Discard or Cancel: Save refuses a bad entry, Discard keeps the stored contact |
-| DL-106 | `ED03` | Editor: an older entry with its label in the address is tidied when opened, and saved with the next change |
-| DL-107 | `E04` | Editor: a phone typed with (0) after the country code and a label after the number is saved tidily |
-| DL-108 | `E05` | Editor: clearing the only detail of a contact saves the change |
-| DL-109 | `D30` | #30: the appointment form keeps a repeat's type and interval, and gives back none for an appointment that does not repeat |
-| DL-110 | `E30` | #30: a repeat ends after a number of times, or on a date, in the list and in the form |
-| DL-111 | `Q34` | #74: OK on the edit of a repeat that started 11 days ago closes the form, with no dialog |
-| DL-112 | `Q35` | #74: a start three months back is accepted, and OK then closes the form, as with a start 11 days back |
-
-### A.6 Accessibility (area 4)
-
-| New ID | Archive code or name | Title, as written in the archive |
-|---|---|---|
-| AC-101 | `L05` | #101: Show Screen Reader Text: shows the name, role, value and description of the focused control, and says it is an approximation |
-| AC-102 | `L06` | #101: the accessibility debug checkbox in the screen reader text dialog turns console tracing on and off |
-
----
-
-## Appendix B. Traceability: specification section to tests
+## Appendix A. Traceability: specification section to tests
 
 | Specification section | Tests |
 |---|---|
@@ -823,17 +502,16 @@ Counts: Google sync 143, Announcements 85, Start-up and shutdown 7, By menu and 
 
 ---
 
-## Appendix C. Requirements that have no test yet
+## Appendix B. Requirements that have no test yet
 
 | No. | Item | What is needed |
 |---|---|---|
 | 1 | Spelling of the test domain `sgc.contacmanagertest` | Confirm before the first live run (0.4). |
-| 2 | The send-record write failure (issue #110, item 3) | A test that the message is retried and not sent twice (Appendix A and specification 5.10). |
+| 2 | The send-record write failure (issue #110, item 3) | A test that the message is retried and not sent twice (specification 5.10). |
 | 3 | The stub transports and the accelerated harness are in a scratch folder, not the repository | Bring them into `autotest/` before area 2 is run again. |
 | 4 | The Test Function menu item | Removed in ticket #119. Once that is done, check that the File menu has no Test Function item. |
 | 5 | The download window read from the ini file | Tests GS-023 and GS-038, and the window scenarios, after ticket #118. |
 | 6 | Google sync for a token refused on a later page of a listing (issue #110, item 19) | A test in area 1. |
-| 7 | Read-back of archive and deleted-folder writes (issue #110, item 18) | Extend AR01 to AR03 (Appendix A) to read the files back. |
+| 7 | Read-back of archive and deleted-folder writes (issue #110, item 18) | Add read-back checks to the archive and deleted-folder tests. |
 | 8 | Google-made appointments get no confirmation (issue #110, item 15) | Decide the rule first, then add a test in area 2. |
-| 9 | Re-pointing imported bench tests to the six fixtures | Done when the benches are rewritten (planned, issue #105). |
-| 10 | Area 4 tests need a person and a screen reader | Schedule with the tester; the expected results are recorded by hand. |
+| 9 | Area 4 tests need a person and a screen reader | Schedule with the tester; the expected results are recorded by hand. |

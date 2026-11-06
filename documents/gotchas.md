@@ -206,7 +206,7 @@ Only the copy that holds `ContactManager.lock` sends messages (`mainwindow.cpp`)
 
 **Seen.** The 250 contacts of the upload group made many merge candidates, so the Tidy Records scenarios (F10, F13, LF02, T01 to T03) stopped at the driver's 40-click limit.
 
-**Status: Fixed** (commit 220a509). The upload group's contacts are cleared before the Tidy scenarios. F10 is not yet confirmed as passing (`test-specification.md`, Appendix C).
+**Status: Fixed** (commit 220a509). The upload group's contacts are cleared before the Tidy scenarios. F10 is not yet confirmed as passing (`test-specification.md`, Appendix B).
 
 ### 4.4 A fault plan that is mistyped does nothing
 
@@ -271,6 +271,6 @@ Contacts made in the first option-1 experiment were named `Email49 ...`. The ben
 | Contacts downloaded by the earlier code | 1.7 | Open, untested. |
 | Four older appointments mismatch on For | 2.6 | Open (issue #94). |
 | The late retry and its missing failure times | 3.4 | Open, low priority (ticket #114). |
-| The harness is in the scratch folder | 3.6 | Open. Move it into the repository (test specification, Appendix C). |
-| F10 is not confirmed as passing | 4.3 | Open (test specification, Appendix C). |
-| Focus after an edit calls `find()` with a hint | `headless-test.md`, section 6 | Open (issue #109). |
+| The harness is in the scratch folder | 3.6 | Open. Move it into the repository (test specification, Appendix B). |
+| F10 is not confirmed as passing | 4.3 | Open (test specification, Appendix B). |
+| Focus after an edit calls `find()` with a hint | 4.3 (issue #109) | Open. |

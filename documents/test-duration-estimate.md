@@ -107,7 +107,7 @@ What would make them faster, in order of effect (these are suggestions for the b
 |---|---|---|
 | Google changes its limits or latency | Area 1 takes longer, and the rate-limit tests (GS-036) change | Measure again at the first full cycle, and update this estimate. |
 | The scratch account keeps growing | Each Google listing takes longer (section 3) | Tidy the account before each cycle, or give the bench a fresh calendar. |
-| The accelerated harness is not yet in the repository (test specification Appendix C, item 3) | Area 2 cannot be run from the repository until it is brought in | A prerequisite. The estimate assumes it is in place. |
+| The accelerated harness is not yet in the repository (test specification Appendix B, item 3) | Area 2 cannot be run from the repository until it is brought in | A prerequisite. The estimate assumes it is in place. |
 | The operation runner is not finished | Area 3 is estimated, and not yet measured | Measure the first full run of area 3, and update the 20 to 40 second figure. |
 | The screen-reader tests need a person to listen | The area 4 time depends on the tester | Schedule the tests with the tester, and record the time spent. |
 | The "Both" tests in area 1 are run under each configuration | Area 1 runs more than once for those tests | The estimate counts each run. The high figure allows for the second configuration. |
