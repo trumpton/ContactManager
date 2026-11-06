@@ -261,127 +261,127 @@ Defaults apply unless a test says otherwise: hold 5 minutes, send window 07:00 t
 | AN-045 | A clock change in March keeps the reminder at 24 elapsed hours, and sends in local time | Reminder across 28 March 2027. Expect the reminder 24 hours before, and the window in local time. | Accelerated |
 | AN-046 | A reminder and on-the-day message across New Year are sent on the right dates | Appointment for 1 January with reminder on 31 December. Expect both on the right days. | Accelerated |
 | AN-047 | A three-day mixed run of AN-001 to AN-046 sends every expected message once, and nothing unexpected | Combine the scenarios, run three days. Compare the sent list with the expected list. Expect every expected message on time, once, and no extra. | Accelerated |
+| AN-048 | Setup's "Enable SMS and Email Reminders" off stops all automatic messages | Untick it. Create an appointment for contact 1 and run three days. Expect no message of any kind. Tick it again, create an appointment, and expect its confirmation at the hold's end. | Accelerated |
 
 ---
 
 ## 3. Operation testing
 
-Operation tests use the program without Google, sync or messages, unless a test says otherwise. Each test names its expected result.
+Operation tests check the program without Google, sync or messages, unless a test says otherwise. **All of the tests in this section are automated.** Each one is run by the operation runner (`autotest/operation/operation_tests.py`), which starts the program headless through the test driver, presses the keys or triggers the menu item, and checks the result. The driver answers each dialog with its default button and writes the dialog's title to its log, so a dialog is checked by its title. A test passes when every expected result in its row is observed. A test that cannot run in the test environment is reported as blocked, with the reason. No test in this section needs a person to look at the screen or listen. The screen-reader checks are in section 4, and are the only manual tests.
 
 ### 3a. Start-up and shutdown
 
-| ID | Title | Procedure and expected result | Run |
+| ID | Title | Procedure and expected result | How run |
 |---|---|---|---|
-| SS-001 | A first start with no data folder creates the folder and asks for the key to be set | Delete the data folder; start. Expect the folder created and the key set-up offered. | Manual |
-| SS-002 | A correct login password lets the program start the first time | Start; type the login password. Expect the contact list. | Manual |
-| SS-003 | Three wrong passwords offer set-up or close, and close exits without changing data | Type a wrong password three times. Expect the choice; choose Close. Expect exit and unchanged data. | Manual |
-| SS-004 | A second copy on the same folder shows the warning and still works for everything but messages | Start a second copy. Expect the warning and normal use of contacts. | Manual |
-| SS-005 | Start-up lists overlapping appointments and changes nothing | Create two overlapping appointments; restart. Expect both listed and no change. | Manual |
-| SS-006 | Start-up shows the SMS key warning only within 30 days of expiry | As AN-043, from the start-up side. | Manual |
-| SS-007 | Start-up warns for each blank sender and logs it | Blank both senders; start. Expect a warning for each, and the log entries. | Manual |
-| SS-008 | The first start on a day makes one backup zip, and a second start that day makes none | Start, close, start again. Expect one backup dated today. Run on five days: expect two zips kept. | Manual |
-| SS-009 | Saved data is there after a restart | Add a contact, an appointment, a to-do item and a history entry; save; close; start. Expect all four. | Manual |
-| SS-010 | Closing with unsaved edits asks Save, Discard or Cancel, and Cancel keeps the program open | Edit a contact without saving; close. Expect the question; choose Cancel. Expect the program open. | Manual |
-| SS-011 | An unreadable contact file is reported; the other contacts load and the file is not overwritten | Corrupt one `.contact` file; start. Expect a report, the other contacts loaded, and the bad file unchanged. | Manual |
-| SS-012 | Start with no ini file uses the defaults and reports that the file is missing | Remove the ini file; start. Expect the program to start, and the log to say the file was not found. | Manual |
-| SS-013 | Start with a read-only data folder reports the error and loses no data | Make the folder read-only; start; edit; save. Expect an error and no loss of the stored data. | Manual |
-| SS-014 | Data saved before a crash is there after it; unsaved edits are not | Save a contact; edit another without saving; kill the process; start. Expect the saved one, not the unsaved edit. | Manual |
-| SS-015 | With no network, the program starts and works, and a sync reports the error | Disconnect; start; add a contact; sync. Expect normal start, and a sync error. | Manual |
+| SS-001 | A first start with no data folder creates the folder and asks for the key to be set | Delete the data folder; start. Expect the folder created and the key set-up offered. | Automated |
+| SS-002 | A correct login password lets the program start the first time | Start; type the login password. Expect the contact list. | Automated |
+| SS-003 | Three wrong passwords offer set-up or close, and close exits without changing data | Type a wrong password three times. Expect the choice; choose Close. Expect exit and unchanged data. | Automated |
+| SS-004 | A second copy on the same folder shows the warning and still works for everything but messages | Start a second copy. Expect the warning and normal use of contacts. | Automated |
+| SS-005 | Start-up lists overlapping appointments and changes nothing | Create two overlapping appointments; restart. Expect both listed and no change. | Automated |
+| SS-006 | Start-up shows the SMS key warning only within 30 days of expiry | As AN-043, from the start-up side. | Automated |
+| SS-007 | Start-up warns for each blank sender and logs it | Blank both senders; start. Expect a warning for each, and the log entries. | Automated |
+| SS-008 | The first start on a day makes one backup zip, and a second start that day makes none | Start, close, start again. Expect one backup dated today. Run on five days: expect two zips kept. | Automated |
+| SS-009 | Saved data is there after a restart | Add a contact, an appointment, a to-do item and a history entry; save; close; start. Expect all four. | Automated |
+| SS-010 | Closing with unsaved edits asks Save, Discard or Cancel, and Cancel keeps the program open | Edit a contact without saving; close. Expect the question; choose Cancel. Expect the program open. | Automated |
+| SS-011 | An unreadable contact file is reported; the other contacts load and the file is not overwritten | Corrupt one `.contact` file; start. Expect a report, the other contacts loaded, and the bad file unchanged. | Automated |
+| SS-012 | Start with no ini file uses the defaults and reports that the file is missing | Remove the ini file; start. Expect the program to start, and the log to say the file was not found. | Automated |
+| SS-013 | Start with a read-only data folder reports the error and loses no data | Make the folder read-only; start; edit; save. Expect an error and no loss of the stored data. | Automated |
+| SS-014 | Data saved before a crash is there after it; unsaved edits are not | Save a contact; edit another without saving; kill the process; start. Expect the saved one, not the unsaved edit. | Automated |
+| SS-015 | With no network, the program starts and works, and a sync reports the error | Disconnect; start; add a contact; sync. Expect normal start, and a sync error. | Automated |
 
 ### 3b. By menu and function
 
 Each menu item is tested by choosing it from the menu, and by its key where it has one. F9 (Google Sync) is covered in area 1.
 
-| ID | Title | Procedure and expected result | Run |
+| ID | Title | Procedure and expected result | How run |
 |---|---|---|---|
-| MF-001 | File > Open lists the contacts, skips by surname letter, and has "create contact" at the top | Open the menu; press a surname letter; check the top entry. Expect the list, the skip, and the create entry. | Manual |
-| MF-002 | File > Save (Ctrl+S) saves the open contact and its files | Edit; Ctrl+S. Expect the edit saved to the contact's file. | Manual |
-| MF-003 | File > Export > Contacts writes a file with all contacts | Export. Expect a file with contacts 1 to 6. | Manual |
-| MF-004 | File > Export > Appointments writes a file with all appointments | Export. Expect a file with the appointments in the window. | Manual |
-| MF-005 | File > Import reads an export back without duplicates | Export; delete one contact; import. Expect the contact back, and no duplicates. | Manual |
-| MF-006 | File > Tidy Records saves the screen's edit first, then shows its summary | Edit a contact on screen; Tidy Records. Expect the edit saved, and the summary. | Manual |
-| MF-007 | File > Key and Password enables items according to whether the program is logged in | Check the items before and after logging in and out. Expect Set File Encryption Key and Change Login Password only when logged out, and Logout only when logged in. | Manual |
-| MF-008 | File > Setup opens the Setup dialog (its controls are tested in 3c) | Open. Expect the Setup dialog. | Manual |
-| MF-009 | File > Show > Deleted Appointments lists deleted appointments in braces, and the tick is off at start-up | Tick; check the list; restart; check the tick. Expect braces, and the tick off. | Manual |
-| MF-010 | File > Show > Deleted Contacts and Hidden Contacts list those contacts | Tick each; check. Expect the deleted and hidden contacts listed. | Manual |
-| MF-011 | File > Show > Logs opens a window that is not modal and shows new entries | Open; carry on working; watch the entries grow. Expect the window to stay open and update. | Manual |
-| MF-012 | File > Exit closes the program after the unsaved-edit check | Exit with and without an edit. Expect the question only when there is an edit. | Manual |
-| MF-013 | The File menu has no Test Function item | Open the File menu and look for Test Function. Expect none (ticket #119). | Manual |
-| MF-014 | Find Here (Ctrl+F) and Find Next (F3) move through matches on the page | Search for a word that appears three times. Expect each F3 to move to the next. | Manual |
-| MF-015 | Global Find (Ctrl+G) matches part of a name without case or accents, lists hidden contacts in brackets, and opens on Enter | Search "jac", "sam", an accented name; hide one contact. Expect matches, the hidden one in brackets, and Enter to open. | Manual |
-| MF-016 | Advanced Global Find (Ctrl+Shift+G) opens its dialog and applies its criteria (see DL-020) | Open. Expect the dialog. | Manual |
-| MF-017 | Email / SMS To Contacts lists contacts with an address for each channel | Open. Expect contacts with the right addresses. | Manual |
-| MF-018 | Email / SMS To Non-Clients lists contacts not ticked Client | Open. Expect only non-clients. | Manual |
-| MF-019 | Uncategorised Contacts lists contacts with no Type ticked | Open. Expect contacts with no Type. | Manual |
-| MF-020 | Duplicate Contacts lists possible duplicates, and does not merge them (merging is Tidy Records) | Create two contacts with one address. Open. Expect both listed, not merged. | Manual |
-| MF-021 | Duplicate Hidden Auto-Email Entries lists hidden contacts that share an address with a visible one | Hide one of two contacts sharing an address; open. Expect the pair listed. | Manual |
-| MF-022 | Goto Me (Ctrl+Shift+O) opens the contact set as Identify Me | Set Identify Me; press the key. Expect that contact open. | Manual |
-| MF-023 | Goto Journal (Ctrl+J) opens the journal in Easy Notepad, and a missing program gives an error | Press it with Easy Notepad present and absent. Expect the journal, then an error. | Manual |
-| MF-024 | Goto To Do List (Ctrl+L) and Goto My To Do List (Ctrl+Shift+L) open the right lists | Press each. Expect the contact's list, then the user's. | Manual |
-| MF-025 | Goto Today (Ctrl+T) selects the first entry from now on | Scroll away; press Ctrl+T. Expect the first entry from today. | Manual |
-| MF-026 | Goto Date (Ctrl+D) opens the date box | Press. Expect the box with the cursor at the end. | Manual |
-| MF-027 | Goto Contact Details (Alt+N, M, A, P, B) moves to each section of the form | Open a contact, enable editing; press each key. Expect the cursor in each section. | Manual |
-| MF-028 | Insert Appointment After (Ctrl+I) adds an entry after the selected one, for the open contact | Select an entry; Ctrl+I. Expect the new entry after it, For the open contact. | Manual |
-| MF-029 | Insert My Appointment After (Ctrl+Shift+I) adds an entry after the selected one, for the user | As MF-028, for the user. | Manual |
-| MF-030 | New Appointment (Ctrl+N) opens the form for the open contact | Press. Expect the form, For set. | Manual |
-| MF-031 | New My Appointment (Ctrl+Shift+N) opens the form for the user | Press. Expect the form, For the user. | Manual |
-| MF-032 | Update Appointment (Ctrl+U) opens the selected entry's form | Select; press. Expect that entry's details. | Manual |
-| MF-033 | Remove Appointment (Ctrl+R) deletes the selected entry after confirmation | Select; press; decline; press; accept. Expect no change on decline, and deletion on accept. | Manual |
-| MF-034 | Edit History enables the history to be edited | Choose it. Expect history editing enabled for the open contact. | Manual |
-| MF-035 | New Contact opens a blank contact | Choose it. Expect a blank Contact Details tab. | Manual |
-| MF-036 | Contact Details enables editing of the open contact (Alt+E, D) | Choose it. Expect the form enabled. | Manual |
-| MF-037 | Delete Contact asks for confirmation, then moves the contact to the deleted folder | Choose; decline; choose; accept. Expect no change, then the move. | Manual |
-| MF-038 | Send EMail Contact (Ctrl+M) starts the mail command with the recipient and name filled in | Press. Expect the command with $TO and $NAME. | Manual |
-| MF-039 | SMS Contact (Ctrl+Shift+M) opens the text form for the contact | Press. Expect the form for the contact. | Manual |
-| MF-040 | Transaction Income (Ctrl++) adds an income entry to the contact's log | Press; enter an amount. Expect the entry in the log. | Manual |
-| MF-041 | Transaction Expense (Ctrl+-) adds an expense entry to the contact's log | As MF-040, as an expense. | Manual |
-| MF-042 | Transaction Report produces the year's report | Choose; enter the year. Expect the report with the entries. | Manual |
-| MF-043 | Manual (F1) opens the manual, and F3 finds the next match | Press F1; search. Expect the manual, and the match. | Manual |
-| MF-044 | About shows the program's name and version | Choose it. Expect name and version. | Manual |
-| MF-045 | Typing a digit in the calendar opens the date box, and Escape closes it without moving | Press 2; Escape. Expect the list unchanged. | Manual |
-| MF-046 | W and WW move the list a week and two weeks ahead, and T starts again from today | Press W, WW, T. Expect the moves. | Manual |
-| MF-047 | N and P move between the open contact's entries and N wraps to the first | Open a contact with three entries; press N four times. Expect the wrap. | Manual |
-| MF-048 | Space shows only the open contact's entries, and a second Space shows all | Press Space twice. Expect the filter, then all entries. | Manual |
-| MF-049 | With no contact open, Space, N, P and the arrows beep and change nothing | Close all contacts; press each. Expect a beep and no change. | Manual |
-| MF-050 | Overview (Alt+O) shows the open contact's summary | Open a contact; press Alt+O. Expect the summary. | Manual |
-| MF-051 | History (Alt+Y) lists the contact's recorded changes and sent messages | Open a contact with history; press Alt+Y. Expect the entries. | Manual |
-| MF-052 | To-Do List (Alt+L) saves its items with the contact | Add an item; save; restart. Expect the item. | Manual |
-| MF-053 | Contact Details (Alt+D) is unavailable with no contact open, and available after Alt+E, D | Check both states. Expect them. | Manual |
+| MF-001 | File > Open lists the contacts, skips by surname letter, and has "create contact" at the top | Open the menu; press a surname letter; check the top entry. Expect the list, the skip, and the create entry. | Automated |
+| MF-002 | File > Save (Ctrl+S) saves the open contact and its files | Edit; Ctrl+S. Expect the edit saved to the contact's file. | Automated |
+| MF-003 | File > Export > Contacts writes a file with all contacts | Export. Expect a file with contacts 1 to 6. | Automated |
+| MF-004 | File > Export > Appointments writes a file with all appointments | Export. Expect a file with the appointments in the window. | Automated |
+| MF-005 | File > Import reads an export back without duplicates | Export; delete one contact; import. Expect the contact back, and no duplicates. | Automated |
+| MF-006 | File > Tidy Records saves the screen's edit first, then shows its summary | Edit a contact on screen; Tidy Records. Expect the edit saved, and the summary. | Automated |
+| MF-007 | File > Key and Password enables items according to whether the program is logged in | Check the items before and after logging in and out. Expect Set File Encryption Key and Change Login Password only when logged out, and Logout only when logged in. | Automated |
+| MF-008 | File > Setup opens the Setup dialog (its controls are tested in 3c) | Open. Expect the Setup dialog. | Automated |
+| MF-009 | File > Show > Deleted Appointments lists deleted appointments in braces, and the tick is off at start-up | Tick; check the list; restart; check the tick. Expect braces, and the tick off. | Automated |
+| MF-010 | File > Show > Deleted Contacts and Hidden Contacts list those contacts | Tick each; check. Expect the deleted and hidden contacts listed. | Automated |
+| MF-011 | File > Show > Logs opens a window that is not modal and shows new entries | Open; carry on working; watch the entries grow. Expect the window to stay open and update. | Automated |
+| MF-012 | File > Exit closes the program after the unsaved-edit check | Exit with and without an edit. Expect the question only when there is an edit. | Automated |
+| MF-013 | The File menu has no Test Function item | Open the File menu and look for Test Function. Expect none (ticket #119). | Automated |
+| MF-014 | Find Here (Ctrl+F) and Find Next (F3) move through matches on the page | Search for a word that appears three times. Expect each F3 to move to the next. | Automated |
+| MF-015 | Global Find (Ctrl+G) matches part of a name without case or accents, lists hidden contacts in brackets, and opens on Enter | Search "jac", "sam", an accented name; hide one contact. Expect matches, the hidden one in brackets, and Enter to open. | Automated |
+| MF-016 | Advanced Global Find (Ctrl+Shift+G) opens its dialog and applies its criteria (see DL-020) | Open. Expect the dialog. | Automated |
+| MF-017 | Email / SMS To Contacts lists contacts with an address for each channel | Open. Expect contacts with the right addresses. | Automated |
+| MF-018 | Email / SMS To Non-Clients lists contacts not ticked Client | Open. Expect only non-clients. | Automated |
+| MF-019 | Uncategorised Contacts lists contacts with no Type ticked | Open. Expect contacts with no Type. | Automated |
+| MF-020 | Duplicate Contacts lists possible duplicates, and does not merge them (merging is Tidy Records) | Create two contacts with one address. Open. Expect both listed, not merged. | Automated |
+| MF-021 | Duplicate Hidden Auto-Email Entries lists hidden contacts that share an address with a visible one | Hide one of two contacts sharing an address; open. Expect the pair listed. | Automated |
+| MF-022 | Goto Me (Ctrl+Shift+O) opens the contact set as Identify Me | Set Identify Me; press the key. Expect that contact open. | Automated |
+| MF-023 | Goto Journal (Ctrl+J) opens the journal in Easy Notepad, and a missing program gives an error | Press it with Easy Notepad present and absent. Expect the journal, then an error. | Automated |
+| MF-024 | Goto To Do List (Ctrl+L) and Goto My To Do List (Ctrl+Shift+L) open the right lists | Press each. Expect the contact's list, then the user's. | Automated |
+| MF-025 | Goto Today (Ctrl+T) selects the first entry from now on | Scroll away; press Ctrl+T. Expect the first entry from today. | Automated |
+| MF-026 | Goto Date (Ctrl+D) opens the date box | Press. Expect the box with the cursor at the end. | Automated |
+| MF-027 | Goto Contact Details (Alt+N, M, A, P, B) moves to each section of the form | Open a contact, enable editing; press each key. Expect the cursor in each section. | Automated |
+| MF-028 | Insert Appointment After (Ctrl+I) adds an entry after the selected one, for the open contact | Select an entry; Ctrl+I. Expect the new entry after it, For the open contact. | Automated |
+| MF-029 | Insert My Appointment After (Ctrl+Shift+I) adds an entry after the selected one, for the user | As MF-028, for the user. | Automated |
+| MF-030 | New Appointment (Ctrl+N) opens the form for the open contact | Press. Expect the form, For set. | Automated |
+| MF-031 | New My Appointment (Ctrl+Shift+N) opens the form for the user | Press. Expect the form, For the user. | Automated |
+| MF-032 | Update Appointment (Ctrl+U) opens the selected entry's form | Select; press. Expect that entry's details. | Automated |
+| MF-033 | Remove Appointment (Ctrl+R) deletes the selected entry after confirmation | Select; press; decline; press; accept. Expect no change on decline, and deletion on accept. | Automated |
+| MF-034 | Edit History enables the history to be edited | Choose it. Expect history editing enabled for the open contact. | Automated |
+| MF-035 | New Contact opens a blank contact | Choose it. Expect a blank Contact Details tab. | Automated |
+| MF-036 | Contact Details enables editing of the open contact (Alt+E, D) | Choose it. Expect the form enabled. | Automated |
+| MF-037 | Delete Contact asks for confirmation, then moves the contact to the deleted folder | Choose; decline; choose; accept. Expect no change, then the move. | Automated |
+| MF-038 | Send EMail Contact (Ctrl+M) starts the mail command with the recipient and name filled in | Press. Expect the command with $TO and $NAME. | Automated |
+| MF-039 | SMS Contact (Ctrl+Shift+M) opens the text form for the contact | Press. Expect the form for the contact. | Automated |
+| MF-040 | Transaction Income (Ctrl++) adds an income entry to the contact's log | Press; enter an amount. Expect the entry in the log. | Automated |
+| MF-041 | Transaction Expense (Ctrl+-) adds an expense entry to the contact's log | As MF-040, as an expense. | Automated |
+| MF-042 | Transaction Report produces the year's report | Choose; enter the year. Expect the report with the entries. | Automated |
+| MF-043 | Manual (F1) opens the manual, and F3 finds the next match | Press F1; search. Expect the manual, and the match. | Automated |
+| MF-044 | About shows the program's name and version | Choose it. Expect name and version. | Automated |
+| MF-045 | Typing a digit in the calendar opens the date box, and Escape closes it without moving | Press 2; Escape. Expect the list unchanged. | Automated |
+| MF-046 | W and WW move the list a week and two weeks ahead, and T starts again from today | Press W, WW, T. Expect the moves. | Automated |
+| MF-047 | N and P move between the open contact's entries and N wraps to the first | Open a contact with three entries; press N four times. Expect the wrap. | Automated |
+| MF-048 | Space shows only the open contact's entries, and a second Space shows all | Press Space twice. Expect the filter, then all entries. | Automated |
+| MF-049 | With no contact open, Space, N, P and the arrows beep and change nothing | Close all contacts; press each. Expect a beep and no change. | Automated |
+| MF-050 | Overview (Alt+O) shows the open contact's summary | Open a contact; press Alt+O. Expect the summary. | Automated |
+| MF-051 | History (Alt+Y) lists the contact's recorded changes and sent messages | Open a contact with history; press Alt+Y. Expect the entries. | Automated |
+| MF-052 | To-Do List (Alt+L) saves its items with the contact | Add an item; save; restart. Expect the item. | Automated |
+| MF-053 | Contact Details (Alt+D) is unavailable with no contact open, and available after Alt+E, D | Check both states. Expect them. | Automated |
 
 ### 3c. By dialog
 
-| ID | Title | Procedure and expected result | Run |
+| ID | Title | Procedure and expected result | How run |
 |---|---|---|---|
-| DL-001 | Setup saves each control on OK and discards the changes on Cancel | Change each control; Cancel; reopen; check. Then change and OK; check. | Manual |
-| DL-002 | Setup's Identify Me choice is the contact Goto Me opens | Choose a contact; OK; press Ctrl+Shift+O. Expect that contact. | Manual |
-| DL-003 | Setup's calendar and contacts masters are saved independently | Set calendar to G and contacts to CM; OK; reopen. Expect both kept. | Manual |
-| DL-004 | Setup's window days accept whole numbers and refuse text | Enter 30, then text. Expect 30 kept, and the text refused. | Manual |
-| DL-005 | Setup's SMS key expiry accepts day/month/year and refuses other text | Enter 25/01/2035 and 25/1/35; then 2035. Expect the first two accepted and the last refused. | Manual |
-| DL-006 | Setup's "Enable SMS and Email Reminders" off stops all automatic messages | Untick; run a confirmation scenario. Expect nothing sent. | Accelerated |
-| DL-007 | Setup's Google Account Change shows the sign-in code, and Reset removes the account | Change; read the code; cancel. Reset. Expect the account removed. | Manual |
-| DL-008 | The appointment form has For, Summary, From, To and Description, and Enter saves | Fill each field; Enter. Expect the entry saved with each value. | Manual |
-| DL-009 | Escape in the appointment form cancels with no change | Change a field; Escape. Expect no change. | Manual |
-| DL-010 | The duration arrows change To, and changing To changes the duration | Use up and down; then change To. Expect both kept in step. | Manual |
-| DL-011 | A clash in the appointment form offers a change, and declining saves nothing | Create an overlap; choose not to change. Expect nothing saved. | Manual |
-| DL-012 | A repeat keeps its type and interval, and a single appointment gets no repeat | Create a weekly repeat; reopen. Expect weekly. Create a single one; reopen. Expect none. | Manual |
-| DL-013 | A repeat's end, by count or by date, is kept in the list and the form | Set count 3; reopen; set an end date. Expect each kept. | Manual |
-| DL-014 | A bad email in the contact form stops the save, with focus in its box and nothing saved | Enter a bad address; Ctrl+S. Expect the box focused and no save. | Manual |
-| DL-015 | A label typed after an address becomes the email's title | Type `name@domain.com (Work)`; save. Expect the title Work. | Manual |
-| DL-016 | A phone typed with a (0) after the country code is saved in tidy form | Enter `+44 (0) 1234 567890`; save. Expect `+44 1234 567890`. | Manual |
-| DL-017 | F2 changes a title, and a title with a colon is refused | Press F2 in an email title; enter a colon. Expect refused. | Manual |
-| DL-018 | Clearing the only detail of a contact saves the change | Clear all details; save. Expect the change saved. | Manual |
-| DL-019 | Quitting or switching contact with unsaved edits asks Save, Discard or Cancel | Edit; switch contact; Cancel; Discard. Expect each outcome. | Manual |
-| DL-020 | Advanced Global Find applies its criteria, lists results, and opens on Enter | Set a criterion; search; Enter on a result. Expect the list and the contact open. | Manual |
-| DL-021 | The transaction form checks the amount, and records income and expense | Enter text; then a number. Expect text refused, and the entry recorded. | Manual |
-| DL-022 | The text form sends through the stub and records the send in history; a missing key gives a message | Send with the key set; then with it removed. Expect a send and history, then a message. | Accelerated |
-| DL-023 | The Logs window updates while open, and closing it returns focus to the program | Open; add an entry; close. Expect the entry and the focus back. | Manual |
-| DL-024 | The manual's Find and F3 work, and Escape closes it | Search; press Escape. Expect the search and the close. | Manual |
-| DL-025 | The Set Encryption Key dialog refuses a mismatched key and a mismatched password | Enter two different keys; then two different passwords. Expect each refused with its message. | Manual |
-| DL-026 | Change Password asks for the old password first, and refuses a wrong one | Enter a wrong old password. Expect refused. | Manual |
-| DL-027 | The typed-date box moves the list for valid dates, and beeps and closes for text | Type 2/12/26; Enter. Then type "xyz". Expect the move, then the beep and close. | Manual |
-| DL-028 | The tidy progress window shows its summary, and closes | Run Tidy Records. Expect the summary, then close. | Manual |
-| DL-029 | Message boxes default to the safe answer, and Escape cancels without action | Delete a contact; press Escape. Expect no delete. | Manual |
-| DL-030 | Export and Import file dialogs leave no file when cancelled | Export; cancel. Expect no file. | Manual |
+| DL-001 | Setup saves each control on OK and discards the changes on Cancel | Change each control; Cancel; reopen; check. Then change and OK; check. | Automated |
+| DL-002 | Setup's Identify Me choice is the contact Goto Me opens | Choose a contact; OK; press Ctrl+Shift+O. Expect that contact. | Automated |
+| DL-003 | Setup's calendar and contacts masters are saved independently | Set calendar to G and contacts to CM; OK; reopen. Expect both kept. | Automated |
+| DL-004 | Setup's window days accept whole numbers and refuse text | Enter 30, then text. Expect 30 kept, and the text refused. | Automated |
+| DL-005 | Setup's SMS key expiry accepts day/month/year and refuses other text | Enter 25/01/2035 and 25/1/35; then 2035. Expect the first two accepted and the last refused. | Automated |
+| DL-007 | Setup's Google Account Change shows the sign-in code, and Reset removes the account | Change; read the code; cancel. Reset. Expect the account removed. | Automated |
+| DL-008 | The appointment form has For, Summary, From, To and Description, and Enter saves | Fill each field; Enter. Expect the entry saved with each value. | Automated |
+| DL-009 | Escape in the appointment form cancels with no change | Change a field; Escape. Expect no change. | Automated |
+| DL-010 | The duration arrows change To, and changing To changes the duration | Use up and down; then change To. Expect both kept in step. | Automated |
+| DL-011 | A clash in the appointment form offers a change, and declining saves nothing | Create an overlap; choose not to change. Expect nothing saved. | Automated |
+| DL-012 | A repeat keeps its type and interval, and a single appointment gets no repeat | Create a weekly repeat; reopen. Expect weekly. Create a single one; reopen. Expect none. | Automated |
+| DL-013 | A repeat's end, by count or by date, is kept in the list and the form | Set count 3; reopen; set an end date. Expect each kept. | Automated |
+| DL-014 | A bad email in the contact form stops the save, with focus in its box and nothing saved | Enter a bad address; Ctrl+S. Expect the box focused and no save. | Automated |
+| DL-015 | A label typed after an address becomes the email's title | Type `name@domain.com (Work)`; save. Expect the title Work. | Automated |
+| DL-016 | A phone typed with a (0) after the country code is saved in tidy form | Enter `+44 (0) 1234 567890`; save. Expect `+44 1234 567890`. | Automated |
+| DL-017 | F2 changes a title, and a title with a colon is refused | Press F2 in an email title; enter a colon. Expect refused. | Automated |
+| DL-018 | Clearing the only detail of a contact saves the change | Clear all details; save. Expect the change saved. | Automated |
+| DL-019 | Quitting or switching contact with unsaved edits asks Save, Discard or Cancel | Edit; switch contact; Cancel; Discard. Expect each outcome. | Automated |
+| DL-020 | Advanced Global Find applies its criteria, lists results, and opens on Enter | Set a criterion; search; Enter on a result. Expect the list and the contact open. | Automated |
+| DL-021 | The transaction form checks the amount, and records income and expense | Enter text; then a number. Expect text refused, and the entry recorded. | Automated |
+| DL-022 | The text form sends through the stub and records the send in history; a missing key gives a message | Send with the key set; then with it removed. Expect a send and history, then a message. | Automated |
+| DL-023 | The Logs window updates while open, and closing it returns focus to the program | Open; add an entry; close. Expect the entry and the focus back. | Automated |
+| DL-024 | The manual's Find and F3 work, and Escape closes it | Search; press Escape. Expect the search and the close. | Automated |
+| DL-025 | The Set Encryption Key dialog refuses a mismatched key and a mismatched password | Enter two different keys; then two different passwords. Expect each refused with its message. | Automated |
+| DL-026 | Change Password asks for the old password first, and refuses a wrong one | Enter a wrong old password. Expect refused. | Automated |
+| DL-027 | The typed-date box moves the list for valid dates, and beeps and closes for text | Type 2/12/26; Enter. Then type "xyz". Expect the move, then the beep and close. | Automated |
+| DL-028 | The tidy progress window shows its summary, and closes | Run Tidy Records. Expect the summary, then close. | Automated |
+| DL-029 | Message boxes default to the safe answer, and Escape cancels without action | Delete a contact; press Escape. Expect no delete. | Automated |
+| DL-030 | Export and Import file dialogs leave no file when cancelled | Export; cancel. Expect no file. | Automated |
 
 ---
 
