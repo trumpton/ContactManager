@@ -1033,7 +1033,9 @@ int main(int argc, char *argv[])
                 record(name + "_text", QJsonValue(a->text())) ;
                 record(name + "_enabled", QJsonValue(a->isEnabled())) ;
                 record(name + "_checked", QJsonValue(a->isCheckable() ? a->isChecked() : false)) ;
-                if (op["trigger"].toBool() && a->isEnabled()) a->trigger() ;
+                // Posted, not called: a dialog the action opens runs a nested event loop, and the next operation is only
+                // scheduled after this one returns, so it must be posted here, before the dialog can block (the step below)
+                if (op["trigger"].toBool() && a->isEnabled()) QTimer::singleShot(0, a, [a]() { a->trigger() ; }) ;
             }
 
         } else if (kind == "actions") {
