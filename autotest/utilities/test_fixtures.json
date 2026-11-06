@@ -1,0 +1,15 @@
+{
+  "_comment": "The six test contacts (documents/test-specification.md, section 0).  Used by the test utilities and by the tests.  Records made by the tests are identified by the email domain of the contacts and by the event prefix, so the clean-up utility can find them on any account.",
+  "identifier": {
+    "email_domain": "sgc.contacmanagertest",
+    "event_prefix": "TEST "
+  },
+  "contacts": [
+    {"number": 1, "given": "Jack", "surname": "O'Neil", "email": "jack.oneil@sgc.contacmanagertest", "phone": "+44 7700 900001", "birthday": "1980-01-15", "channels": ["email"]},
+    {"number": 2, "given": "Samantha", "surname": "Carter", "email": "samantha.carter@sgc.contacmanagertest", "phone": "+44 7700 900002", "birthday": null, "channels": ["email"]},
+    {"number": 3, "given": "Daniel", "surname": "Jackson", "email": "daniel.jackson@sgc.contacmanagertest", "phone": "+44 7700 900003", "birthday": "1975-03-20", "channels": ["sms"]},
+    {"number": 4, "given": "Tealc", "surname": "de Chulak", "email": "tealc.dechulak@sgc.contacmanagertest", "phone": "+44 7700 900004", "birthday": null, "channels": ["sms"]},
+    {"number": 5, "given": "George", "surname": "Hammond", "email": "george.hammond@sgc.contacmanagertest", "phone": "+44 7700 900005", "birthday": "1960-11-02", "channels": ["email", "sms"]},
+    {"number": 6, "given": "Vala", "surname": "Mal Doran", "email": "vala.maldoran@sgc.contacmanagertest", "phone": "+44 7700 900006", "birthday": null, "channels": ["email", "sms"]}
+  ]
+}
