@@ -3,7 +3,7 @@
 Version: as at 5 November 2026 (branch `master`, after PR #116).
 Companion documents: `documents/test-specification.md` (tests), `documents/test-duration-estimate.md` (how long the tests take), `documents/messaging-rules.md` (the message rules in full, with worked evidence).
 
-Where this specification and the program differ, the program is the reference and the difference is listed in Appendix A.
+This specification describes what the program should do.
 
 ---
 
@@ -16,7 +16,6 @@ Where this specification and the program differ, the program is the reference an
 5. Announcements and alerts
 6. Menus and keys
 7. Synchronisation with Google
-- Appendix A. Open points
 - Appendix B. Glossary
 
 ---
@@ -60,7 +59,6 @@ The text a screen reader speaks, or a braille display shows, is part of the desi
 
 The same item gives the same text wherever it appears (the list, a dialog, or Show Screen Reader Text), so a user learns it once.
 
-Calendar entries do not yet meet these rules (Appendix A, item 5).
 
 ---
 
@@ -107,6 +105,8 @@ Each section, with its keys. A key that is not given takes the default shown.
 
 **`[google]`**
 - `debug` — `yes` to write debug output for support. Default `no`.
+- `downloaddaysbefore` — the download window starts this many days before today. Default 365.
+- `downloaddaysafter` — the download window ends this many days after today. Default 730.
 
 **`[phone]`**
 - `localcode` — the local dialling code, used when formatting numbers. Example `01234`.
@@ -160,7 +160,7 @@ The email password is set in Settings, not in the ini file.
 | `$TO`, `$NAME` | the recipient's address and name, for the Ctrl+M mail command |
 | any name in `[var]` | its value |
 
-A complete example, with the defaults, is in the program's help (File > Manual, section 8.1). Note that its message lines are inconsistent (Appendix A, item 1).
+A complete example, with the defaults, is in the program's help (File > Manual, section 8.1).
 
 ### 2.3 Settings (File > Setup)
 
@@ -178,10 +178,10 @@ The Setup dialog is titled "Contact Manager - Setup". It is written to the setti
 | Database Management | (group; see the dialog) | Maintenance settings for the database folder. |
 | Options | Enable SMS and Email Reminders | Turns automatic messages on or off for this copy. |
 | | Show Birthdays in Calendar List | Shows contacts' birthdays as calendar entries. |
-| | Show appointments from ___ days before today | The start of the calendar window. Default 90. |
-| | ___ days after today | The end of the calendar window. Default 730. |
+| | Show appointments from ___ days before today | The start of the listing window (the appointments shown in the calendar list). Default 90. |
+| | ___ days after today | The end of the listing window. Default 730. |
 
-The calendar window is the range of appointments listed and synced (section 4.1, section 7.4).
+The listing window is the range of appointments shown in the calendar list (section 4.1). The download window, which decides which Google appointments are downloaded, is set in the ini file (`[google]`, section 2.2 and section 7.4).
 
 ### 2.4 Messages and templates
 
@@ -226,9 +226,9 @@ Contact files, to-do lists and histories can be saved encrypted. Two secrets are
 - **The file encryption key** encrypts the files. It is created once and is never changed. It is typed twice when it is created.
 - **The login password** is typed each time the program starts. It decrypts the file encryption key, so without it no encrypted file can be read. It can be changed, and the file encryption key is then protected with the new password.
 
-File > Key and Password has three items. Their labels are as the program shows them (Appendix A, item 4):
-- **Set Encryption Key** — creates the file encryption key and the login password. Available only when not logged in.
-- **Change Password** — changes the login password, after the old one is typed. Available only when not logged in.
+File > Key and Password has three items:
+- **Set File Encryption Key** — creates the file encryption key and the login password. Available only when not logged in.
+- **Change Login Password** — changes the login password, after the old one is typed. Available only when not logged in.
 - **Logout** — logs out, so the next action asks for the login password. Available only when logged in.
 
 **At start-up**, the program asks for the login password up to three times. If it still fails, it asks whether to set or reset the file encryption key, or to close.
@@ -373,9 +373,9 @@ The progress window shows a summary of what was changed and what needs the user'
 
 ### 4.1 What is listed
 
-The calendar tab lists appointments in date and time order. The list covers the calendar window (2.3): by default, 90 days before today to 730 days after it.
+The calendar tab lists appointments in date and time order. The list covers the listing window (2.3): by default, 90 days before today to 730 days after it.
 
-- A **repeat** is listed once for each of its dates in the window. Its first occurrence may be before the window.
+- A **repeat** is listed once for each of its dates in the listing window. Its first occurrence may be before the listing window.
 - A **deleted** appointment is listed only when File > Show > Deleted Appointments is ticked. Then it is shown in braces.
 - **Birthdays** are listed when Show Birthdays in Calendar List is ticked (2.3).
 - The ticks in File > Show are not kept: they are off each time the program starts.
@@ -448,7 +448,7 @@ An appointment can repeat. The form gives:
 - the **type** of repeat and the **interval** (for example every week, or every two weeks);
 - an **end**: after a number of times, or on a date.
 
-A repeat is stored once, and listed on each of its dates in the window.
+A repeat is stored once, and listed on each of its dates in the listing window.
 
 Changes to one occurrence of a repeat:
 - **Deleting one occurrence** removes only that date; the others are kept. On Google, that date is left out of the repeat.
@@ -466,8 +466,8 @@ The program checks for clashes when an appointment is saved, and offers the user
 
 - Appointments are stored one per file in `calendar/`.
 - **Deleting** an appointment (Ctrl+R) marks it deleted. A deleted appointment that is not on Google is moved to the deleted folder by Tidy Records. One still linked to Google is removed from Google by the next sync.
-- **Archive.** An appointment that has ended before the calendar window, that is on Google, that has not changed since the last sync, and that has nothing waiting to be uploaded or downloaded, is moved to `calendar/archive/` by the sync. The archive is not read at start-up, so the calendar stays quick on large data sets.
-- **Restore.** If Google moves an archived appointment back into the window, it is restored from the archive.
+- **Archive.** An appointment that has ended before the download window, that is on Google, that has not changed since the last sync, and that has nothing waiting to be uploaded or downloaded, is moved to `calendar/archive/` by the sync. The archive is not read at start-up, so the calendar stays quick on large data sets.
+- **Restore.** If Google moves an archived appointment back into the download window, it is restored from the archive.
 - **Cancel from the archive.** If Google cancels an archived appointment, it is moved to the archive's deleted folder, not deleted.
 
 ### 4.9 Birthdays
@@ -486,7 +486,7 @@ Every message in this table is sent only inside the send window (5.5). The timin
 
 | Message | Sent when | Timing | Channel | Sent only in the send window |
 |---|---|---|---|---|
-| Confirmation | An appointment is new, in the future, and not yet messaged. | After the hold (5.4). | Email, if Email is ticked and the contact has an email address. Text, if Email is not ticked, Text is ticked and the contact has a mobile number. If both are ticked, email only. | Yes |
+| Confirmation | An appointment is new, in the future, and not yet messaged. | After the hold (5.4). | Email, if Email is ticked and the contact has an email address; otherwise text, if Text is ticked and the contact has a mobile number (5.2). | Yes |
 | Update | An already confirmed appointment changes in start, end or repeat. | After the hold, with the final details. | As the confirmation. | Yes |
 | Cancellation | An already confirmed appointment is deleted. | Not held: at the first check inside the window. | As the confirmation. | Yes |
 | Reminder | The appointment is within `remindhoursbefore` hours, it is not confirm-only, and it is not today. | Once per occurrence. | As the confirmation. | Yes |
@@ -497,10 +497,11 @@ Nothing is sent for a past occurrence, or for an appointment deleted before it w
 
 ### 5.2 Who is messaged
 
-- A contact must have the channel ticked (Confirm via Email, Confirm via SMS) and an address or number for that channel.
-- There is no fallback between channels. A message goes on the channel it is for. If a channel is ticked but the contact has no address for it, that message is not sent on the other channel. (The program does fall back for a confirmation: Appendix A, item 3.)
+- A contact must have a channel ticked (Confirm via Email, Confirm via SMS) and an address or number for it. A channel that is not ticked, or has no address or number, is not usable.
+- For a confirmation, update, cancellation or reminder, the email channel is used if it is usable. Otherwise the text channel is used, if it is usable. Each such message is sent on one channel only.
+- On the day, each channel is used separately: a usable email channel sends its own on-the-day email, and a usable text channel sends its own on-the-day text (5.1).
 - A deleted or hidden contact is not messaged.
-- A contact with neither channel ticked gets nothing.
+- A contact with neither channel usable gets nothing.
 
 ### 5.3 By channel setting
 
@@ -508,7 +509,7 @@ Nothing is sent for a past occurrence, or for an appointment deleted before it w
 |---|---|---|
 | Email only | Email | Email |
 | Text only | Text | Text |
-| Both | Email | Email, then text |
+| Both | Email (text, if there is no email address) | Email, then text |
 
 A confirmation or update sent on the day, by a channel, counts as that channel's on-the-day message, so a same-day booking is not sent twice. For a text-only contact, a same-day booking is confirmed by text and gets no second text.
 
@@ -585,7 +586,7 @@ Only the copy that holds the lock file (`ContactManager.lock`, in the database f
 
 The menus are File (Alt+F), Search (Alt+S), Goto (Alt+G), Edit (Alt+E), Tasks (Alt+T) and Help (Alt+H). Items are marked with their keys in brackets. A menu item that does not apply (for example Contact Details when no contact is open) is disabled.
 
-Menus, as built from the program's menu definitions (`mainwindow.ui`):
+The menus are:
 
 - **File**
   - Open (Ctrl+O)
@@ -598,8 +599,8 @@ Menus, as built from the program's menu definitions (`mainwindow.ui`):
   - Tidy Records
   - Exit
   - Key and Password
-    - Set Encryption Key
-    - Change Password
+    - Set File Encryption Key
+    - Change Login Password
     - Logout
   - Setup
   - Show
@@ -688,7 +689,7 @@ Pressing F9 (File > Google Sync) synchronises contacts and appointments with the
 ### 7.1 What is synchronised
 
 - **Contacts.** Names, the four email addresses, the six phone numbers, the addresses, the web site, the birthday, the organisation and the comment. A contact is linked to its Google record by ID, and the link is kept on the contact.
-- **Appointments.** Summary, start, end, description and location, and repeats, within the calendar window (7.4). An appointment that is organised by someone else (read-only) is not uploaded.
+- **Appointments.** Summary, start, end, description and location, and repeats. Downloads are limited to the download window (7.4); uploads are not. An appointment that is organised by someone else (read-only) is not uploaded.
 
 **Slots.** A contact has four email slots and six phone slots. Google may hold more. The extra values are kept in the contact's Comments, so no data is lost, but they are not editable as separate slots. Labels (Home, Work, Mobile ...) are kept with each value.
 
@@ -711,19 +712,26 @@ For each conflict, the sync report says which version was kept and why.
 ### 7.3 The sync process
 
 1. Contacts are synced first, then appointments. The progress bar fills the first half for contacts and the second for the calendar.
-2. The Google side is read. For appointments, only changes are listed after the first full sync, using Google's sync token. If Google refuses the token, the whole window is listed again.
+2. The Google side is read. For appointments, only changes are listed after the first full sync, using Google's sync token. If Google refuses the token, the whole download window is listed again.
 3. Changes are applied and uploads are sent. Each Google record carries its version (ETag), so a change made on Google since the last read is not overwritten silently: it is a conflict (7.2).
 4. Links between contacts and appointments are saved as they are made, so an interrupted sync does not lose them.
 5. Appointments that have ended and are on Google are archived (4.8).
 6. The sync time is saved for each phase, and the summary is written.
 
-### 7.4 The calendar window
+### 7.4 The download window
 
-Only appointments in the calendar window are synced (default: 90 days before today to 730 days after). An appointment that starts before the window and ends inside it is downloaded. An appointment that ends before the window is not downloaded and stays on Google. Widening the window downloads the entries it now reaches.
+Google appointments are downloaded only if they fall in the download window. Its start and end are set in the ini file, in the `[google]` section (2.2):
 
-Repeats are downloaded with their first occurrence. A repeat whose first occurrence is older than the window is still listed on the dates in the window.
+- `downloaddaysbefore` (default 365): the window starts this many days before today.
+- `downloaddaysafter` (default 730): the window ends this many days after today.
 
-The program's help says appointments are downloaded from one year back. The window setting governs the program as built, and this is listed in Appendix A, item 2.
+An appointment that starts before the window and ends inside it is downloaded. An appointment that ends before the window is not downloaded, and stays on Google. Widening the window downloads the entries it now reaches.
+
+The window limits downloads only. A local appointment is uploaded whatever its date.
+
+A repeat is downloaded with its first occurrence. A repeat whose first occurrence is before the download window is still downloaded, and its occurrences are listed in the listing window.
+
+The listing window set in Setup (2.3) decides which downloaded appointments are shown in the calendar list.
 
 ### 7.5 Retries and rate limits
 
@@ -750,22 +758,13 @@ When a sync stops, the last line of the report gives the reason and what to do:
 
 #---
 
-## Appendix A. Open points
-
-Each point is a difference that is still to be resolved. The specification states the rule that should apply. Points that have been agreed, and are now stated in the specification, are not repeated here.
-
-1. **Manual.** The program's help (File > Manual) must be corrected to match this specification. Its section 8.1 example has the `smsconfirmation` line pointing at the email file, and a `[google] priority` key that the program does not read. Its section 5 says the calendar window is set in the ini file; it is set in Setup (2.3). Its section 6.3 should say that a change to a title or location does not send an update (5.4).
-2. **Download window: decision needed.** The manual (section 7.1) says appointments are downloaded from one year back. The program downloads the window set in Setup (90 days back and 730 days forward by default, 7.4). The bench test G44 expects the one-year rule. Decide which is intended, then make the program, the manual and test G44 agree.
-3. **Fallback between channels: the program must change.** Section 5.2 states that there is no fallback. The program does fall back: when Email is ticked and the contact has no email address, a confirmation is sent by text. The unit test `missingEmailAddressSendsNothingByEmailButTextStillGoes` expects this (`confirm:sms`). The program and that test must change.
-4. **Names in the program.** The program's dialogs say "Encryption Key" and "Initial Password". They should use the names in section 2.5: the file encryption key and the login password. The labels in File > Key and Password should follow.
-5. **Calendar text is long (issue #22, open).** Calendar entries are read out with the program path and the window title, which section 1.4 rules out. Shorten the spoken text for entries.
-
 ## Appendix B. Glossary
 
 | Term | Meaning |
 |---|---|
 | Master | The side (program or Google) whose version wins a conflict (7.2). |
-| Window | The range of dates for appointments that are listed and synced (4.1, 7.4). |
+| Listing window | The dates of appointments shown in the calendar list. Set in Setup (2.3, 4.1). |
+| Download window | The dates of Google appointments that are downloaded. Set in the ini file (2.2, 7.4). |
 | Hold | The wait after a change before its message is sent (5.4). |
 | Send window | The hours when messages are sent: `earliestsend` to `latestsend` (5.5). |
 | Confirm-only | An appointment made close to its start, which gets only its confirmation (5.6). |

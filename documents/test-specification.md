@@ -233,7 +233,7 @@ Defaults apply unless a test says otherwise: hold 5 minutes, send window 07:00 t
 | AN-027 | A hidden contact's appointments send no messages | Contact 4 hidden; appointments made. Expect nothing sent to contact 4. | Accelerated |
 | AN-028 | A channel changed after confirmation sends only what is pending on the new channel, and nothing again | Contact 5 confirmed by email; change to text only. Expect only pending messages on text, and no repeat of the email. | Accelerated |
 | AN-029 | A contact with neither channel ticked is sent nothing | Contact with no channel ticked. Expect no message of any kind. | Accelerated |
-| AN-030 | A ticked channel with no address sends nothing on that channel | Contact 1 with email ticked and the address removed. Expect no email. The other channel, if ticked, behaves as its own rules say. | Accelerated |
+| AN-030 | A confirmation falls back to text when email is ticked but the contact has no email address | Contact 1 with email ticked and its address removed, and text ticked with a mobile number. Create an appointment. Expect one text confirmation and no email (specification 5.2). | Accelerated |
 
 ### 2.4 Restarts, shutdown and two copies
 
@@ -300,13 +300,13 @@ Each menu item is tested by choosing it from the menu, and by its key where it h
 | MF-004 | File > Export > Appointments writes a file with all appointments | Export. Expect a file with the appointments in the window. | Manual |
 | MF-005 | File > Import reads an export back without duplicates | Export; delete one contact; import. Expect the contact back, and no duplicates. | Manual |
 | MF-006 | File > Tidy Records saves the screen's edit first, then shows its summary | Edit a contact on screen; Tidy Records. Expect the edit saved, and the summary. | Manual |
-| MF-007 | File > Key and Password enables items according to whether the program is logged in | Check the items before and after logging in and out. Expect Set Key and Change Password only when logged out, and Logout only when logged in. | Manual |
+| MF-007 | File > Key and Password enables items according to whether the program is logged in | Check the items before and after logging in and out. Expect Set File Encryption Key and Change Login Password only when logged out, and Logout only when logged in. | Manual |
 | MF-008 | File > Setup opens the Setup dialog (its controls are tested in 3c) | Open. Expect the Setup dialog. | Manual |
 | MF-009 | File > Show > Deleted Appointments lists deleted appointments in braces, and the tick is off at start-up | Tick; check the list; restart; check the tick. Expect braces, and the tick off. | Manual |
 | MF-010 | File > Show > Deleted Contacts and Hidden Contacts list those contacts | Tick each; check. Expect the deleted and hidden contacts listed. | Manual |
 | MF-011 | File > Show > Logs opens a window that is not modal and shows new entries | Open; carry on working; watch the entries grow. Expect the window to stay open and update. | Manual |
 | MF-012 | File > Exit closes the program after the unsaved-edit check | Exit with and without an edit. Expect the question only when there is an edit. | Manual |
-| MF-013 | File > Test Function runs its developer diagnostic (see Appendix C, item 4) | Choose it. Expect the diagnostic output, and no change to data. | Manual |
+| MF-013 | The File menu has no Test Function item | Open the File menu and look for Test Function. Expect none (ticket #119). | Manual |
 | MF-014 | Find Here (Ctrl+F) and Find Next (F3) move through matches on the page | Search for a word that appears three times. Expect each F3 to move to the next. | Manual |
 | MF-015 | Global Find (Ctrl+G) matches part of a name without case or accents, lists hidden contacts in brackets, and opens on Enter | Search "jac", "sam", an accented name; hide one contact. Expect matches, the hidden one in brackets, and Enter to open. | Manual |
 | MF-016 | Advanced Global Find (Ctrl+Shift+G) opens its dialog and applies its criteria (see DL-020) | Open. Expect the dialog. | Manual |
@@ -791,8 +791,8 @@ Counts: Google sync 144, Announcements 85, Start-up and shutdown 7, By menu and 
 | 1 | Spelling of the test domain `sgc.contacmanagertest` | Confirm before the first live run (0.4). |
 | 2 | The send-record write failure (issue #110, item 3) | A test that the message is retried and not sent twice (Appendix A and specification 5.10). |
 | 3 | The stub transports and the accelerated harness are in a scratch folder, not the repository | Bring them into `autotest/` before area 2 is run again. |
-| 4 | The Test Function menu item | Decide whether it is in the release (specification Appendix A, item 5), then test it accordingly. |
-| 5 | A test for the two-channel confirmation fallback | Decide the rule first (specification Appendix A, item 11). |
+| 4 | The Test Function menu item | Removed in ticket #119. Once that is done, check that the File menu has no Test Function item. |
+| 5 | The download window read from the ini file | Tests GS-023 and GS-038, and the window scenarios, after ticket #118. |
 | 6 | Google sync for a token refused on a later page of a listing (issue #110, item 19) | A test in area 1. |
 | 7 | Read-back of archive and deleted-folder writes (issue #110, item 18) | Extend AR01 to AR03 (Appendix A) to read the files back. |
 | 8 | Google-made appointments get no confirmation (issue #110, item 15) | Decide the rule first, then add a test in area 2. |
