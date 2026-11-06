@@ -211,7 +211,7 @@ SS-012,2026-11-06,9283d87,FAIL,,Run 9283d87: the log says the ini file was not f
 SS-013,2026-11-06,9283d87,NOT RUN,,"Run 9283d87: blocked: SS-013: BLOCKED, running as root: file permissions are not enforced in this container, so a read-only folder cannot be made. Run the bench as a user without root to test it."
 SS-014,2026-11-06,9283d87,PASS,,
 SS-015,2026-11-06,9283d87,PASS,,
-MF-001,2026-11-06,fa1ea81,FAIL,,"Bench: the rows read is the calendar list, not the contacts list of File > Open."
+MF-001,2026-11-06,fd12914,PASS,,
 MF-002,2026-11-06,9283d87,FAIL,,Run 9283d87: Ctrl+S saves the open contact's edit: email 'jack.oneil@sgc.contacmanagertest'
 MF-003,2026-11-06,9283d87,PASS,,
 MF-004,2026-11-06,9283d87,PASS,,
@@ -220,18 +220,18 @@ MF-006,2026-11-06,9283d87,FAIL,,Run 9283d87: the edit on screen is saved by Tidy
 MF-007,2026-11-06,9283d87,FAIL,,"Run 9283d87: logged in: Set Encryption Key and Change Password are off, Logout is on: states {'actionChangePassword': True, 'actionLogout': True, 'actionSetEncryptionKey': True}"
 MF-008,2026-11-06,9283d87,PASS,,
 MF-009,2026-11-06,9283d87,PASS,,
-MF-010,2026-11-06,fa1ea81,FAIL,,"Bench: the rows read is the calendar list, not the contacts list."
+MF-010,2026-11-06,fd12914,FAIL,,"Needs checking: the hidden contact is listed in braces, but the deleted contact is not listed, although Show Deleted was ticked. Check the toggle and the list."
 MF-011,2026-11-06,9283d87,PASS,,
 MF-012,2026-11-06,9283d87,PASS,,
 MF-013,2026-11-06,9283d87,PASS,,
 MF-014,2026-11-06,9283d87,FAIL,,"Run 9283d87: each Find Next moves to the next match: rows [1, 2, 0]"
-MF-015,2026-11-06,fa1ea81,FAIL,,Bench: the rows read is the calendar list; the search matches are in another list.
+MF-015,2026-11-06,fd12914,FAIL,,"Bench: the Global Find text is not recorded, and its match list is in a window the driver does not read yet."
 MF-016,2026-11-06,9283d87,PASS,,
 MF-017,2026-11-06,9283d87,PASS,,
-MF-018,2026-11-06,fa1ea81,FAIL,,"Bench: the rows read is the calendar list, not the contacts list."
+MF-018,2026-11-06,fd12914,FAIL,,Needs checking: the menu action opens a warning (text not captured) instead of the list. Check what the program shows when no contact is ticked Client.
 MF-019,2026-11-06,9283d87,PASS,,
 MF-020,2026-11-06,9283d87,PASS,,
-MF-021,2026-11-06,fa1ea81,FAIL,,"Bench: the rows read is the calendar list, not the contacts list."
+MF-021,2026-11-06,fd12914,FAIL,,"Needs checking: the menu action opens a warning instead of the list, as for MF-018."
 MF-022,2026-11-06,9283d87,NOT RUN,,"Run 9283d87: blocked: MF-022: BLOCKED, Identify Me is chosen in Setup from a list the bench cannot set yet (the Setup dialog's list is not recorded). Once it can be set, press Ctrl+Shift+O and check the contact that opens."
 MF-023,2026-11-06,9283d87,FAIL,,"Run 9283d87: with Easy Notepad present, the journal opens in it: the program did not start Easy Notepad"
 MF-024,2026-11-06,9283d87,FAIL,,Run 9283d87: Ctrl+Shift+L shows the user's list: to-do shows 'MF024 contact list item\n'
@@ -282,7 +282,7 @@ DL-016,2026-11-06,9283d87,PASS,,
 DL-017,2026-11-06,fa1ea81,FAIL,,Bench: F2 opens no title box the driver can read.
 DL-018,2026-11-06,9283d87,PASS,,
 DL-019,2026-11-06,9283d87,PASS,,
-DL-020,2026-11-06,fa1ea81,FAIL,,Bench: the rows read is the calendar list; the search results are in another list.
+DL-020,2026-11-06,fd12914,FAIL,,Bench: the Advanced Global Find results list is in a window the driver does not read yet.
 DL-021,2026-11-06,9283d87,FAIL,,Run 9283d87: a number is recorded: 12.50 not in the data
 DL-022,2026-11-06,9283d87,FAIL,,"Run 9283d87: the send with the key set, and the history entry: BLOCKED, the send needs the text service; the bench stands in for it only for the announcement tests"
 DL-023,2026-11-06,9283d87,FAIL,,"Run 9283d87: the entry added while open, and focus back after closing: BLOCKED, the log window is not modal, so the driver cannot press its Close button; the focus check needs the driver's focus record"
