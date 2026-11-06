@@ -274,18 +274,24 @@ test("MF-014", "Find Here (Ctrl+F) and Find Next (F3) move through matches on th
 
 
 def _mf015_build(home):
+    # Global Find is opened from its menu item (the bench does not press Ctrl+G); its text box takes "jac", and the list is read
     return [run_spec(oc.fixtures_ops()),
-            run_spec([oc.dates_op(["jac"]), oc.keys_op("g", "Ctrl+G"), oc.dump_op()])]
+            run_spec([{"op": "hide_contact", "match": {"surname": "Jackson"}}, oc.dates_op(["jac"]),
+                      oc.menu_op("gf", "actionGlobalFind"), oc.wait_op(1500),
+                      oc.widgets_op("list", rows=True),
+                      {"op": "keys", "name": "enter", "sequence": "Return", "target": "window"}, oc.wait_op(1000),
+                      oc.state_op("s"), oc.dump_op()])]
 
 
 def _mf015_check(runs, home):
     r = runs[1]
-    titles = [v for k, v in r.results.items() if k.endswith("_title") and k.startswith("dialog_")]
-    texts = [v for k, v in r.results.items() if k.endswith("_text") and k.startswith("dialog_")]
-    return [check("Global Find asks for its text", bool(titles), "no input box recorded"),
-            check("the text typed is the search text", "jac" in texts, "texts %s" % texts),
-            blocked("the matches, hidden contacts in brackets, and Enter opening the contact",
-                    "the match list is not recorded by the driver yet (it is a list in a window the bench cannot read)")]
+    rows = r.value("list_rows") or []
+    text = " | ".join(rows)
+    return [check("Global Find asks for its text and the list is shown", bool(rows), "no list recorded"),
+            check("part of a name matches without case: O'Neil, Jack is listed", "O'Neil, Jack" in text, "rows %r" % rows[:6]),
+            check("a hidden contact, Jackson, is listed in brackets", "{Jackson, Daniel}" in text, "rows %r" % rows[:6]),
+            check("Enter opens the first match, O'Neil", runs[1].value("s_loaded") == "O'Neil",
+                  "loaded %r" % runs[1].value("s_loaded"))]
 
 
 test("MF-015", "Global Find (Ctrl+G) matches part of a name without case or accents, lists hidden contacts in brackets, and opens on Enter",
@@ -662,11 +668,12 @@ def _mf042_build(home):
 
 
 def _mf042_check(runs, home):
+    # the handler for Transaction Report is a TODO in mainwindow_menu_transaction.cpp: no report is written, so this fails
     r = runs[1]
     titles = [v for k, v in r.results.items() if k.endswith("_text") and k.startswith("dialog_")]
+    reports = [os.path.relpath(p, home) for p in glob.glob(os.path.join(home, "**", "*report*"), recursive=True)]
     return [check("the report asks for the year, and the year is typed", "2026" in titles, "texts %s" % titles),
-            blocked("the report's entries", "the report is written to a file by the program, and its contents are not "
-                                            "yet checked; add the report file's path to the check")]
+            check("the report is written for the year", bool(reports), "report files found: %s" % reports)]
 
 
 test("MF-042", "Transaction Report produces the year's report", _mf042_build, _mf042_check)

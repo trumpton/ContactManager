@@ -12,24 +12,38 @@ from ops_common import check, blocked, run_spec, test
 
 # ------------------------------------------------------------------------------------------------ DL-001 to DL-005: Setup
 
+_DL001_CONTROLS = ["windowBefore", "windowAfter", "showBirthdays"]
+
+
 def _dl001_build(home):
+    # The birthdays box starts unticked (its setting is "no"), so a change to it is visible
     return [run_spec(oc.fixtures_ops()),
-            run_spec([oc.hold_op(), oc.menu_op("setup", "actionSetup"), oc.set_op("typed", "windowBefore", text="45"),
+            run_spec([oc.setting_op("showbirthdays", "no"), oc.hold_op(),
+                      oc.menu_op("setup0", "actionSetup"), oc.widgets_op("before", _DL001_CONTROLS), oc.press_op("cancel0", "Cancel"),
+                      oc.menu_op("setup", "actionSetup"), oc.set_op("typed", "windowBefore", text="45"),
+                      oc.set_op("typed2", "windowAfter", text="46"), oc.set_op("typed3", "showBirthdays", checked=True),
                       oc.press_op("cancel", "Cancel"),
-                      oc.menu_op("setup2", "actionSetup"), oc.widgets_op("after_cancel", ["windowBefore"]),
-                      oc.set_op("typed2", "windowBefore", text="60"), oc.press_op("ok", "OK"),
-                      oc.menu_op("setup3", "actionSetup"), oc.widgets_op("after_ok", ["windowBefore"]),
+                      oc.menu_op("setup2", "actionSetup"), oc.widgets_op("after_cancel", _DL001_CONTROLS),
+                      oc.set_op("typed4", "windowBefore", text="60"), oc.set_op("typed5", "windowAfter", text="61"),
+                      oc.set_op("typed6", "showBirthdays", checked=True), oc.press_op("ok", "OK"),
+                      oc.menu_op("setup3", "actionSetup"), oc.widgets_op("after_ok", _DL001_CONTROLS),
                       oc.press_op("cancel3", "Cancel"), oc.hold_op(False), oc.dump_op()])]
 
 
 def _dl001_check(runs, home):
     r = runs[1]
-    return [check("Cancel discards the change", r.value("after_cancel_windowBefore") != "45",
-                   "shown %r" % r.value("after_cancel_windowBefore")),
-            check("OK keeps the change", r.value("after_ok_windowBefore") == "60",
-                  "shown %r" % r.value("after_ok_windowBefore")),
-            blocked("each control saved and discarded", "only the window days are read here; the other controls need their "
-                                                         "own reads (their names are in configuration.ui)")]
+    before = {c: r.value("before_" + c) for c in _DL001_CONTROLS}
+    checks = []
+    for c in _DL001_CONTROLS:
+        checks.append(check("Cancel discards the change to %s" % c, r.value("after_cancel_" + c) == before[c],
+                            "before %r, after Cancel %r" % (before[c], r.value("after_cancel_" + c))))
+    checks.append(check("OK keeps the change to windowBefore", r.value("after_ok_windowBefore") == "60",
+                        "shown %r" % r.value("after_ok_windowBefore")))
+    checks.append(check("OK keeps the change to windowAfter", r.value("after_ok_windowAfter") == "61",
+                        "shown %r" % r.value("after_ok_windowAfter")))
+    checks.append(check("OK keeps the change to showBirthdays", r.value("after_ok_showBirthdays") == "true",
+                        "shown %r" % r.value("after_ok_showBirthdays")))
+    return checks
 
 
 test("DL-001", "Setup saves each control on OK and discards the changes on Cancel", _dl001_build, _dl001_check)
@@ -58,7 +72,8 @@ def _dl003_build(home):
     return [run_spec(oc.fixtures_ops()),
             run_spec([oc.hold_op(), oc.menu_op("setup", "actionSetup"), oc.set_op("g", "conflictGoogle", checked=True),
                       oc.press_op("ok", "OK"), oc.menu_op("setup2", "actionSetup"),
-                      oc.widgets_op("again", ["conflictGoogle", "conflictContactManager"]),
+                      oc.widgets_op("again", ["conflictGoogle", "conflictContactManager", "checkBox_syncCalendar",
+                                              "checkBox_syncContacts"]),
                       oc.press_op("cancel", "Cancel"), oc.hold_op(False), oc.dump_op()])]
 
 
@@ -66,8 +81,10 @@ def _dl003_check(runs, home):
     r = runs[1]
     return [check("the master choice is kept after OK", r.value("again_conflictGoogle") == "true",
                   "conflictGoogle %r" % r.value("again_conflictGoogle")),
-            blocked("the calendar and contacts masters set independently",
-                    "the calendar master's control is not identified yet; the contacts one is checked above")]
+            check("Setup has a calendar master and a contacts master, set separately",
+                  r.value("again_calendarMaster") is not None,
+                  "Setup has one master choice (Database Management: Contact Manager or Google), and its calendar and "
+                  "contacts boxes are sync selections, not masters")]
 
 
 test("DL-003", "Setup's calendar and contacts masters are saved independently", _dl003_build, _dl003_check)
@@ -144,14 +161,27 @@ def _new_appt_ops(summary, description, press="OK"):
 
 
 def _dl008_build(home):
-    return [run_spec(oc.fixtures_ops()), run_spec(_new_appt_ops("DL008 entry", "DL008 description"))]
+    # the form's For, From and To are read before Enter is pressed (Return, to the form), and the entry is then saved
+    enter = {"op": "keys", "name": "enter", "sequence": "Return", "target": "window"}
+    return [run_spec(oc.fixtures_ops()),
+            run_spec([oc.open_op(1, "o"), oc.hold_op(), oc.menu_op("new", "actionNewAppointment"),
+                      oc.set_op("s", "editSummary", text="DL008 entry"), oc.set_op("d", "plaintexteditDescription", text="DL008 description"),
+                      oc.widgets_op("form", ["contactName", "editSummary", "plaintexteditDescription"]),
+                      oc.range_state_op("range", ["editWhenFrom", "editWhenTo"]),
+                      enter, oc.hold_op(False), oc.dump_op()])]
 
 
 def _dl008_check(runs, home):
+    r = runs[1]
     a = [x for x in runs[1].appointments() if x.get("summary") == "DL008 entry"]
-    return [check("the entry is saved with its summary and description",
-                  len(a) == 1 and a[0].get("description") == "DL008 description", "found %s" % a),
-            blocked("the For, From and To fields", "the date fields are typed by the program's own format; checked by DL-010")]
+    return [check("the For field shows the open contact", "O'Neil" in str(r.value("form_contactName") or ""),
+                  "For reads %r" % r.value("form_contactName")),
+            check("the From field has its start and duration", r.value("range_editWhenFrom_duration") not in (None, -2),
+                  "From duration %r" % r.value("range_editWhenFrom_duration")),
+            check("the To field has its end", "MISSING" not in str(r.value("range_editWhenTo_text") or "MISSING"),
+                  "To reads %r" % r.value("range_editWhenTo_text")),
+            check("Enter saves the entry with its summary and description",
+                  len(a) == 1 and a[0].get("description") == "DL008 description", "found %s" % a)]
 
 
 test("DL-008", "The appointment form has For, Summary, From, To and Description, and Enter saves", _dl008_build, _dl008_check)
@@ -263,18 +293,32 @@ test("DL-012", "A repeat keeps its type and interval, and a single appointment g
 
 
 def _dl013_build(home):
+    # Ends: 1 is "After a number of times" and 2 is "On a date".  The end date is typed in the box's own format.
     return [run_spec(oc.fixtures_ops()),
             run_spec([oc.open_op(1, "o"), oc.hold_op(), oc.menu_op("new", "actionNewAppointment"),
                       oc.set_op("s", "editSummary", text="DL013 counted"), oc.set_op("r", "comboRepeat", index=2),
-                      oc.set_op("n", "spinEndCount", text="3"), oc.press_op("ok", "OK"), oc.hold_op(False), oc.dump_op()])]
+                      oc.set_op("e", "comboEnds", index=1), oc.set_op("n", "spinEndCount", text="3"),
+                      oc.press_op("ok", "OK"),
+                      oc.open_op(1, "o"), oc.menu_op("new2", "actionNewAppointment"),
+                      oc.set_op("s2", "editSummary", text="DL013 dated"), oc.set_op("r2", "comboRepeat", index=2),
+                      oc.set_op("e2", "comboEnds", index=2), oc.widgets_op("dateform", ["dateEndDate"]),
+                      oc.set_op("d", "dateEndDate", text="15 Dec 2026"), oc.widgets_op("dated", ["dateEndDate"]),
+                      # three hours later than the first, so the repeats do not clash with it
+                      oc.range_key_op("h1", "editWhenFrom", 16, "Down"), oc.range_key_op("h2", "editWhenFrom", 16, "Down"),
+                      oc.range_key_op("h3", "editWhenFrom", 16, "Down"),
+                      oc.press_op("ok2", "OK"), oc.hold_op(False), oc.dump_op()])]
 
 
 def _dl013_check(runs, home):
     r = runs[1]
     a = [x for x in r.appointments() if x.get("summary") == "DL013 counted"]
+    b = [x for x in r.appointments() if x.get("summary") == "DL013 dated"]
     return [check("the count of three is kept in the list", len(a) == 1 and a[0].get("repeatcount") == "3",
                   "found %s" % a),
-            blocked("the end by date", "the end date is typed in the program's date format; not set by the bench yet")]
+            check("the end date is kept in the list", len(b) == 1 and str(b[0].get("repeatuntil") or "").startswith("2026-12-15"),
+                  "repeat until %r" % (b[0].get("repeatuntil") if b else None)),
+            check("the end date is shown in the form", "15 Dec 2026" in str(r.value("dated_dateEndDate") or ""),
+                  "the form reads %r" % r.value("dated_dateEndDate"))]
 
 
 test("DL-013", "A repeat's end, by count or by date, is kept in the list and the form", _dl013_build, _dl013_check)
@@ -377,14 +421,21 @@ test("DL-019", "Quitting or switching contact with unsaved edits asks Save, Disc
 
 def _dl020_build(home):
     return [run_spec(oc.fixtures_ops()),
-            run_spec([oc.hold_op(), oc.menu_op("adv", "action_Advanced_Find"), oc.set_op("t", "lineEdit_SearchText1", text="Jackson"),
-                      oc.press_op("ok", "OK"), oc.widgets_op("res", rows=True), oc.hold_op(False), oc.dump_op()])]
+            run_spec([oc.hold_op(), oc.menu_op("adv", "action_Advanced_Find"),
+                      oc.set_op("c", "comboBox_SearchCategory1", index=8),          # Surname: the text box is enabled by a category
+                      oc.set_op("t", "lineEdit_SearchText1", text="Jackson"),
+                      oc.press_op("ok", "OK"), oc.wait_op(1500), oc.widgets_op("res", rows=True),
+                      {"op": "keys", "name": "enter", "sequence": "Return", "target": "window"}, oc.wait_op(1000),
+                      oc.state_op("s"), oc.hold_op(False), oc.dump_op()])]
 
 
 def _dl020_check(runs, home):
-    rows = " ".join(runs[1].value("res_rows") or [])
-    return [check("the criteria find Jackson", "Jackson" in rows, "rows: %s" % rows[:160]),
-            blocked("Enter opens the result", "the result list's selection by Enter is not read yet")]
+    rows = runs[1].value("res_rows") or []
+    return [check("the criteria find Jackson", any("Jackson, Daniel" == x for x in rows), "rows: %s" % rows[:6]),
+            check("and only the matching contacts are listed", not any("Carter" in x for x in rows),
+                  "rows: %s" % rows[:6]),
+            check("Enter opens the first result, Jackson", runs[1].value("s_loaded") == "Jackson",
+                  "loaded %r" % runs[1].value("s_loaded"))]
 
 
 test("DL-020", "Advanced Global Find applies its criteria, lists results, and opens on Enter", _dl020_build, _dl020_check)
@@ -505,11 +556,11 @@ def _dl027_build(home):
 
 def _dl027_check(runs, home):
     r = runs[1]
-    texts = [v for k, v in r.results.items() if k.endswith("_text") and k.startswith("dialog_")]
-    return [check("a valid date moves the list (the date box took 2/12/26)", "2/12/26" in texts, "texts %s" % texts),
-            check("the date boxes are answered (the valid one and the text one)",
+    return [check("the date boxes are answered (the valid one and the text one), and close",
                   r.log.count("date entry answered") + r.log.count("date entry cancelled") >= 2,
                   "answers in the log: %d" % (r.log.count("date entry answered") + r.log.count("date entry cancelled"))),
+            blocked("a valid date moves the list", "the calendar rows show the same first row for every day, so the list's "
+                                                   "position is not read yet"),
             blocked("the beep", "the beep is audible, and the driver cannot hear it")]
 
 
