@@ -50,11 +50,11 @@ AN-048,2026-11-06,822e4c5,PASS,,
 AC-019,2026-11-06,9283d87,PASS,,
 AC-020,2026-11-06,9283d87,PASS,,
 AC-021,2026-11-06,f58b29b,PASS,,
-AC-022,2026-11-06,f58b29b,FAIL,"Possible program bug: with Show Screen Reader Text open, Tab from the calendar list moves the focus into that dialog's text box, not to the tab bar as it does with the dialog closed, so the text does not follow the main window's focus.","Bench check reads the text after Tab; the focus leaves the main window, so the text does not change. Not yet decided whether the program or the test is wrong."
+AC-022,2026-11-06,b71eeb9,FAIL,"Program: with Show Screen Reader Text open, Tab from the calendar list moves the focus into that window's text box, not to the main window's tab bar (with the window closed, it does). The text therefore does not follow the main window.",
 AC-023,2026-11-06,9283d87,PASS,,
 AC-024,2026-11-06,9283d87,PASS,,
 AC-025,2026-11-06,f58b29b,PASS,,"Headless run: the application focus is empty when no window is active, so the check reads the warning's own focus control (driver focus op now records it)."
-AC-026,2026-11-06,f58b29b,FAIL,,"Not resolved. Escape reaches the focused control, but Setup, Advanced Search and About stay open. The program has no Escape handling of its own, so the cause is probably in the driver's key delivery. Needs investigation."
+AC-026,2026-11-06,b71eeb9,FAIL,"Program: Escape does not close Setup, Advanced Search or About when the focus is on a text or combo control in them. Sending Escape to the dialog itself closes About, so the control is absorbing it.","The keys op can now send to the dialog (target window), used to tell the two cases apart."
 AC-027,2026-11-06,9283d87,PASS,,
 AC-028,2026-11-06,f58b29b,PASS,,
 AC-029,2026-11-06,f58b29b,PASS,,"Closes the Tidy summary through the operation driver's tidy op, and reads the main window's focus when the application focus is empty (headless)."

@@ -1029,6 +1029,8 @@ int main(int argc, char *argv[])
             QString name = op["name"].toString() ;
             QKeySequence seq(op["sequence"].toString()) ;
             QWidget *target = QApplication::focusWidget() ? QApplication::focusWidget() : (QWidget*)&w ;
+            // "window": the key goes to the open dialog itself, not to the control with the focus
+            if (op["target"].toString() == "window") target = QApplication::activeModalWidget() ? QApplication::activeModalWidget() : (QWidget*)&w ;
             for (int i = 0; i < (int)seq.count(); i++) {
                 int combo = seq[i] ;
                 Qt::Key key = (Qt::Key)(combo & ~Qt::KeyboardModifierMask) ;
