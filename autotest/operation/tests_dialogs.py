@@ -34,9 +34,24 @@ def _dl001_check(runs, home):
 
 test("DL-001", "Setup saves each control on OK and discards the changes on Cancel", _dl001_build, _dl001_check)
 
-test("DL-002", "Setup's Identify Me choice is the contact Goto Me opens",
-     lambda home: [run_spec(oc.fixtures_ops())], lambda runs, home: [],
-     blocked_reason="Identify Me is chosen in Setup from a list the bench cannot set yet (see MF-022).")
+def _dl002_build(home):
+    # The choice is kept: Setup is opened again to read it, then Goto Me opens the contact chosen
+    return [run_spec(oc.fixtures_ops()),
+            run_spec([oc.hold_op(), oc.menu_op("setup", "actionSetup"), oc.navigator_select_op("pick", "IdentifyMe", "Carter"),
+                      oc.press_op("ok", "OK"), oc.shortcut_op("key", "Ctrl+Shift+O"), oc.menu_op("goto", "actionGotoMe"), oc.state_op("s"),
+                      oc.menu_op("setup2", "actionSetup"), oc.widgets_op("w", ["IdentifyMe"]), oc.press_op("cancel", "Cancel"),
+                      oc.hold_op(False), oc.dump_op()])]
+
+
+def _dl002_check(runs, home):
+    r = runs[1]
+    return [oc.check("Setup keeps Carter as Identify Me when it is opened again",
+                     "Carter" in str(r.value("w_IdentifyMe") or ""), "Identify Me reads %r" % r.value("w_IdentifyMe")),
+            oc.check("Ctrl+Shift+O is bound to Goto Me", r.value("key_action") == "actionGotoMe", "bound to %r" % r.value("key_action")),
+            oc.check("Goto Me opens the contact chosen", r.value("s_loaded") == "Carter", "loaded %r" % r.value("s_loaded"))]
+
+
+test("DL-002", "Setup's Identify Me choice is the contact Goto Me opens", _dl002_build, _dl002_check)
 
 
 def _dl003_build(home):
@@ -157,10 +172,53 @@ def _dl009_check(runs, home):
 test("DL-009", "Escape in the appointment form cancels with no change", _dl009_build, _dl009_check)
 
 
-test("DL-010", "The duration arrows change To, and changing To changes the duration",
-     lambda home: [run_spec(oc.fixtures_ops())], lambda runs, home: [],
-     blocked_reason="the arrows and the To field are dates typed in the program's own format, which the bench does not "
-                    "set yet (AccessibleDateRangeEdit). The keys are in the form's tab order, to be added with the format.")
+_DL010_RANGE = ["editWhenFrom", "editWhenTo"]
+# The text is "Thu 26/Nov/2026 10:00 (1h)": the hour of the start is at 16, and the duration (X) of the start at 23
+_DL010_HOUR, _DL010_DURATION = 16, 23
+
+
+def _dl010_build(home):
+    return [run_spec(oc.fixtures_ops()),
+            run_spec([oc.open_op(1, "o"), oc.hold_op(), oc.menu_op("m", "actionNewAppointment"),
+                      oc.range_state_op("s0", _DL010_RANGE),
+                      oc.range_key_op("du", "editWhenFrom", _DL010_DURATION, "Up"), oc.range_state_op("s1", _DL010_RANGE),
+                      oc.range_key_op("dd", "editWhenFrom", _DL010_DURATION, "Down"), oc.range_state_op("s2", _DL010_RANGE),
+                      oc.range_key_op("tu", "editWhenTo", _DL010_HOUR, "Up"), oc.range_state_op("s3", _DL010_RANGE),
+                      oc.range_key_op("td", "editWhenTo", _DL010_HOUR, "Down"), oc.range_state_op("s4", _DL010_RANGE),
+                      oc.hold_op(False), oc.dump_op()])]
+
+
+def _dl010_check(runs, home):
+    r = runs[1]
+    def dur(s, o="editWhenFrom"): return r.value("%s_%s_duration" % (s, o))
+    def txt(s, o="editWhenTo"): return r.value("%s_%s_text" % (s, o))
+    def start(s): return str(txt(s, "editWhenFrom") or "").split(" (")[0]
+    def clock(text): return text.split(" (")[0].split()[-1]          # "Fri 06/Nov/2026 22:45" -> "22:45"
+    def minutes(hhmm):
+        hh, mm = hhmm.split(":")
+        return int(hh) * 60 + int(mm)
+    def gap(s):                                                       # To minus the start, in minutes
+        return minutes(clock(str(txt(s, "editWhenTo") or ""))) - minutes(clock(start(s)))
+    return [oc.check("the duration arrow changes the duration", dur("s1") != dur("s0"),
+                     "duration %r, then %r" % (dur("s0"), dur("s1"))),
+            oc.check("and the duration arrow changes To", txt("s1") != txt("s0"),
+                     "To %r, then %r" % (txt("s0"), txt("s1"))),
+            oc.check("Down on the duration gives back the first duration and To",
+                     dur("s2") == dur("s0") and txt("s2") == txt("s0"),
+                     "duration %r, To %r" % (dur("s2"), txt("s2"))),
+            oc.check("changing To changes the duration", dur("s3") != dur("s0"),
+                     "duration %r, then %r" % (dur("s0"), dur("s3"))),
+            oc.check("and the start is not moved by it", start("s3") == start("s0"),
+                     "start %r, then %r" % (start("s0"), start("s3"))),
+            oc.check("Down on To gives back the first duration and To", dur("s4") == dur("s0") and txt("s4") == txt("s0"),
+                     "duration %r, To %r" % (dur("s4"), txt("s4"))),
+            oc.check("after the duration arrow, To is the start plus the duration", gap("s1") == dur("s1"),
+                     "To minus start %r minutes, duration %r" % (gap("s1"), dur("s1"))),
+            oc.check("after To changes, the duration is To minus the start", gap("s3") == dur("s3"),
+                     "To minus start %r minutes, duration %r" % (gap("s3"), dur("s3")))]
+
+
+test("DL-010", "The duration arrows change To, and changing To changes the duration", _dl010_build, _dl010_check)
 
 
 def _dl011_build(home):

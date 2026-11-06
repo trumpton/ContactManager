@@ -332,6 +332,26 @@ def state_op(name):
     return {"op": "state", "name": name}
 
 
+def exec_op(program, args):
+    """Runs a program with these arguments, as an outside change (the driver waits for it to finish)."""
+    return {"op": "exec", "program": program, "args": list(args)}
+
+
+def navigator_select_op(name, obj, contains):
+    """Chooses the item of a LineEditNavigator (such as Setup's Identify Me) whose text contains the text given."""
+    return {"op": "navigator_select", "name": name, "object": obj, "contains": contains}
+
+
+def range_key_op(name, obj, pos, key):
+    """Presses a key in a date field with the cursor at this position of its text (Up or Down)."""
+    return {"op": "range_key", "name": name, "object": obj, "pos": pos, "key": key}
+
+
+def range_state_op(name, objects):
+    """Records the text and the duration in minutes of each date field named."""
+    return {"op": "range_state", "name": name, "objects": list(objects)}
+
+
 def answer_key_op(key):
     """The next yes/no question is answered by this key (Escape or Enter), as a user would press it."""
     return {"op": "answer", "key": key}

@@ -1257,6 +1257,45 @@ int main(int argc, char *argv[])
             record(name + "_set", QJsonValue(done)) ;
             note(QString("set_widget %1: %2").arg(op["object"].toString(), done ? "set" : "not set")) ;
 
+        } else if (kind == "navigator_select") {
+            // Chooses the item of a LineEditNavigator (Setup's Identify Me, for one) whose text contains the text given, as a user picks it
+            QString name = op["name"].toString() ;
+            QWidget *top = QApplication::activeModalWidget() ? QApplication::activeModalWidget() : (QWidget*)&w ;
+            LineEditNavigator *nav = top->findChild<LineEditNavigator*>(op["object"].toString(), Qt::FindChildrenRecursively) ;
+            bool done = false ;
+            if (nav) {
+                for (int i = 0; i < nav->size(); i++) {
+                    if (nav->itemText(i).contains(op["contains"].toString())) { nav->setCurrentIndex(i) ; done = true ; break ; }
+                }
+            }
+            record(name + "_selected", QJsonValue(done)) ;
+            note(QString("navigator_select %1: %2").arg(op["object"].toString(), done ? "selected" : "not selected")) ;
+
+        } else if (kind == "range_key") {
+            // Presses a key in a date field with the cursor at a position in its text, as a user does (Up, Down)
+            QString name = op["name"].toString() ;
+            QWidget *top = QApplication::activeModalWidget() ? QApplication::activeModalWidget() : (QWidget*)&w ;
+            AccessibleDateRangeEdit *edit = top->findChild<AccessibleDateRangeEdit*>(op["object"].toString(), Qt::FindChildrenRecursively) ;
+            if (edit) {
+                Qt::Key key = (Qt::Key)(QKeySequence(op["key"].toString())[0] & ~Qt::KeyboardModifierMask) ;
+                edit->setFocus() ;
+                edit->setCursorPosition(op["pos"].toInt()) ;
+                QTest::keyClick(edit, key) ;
+                QTest::qWait(30) ;
+            }
+            record(name + "_done", QJsonValue(edit != nullptr)) ;
+
+        } else if (kind == "range_state") {
+            // Records the text and the duration (minutes) of each date field in the top window
+            QString name = op["name"].toString() ;
+            QWidget *top = QApplication::activeModalWidget() ? QApplication::activeModalWidget() : (QWidget*)&w ;
+            for (const QJsonValue &v : op["objects"].toArray()) {
+                QString obj = v.toString() ;
+                AccessibleDateRangeEdit *edit = top->findChild<AccessibleDateRangeEdit*>(obj, Qt::FindChildrenRecursively) ;
+                record(name + "_" + obj + "_text", QJsonValue(edit ? edit->text() : QString("MISSING"))) ;
+                record(name + "_" + obj + "_duration", QJsonValue(edit ? edit->getDuration() : -2)) ;
+            }
+
         } else if (kind == "menus") {
             // The menu bar, every item with its depth and whether it is enabled (accessibility: names and mnemonics)
             QJsonArray items ;
