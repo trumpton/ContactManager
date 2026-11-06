@@ -676,7 +676,7 @@ Reference `UT`. The unit suite is one build and one run of unit tests, numbered 
 | UT-113 | `testCodeIsTheLeadingCode` | Announcements (area 2) | Startup: a warning for each blank sender |
 | UT-114 | `testTagIsReplacedAndNothingElseChanges` | Announcements (area 2) | Startup: a warning for each blank sender |
 
-Its tests are being rewritten and moved with the archive (ticket #121), and its run instructions are kept there until then.
+The suite's source is `autotest/unit/tst_messages.cpp`, and it is run with `sh autotest/unit/run-messages-tests.sh <build folder>`, which builds it against the application's own objects (documents/headless-test.md). It runs headless, in an empty home folder.
 
 ---
 
