@@ -105,7 +105,7 @@ Each section, with its keys. A key that is not given takes the default shown.
 
 **`[google]`**
 - `debug` — `yes` to write debug output for support. Default `no`.
-- `downloaddaysbefore` — the download window starts this many days before today. Default 365.
+- `downloaddaysbefore` — the download window starts this many days before today. Default 90.
 - `downloaddaysafter` — the download window ends this many days after today. Default 730.
 
 **`[phone]`**
@@ -722,7 +722,7 @@ For each conflict, the sync report says which version was kept and why.
 
 Google appointments are downloaded only if they fall in the download window. Its start and end are set in the ini file, in the `[google]` section (2.2):
 
-- `downloaddaysbefore` (default 365): the window starts this many days before today.
+- `downloaddaysbefore` (default 90): the window starts this many days before today.
 - `downloaddaysafter` (default 730): the window ends this many days after today.
 
 An appointment that starts before the window and ends inside it is downloaded. An appointment that ends before the window is not downloaded, and stays on Google. Widening the window downloads the entries it now reaches.
