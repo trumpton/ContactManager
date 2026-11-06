@@ -89,4 +89,10 @@ bool sendWasMade(int result) ;
 bool dayChannelSent(const QString &record, const QString &day, const QString &channel) ;
 QString dayChannelRecord(const QString &record, const QString &day, const QString &channel) ;
 
+// Test builds only (see loadMessage, and CM_TEST_MESSAGE_TAGS).  The test code at the start of an appointment's summary,
+// "AN-017 ..." gives "AN-017"; empty when the summary does not start with one.
+QString testCodeOf(const QString &summary) ;
+// Puts the test code in place of $TESTTAG in a message.  Other text is unchanged.
+QString replaceTestTag(const QString &text, const QString &code) ;
+
 #endif // MESSAGEDECISION_H

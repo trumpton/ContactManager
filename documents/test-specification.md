@@ -220,7 +220,9 @@ The announcement tests run as **runs**. A run is one headless process of the pro
 
 **Stopping.** A run ends when every selected test in it has completed, or at four virtual days, whichever comes first. A test completes at the last time any of its expected messages is due, plus one hour of program time, to check that nothing else is sent. A test with no expected message completes one hour after its last step. So a test that completes after one virtual day ends its run after one virtual day.
 
-**Unpicking the messages.** Each message is matched to its test by its recipient and the appointment time it quotes. Each test's appointment times are its own, so the match is unique within a run. A subject that carries the test number is an option, and needs the message template to carry it (a decision is pending).
+**Unpicking the messages.** Two things identify each message, and both are used:
+- **The test number in the subject.** Each test's appointment summary starts with its test number (for example `AN-017 Jack confirm`). When the environment variable `CM_TEST_MESSAGE_TAGS` is set, the program puts that number in place of `$TESTTAG` in a message's subject and body. The harness's message templates use `$TESTTAG`, so each message shows its test number, and can be reviewed by eye. Without the variable, `$TESTTAG` is not replaced and nothing changes. This is a test-only feature; the shipped program never sets the variable.
+- **The recipient and the quoted appointment time.** The harness matches each message to its expected message by these, which is unique within a run because each test's appointment times are its own. This is the check; the tag is for review.
 
 **Time.** The runs run in parallel, so the set takes about 16 minutes: the longest run, at four virtual days, plus start-up. That is the target the operator has accepted.
 
