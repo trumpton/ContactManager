@@ -65,7 +65,7 @@ def _mf001_check(runs, home):
     cur = second_rows[after] if isinstance(after, int) and 0 <= after < len(second_rows) else ""
     return [check("the list has the six contacts", all(any(oc.surname(n) in row for row in rows) for n in range(1, 7)),
                   "rows: %s" % rows),
-            check("'create contact' is at the top", bool(rows) and ("create" in rows[0].lower() or "new" in rows[0].lower()),
+            check("'Add Contact' is at the top", bool(rows) and ("create" in rows[0].lower() or "new" in rows[0].lower() or "add contact" in rows[0].lower()),
                   "top row: %r" % (rows[0] if rows else None)),
             check("the letter C skips to Carter", "Carter" in cur, "current row: %r" % cur)]
 
