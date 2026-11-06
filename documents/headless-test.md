@@ -2,6 +2,8 @@
 
 How to run ContactManager without a screen, test its Google sync against a Google account, and sign in to that account when a human has to approve it.
 
+Things that have caught earlier runs out are in `gotchas.md`, in this folder. Read it before a run.
+
 The usual setup is an AI agent working in a container with no display and no browser, and a human who has the Google account. The agent does everything it can. The human does only what needs their Google login, and reads the agent's instructions and sends back results.
 
 ## 0. Use a scratch Google account
@@ -67,7 +69,7 @@ export CM_TEST_SECRET="$(cat /home/user/.cm-test-secret)"
 
 `openssl rand -base64 18` gives 24 characters. The driver enters this secret for the key and login dialogs, and stops at any other key dialog. It is a test value only. Never use a real person's key here.
 
-The app also writes its own encryption keys to its settings file (`TextFileEncryption.conf`). Those are created by the app, are protected by this secret, and must not be shared. Every new working directory creates new ones.
+The app also writes its own encryption keys to its settings file (`TextFileEncryption.conf`). Those are created by the app, are protected by this secret, and must not be shared. Every new HOME folder creates new ones.
 
 ## 4. Signing in to Google from a headless environment
 
@@ -101,9 +103,11 @@ If the human reports an error at step 3, check the client type first (it must be
 
 ## 4a. The app's settings file
 
-The app reads `~/TrumptonApps/ContactManager.ini` (or `~/ContactManager/ContactManager.ini`). Without it, the
-app's settings reader returns the text `ERROR` for every setting, and the phone code then uses that text as the
-dialling codes. Numbers come out as `error202020202`. This was found by the bench (scenarios M02, M06, X04).
+The app reads `~/TrumptonApps/ContactManager.ini` (or `~/ContactManager/ContactManager.ini`). Earlier versions of the
+`Lib` settings reader returned the text `ERROR` for a missing setting, so the phone code used that text as the dialling
+code, and numbers came out as `error202020202` (found by the bench: scenarios M02, M06, X04). That was fixed in `Lib` by
+commit `ad2c0d3`: a missing file now gives empty values. The bench still writes the file, so the phone codes are blank on
+purpose, and the test does not depend on the fix.
 
 For the bench, create the file with the phone codes blank, so numbers are stored as typed:
 
@@ -120,13 +124,16 @@ app rewrites phone numbers when it stores them, so use them only to test that re
 
 ```bash
 export QT_QPA_PLATFORM=offscreen     # no display needed
-cd <an empty working directory>      # the app keeps its local data here, so use a new one per run
+export HOME=<a new, empty folder>    # the app keeps its settings and data under HOME, so use a new one per run
 bench_driver <outdir> <operations.json>
 ```
 
-The app keeps its local data in its working directory. Give each run its own empty directory, or one run will load the contacts of an earlier one.
+The app keeps its local data under its HOME folder, not in the working directory: its settings are in
+`$HOME/.config/trumpton.org.uk` and its data in `$HOME/TrumptonApps/ContactManager`. The bench gives each run its own HOME
+(`prepare_home` in `google_bench.py`), so one run cannot load the contacts of an earlier one. A hand-run test must do the
+same: use a new, empty HOME for each run, or it will load the earlier run's contacts.
 
-The app shows dialogs even headless. `bench/bench_driver.cpp` answers them: the key and login dialogs with `CM_TEST_SECRET`, the sync dialog by pressing its finish button, and every other dialog with its default button. It records each dialog it meets in `driver.log`.
+The app shows dialogs even headless. `autotest/archive/bench/bench_driver.cpp` answers them: the key and login dialogs with `CM_TEST_SECRET`, the sync dialog by pressing its finish button, and every other dialog with its default button. It records each dialog it meets in `driver.log`.
 
 ## 5a. Messages and programs outside the bench
 
@@ -149,8 +156,8 @@ written by an older version. Build one from the app's objects, not from the app'
 - The encryption object shows a key dialog. Answer it with `CM_TEST_SECRET`, as the driver does (its "Enter Key and
   Password" fields are `lineEdit0` to `lineEdit3`, "Login" uses `lineEdit2`), or the program waits for ever.
 - Give the program its own HOME with `TrumptonApps/ContactManager.ini` (section 4a) and an empty
-  `.config/trumpton.org.uk` folder, the same as a bench run. Without the ini file, phone numbers are stored with the
-  dialling code `ERROR`.
+  `.config/trumpton.org.uk` folder, the same as a bench run. The ini file sets the phone codes blank; without it, the
+  codes are empty (section 4a).
 - Run it with `QT_QPA_PLATFORM=offscreen`, and in the background with a time limit, so a wait on a dialog does not
   hold up the session.
 
@@ -294,7 +301,7 @@ Results after the item-4 and item-1 work of ticket #105 (the last run of each sc
   Google. The app holds 830 of them after the first sync; the 647 that the window expects are all held. The second sync archives 119
   expired entries that the first sync uploaded (they were out of the window, so their earlier sync did not archive them), leaving
   711 in the calendar folder. Two checks had wrong expectations and were corrected after the run, then re-evaluated on the saved data
-  (not re-run): the window's far edge is one day inside (an entry on day 730 starts after the window ends, so it is not downloaded), and
+  (not re-run): the window's far edge is now plus the 'after' days, less one hour (`googleupdatedialog_appointments.cpp`), so an entry on day 730 is downloaded only if it starts before that edge, which depends on the time of day. (The bench's older model, `in_scale_window`, used 'one day inside' as an approximation; `repeat_weeks_in_window` uses the exact edge), and
   the second sync's archived entries are allowed for. The run's first version failed both checks.
 - Scratch account: about 3,300 events and 500 contacts (most are cancelled tombstones from earlier runs). The first sync of a
   run lists every event; later syncs list only the changes, when the sync token is kept. Most Google tests take 40 to 60 seconds.
@@ -335,8 +342,8 @@ Decisions the tests now record (ticket #105, item 4 and the items after it):
 | `invalid_client` at the device step | Client type is not "TVs and Limited Input devices". |
 | `access_denied` after the human signs in | The account is not a test user on the consent screen. |
 | `429 Too Many Requests` | Google's quota. The bench backs off and retries; reduce the size of large scenarios if it persists. |
-| App stops at an unexpected key dialog | `CM_TEST_SECRET` is unset, or the local data is from a different secret. Use a new working directory. |
-| Contacts from an earlier run appear | The working directory was reused. Start from an empty directory. |
+| App stops at an unexpected key dialog | `CM_TEST_SECRET` is unset, or the local data is from a different secret. Use a new HOME folder. |
+| Contacts from an earlier run appear | The HOME folder was reused. Start each run from an empty one. |
 | 404 on `createContact` | The path must be `/v1/people:createContact`. |
 | `400` "Cannot have more than one person.birthdays per source" | Google allows one birthday per contact. Put each birthday on its own contact. |
 | `invalid_grant` on the token refresh | The refresh token has expired or been revoked (Testing status, or access removed). Repeat section 4, or reset (section 9). |
@@ -369,5 +376,5 @@ Resets are expected. Do one when a secret may have leaked, when the scratch acco
 
 - **Client secret:** in the Google Cloud console, open the OAuth client and reset its secret. Update `account-googleaccess.h`. The old secret stops working at once.
 - **Refresh token:** remove the app's access at `https://myaccount.google.com/permissions` from the scratch account. Delete the `googlerefreshtoken` line from `ContactManager.conf`, then repeat section 4.
-- **Local key:** write a new `.cm-test-secret` (section 3). Use new working directories, because local data made with the old key cannot be opened with the new one.
+- **Local key:** write a new `.cm-test-secret` (section 3). Use new HOME folders, because local data made with the old key cannot be opened with the new one.
 - **Scratch account replaced:** create the new account, repeat sections 2 to 4, and check that nothing from the old account is still in the bench's settings.

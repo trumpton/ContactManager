@@ -14,7 +14,7 @@ outbox files were compared with the messages predicted by the rules.
 ## How it was run
 
 - **Application:** the `messaging-tests` branch at commit 376cce5, with no changes to the application source.
-- **Test driver:** `autotest/bench/sync_driver.cpp` with uncommitted changes (`save`, `waituntil` and an exemption for
+- **Test driver:** `autotest/bench/sync_driver.cpp` (now `autotest/archive/bench/sync_driver.cpp`) with uncommitted changes (`save`, `waituntil` and an exemption for
   the main window in the dialog watchdog). A copy with a 50 ms `waituntil` loop was built for this run.
 - **Email and SMS:** the send functions were replaced by copies that write each message to an outbox folder.
 - **Clock:** the application's wall clock ran at 60 times real time, using an LD_PRELOAD shim. The fake clock started at

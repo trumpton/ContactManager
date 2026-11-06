@@ -196,4 +196,4 @@ OTHER_FILES += \
     icon.rc
 
 DISTFILES += \
-    ___TODO___.txt
+    todo.txt

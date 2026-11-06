@@ -4,7 +4,7 @@
 Runs the app's Google sync headlessly (autotest/archive/bench/bench_driver) against a test Google account, and
 checks the result on both sides: the local dump the driver writes and the account as Google holds it.
 
-Only use a scratch account (see HEADLESS-TEST.md, section 0).  Everything the bench creates is named "Bench ..." (contacts) or
+Only use a scratch account (see documents/headless-test.md, section 0).  Everything the bench creates is named "Bench ..." (contacts) or
 "BENCH ..." (appointments), and the bench deletes those names before and after each scenario.
 
 Configuration (environment variables, with defaults):
@@ -445,7 +445,7 @@ def prepare_home(home, fresh, master, extra=(), ini_extra=()):
     ini_dir = os.path.join(home, "TrumptonApps")
     os.makedirs(cfg_dir, exist_ok=True)
     os.makedirs(ini_dir, exist_ok=True)
-    # Phone codes blank, so numbers are stored as typed (see HEADLESS-TEST.md, section 4a)
+    # Phone codes blank, so numbers are stored as typed (see documents/headless-test.md, section 4a)
     with open(os.path.join(ini_dir, "ContactManager.ini"), "w") as f:
         f.write("[phone]\nlocalcode=\ncountrycode=\n" + "".join(line + "\n" for line in ini_extra))
     cfg = os.path.join(cfg_dir, "ContactManager.conf")
@@ -2916,7 +2916,7 @@ def all_events():
 def purge(what):
     """Removes every contact and/or appointment from the account.  what is 'contacts', 'appointments' or 'both'.
 
-    It removes everything on the account, not only the test entries, so use it only on the scratch account (HEADLESS-TEST.md,
+    It removes everything on the account, not only the test entries, so use it only on the scratch account (documents/headless-test.md,
     section 0).  The command asks for --yes before it runs.  Returns how many of each were removed."""
     if what not in ("contacts", "appointments", "both"):
         raise SystemExit("purge: what must be contacts, appointments or both")

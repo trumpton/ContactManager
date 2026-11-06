@@ -1,7 +1,7 @@
 # ContactManager Test Specification
 
 Version: as at 5 November 2026.
-Companions: `documents/specification.md` (what the program does, the reference for every test), `documents/test-duration-estimate.md` (how long the tests take), `documents/archive/test-specification-previous.md` (the earlier specification, with its results, kept for the record), and `autotest/utilities/README.md` (the set-up and clean-up utilities).
+Companions: `documents/specification.md` (what the program does, the reference for every test), `documents/test-duration-estimate.md` (how long the tests take), `documents/archive/test-specification-previous.md` (the earlier specification, with its results, kept for the record), and `autotest/utilities/readme.md` (the set-up and clean-up utilities).
 
 ---
 
@@ -109,6 +109,8 @@ The clock is set by the test harness, through a shim that changes the time the p
 Area 2 does not send real email or text. The send functions are replaced by stubs that record each message (recipient, subject or text, body, time) and return a chosen result (sent, refused, timed out). The unit tests already use this approach (`StubTransport` in `autotest/archive/messages/tst_messages.cpp`). The accelerated harness used in earlier runs keeps its stub in a scratch folder: bringing that stub into the repository is a prerequisite for area 2 (Appendix C, item 3).
 
 ### 0.9 Run order and locations
+
+Read `headless-test.md` (how to run the bench and the accelerated harness) and `gotchas.md` (what has gone wrong before) before running any area.
 
 - Area 1 needs the Google account and the network. It runs last in any cycle, because it changes the account.
 - Area 2 needs no network, and runs in the accelerated harness.
