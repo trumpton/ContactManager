@@ -227,9 +227,9 @@ MF-013,2026-11-06,9283d87,PASS,,
 MF-014,2026-11-06,9283d87,FAIL,,"Run 9283d87: each Find Next moves to the next match: rows [1, 2, 0]"
 MF-015,2026-11-06,fd12914,FAIL,,"Bench: the Global Find text is not recorded, and its match list is in a window the driver does not read yet."
 MF-016,2026-11-06,9283d87,PASS,,
-MF-017,2026-11-06,9283d87,PASS,,
-MF-018,2026-11-06,fd12914,FAIL,,Needs checking: the menu action opens a warning (text not captured) instead of the list. Check what the program shows when no contact is ticked Client.
-MF-019,2026-11-06,9283d87,PASS,,
+MF-017,2026-11-06,637be09,PASS,,
+MF-018,2026-11-06,637be09,PASS,,
+MF-019,2026-11-06,637be09,PASS,,
 MF-020,2026-11-06,9283d87,PASS,,
 MF-021,2026-11-06,fd12914,FAIL,,"Needs checking: the menu action opens a warning instead of the list, as for MF-018."
 MF-022,2026-11-06,9283d87,NOT RUN,,"Run 9283d87: blocked: MF-022: BLOCKED, Identify Me is chosen in Setup from a list the bench cannot set yet (the Setup dialog's list is not recorded). Once it can be set, press Ctrl+Shift+O and check the contact that opens."
