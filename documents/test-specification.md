@@ -1,337 +1,798 @@
-# Test specification
+# ContactManager Test Specification
 
-This specification describes every test run for the messaging rules (#89) and the Google sync test bench (#105): what each test
-checks, how it is run, the result it gives, and where the evidence is kept. The generated appendices list each bench scenario and
-each unit test by name. Corner cases that are not yet tested are listed in issue #110: https://github.com/trumpton/ContactManager/issues/110
+Version: as at 5 November 2026.
+Companions: `documents/specification.md` (what the program does, the reference for every test), `documents/test-duration-estimate.md` (how long the tests take), `documents/archive/test-specification-previous.md` (the earlier specification, with its results, kept for the record), and `autotest/utilities/README.md` (the set-up and clean-up utilities).
 
-Results are as at 4 November 2026. Commit references are to the `messaging-tests` branch.
+---
 
-## 1. Overview
+## Contents
 
-| Area | What it tests | Count | Last result |
+0. Scope, conventions and fixtures
+1. Google sync (live system)
+2. Announcements (offline, accelerated clock, stub transports)
+3. Operation testing
+   - 3a. Start-up and shutdown
+   - 3b. By menu and function (F9 is covered in area 1)
+   - 3c. By dialog
+4. Accessibility
+- Appendix A. Tests imported from the archive, with their titles
+- Appendix B. Traceability: specification section to tests
+- Appendix C. Requirements that have no test yet
+
+---
+
+## 0. Scope, conventions and fixtures
+
+### 0.1 Test IDs
+
+Every test has a unique ID and a one-line title. The prefix is the area:
+
+| Prefix | Area |
+|---|---|
+| `GS` | Google sync (area 1) |
+| `AN` | Announcements (area 2) |
+| `SS` | Start-up and shutdown (3a) |
+| `MF` | By menu and function (3b) |
+| `DL` | By dialog (3c) |
+| `AC` | Accessibility (area 4) |
+
+Numbers 001 to 099 are new tests written for this specification. Numbers from 101 are tests **imported** from the archive (`autotest/archive/`). Their original names are kept in Appendix A, so each can be traced to the code that runs it.
+
+### 0.2 Result states
+
+| State | Meaning |
+|---|---|
+| Pass | Every expected result was observed. |
+| Fail | An expected result was not observed. The evidence is kept with the run. |
+| Blocked | The test could not run (for example the Google account is not set up, or the network is down). The reason is recorded. |
+| Not run | Not run in this cycle. |
+
+Each run records: the build (commit), the date and time, the test account, the files in the database folder before and after, the log, and any dump or report the test produces.
+
+### 0.3 The two configurations
+
+Area 1 runs each test under one or both configurations:
+
+- **CM** — ContactManager is the master (Setup > Synchronisation Selection, for both calendar and contacts).
+- **G** — Google is the master.
+
+A test marked **Both** is run under both. The Setup choices are set before each run and recorded.
+
+### 0.4 The six test contacts
+
+Six contacts are used throughout the tests. They are the same for every area, so the results can be compared.
+
+| No. | Name | Surname as stored | Email | Mobile | Date of birth | Contact by |
+|---|---|---|---|---|---|---|
+| 1 | Jack O'Neil | O'Neil | jack.oneil@sgc.contacmanagertest | +44 7700 900001 | 15 Jan 1980 | Email |
+| 2 | Samantha Carter | Carter | samantha.carter@sgc.contacmanagertest | +44 7700 900002 | none | Email |
+| 3 | Daniel Jackson | Jackson | daniel.jackson@sgc.contacmanagertest | +44 7700 900003 | 20 Mar 1975 | SMS |
+| 4 | Tealc de Chulak | de Chulak | tealc.dechulak@sgc.contacmanagertest | +44 7700 900004 | none | SMS |
+| 5 | George Hammond | Hammond | george.hammond@sgc.contacmanagertest | +44 7700 900005 | 2 Nov 1960 | Email and SMS |
+| 6 | Vala Mal Doran | Mal Doran | vala.maldoran@sgc.contacmanagertest | +44 7700 900006 | none | Email and SMS |
+
+Notes:
+- Email addresses are `firstname.surname@sgc.contacmanagertest`, with the surname written without spaces or apostrophes (an address cannot hold them). Tealc's is `tealc.dechulak`, and Vala's is `vala.maldoran`.
+- The domain is spelled as specified: `sgc.contacmanagertest`. Appendix C, item 1, asks for the spelling to be confirmed before the first live run, because the clean-up utility finds test records by this domain.
+- Only odd-numbered contacts (1, 3, 5) have a date of birth.
+- Phone numbers are in the range +44 7700 900000 to +44 7700 900999.
+- The fixtures are in `autotest/utilities/test_fixtures.json`. The tests and the utilities read them from there.
+
+### 0.5 Identifying and removing test records
+
+Every record the tests create carries an identifier, so it can be found and removed on any account:
+
+| Record | Identifier |
+|---|---|
+| Contact | Its email address is in the domain `sgc.contacmanagertest` |
+| Appointment | Its summary starts with `TEST ` |
+
+`autotest/utilities/clean_test_data.py` removes these by default. With `--all-data`, it removes everything on the account, and only after the account's address is typed in (0.6).
+
+### 0.6 The Google account
+
+- A **disposable** Google account is used for area 1. It must never be a real account.
+- It is set up once with `autotest/utilities/setup_test_account.py`. That utility asks for the Google OAuth client, creates the two ContactManager passwords (the database password, which is the encryption key, and the login password), takes the authorisation through Google's device sign-in, and writes one account file outside the repository (`~/.config/contactmanager-test/test-account.json`, permissions 0600).
+- Before each live run: `clean_test_data.py --dry-run`, then `clean_test_data.py` (default: test data only).
+- `--all-data` is for a clean-up of the disposable account only. It needs the account's address typed in, and it cannot be used with `--yes`.
+
+### 0.7 The accelerated clock
+
+Area 2 runs on a clock that goes faster than real time: **10 real seconds = 1 hour**, that is 360 times real time. Three days (72 hours) take 12 minutes.
+
+At 360 times, one real second is 6 minutes of program time. The program checks for due messages once per real second, so a message can be up to one check (6 minutes) late in program time. Area 2 expectations allow this: a message is **on time** when it is sent at the expected minute, or at the next check (within 6 minutes), and not later. Any later is a failure.
+
+The clock is set by the test harness, through a shim that changes the time the program reads (the shim is in the scratch folder, with the harness: Appendix C, item 3). The program's own timers and time reads all follow it.
+
+### 0.8 Stub transports
+
+Area 2 does not send real email or text. The send functions are replaced by stubs that record each message (recipient, subject or text, body, time) and return a chosen result (sent, refused, timed out). The unit tests already use this approach (`StubTransport` in `autotest/archive/messages/tst_messages.cpp`). The accelerated harness used in earlier runs keeps its stub in a scratch folder: bringing that stub into the repository is a prerequisite for area 2 (Appendix C, item 3).
+
+### 0.9 Run order and locations
+
+- Area 1 needs the Google account and the network. It runs last in any cycle, because it changes the account.
+- Area 2 needs no network, and runs in the accelerated harness.
+- Area 3 needs the program only. Imported tests in 3a to 3c run from `autotest/archive/`.
+- Area 4 needs the program and a screen reader (NVDA, or the accessibility inspection tools of the platform), and a person to listen.
+
+The durations are estimated in `documents/test-duration-estimate.md`.
+
+---
+
+## 1. Google sync (live system access)
+
+These tests use the six fixture contacts (0.4), a disposable account (0.6), and the two masters (0.3). Each test starts from a clean account, unless the test says it continues from the one before.
+
+### 1.1 Contacts: creation, change, deletion and support files
+
+| ID | Title | Procedure and expected result | Run |
 |---|---|---|---|
-| Messaging unit tests | The message rules: reminders, confirm-only, send window, hold, same-day, on-the-day, repeats, contact links, pacing | 81 | 81 of 81 pass (`autotest/archive/messages`) |
-| Accelerated messaging test (#89) | The rules end to end, on a scaled clock, with a real outbox | 25 scenarios, 60 messages | 60 of 60 sent and matched, in two runs (`test-results/20261102-2313`, `test-results/20261103-0140`) |
-| Live messaging run (#89) | The rules on the real clock with a fixed plan of 32 operations | 32 operations | Stopped at operation 18 (1 November, 23:58). Resumed on the accelerated clock at 60 times real speed. See section 4 |
-| Google sync bench (#105) | Every way data moves between ContactManager and Google, and the local files | 164 scenarios: 1 upload, 133 update, 30 local | Local 30 of 30. Updates: 64 of 67 in the second half and 66 of 66 in the first half before the 1970 fix. Re-run after the fix: E70, N107, G40, P30, W01 to W04, AR01, R08, X15, E01, LF01, LF02 pass. F10 fails (section 5) |
-| Upload group (U01) | 250 contacts and 1,000 appointments uploaded in one sync | 1 | Pass, 1,062 seconds, all 1,000 on Google (`scratchpad` run U01-final3) |
+| GS-001 | The six fixture contacts created in ContactManager reach Google once, with their values | Create contacts 1 to 6 with their fixture values, save, sync. Expect six contacts on Google with the name, email, phone and birthday (1, 3, 5 only). No duplicates on a second sync. | Both |
+| GS-002 | A fixture contact made on Google downloads once, with its contact and history files written | Create contact 2 on Google. Sync. Expect one contact in the app, its files written, its Google ID stored, and a second sync adds nothing. | Both |
+| GS-003 | A change to a fixture contact's phone in ContactManager reaches Google, and is recorded in its history | Change contact 1's mobile in the app. Sync. Expect the new number on Google, and a history entry for the change. | CM |
+| GS-004 | A change to a fixture contact's email on Google reaches the app with no duplicate, and is recorded in history | Change contact 2's email on Google. Sync (CM). Expect the new address in the app, one contact, and a history entry. | CM |
+| GS-005 | When both sides change the same field, ContactManager as master sends its version and reports the conflict | Change contact 3's surname in the app and on Google, sync. Expect the app's surname on Google, and the report to say the app's version was sent. | CM |
+| GS-006 | When both sides change the same field, Google as master keeps Google's version and records the change | As GS-005, with Google as master. Expect Google's surname in the app, the app's edit gone, and a history entry. | G |
+| GS-007 | An edit made only in the app is replaced by Google's copy at the next sync when Google is master | Change contact 4's phone in the app, sync (G). Expect Google's phone in the app and no upload. | G |
+| GS-008 | A fixture contact deleted in the app is deleted on Google, and its files move to the deleted folder | Delete contact 5 in the app, sync (CM), run Tidy Records. Expect the contact gone from Google, its contact, history and to-do files in `contact/deleted/`. | CM |
+| GS-009 | A fixture contact deleted in the app stays deleted when Google is master | As GS-008, with Google as master. Expect the contact gone from both, and not brought back. | G |
+| GS-010 | A fixture contact deleted on Google is removed from the app, not restored | Delete contact 6 on Google, sync. Expect the contact removed from the app and moved to the deleted folder. | Both |
+| GS-011 | A hidden fixture contact stays on Google as hidden and is not messaged | Hide contact 1, sync. Expect Google to agree, and no message for contact 1 (area 2 checks the message). | Both |
+| GS-012 | Edits made on Google leave a contact's history and to-do files unchanged, and both are readable after a restart | Give contact 3 a history and a to-do item. Edit contact 3 on Google. Sync. Restart the program. Expect both files unchanged except as the edit requires, and both readable. | Both |
+| GS-013 | With encryption on, no plain text of a contact, history or to-do is on disk after a sync | Set `[database] encrypted=yes`. Sync with contacts 1 to 6. Search the database folder for their names and notes. Expect no plain-text match. | Both |
+| GS-014 | A deleted contact keeps its history and to-do files together, and moving them back restores it | Delete contact 2, run Tidy Records. Move its three files back to `contact/`. Restart. Expect the contact, history and to-do restored. | CM |
 
-## 2. Messaging rules
+### 1.2 Appointments: upload, download and sync
 
-The rules are in `documents/messaging-rules.md`. In summary:
-
-- **Send window:** messages go only between 07:00 and 22:00 local time. Anything due outside it waits for 07:00.
-- **Hold:** a new or changed appointment waits 5 minutes after its last change. Each change restarts the hold. A change that
-  returns to the sent details sends nothing.
-- **Confirmation:** once per new appointment, by email if the contact has an address, otherwise by text. Both channels ticked means email.
-- **Update:** once per settled change to the start, end or repeat. A title or location change sends nothing.
-- **Cancellation:** not held. Sent once, inside the window.
-- **Reminder:** 24 hours before the start. Not sent if the appointment was confirmed or changed less than 36 hours before the start,
-  and not for an appointment on its own day.
-- **On the day:** each channel the contact has gets one on-the-day message, at the first check of the day inside the window.
-- **Limits:** 10 messages per contact per day and 5 per hour. Messages over a limit wait.
-
-## 3. Messaging tests
-
-### 3.1 Unit tests (`autotest/archive/messages`, QtTest, no Google)
-
-Run with `sh autotest/archive/messages/run-messages-tests.sh <build folder>`. Result: 81 of 81.
-
-Tests, by name:
-
-reminderDueWithinTheReminderHours, reminderDueAtTheStartOfTheDayBefore, reminderDueForAnAppointmentThatHasStarted, reminderFollowsRemindHours, confirmOnlyJustInside36Hours, confirmOnlyExactly36HoursIsNot, confirmOnlyForShortNotice, confirmOnlyAndReminderMeetAtTheBoundary, confirmOnlyDefaultIs1Point5TimesRemind, confirmOnlyUsesAValidValue, confirmOnlyLessThanRemindUsesTheDefault, confirmOnlyNotANumberUsesTheDefault, remindHoursDefaultsAndLimits, holdLastsWaitMinutes, sendWindowIsStartInclusiveEndExclusive, onTheDayUsesLocalDate, dayRecordKeepsTheChannelsOfTheDay, newAppointmentByEmailGetsAConfirmation, newAppointmentByTextGetsAConfirmation, newAppointmentWithBothGetsEmailOnly, newAppointmentWithNoChannelGetsNothing, confirmOnlyFoldsTheReminderIntoTheConfirmation, changedAppointmentGetsAnUpdateOnItsChannel, unchangedSentAppointmentGetsNothing, deletedSentAppointmentGetsACancellationOnItsChannel, deletedUnsentAppointmentGetsNothing, reminderOnceByTheChannelOfTheContact, reminderIsNotSentTwice, reminderNotDueIsNotSent, removedOccurrenceIsCancelledOnItsChannel, removedOccurrenceOnlyForARepeat, onTheDayBothChannelsAreSentOnTheDay, onTheDayTextIsSentWhenEmailHasGone, onTheDayEmailIsSentWhenTextHasGone, onTheDayIsNotSentAgainOnceBothHaveGone, onTheDayIsSentForASingleChannel, onTheDayIsNotSentOnAnotherDay, sameDayBookingGivesItsEmailAndThenTheOnTheDayText, sameDayTextBookingCoversTheDaysText, sameDaySmsIsSentWhenBookedEarlierAndTheDayComes, caseSevenEmailIsTheConfirmationWhenWindowOpensLate, caseSevenTextIsTheOnTheDayTextWhenWindowOpensLate, caseSevenBothIsEmailThenTheOnTheDayText, caseEightNoReminderOnTheDay, reminderOnTheDayIsReplacedByTheOnTheDayText, channelSwitchedToTextSendsOnlyWhatIsPending, scenarioCreatedThirtySixHoursAheadBothChannels, scenarioCreatedTwentyFiveHoursAheadBothChannels, scenarioBookedOnTheDayBothChannels, listedOccurrencesOfARepeat, removedOccurrenceIsNotListed, repeatWithEveryOccurrenceRemovedListsNothing, periodsTouchingAtAnEndDoNotClash, clashIgnoresARemovedOccurrence, clashWithAListedOccurrence, repeatWithNoOccurrenceLeftIsFound, clashIsNotReportedForAnEmptyRepeat, getDateGivesACopyThatStaysTheSame, sentStateDoesNotCountAsAnEdit, googleRecordCopyDoesNotRestartTheWait, contactLinkIsKeptWhenTheContactExists, contactLinkIsSetByAnExactNameMatch, contactLinkIsRemovedWhenTheNameMatchesMoreThanOne, contactLinkIsRemovedWhenNoNameMatches, singleAppointmentEndedBeforeTheEdgeIsExpired, repeatStartMovesToTheFirstOccurrenceInTheWindow, repeatTrimKeepsOnlyTheExceptionsStillToCome, repeatWithNoOccurrenceLeftIsExpired, trimKeepsTheMessageSignatureSoTheContactIsNotMessaged, focusGoesToTheNearestDate, twoDigitYearsUseTheCenturyOfThisYear, ratePacerIsOffWithoutRateLimits, ratePacerStartsAtFourSecondsAfterFiveLimitedOfAHundred, ratePacerHalvesEvery500DownToHalfASecond, ratePacerCountsOnlyTheLastHundred, numericDatesAreParsed, typedDatesAreParsed, loadKeepsTheSavedUpdatedDate, mergedSentStateDoesNotCountAsAnEdit
-
-### 3.2 Accelerated messaging test (#89)
-
-Run on a fake clock that advances 60 times faster than real time, with a fixed plan of appointments, edits, deletions and
-restarts. Each message is matched against an expected list, with its time and the appointment time it quotes.
-
-Settings: send window 07:00 to 22:00, hold 5 minutes, reminder 24 hours, confirm-only 36 hours, limits raised to 20,000 (so
-limits are not exercised; see the ticket).
-
-Scenarios (from `scratchpad/accel/model.py`):
-
-| ID | Who | Booked | Start | What it checks |
-|---|---|---|---|---|
-| A01 | Daniel | Mon 21:50 | Tue 03 Nov 12:00 | Created 5 min before the window closes: the confirmation is sent inside the window; confirm-only (under 36 h), so no reminder; both channels get the on-the-day message at the window opening |
-| A02 | Jack | Mon 21:57 | Wed 04 Nov 10:00 | Hold ends at 22:02, after latestsend: the confirmation waits for the window opening (07:00) |
-| A03 | Sam | Tue 06:57 | Tue 03 Nov 15:00 | Created before earliestsend: hold ends at 07:02, inside the window. Same-day text booking: the confirmation gives the day, so no on-the-day text |
-| A04 | Tealc | Mon 21:30 | Wed 04 Nov 14:00 | Over 36 h away when confirmed: reminder due 24 h before, 14:00 tomorrow, is sent at the next check after it |
-| A05 | Vala | Mon 20:40 | Wed 04 Nov 09:00 | Confirmed 36 h 15 min before the start (just outside 36 h): not confirm-only, so the reminder is still due |
-| A06 | George | Mon 21:00 | Wed 04 Nov 08:30 | Confirmed 35 h 25 min before the start (inside 36 h): confirm-only, so there is no reminder |
-| A07 | Daniel | Mon 20:40 | Wed 04 Nov 22:00 | Reminder due at 22:00 falls outside the window: it is held to 07:00 on the day of the appointment, where the on-the-day message replaces it |
-| A08 | Jack | Mon 20:40 | Thu 05 Nov 07:00 | Reminder due exactly at the window opening (24 h before 07:00 on day 5) |
-| A09 | Sam | Mon 20:40 | Thu 05 Nov 06:30 | Reminder due at 06:30 on day 4, before the window: it is sent at 07:00, the first check in the window |
-| A10 | George | Mon 20:40 | Thu 05 Nov 07:30 | Start at 07:30 on day 5: on-the-day message at 07:00, the first check, before the start |
-| A11 | Vala | Mon 20:40 | Thu 05 Nov 22:15 | Reminder due at 22:15 on day 4 (outside the window), so held to 07:00 on day 5 where the on-the-day message replaces it. Last appointment of the run |
-| B01 | Daniel | Mon 21:00 | Tue 03 Nov 18:00 | Moved at 06:30, outside the window: the hold ends at 06:35, so the update waits for 07:00. The update covers the email on the day, so the text on-the-day message follows at 07:01 |
-| B02 | Jack | Mon 21:00 | Wed 04 Nov 15:00 | Reminder would be due at 15:00 on day 3; the move at 21:58 is held past the window to 07:00 on day 3, when the start is inside 36 h, so the update takes the reminder's place |
-| B03 | Sam | Mon 21:00 | Thu 05 Nov 10:00 | Reminder sent 10:01 on day 4 (exactly 24 h before the start, one minute after). A move at 10:05 is sent at 10:10 as an update, and it counts as the reminder for the new time |
-| B04 | George | Tue 23:00 | Thu 05 Nov 12:00 | Covers the rules for this booking; see the model |
-| B05 | Tealc | Tue 10:00 | Tue 03 Nov 16:00 | Same-day email booking: confirmation at 10:05, then cancelled at 10:30 (a cancellation is not held) |
-| B06 | Vala | Tue 22:30 | Wed 04 Nov 12:00 | Booked after the window closes, for a start later on day 4: confirmation waits for 07:00, and the on-the-day text follows at 07:01 (the email already covered the day) |
-| B07 | George | Wed 21:00 | Wed 04 Nov 23:30 | Same-day booking in the evening, after the on-the-day check would have run: confirmation text only |
-| B08 | Sam | Tue 12:00 | Wed 04 Nov 13:00 | Deleted inside the hold, before anything was confirmed: nothing is sent |
-| B09 | Daniel | Wed 21:57 | Thu 05 Nov 08:30 | Booked at 21:57 for a start at 08:30 on day 5: confirmation at 07:00, and the text on-the-day message at 07:01 |
-| B10 | Jack | Wed 06:30 | Wed 04 Nov 17:00 | Hold ends at 06:35, before the window: confirmation at 07:00, same-day email booking, so no on-the-day email |
-| B11 | Tealc | Mon 21:00 | Thu 05 Nov 14:00 | Deleted at 22:30 on day 3, before its reminder is due at 14:00 on day 4: no reminder. The cancellation waits for 07:00 |
-| B12 | George | Mon 21:00 | Wed 04 Nov 22:45 | Reminder due at 22:45 on day 3 is held to 07:00 on day 4, when the start is on that day: on-the-day text replaces it |
-| B13 | Vala | Tue 19:00 | Wed 04 Nov 11:00 | Confirmed on day 3, then the on-the-day email and text at 07:00 on day 4, and cancelled at 09:00 (not held) |
-| B14 | Jack | Mon 20:40 | Wed 04 Nov 20:40 | Reminder sent 20:41 on day 3 (exactly 24 h before). A move at 20:50 is sent as an update at 20:55, inside 36 h, and counts as the reminder for the new time, so no second reminder |
-
-Results: run 1 (`test-results/20261102-2313`) and run 2 (`test-results/20261103-0140`, with the Today Reminder templates) both
-sent and matched all 60 messages. Run 2 was stopped and resumed mid-run; no message was duplicated or lost. All 22 on-the-day
-messages used the Today wording. Timing against the expected minute: 40 on time, 14 one minute late, 6 one minute early.
-
-### 3.3 Live messaging run (#89, live check)
-
-A plan of 32 operations on the real clock, starting 1 November 23:36. It adds three contacts (Daniel: both channels; Jack:
-email only; Sam: text only) and then:
-
-| Op | Clock | Action | Expected |
+| ID | Title | Procedure and expected result | Run |
 |---|---|---|---|
-| 5 | 23:41 | A: Daniel, Wed 4 Nov 10:00 | Confirmation email at 23:46 |
-| 7 | 23:43 | B: Jack, Tue 3 Nov 12:00 | Confirmation email at 23:48 |
-| 9 | 23:45 | C: Sam, Mon 2 Nov 15:00 | Confirmation text at 23:50 |
-| 11 | 23:47 | X: Daniel, Thu 5 Nov 09:00 | Nothing (deleted at 23:49, inside the hold) |
-| 13 | 23:49 | Delete X | - |
-| 15 | 23:51 | Y: Daniel, Thu 5 Nov 09:00 | Confirmation email at 23:58 (the edit at 23:53 restarts the hold) |
-| 17 | 23:53 | Edit Y (location) | - |
-| 19 | Mon 08:00 | Edit B (location) | Nothing (location change) |
-| 21 | Mon 09:00 | Delete C | Cancellation text, inside the window |
-| 23 | Mon 11:00 | G: Daniel, Mon 17:00 (same day) | Confirmation email, then the on-the-day text |
-| 27 | Mon 23:58 | H: Jack, Thu 5 Nov 14:00 | Confirmation email about 00:03 Tuesday |
-| 25, 29, 31 | Mon 12:30, Tue 12:30, Tue 23:05 | Dumps | - |
+| GS-015 | An appointment for contact 1 added in the app is uploaded once, linked to contact 1, and not copied on a second sync | Add an appointment for contact 1 in the app. Sync twice. Expect one event on Google, linked to contact 1, and no copy added. | Both |
+| GS-016 | An appointment made on Google for contact 2 is downloaded once and linked to contact 2 | Create an event for contact 2 on Google. Sync twice. Expect one appointment in the app, linked to contact 2. | Both |
+| GS-017 | An appointment for contact 3 moved on Google shows its new time in the app, as one entry | Move contact 3's appointment on Google. Sync (CM). Expect the new time in the app and one entry. | CM |
+| GS-018 | An appointment for contact 4 deleted in the app is deleted on Google | Delete contact 4's appointment in the app, sync (CM). Expect it gone from Google. | CM |
+| GS-019 | An appointment deleted on Google is removed in the app and not restored when Google is master | Delete contact 4's appointment on Google. Sync (G). Expect it removed from the app and not restored. | G |
+| GS-020 | A weekly repeat for contact 5 uploads as one repeating event, listed on each week in the window | Add a weekly repeat for contact 5. Sync. Expect one repeating event on Google, and each week in the window listed in the app. | Both |
+| GS-021 | Deleting one occurrence of contact 5's repeat leaves the others, and Google omits that date | Delete one occurrence in the app, sync. Expect the other dates kept in the app, and the deleted date absent on Google. | Both |
+| GS-022 | Splitting contact 5's repeat ("this and following") sends both parts to Google without duplicates | Change one occurrence and all that follow, sync. Expect two repeats on Google, the earlier unchanged and the later changed, and no duplicates. | Both |
+| GS-023 | An appointment that ends before the calendar window is not downloaded and stays on Google | Put an appointment for contact 6 entirely before the window on Google. Sync. Expect it absent from the app, and still on Google. | Both |
+| GS-024 | An archived appointment moved back into the window on Google is restored from the archive | Archive an expired appointment, then move it into the window on Google. Sync. Expect it restored and gone from the archive. | Both |
+| GS-025 | An appointment with no end time is not uploaded, the report says why, and the others sync | Add one appointment with no end time and two good ones. Sync. Expect the two on Google, and the report to name the one not uploaded and the reason. | Both |
+| GS-026 | An appointment dated 1 January 1970 is not uploaded and the others sync | Add an appointment dated 1 January 1970 and a good one. Sync. Expect only the good one on Google. | Both |
+| GS-027 | An appointment organised by someone else is not uploaded across syncs | Create on Google an appointment whose organiser is another person. Sync twice (CM). Expect no upload, and no copy in the app beyond its download. | CM |
+| GS-028 | An appointment crossing the clocks going back keeps its London time on Google and in the app | Add a weekly 14:00 repeat across the end of British Summer Time. Sync. Expect 14:00 London time on both sides for each date. | Both |
+| GS-029 | An appointment for a deleted contact is kept, shows as "Deleted contact", and is not changed on Google until edited | Delete contact 1 with an appointment. Sync. Expect the appointment kept in the app, shown as Deleted contact, and unchanged on Google. | Both |
+| GS-030 | Two overlapping appointments for different contacts both reach Google, and neither is merged | Add two overlapping appointments for contacts 1 and 2. Sync. Expect two events on Google, with their own times. | Both |
 
-Result so far: the four messages due before 23:58 on 1 November were sent at the expected times (23:46, 23:48, 23:50, 23:58), and
-X was correctly silent. The run then stopped at operation 18. It was resumed from operation 18 on the accelerated clock, at 60
-times real speed, starting from 23:53 on 1 November. At the time of writing the resumed run is at 3 November 12:30 and has
-not yet sent any message after 23:58 on 1 November. This is being investigated (section 4).
+### 1.3 Interruptions, limits, tokens and copies
 
-## 4. Status of the live run
+| ID | Title | Procedure and expected result | Run |
+|---|---|---|---|
+| GS-031 | A sync with no network reports the failure, changes no local file, and a later sync completes | Disconnect the network. Sync. Expect an error and no local change. Reconnect, sync. Expect success. | Both |
+| GS-032 | Google refusing one contact's email leaves that contact unsent, with the reason, and the others sync | Give contact 2 an email Google does not accept. Sync. Expect contact 2 reported, not uploaded, and the others synced. | Both |
+| GS-033 | An upload that Google answers with a server error is retried, and does not duplicate the record | Inject a 500 reply on one upload (fault plan). Sync. Expect retries, then one record on Google. | Both |
+| GS-034 | A refused sign-in tells the user to sign in again and changes nothing locally | Revoke the app's access on Google. Sync. Expect the report to say to sign in again, and no local change. Sign in again, sync. Expect success. | Both |
+| GS-035 | A sync stopped part-way resumes from its progress file, with no upload repeated and none lost | Stop the program during uploads of 20 contacts. Restart, sync. Expect each contact on Google once. | Both |
+| GS-036 | A rate limit on upload is retried with waits, and a failure gives its reason | Inject rate-limit replies. Sync. Expect retries with waits, the pacing to adapt, and, when it fails, the reason and recovery step in the report. | Both |
+| GS-037 | A malformed reply for one contact skips that contact with a reason and keeps the others | Inject a malformed reply for contact 3. Sync. Expect contact 3 skipped and reported, and the others unchanged. | Both |
+| GS-038 | Changing the calendar window does not delete appointments outside it, locally or on Google | Narrow the window in Setup, sync. Expect appointments outside it kept on Google, and archived locally only where they have expired. | Both |
+| GS-039 | Two copies of the program on one calendar each see the other's change, with no duplicates | Run two copies on one data folder's calendar. Change an appointment in one. Sync both. Expect the change in the other, and no duplicate. | Both |
+| GS-040 | Switching the master between syncs, with edits on both sides, leaves one copy of each record | Edit contacts 1 and 2 on both sides, sync (CM). Switch to G, edit again, sync. Expect one copy of each record. | Both |
+| GS-041 | The clean-up utility removes all test records, and the next sync starts from an empty account | Run the default clean-up, then sync. Expect no test records on Google and an empty sync. | Both |
+| GS-042 | The set-up utility's saved account works, and the clean-up refuses an account that is not the saved one | Run the set-up `--check`. Expect the account to work. Run clean-up with a different token. Expect it to stop before any delete. | Both |
 
-The live run is not complete, and it is not marked complete. The resumed run has been running for about an hour. It has not sent
-the messages due after 23:58 on 1 November (the reminder for B, the cancellation for C, the same-day confirmation for G and the
-confirmation for H), so its result will show those as missing. The cause is not known yet: it may be the accelerated clock
-(timers in the application may not follow the scaled clock), or a fault in the application's sending after a restart.
+---
 
-## 5. Google sync bench (#105)
+## 2. Announcements (offline, accelerated clock, stub transports)
 
-Run with `python3 autotest/archive/google_bench.py run <codes or selections>`. Each scenario starts from a known state on the scratch
-account, checks the local files and the Google account, and writes its evidence to `runs/<scenario>/` (the report, the dump, the
-driver log, the Google state). Selections: `full`, `quick`, `google`, `google-quick`, `local`.
+These tests run the program headless, with the stub transports (0.8), on the accelerated clock (0.7). Each test is one scenario of about one to three days of program time; the scenarios are combined into one three-day run for AN-041. Expected times are program times. A message is on time when sent at the expected time or at the next check (within 6 minutes).
 
-The scenarios in each group are listed in the appendix. The principal results:
+Defaults apply unless a test says otherwise: hold 5 minutes, send window 07:00 to 22:00, reminder 24 hours before, confirm-only 36 hours, limits 5 an hour and 10 a day.
 
-- **Local group:** 30 of 30 pass (run after the prefix change).
-- **Updates group:** the first half passed 66 of 66. The second half passed 64 of 67 before the 1970 fix. Re-run after the fix:
-  E70, N107, W01 to W04, AR01, R08, X15, E01, LF01 and LF02 pass; G40 and P30 pass with the corrected far edge.
-- **F10 (#69):** fails. The driver is stuck in a "Tidy Records" prompt loop and gives up after 40 clicks. The account's contacts
-  are the likely cause, but this is not confirmed, and it is not known whether F10 passed before this session's changes.
-- **Upload group (U01):** passes, 1,062 seconds, with all 1,000 appointment masters on Google. The records are kept on Google
-  (no cleanup runs before or after the upload group).
+### 2.1 Creation, update and cancellation
 
-Conventions the tests rely on:
+| ID | Title | Procedure and expected result | Run |
+|---|---|---|---|
+| AN-001 | An appointment made for contact 1 at 10:00 is confirmed by email at 10:05 | Create at 10:00, three days ahead. Expect one email to contact 1 at 10:05, with the details. | Accelerated |
+| AN-002 | An appointment made for contact 3 is confirmed by text at 10:05 | As AN-001, for contact 3 (text only). Expect one text at 10:05, and no email. | Accelerated |
+| AN-003 | An appointment for contact 5 (both channels) is confirmed by email only | As AN-001, for contact 5. Expect one email at 10:05 and no text. | Accelerated |
+| AN-004 | On the day, an email-only contact gets one email from 07:00 | Appointment for contact 2 on day 2. Expect one email at 07:00 on day 2. | Accelerated |
+| AN-005 | On the day, a text-only contact gets one text from 07:00 | Appointment for contact 4 on day 2. Expect one text at 07:00 on day 2. | Accelerated |
+| AN-006 | On the day, a contact with both channels gets an email, then a text | Appointment for contact 6 on day 2. Expect one email, then one text, from 07:00 on day 2. | Accelerated |
+| AN-007 | A reminder is sent 24 hours before, once | Appointment for contact 2 at 15:00 on day 3. Expect one reminder email at 15:00 on day 2. | Accelerated |
+| AN-008 | An appointment made 30 hours before its start gets its confirmation only, with no reminder | Create for contact 4 at 09:00 on day 2, for 15:00 on day 3. Expect one confirmation, and no reminder. | Accelerated |
+| AN-009 | Edits within the hold give one confirmation with the final details | Create for contact 1; edit at +2 and +4 minutes. Expect one confirmation at +9 minutes with the final details. | Accelerated |
+| AN-010 | An edit and its reversal within the hold send nothing | Create for contact 1; change at +2, change back at +4. Expect one confirmation with the original details, at +9 minutes, or nothing if deleted before. | Accelerated |
+| AN-011 | An edit after confirmation sends one update with the final details, after the hold | Confirm; at +1 hour, move twice within the hold. Expect one update, with the final details, at the end of the hold. | Accelerated |
+| AN-012 | A cancellation after confirmation is sent at once, not held | Confirm; at +1 hour, delete. Expect a cancellation at once, on the same channel. | Accelerated |
+| AN-013 | An appointment created and deleted before confirmation sends nothing | Create at 10:00; delete at 10:01. Expect nothing sent. | Accelerated |
+| AN-014 | A title or location change alone sends no update | Confirm; change the title only. Expect nothing sent. | Accelerated |
+| AN-015 | A repeat occurrence removed after confirmation sends a cancellation for that date only | Weekly repeat for contact 2, confirmed; delete one occurrence. Expect one cancellation for that date, by email, and no other message. | Accelerated |
+| AN-016 | Each occurrence of a repeat is reminded once | Weekly repeat for contact 5 over three weeks. Expect one reminder per occurrence, and none twice. | Accelerated |
 
-- Every record a test creates carries the test prefix: an appointment's summary starts `BENCH `, and a contact is named `Bench`
-  or has a `test.invalid` address. The helpers and the runner refuse anything else.
-- The upload group purges the account before it uploads. This is for the scratch account only.
-- Google-side changes made by the bench go through `gchange`, which refuses any record without the prefix.
+### 2.2 Send window, silent period and backlogs
 
-### 5.1 Bench scenarios
+| ID | Title | Procedure and expected result | Run |
+|---|---|---|---|
+| AN-017 | An appointment made at 21:30 is confirmed at 07:00, when the window opens | Create at 21:30 for the next day. Expect the confirmation at 07:00, not before. | Accelerated |
+| AN-018 | A reminder due in the silent period is sent once, at 07:00 | Appointment whose reminder is due at 23:00. Expect the reminder at 07:00, once. | Accelerated |
+| AN-019 | Edits made overnight send one update at 07:00, with the final times | Confirm at 20:00; edit at 21:00, 22:30 and 23:30. Expect one update at 07:00 with the final times. | Accelerated |
+| AN-020 | A send due at 22:00 waits until 07:00 | Create so that the confirmation is due at 22:00. Expect it sent at 07:00 the next day. | Accelerated |
+| AN-021 | A message due at 07:00 is sent at 07:00 | Create so that the confirmation is due at 07:00. Expect it sent at 07:00. | Accelerated |
+| AN-022 | Twelve appointments for contact 6 created overnight send five at 07:00, five at 08:00, and the rest once the daily limit clears | Create twelve for contact 6 at 23:00. Expect 5 at 07:00, 5 at 08:00, the last two after the daily limit clears. | Accelerated |
+| AN-023 | The limits hold across a restart | Send ten messages to contact 2 on day 1; restart at 12:00. Expect no further messages to contact 2 until the daily limit clears. | Accelerated |
 
+### 2.3 Expired, irrelevant and blocked messages
 
-### Uploads (purge, then upload; left in place)
+| ID | Title | Procedure and expected result | Run |
+|---|---|---|---|
+| AN-024 | An appointment already started gets no reminder | Appointment that starts at 10:00; the reminder time passes after its start. Expect no reminder. | Accelerated |
+| AN-025 | No message is sent for a past appointment | Appointment that ended yesterday. Run the clock forward. Expect nothing. | Accelerated |
+| AN-026 | A deleted contact's appointments send no messages | Contact 3 deleted; appointments made before. Expect nothing sent to contact 3. | Accelerated |
+| AN-027 | A hidden contact's appointments send no messages | Contact 4 hidden; appointments made. Expect nothing sent to contact 4. | Accelerated |
+| AN-028 | A channel changed after confirmation sends only what is pending on the new channel, and nothing again | Contact 5 confirmed by email; change to text only. Expect only pending messages on text, and no repeat of the email. | Accelerated |
+| AN-029 | A contact with neither channel ticked is sent nothing | Contact with no channel ticked. Expect no message of any kind. | Accelerated |
+| AN-030 | A ticked channel with no address sends nothing on that channel | Contact 1 with email ticked and the address removed. Expect no email. The other channel, if ticked, behaves as its own rules say. | Accelerated |
 
-| Code | Test |
+### 2.4 Restarts, shutdown and two copies
+
+| ID | Title | Procedure and expected result | Run |
+|---|---|---|---|
+| AN-031 | A shutdown during a hold sends the message after restart, with the current details | Create; shut down at +2 minutes; restart at +20 minutes. Expect the confirmation at restart, with the details as they are then. | Accelerated |
+| AN-032 | A reminder missed while the program was off is not sent late once the appointment is on that day | Shut down from 11:00 the day before until 06:00 on the day; appointment at 15:00 on the day. Expect no reminder, and the on-the-day message from 07:00. | Accelerated |
+| AN-033 | A restart in the middle of a day does not repeat the on-the-day messages | Send on-the-day messages; restart at 12:00. Expect none repeated. | Accelerated |
+| AN-034 | Three days off with many edits send one message per appointment, not one per change | Edit ten appointments twenty times each while off; restart. Expect one message per appointment. | Accelerated |
+| AN-035 | A second copy on the same data folder sends no messages and shows the warning | Start a second copy. Expect the warning "Messages Not Sent" and no message from the second copy. | Both copies |
+
+### 2.5 Setup, templates and sending failures
+
+| ID | Title | Procedure and expected result | Run |
+|---|---|---|---|
+| AN-036 | A blank email sender sends no email, logs "sender missing", and adds nothing to history | Blank `[email-reminder] sender`. Expect no email, the log entry, the start-up warning, and no history entry. | Accelerated |
+| AN-037 | A blank text sender sends no text, logs "sender missing", and adds nothing to history | Blank `[sms-reminder] sender`. As AN-036 for texts. | Accelerated |
+| AN-038 | With no on-the-day template, the reminder template is used on the day | Remove `emailtoday`. Expect the reminder template's text on the day. | Accelerated |
+| AN-039 | A template file that cannot be read sends nothing, and the log says why | Point `emailconfirmation` at a missing file. Expect no email, and the log entry. | Accelerated |
+| AN-040 | A send refused by the transport is retried after 5 minutes, and recorded once when it succeeds | Stub refuses the first two sends. Expect retries at +5 and +10 minutes, success on the third try, and one history entry. | Accelerated |
+| AN-041 | A send that always fails is given up after 10 tries, and the log says so | Stub refuses every send. Expect ten tries, then no more, and a log entry giving up. | Accelerated |
+| AN-042 | A text refused by the transport is not recorded as sent, and the reason is logged | Stub refuses one text with a reason. Expect the reason in the log, no history entry, and a retry. | Accelerated |
+| AN-043 | The SMS key expiry warning appears at start-up within 30 days of expiry, and not before | Set expiry 29 days ahead, start; then 31 days ahead, start. Expect a warning only for the first. | Accelerated |
+| AN-044 | A multi-line text template sends only its first line | Text template with two lines. Expect only the first line sent. | Accelerated |
+| AN-045 | A clock change in March keeps the reminder at 24 elapsed hours, and sends in local time | Reminder across 28 March 2027. Expect the reminder 24 hours before, and the window in local time. | Accelerated |
+| AN-046 | A reminder and on-the-day message across New Year are sent on the right dates | Appointment for 1 January with reminder on 31 December. Expect both on the right days. | Accelerated |
+| AN-047 | A three-day mixed run of AN-001 to AN-046 sends every expected message once, and nothing unexpected | Combine the scenarios, run three days. Compare the sent list with the expected list. Expect every expected message on time, once, and no extra. | Accelerated |
+
+---
+
+## 3. Operation testing
+
+Operation tests use the program without Google, sync or messages, unless a test says otherwise. Each test names its expected result.
+
+### 3a. Start-up and shutdown
+
+| ID | Title | Procedure and expected result | Run |
+|---|---|---|---|
+| SS-001 | A first start with no data folder creates the folder and asks for the key to be set | Delete the data folder; start. Expect the folder created and the key set-up offered. | Manual |
+| SS-002 | A correct login password lets the program start the first time | Start; type the login password. Expect the contact list. | Manual |
+| SS-003 | Three wrong passwords offer set-up or close, and close exits without changing data | Type a wrong password three times. Expect the choice; choose Close. Expect exit and unchanged data. | Manual |
+| SS-004 | A second copy on the same folder shows the warning and still works for everything but messages | Start a second copy. Expect the warning and normal use of contacts. | Manual |
+| SS-005 | Start-up lists overlapping appointments and changes nothing | Create two overlapping appointments; restart. Expect both listed and no change. | Manual |
+| SS-006 | Start-up shows the SMS key warning only within 30 days of expiry | As AN-043, from the start-up side. | Manual |
+| SS-007 | Start-up warns for each blank sender and logs it | Blank both senders; start. Expect a warning for each, and the log entries. | Manual |
+| SS-008 | The first start on a day makes one backup zip, and a second start that day makes none | Start, close, start again. Expect one backup dated today. Run on five days: expect two zips kept. | Manual |
+| SS-009 | Saved data is there after a restart | Add a contact, an appointment, a to-do item and a history entry; save; close; start. Expect all four. | Manual |
+| SS-010 | Closing with unsaved edits asks Save, Discard or Cancel, and Cancel keeps the program open | Edit a contact without saving; close. Expect the question; choose Cancel. Expect the program open. | Manual |
+| SS-011 | An unreadable contact file is reported; the other contacts load and the file is not overwritten | Corrupt one `.contact` file; start. Expect a report, the other contacts loaded, and the bad file unchanged. | Manual |
+| SS-012 | Start with no ini file uses the defaults and reports that the file is missing | Remove the ini file; start. Expect the program to start, and the log to say the file was not found. | Manual |
+| SS-013 | Start with a read-only data folder reports the error and loses no data | Make the folder read-only; start; edit; save. Expect an error and no loss of the stored data. | Manual |
+| SS-014 | Data saved before a crash is there after it; unsaved edits are not | Save a contact; edit another without saving; kill the process; start. Expect the saved one, not the unsaved edit. | Manual |
+| SS-015 | With no network, the program starts and works, and a sync reports the error | Disconnect; start; add a contact; sync. Expect normal start, and a sync error. | Manual |
+
+### 3b. By menu and function
+
+Each menu item is tested by choosing it from the menu, and by its key where it has one. F9 (Google Sync) is covered in area 1.
+
+| ID | Title | Procedure and expected result | Run |
+|---|---|---|---|
+| MF-001 | File > Open lists the contacts, skips by surname letter, and has "create contact" at the top | Open the menu; press a surname letter; check the top entry. Expect the list, the skip, and the create entry. | Manual |
+| MF-002 | File > Save (Ctrl+S) saves the open contact and its files | Edit; Ctrl+S. Expect the edit saved to the contact's file. | Manual |
+| MF-003 | File > Export > Contacts writes a file with all contacts | Export. Expect a file with contacts 1 to 6. | Manual |
+| MF-004 | File > Export > Appointments writes a file with all appointments | Export. Expect a file with the appointments in the window. | Manual |
+| MF-005 | File > Import reads an export back without duplicates | Export; delete one contact; import. Expect the contact back, and no duplicates. | Manual |
+| MF-006 | File > Tidy Records saves the screen's edit first, then shows its summary | Edit a contact on screen; Tidy Records. Expect the edit saved, and the summary. | Manual |
+| MF-007 | File > Key and Password enables items according to whether the program is logged in | Check the items before and after logging in and out. Expect Set Key and Change Password only when logged out, and Logout only when logged in. | Manual |
+| MF-008 | File > Setup opens the Setup dialog (its controls are tested in 3c) | Open. Expect the Setup dialog. | Manual |
+| MF-009 | File > Show > Deleted Appointments lists deleted appointments in braces, and the tick is off at start-up | Tick; check the list; restart; check the tick. Expect braces, and the tick off. | Manual |
+| MF-010 | File > Show > Deleted Contacts and Hidden Contacts list those contacts | Tick each; check. Expect the deleted and hidden contacts listed. | Manual |
+| MF-011 | File > Show > Logs opens a window that is not modal and shows new entries | Open; carry on working; watch the entries grow. Expect the window to stay open and update. | Manual |
+| MF-012 | File > Exit closes the program after the unsaved-edit check | Exit with and without an edit. Expect the question only when there is an edit. | Manual |
+| MF-013 | File > Test Function runs its developer diagnostic (see Appendix C, item 4) | Choose it. Expect the diagnostic output, and no change to data. | Manual |
+| MF-014 | Find Here (Ctrl+F) and Find Next (F3) move through matches on the page | Search for a word that appears three times. Expect each F3 to move to the next. | Manual |
+| MF-015 | Global Find (Ctrl+G) matches part of a name without case or accents, lists hidden contacts in brackets, and opens on Enter | Search "jac", "sam", an accented name; hide one contact. Expect matches, the hidden one in brackets, and Enter to open. | Manual |
+| MF-016 | Advanced Global Find (Ctrl+Shift+G) opens its dialog and applies its criteria (see DL-020) | Open. Expect the dialog. | Manual |
+| MF-017 | Email / SMS To Contacts lists contacts with an address for each channel | Open. Expect contacts with the right addresses. | Manual |
+| MF-018 | Email / SMS To Non-Clients lists contacts not ticked Client | Open. Expect only non-clients. | Manual |
+| MF-019 | Uncategorised Contacts lists contacts with no Type ticked | Open. Expect contacts with no Type. | Manual |
+| MF-020 | Duplicate Contacts lists possible duplicates, and does not merge them (merging is Tidy Records) | Create two contacts with one address. Open. Expect both listed, not merged. | Manual |
+| MF-021 | Duplicate Hidden Auto-Email Entries lists hidden contacts that share an address with a visible one | Hide one of two contacts sharing an address; open. Expect the pair listed. | Manual |
+| MF-022 | Goto Me (Ctrl+Shift+O) opens the contact set as Identify Me | Set Identify Me; press the key. Expect that contact open. | Manual |
+| MF-023 | Goto Journal (Ctrl+J) opens the journal in Easy Notepad, and a missing program gives an error | Press it with Easy Notepad present and absent. Expect the journal, then an error. | Manual |
+| MF-024 | Goto To Do List (Ctrl+L) and Goto My To Do List (Ctrl+Shift+L) open the right lists | Press each. Expect the contact's list, then the user's. | Manual |
+| MF-025 | Goto Today (Ctrl+T) selects the first entry from now on | Scroll away; press Ctrl+T. Expect the first entry from today. | Manual |
+| MF-026 | Goto Date (Ctrl+D) opens the date box | Press. Expect the box with the cursor at the end. | Manual |
+| MF-027 | Goto Contact Details (Alt+N, M, A, P, B) moves to each section of the form | Open a contact, enable editing; press each key. Expect the cursor in each section. | Manual |
+| MF-028 | Insert Appointment After (Ctrl+I) adds an entry after the selected one, for the open contact | Select an entry; Ctrl+I. Expect the new entry after it, For the open contact. | Manual |
+| MF-029 | Insert My Appointment After (Ctrl+Shift+I) adds an entry after the selected one, for the user | As MF-028, for the user. | Manual |
+| MF-030 | New Appointment (Ctrl+N) opens the form for the open contact | Press. Expect the form, For set. | Manual |
+| MF-031 | New My Appointment (Ctrl+Shift+N) opens the form for the user | Press. Expect the form, For the user. | Manual |
+| MF-032 | Update Appointment (Ctrl+U) opens the selected entry's form | Select; press. Expect that entry's details. | Manual |
+| MF-033 | Remove Appointment (Ctrl+R) deletes the selected entry after confirmation | Select; press; decline; press; accept. Expect no change on decline, and deletion on accept. | Manual |
+| MF-034 | Edit History enables the history to be edited | Choose it. Expect history editing enabled for the open contact. | Manual |
+| MF-035 | New Contact opens a blank contact | Choose it. Expect a blank Contact Details tab. | Manual |
+| MF-036 | Contact Details enables editing of the open contact (Alt+E, D) | Choose it. Expect the form enabled. | Manual |
+| MF-037 | Delete Contact asks for confirmation, then moves the contact to the deleted folder | Choose; decline; choose; accept. Expect no change, then the move. | Manual |
+| MF-038 | Send EMail Contact (Ctrl+M) starts the mail command with the recipient and name filled in | Press. Expect the command with $TO and $NAME. | Manual |
+| MF-039 | SMS Contact (Ctrl+Shift+M) opens the text form for the contact | Press. Expect the form for the contact. | Manual |
+| MF-040 | Transaction Income (Ctrl++) adds an income entry to the contact's log | Press; enter an amount. Expect the entry in the log. | Manual |
+| MF-041 | Transaction Expense (Ctrl+-) adds an expense entry to the contact's log | As MF-040, as an expense. | Manual |
+| MF-042 | Transaction Report produces the year's report | Choose; enter the year. Expect the report with the entries. | Manual |
+| MF-043 | Manual (F1) opens the manual, and F3 finds the next match | Press F1; search. Expect the manual, and the match. | Manual |
+| MF-044 | About shows the program's name and version | Choose it. Expect name and version. | Manual |
+| MF-045 | Typing a digit in the calendar opens the date box, and Escape closes it without moving | Press 2; Escape. Expect the list unchanged. | Manual |
+| MF-046 | W and WW move the list a week and two weeks ahead, and T starts again from today | Press W, WW, T. Expect the moves. | Manual |
+| MF-047 | N and P move between the open contact's entries and N wraps to the first | Open a contact with three entries; press N four times. Expect the wrap. | Manual |
+| MF-048 | Space shows only the open contact's entries, and a second Space shows all | Press Space twice. Expect the filter, then all entries. | Manual |
+| MF-049 | With no contact open, Space, N, P and the arrows beep and change nothing | Close all contacts; press each. Expect a beep and no change. | Manual |
+| MF-050 | Overview (Alt+O) shows the open contact's summary | Open a contact; press Alt+O. Expect the summary. | Manual |
+| MF-051 | History (Alt+Y) lists the contact's recorded changes and sent messages | Open a contact with history; press Alt+Y. Expect the entries. | Manual |
+| MF-052 | To-Do List (Alt+L) saves its items with the contact | Add an item; save; restart. Expect the item. | Manual |
+| MF-053 | Contact Details (Alt+D) is unavailable with no contact open, and available after Alt+E, D | Check both states. Expect them. | Manual |
+
+### 3c. By dialog
+
+| ID | Title | Procedure and expected result | Run |
+|---|---|---|---|
+| DL-001 | Setup saves each control on OK and discards the changes on Cancel | Change each control; Cancel; reopen; check. Then change and OK; check. | Manual |
+| DL-002 | Setup's Identify Me choice is the contact Goto Me opens | Choose a contact; OK; press Ctrl+Shift+O. Expect that contact. | Manual |
+| DL-003 | Setup's calendar and contacts masters are saved independently | Set calendar to G and contacts to CM; OK; reopen. Expect both kept. | Manual |
+| DL-004 | Setup's window days accept whole numbers and refuse text | Enter 30, then text. Expect 30 kept, and the text refused. | Manual |
+| DL-005 | Setup's SMS key expiry accepts day/month/year and refuses other text | Enter 25/01/2035 and 25/1/35; then 2035. Expect the first two accepted and the last refused. | Manual |
+| DL-006 | Setup's "Enable SMS and Email Reminders" off stops all automatic messages | Untick; run a confirmation scenario. Expect nothing sent. | Accelerated |
+| DL-007 | Setup's Google Account Change shows the sign-in code, and Reset removes the account | Change; read the code; cancel. Reset. Expect the account removed. | Manual |
+| DL-008 | The appointment form has For, Summary, From, To and Description, and Enter saves | Fill each field; Enter. Expect the entry saved with each value. | Manual |
+| DL-009 | Escape in the appointment form cancels with no change | Change a field; Escape. Expect no change. | Manual |
+| DL-010 | The duration arrows change To, and changing To changes the duration | Use up and down; then change To. Expect both kept in step. | Manual |
+| DL-011 | A clash in the appointment form offers a change, and declining saves nothing | Create an overlap; choose not to change. Expect nothing saved. | Manual |
+| DL-012 | A repeat keeps its type and interval, and a single appointment gets no repeat | Create a weekly repeat; reopen. Expect weekly. Create a single one; reopen. Expect none. | Manual |
+| DL-013 | A repeat's end, by count or by date, is kept in the list and the form | Set count 3; reopen; set an end date. Expect each kept. | Manual |
+| DL-014 | A bad email in the contact form stops the save, with focus in its box and nothing saved | Enter a bad address; Ctrl+S. Expect the box focused and no save. | Manual |
+| DL-015 | A label typed after an address becomes the email's title | Type `name@domain.com (Work)`; save. Expect the title Work. | Manual |
+| DL-016 | A phone typed with a (0) after the country code is saved in tidy form | Enter `+44 (0) 1234 567890`; save. Expect `+44 1234 567890`. | Manual |
+| DL-017 | F2 changes a title, and a title with a colon is refused | Press F2 in an email title; enter a colon. Expect refused. | Manual |
+| DL-018 | Clearing the only detail of a contact saves the change | Clear all details; save. Expect the change saved. | Manual |
+| DL-019 | Quitting or switching contact with unsaved edits asks Save, Discard or Cancel | Edit; switch contact; Cancel; Discard. Expect each outcome. | Manual |
+| DL-020 | Advanced Global Find applies its criteria, lists results, and opens on Enter | Set a criterion; search; Enter on a result. Expect the list and the contact open. | Manual |
+| DL-021 | The transaction form checks the amount, and records income and expense | Enter text; then a number. Expect text refused, and the entry recorded. | Manual |
+| DL-022 | The text form sends through the stub and records the send in history; a missing key gives a message | Send with the key set; then with it removed. Expect a send and history, then a message. | Accelerated |
+| DL-023 | The Logs window updates while open, and closing it returns focus to the program | Open; add an entry; close. Expect the entry and the focus back. | Manual |
+| DL-024 | The manual's Find and F3 work, and Escape closes it | Search; press Escape. Expect the search and the close. | Manual |
+| DL-025 | The Set Encryption Key dialog refuses a mismatched key and a mismatched password | Enter two different keys; then two different passwords. Expect each refused with its message. | Manual |
+| DL-026 | Change Password asks for the old password first, and refuses a wrong one | Enter a wrong old password. Expect refused. | Manual |
+| DL-027 | The typed-date box moves the list for valid dates, and beeps and closes for text | Type 2/12/26; Enter. Then type "xyz". Expect the move, then the beep and close. | Manual |
+| DL-028 | The tidy progress window shows its summary, and closes | Run Tidy Records. Expect the summary, then close. | Manual |
+| DL-029 | Message boxes default to the safe answer, and Escape cancels without action | Delete a contact; press Escape. Expect no delete. | Manual |
+| DL-030 | Export and Import file dialogs leave no file when cancelled | Export; cancel. Expect no file. | Manual |
+
+---
+
+## 4. Accessibility
+
+Accessibility tests are carried out with a screen reader (NVDA or the platform's inspector) and with keyboard only. Each test states what a person should hear or see, and the expected result is recorded by the person running it.
+
+| ID | Title | Procedure and expected result | Run |
+|---|---|---|---|
+| AC-001 | Every menu and submenu is reached from the keyboard, and each item is named | Walk the menus with Alt keys and arrows; the screen reader reads each name. Expect every item reached and named. | Manual, screen reader |
+| AC-002 | Every tab is reached with its Alt key, and its name is read | Press each tab key. Expect the tab name read. | Manual, screen reader |
+| AC-003 | Every control in every dialog is reached with Tab, and its label is read | For each dialog in 3c, Tab through. Expect every control reached and labelled. | Manual, screen reader |
+| AC-004 | Show Screen Reader Text follows the focus and updates its values | Open it; move focus; change a value. Expect the dialog to follow. | Manual, screen reader |
+| AC-005 | Calendar entries are read with their date, time and summary, at a usable length | Move through entries. Expect each read in full, and not padded with the program path (issue #22). | Manual, screen reader |
+| AC-006 | Each field of the contact form is read with its label, title and section | Tab through each section. Expect the label, title and section announced. | Manual, screen reader |
+| AC-007 | Moving through lists and failures give different sounds | Move; trigger a failure. Expect two distinct sounds. | Manual, listening |
+| AC-008 | Error and warning messages take focus and are read | Trigger a warning. Expect it read at once. | Manual, screen reader |
+| AC-009 | Escape closes every dialog and returns focus to the window that opened it | Open and close each dialog with Escape. Expect focus returned. | Manual |
+| AC-010 | Every action has a key: double-clicking a calendar entry has the Enter equivalent | Select an entry; press Enter. Expect the same result as a double-click. | Manual |
+| AC-011 | The typed-date box has a short name and description | Open it. Expect a short name and description read. | Manual, screen reader |
+| AC-012 | Focus stays on the entry after a sync or Tidy Records | Select an entry; sync; Tidy. Expect the focus on the entry. | Manual |
+| AC-013 | The manual is read and searched with a screen reader | Read a section; search. Expect the text and matches read. | Manual, screen reader |
+| AC-014 | A key that does nothing gives audible feedback, not silence | Press keys with no contact open. Expect a beep. | Manual, listening |
+| AC-015 | The sync progress bar's value and the log lines are readable | Sync. Expect the progress read at intervals. | Manual, screen reader |
+| AC-016 | Dates and times are read with their format, and a bad entry is announced | Enter a bad date. Expect the bad entry announced. | Manual, screen reader |
+| AC-017 | A state is shown in words, not only by colour or layout | Check deleted items (braces), disabled tabs and disabled menu items. Expect each to say so in words. | Manual |
+| AC-018 | The keyboard focus is always visible | Tab through the window. Expect a visible focus on each control. | Manual |
+
+---
+
+## Appendix A. Tests imported from the archive
+
+These tests were written earlier and exist in `autotest/archive/`. They are kept, with their titles as they were written. Each is given a new ID in its area, with its original code. Those that use the test bench's own test data (the `Bench` contacts and `BENCH ` appointments) will be re-pointed to the six fixtures (0.4) when the benches are rewritten.
+
+Sources: `autotest/archive/google_bench.py` (bench scenarios), `autotest/archive/messages/tst_messages.cpp` (unit tests), `autotest/archive/oldfile/old_contact_test.cpp` (old-file test).
+
+Area assignment is by the test's content: a test that calls the sync, or whose title is about Google or sync, is in area 1; the other tests are placed in the area of the feature they check. The code letters are not reused between tests: two bench scenarios share the code L05 and L06 (the screen-reader tests of #101 and the notes tests of #105). Their new IDs keep them apart.
+
+Counts: Google sync 144, Announcements 85, Start-up and shutdown 7, By menu and function 29, By dialog 12, Accessibility 2. Total 279.
+
+### A.1 Google sync (area 1)
+
+| New ID | Archive code or name | Title, as written in the archive |
+|---|---|---|
+| GS-101 | `C01` | Add a contact locally, no sync: Google unchanged |
+| GS-102 | `C02` | Contact made on Google: downloaded once across two syncs |
+| GS-103 | `C03` | Add then delete locally before any sync: nothing reaches Google |
+| GS-104 | `C04` | Contact deleted on Google between syncs: removed from the app |
+| GS-105 | `C05` | Contact deleted in the app after it synced: deleted on Google |
+| GS-106 | `C06` | Contact hidden in the app after it synced: Google agrees with the app |
+| GS-107 | `C07` | Same name on both sides before sync: both kept |
+| GS-108 | `C08` | Edit a downloaded contact before a second sync: change reaches Google |
+| GS-109 | `C09` | Edit on Google between syncs: app picks it up without duplicating |
+| GS-110 | `C10` | Out-of-sequence phones and emails: each value kept in some slot |
+| GS-111 | `C11` | Stray spaces and newlines in Google data: no spurious upload |
+| GS-112 | `C12` | Large upload: 40 local contacts reach Google once |
+| GS-113 | `C13` | Unicode and apostrophes in names round-trip exactly |
+| GS-114 | `C14` | Email-only contact (no name) is uploaded with its email |
+| GS-115 | `C15` | Repeated syncs with no changes do not write to Google |
+| GS-116 | `C16` | Edit keeps URLs the app does not hold (option 1 regression) |
+| GS-117 | `A01` | Add an appointment locally, no sync: Google unchanged |
+| GS-118 | `A02` | Event made on Google: downloaded once across two syncs |
+| GS-119 | `A03` | Identical events on Google (duplicates): both kept, no growth on re-sync |
+| GS-120 | `A04` | Same event added locally and on Google before sync: both kept |
+| GS-121 | `A05` | Edit a downloaded event before a second sync: change reaches Google |
+| GS-122 | `A06` | Event moved on Google between syncs: app picks it up |
+| GS-123 | `A07` | Event deleted in the app after it synced: deleted on Google |
+| GS-124 | `A08` | Event deleted on Google between syncs: app does not keep a live copy |
+| GS-125 | `A09` | Overlapping appointments added locally: both uploaded, neither merged |
+| GS-126 | `A10` | Large upload: 40 local appointments reach Google once |
+| GS-127 | `A11` | Read-only event (organised by someone else): not uploaded across syncs |
+| GS-128 | `A12` | Stray spaces and newlines in a location: no spurious upload |
+| GS-129 | `A13` | Local ID of a Google event is the same across syncs |
+| GS-130 | `M01` | ContactManager master adds a contact; Google master syncs it: no duplicate |
+| GS-131 | `M02` | Google master downloads; ContactManager master edits; Google master re-syncs: one copy |
+| GS-132 | `M03` | Deleted in ContactManager master: Google master does not bring it back |
+| GS-133 | `M04` | Deleted on Google in Google master: ContactManager master does not bring it back |
+| GS-134 | `M05` | Appointment: ContactManager master adds, Google master edits, ContactManager master picks it up |
+| GS-135 | `M06` | Repeated switching with edits: values and notes survive, no duplicates |
+| GS-136 | `M07` | Google master: a local-only edit is not sent, and Google's values stay |
+| GS-137 | `M08` | ContactManager master: a change made on Google is kept, not overwritten |
+| GS-138 | `X01` | Blank and whitespace-only name fields: no crash, no duplicate |
+| GS-139 | `X02` | Very long comment (6000 characters) round-trips intact |
+| GS-140 | `X03` | Quotes, backslashes, ampersands, angle brackets, emoji and right-to-left text round-trip |
+| GS-141 | `X04` | Phone number formats (international, brackets, extensions) keep their digits |
+| GS-142 | `X05` | Same email on two different contacts: both kept, not merged |
+| GS-143 | `X06` | Six emails on Google: the app holds four, and the rest go to Comments |
+| GS-144 | `X07` | Birthdays: leap day and no-year birthday are not changed by the sync |
+| GS-145 | `X08` | Multi-line address round-trips with formatting ignored |
+| GS-146 | `X09` | Hidden, then shown again: the contact is back on Google |
+| GS-147 | `X10` | Edit then delete between syncs: the stale edit is not uploaded |
+| GS-148 | `X11` | All-day event on Google: read without crashing, not rewritten |
+| GS-149 | `X12` | Event crossing midnight with a timezone offset keeps the same instant |
+| GS-150 | `X13` | Local appointment with no end time: uploaded or refused, but no crash and no duplicate |
+| GS-151 | `X14` | Unicode summary and multi-line description round-trip |
+| GS-152 | `X15` | Event outside the sync window is not duplicated across syncs |
+| GS-153 | `X16` | Appointment deleted on both sides before sync: no error, nothing left |
+| GS-154 | `X17` | Conflict: location changed in the app and on Google; ContactManager master, so the app's change wins (item 4) |
+| GS-155 | `X18` | Five back-to-back syncs with no change: no writes after the first |
+| GS-156 | `X19` | Twenty contacts made in ContactManager master, then edits on Google under Google master |
+| GS-157 | `LB01` | Four emails from Google (home, other, work, Partner): each keeps its slot and label, no write |
+| GS-158 | `LB02` | A label changed in the app is sent to Google as that email's type |
+| GS-159 | `LB03` | Emails with no labels set are sent with the labels they always had |
+| GS-160 | `X20` | An address with no type is held in the first address slot |
+| GS-161 | `P01` | Four phones from Google (home, work, mobile, Pager): each keeps its slot and label, no write |
+| GS-162 | `P02` | A phone label changed in the app is sent to Google as that number's type |
+| GS-163 | `P03` | Phones with no labels set are sent with the labels they always had |
+| GS-164 | `P04` | Seven phones on Google: the app holds six, the seventh goes to Comments |
+| GS-165 | `D01` | Clearing an email and a phone in the app removes them from Google |
+| GS-166 | `ED01` | Editor: a label typed after an address becomes its title, and Google gets it as that type |
+| GS-167 | `F01` | More emails on Google than the app has slots: all of them are still on Google after an upload |
+| GS-168 | `F02` | Google master: a bad entry downloaded from Google stops a save of the form, and nothing is uploaded |
+| GS-169 | `F03` | More phones on Google than the app has slots: all of them are still on Google after an upload |
+| GS-170 | `F04` | A save refused for a bad entry stops the next sync, so nothing is sent to Google |
+| GS-171 | `F06` | #66: with a contact holding an unchanged bad entry open, a Google sync still runs |
+| GS-172 | `F07` | #66: a contact kept with an unfixable entry is uploaded once, then not again on later syncs |
+| GS-173 | `F08` | A contact with a clean address and no titles set: uploaded once, then not again on later syncs |
+| GS-174 | `F10` | #69: the report's steps: a bad entry from Google, Alt-E,D, Ctrl-S, Exit, relaunch, Tidy Contacts, Alt-E,D, Exit |
+| GS-175 | `F13` | #68: switching contact, Tidy Contacts and sync ask Save or Discard when the contact has edits |
+| GS-176 | `T01` | Tidy Contacts puts right an older address label and a phone label; they go to Google; a second tidy changes nothing |
+| GS-177 | `G40` | #30: a repeating Google event is stored once, with its repeat, and listed on each week |
+| GS-178 | `X81D` | #81: deleting just one occurrence of a repeat keeps the others, and Google leaves that date out |
+| GS-179 | `X81E` | #81: changing one occurrence and all following splits the repeat, and Google gets both parts |
+| GS-180 | `X81C` | #81: cancelling the change of a repeat changes nothing |
+| GS-181 | `X81G` | #81: an occurrence deleted on Google is left out of the repeat in the app, when Google is the master |
+| GS-182 | `X81H` | #81: a split that moves the time keeps Google's deleted occurrence on the right time, in London time |
+| GS-183 | `G41` | #30: an edit of a repeat in the app changes the Google event, and the event stays repeating |
+| GS-184 | `G42` | #30: a repeating Google event whose first occurrence is older than the window still lists its repeats |
+| GS-185 | `G43` | #30: a Google repeat with a count is stored once and listed that many times, and an app edit keeps the count |
+| GS-186 | `G44` | #30: an appointment on Google older than the one-year lookback is not downloaded |
+| GS-187 | `E01` | #86: an ETag is stored from Google and sent with a change: a local edit reaches Google, with no conflict |
+| GS-188 | `E02` | #86: Google's copy changed in its details since the last sync (non-matching ETag) and the app changed it too, ContactManager master: the app's version is sent, and the conflict is reported (item 4) |
+| GS-189 | `E03` | #86: Google's ETag changed, but not its details (a field the app does not hold): the change is sent again with the new ETag, and reaches Google |
+| GS-190 | `C103` | #103: the contact on the form stays loaded through a sync, in ContactManager master and in Google master, and the calendar entry does not move |
+| GS-191 | `N107` | #107: an appointment with no end time, or one ending on 1 Jan 1970, is not uploaded; the sync completes and the others reach Google |
+| GS-192 | `N108` | #108: with the last calendar sync back at the epoch (as after a failed sync), the next sync sends only the appointment that was edited, not the ones it downloaded |
+| GS-193 | `R01` | #105 ContactManager master, edit in Google, repeat: the Google change reaches the app, one repeat on Google |
+| GS-194 | `R02` | #105 Google master, edit in ContactManager, single: the next sync takes Google's location, and nothing is uploaded |
+| GS-195 | `R03` | #105 Google master, edit in ContactManager, repeat: the next sync keeps the repeat and Google's location |
+| GS-196 | `R04` | #105 Google master, edit in Google, single: the Google change is downloaded |
+| GS-197 | `R05` | #105 Google master, edit in Google, repeat: the Google change is downloaded, and the repeat is kept |
+| GS-198 | `AR01` | #105 Archive: an entry that the window leaves behind is archived; moved into the window on Google, it is restored and leaves the archive |
+| GS-199 | `U02` | #105 Uploads: 40 appointments added in the app inside the window are all on Google after one sync (the 66 not uploaded) |
+| GS-200 | `U01` | #105 Uploads: purge the account, then upload 250 contacts and 1,000 appointments (half by the Google API, half by ContactManager), left in place |
+| GS-201 | `W01` | #105 Window: an entry that starts before the window and ends inside it is downloaded, once |
+| GS-202 | `W02` | #105 Window: an entry that ends before the window is not downloaded, and stays on Google once |
+| GS-203 | `W03` | #105 Window: an entry beyond the far edge of the window is not downloaded, and stays on Google once |
+| GS-204 | `W04` | #105 Window: widening the window downloads the entries it now reaches, once |
+| GS-205 | `TK01` | #105 Token: a sync token Google refuses is replaced by a full listing, and the sync completes |
+| GS-206 | `TK03` | #105 Token: a sync token Google answers with 410 (gone), as with 400, is replaced by a full listing, and the sync completes |
+| GS-207 | `TK04` | #105 Listing: after a full sync, the next sync lists only the changes since the last sync, and downloads no unchanged appointment |
+| GS-208 | `TK02` | #105 Token: with no sync token, the listing is full and every entry in the window is downloaded |
+| GS-209 | `R06` | #105 ContactManager master, repeat changed in both places since the last sync: the app's version wins, and the report says so (item 4) |
+| GS-210 | `R07` | #105 ContactManager master, repeat moved on Google: the app shows the moved start, and one repeat |
+| GS-211 | `R08` | #105 Repeat with no occurrence in the window: not downloaded, and it stays on Google once |
+| GS-212 | `R09` | #105 Repeat with an exception: the excluded occurrence is not listed, and the other five are |
+| GS-213 | `TC01` | #105 Two copies of ContactManager on one calendar: each sees the other's change, and nothing is duplicated |
+| GS-214 | `RS01` | #105 A sync that stops part-way resumes without repeating or losing its uploads (#93) |
+| GS-215 | `AR02` | #105 Archive: an archived entry changed on Google, still outside the window, has its archived copy brought up to date |
+| GS-216 | `AR03` | #105 Archive: an archived entry cancelled on Google leaves the archive, and is kept in the deleted folder |
+| GS-217 | `E70` | #104 A local entry dated 1 January 1970, or with no start, is neither stored nor uploaded; a normal entry alongside is unaffected |
+| GS-218 | `RL01` | #94 A rate-limit answer (403 rateLimitExceeded) is retried with backoff, and the upload then completes |
+| GS-219 | `RL02` | #94 A failure that is not a rate limit (400 badRequest) is not retried, and its reason is reported |
+| GS-220 | `RL03` | #94 A rate limit that keeps coming back is given up after four retries, and the report gives the reason and a recovery step |
+| GS-221 | `RL04` | #94 Repeated rate limits start the adaptive pacing, and the report says so |
+| GS-222 | `RL05` | #94 A connection closed by Google part-way: the report says so and what to do, and a second sync finishes the uploads |
+| GS-223 | `C17` | #105 Contact changed in both places since the last sync, ContactManager master: the app's change is kept, once |
+| GS-224 | `C18` | #105 Contact changed in both places since the last sync, Google master: Google's change is kept, once |
+| GS-225 | `C19` | #105 Contact deleted on Google and changed in the app, ContactManager master: created on Google again with the app's change (item 4) |
+| GS-226 | `C20` | #105 Contact deleted in the app and changed on Google, ContactManager master: the app's delete wins, so Google deletes it too (item 4) |
+| GS-227 | `LF01` | #105 Local files: after two syncs the calendar folder holds each appointment once, and no file is empty |
+| GS-228 | `LF02` | #105 Local files: a deleted appointment moves to the deleted folder, and is not left in the calendar folder |
+| GS-229 | `A14` | #105 Appointment deleted in the app and changed on Google, ContactManager master: the app's delete wins, so Google deletes it too (item 4) |
+| GS-230 | `A15` | #105 Appointment deleted on Google and changed in the app, ContactManager master: created on Google again with the app's change (item 4) |
+| GS-231 | `R11` | #105 Repeat with no occurrence left: every occurrence cancelled on Google, the app removes the repeat, and Google holds none |
+| GS-232 | `R10` | #102 A changed occurrence of a repeat, changed on Google, is downloaded as its own entry; the other occurrences are unchanged |
+| GS-233 | `sentStateDoesNotCountAsAnEdit` | Sent State Does Not Count As An Edit |
+| GS-234 | `googleRecordCopyDoesNotRestartTheWait` | Google Record Copy Does Not Restart The Wait |
+| GS-235 | `contactLinkIsKeptWhenTheContactExists` | Contact Link Is Kept When The Contact Exists |
+| GS-236 | `contactLinkIsSetByAnExactNameMatch` | Contact Link Is Set By An Exact Name Match |
+| GS-237 | `contactLinkIsRemovedWhenTheNameMatchesMoreThanOne` | Contact Link Is Removed When The Name Matches More Than One |
+| GS-238 | `contactLinkIsRemovedWhenNoNameMatches` | Contact Link Is Removed When No Name Matches |
+| GS-239 | `ratePacerIsOffWithoutRateLimits` | Rate Pacer Is Off Without Rate Limits |
+| GS-240 | `ratePacerStartsAtFourSecondsAfterFiveLimitedOfAHundred` | Rate Pacer Starts At Four Seconds After Five Limited Of AHundred |
+| GS-241 | `ratePacerHalvesEvery500DownToHalfASecond` | Rate Pacer Halves Every500 Down To Half ASecond |
+| GS-242 | `ratePacerCountsOnlyTheLastHundred` | Rate Pacer Counts Only The Last Hundred |
+| GS-243 | `loadKeepsTheSavedUpdatedDate` | Load Keeps The Saved Updated Date |
+| GS-244 | `mergedSentStateDoesNotCountAsAnEdit` | Merged Sent State Does Not Count As An Edit |
+
+### A.2 Announcements (area 2)
+
+| New ID | Archive code or name | Title, as written in the archive |
+|---|---|---|
+| AN-101 | `L01` | Local: the message and appointment unit tests (autotest/archive/messages, QtTest), with no Google |
+| AN-102 | `reminderDueWithinTheReminderHours` | Reminder Due Within The Reminder Hours |
+| AN-103 | `reminderDueAtTheStartOfTheDayBefore` | Reminder Due At The Start Of The Day Before |
+| AN-104 | `reminderDueForAnAppointmentThatHasStarted` | Reminder Due For An Appointment That Has Started |
+| AN-105 | `reminderFollowsRemindHours` | Reminder Follows Remind Hours |
+| AN-106 | `confirmOnlyJustInside36Hours` | Confirm Only Just Inside36 Hours |
+| AN-107 | `confirmOnlyExactly36HoursIsNot` | Confirm Only Exactly36 Hours Is Not |
+| AN-108 | `confirmOnlyForShortNotice` | Confirm Only For Short Notice |
+| AN-109 | `confirmOnlyAndReminderMeetAtTheBoundary` | Confirm Only And Reminder Meet At The Boundary |
+| AN-110 | `confirmOnlyDefaultIs1Point5TimesRemind` | Confirm Only Default Is1 Point5 Times Remind |
+| AN-111 | `confirmOnlyUsesAValidValue` | Confirm Only Uses AValid Value |
+| AN-112 | `confirmOnlyLessThanRemindUsesTheDefault` | Confirm Only Less Than Remind Uses The Default |
+| AN-113 | `confirmOnlyNotANumberUsesTheDefault` | Confirm Only Not ANumber Uses The Default |
+| AN-114 | `remindHoursDefaultsAndLimits` | Remind Hours Defaults And Limits |
+| AN-115 | `holdLastsWaitMinutes` | Hold Lasts Wait Minutes |
+| AN-116 | `sendWindowIsStartInclusiveEndExclusive` | Send Window Is Start Inclusive End Exclusive |
+| AN-117 | `onTheDayUsesLocalDate` | On The Day Uses Local Date |
+| AN-118 | `dayRecordKeepsTheChannelsOfTheDay` | Day Record Keeps The Channels Of The Day |
+| AN-119 | `newAppointmentByEmailGetsAConfirmation` | New Appointment By Email Gets AConfirmation |
+| AN-120 | `newAppointmentByTextGetsAConfirmation` | New Appointment By Text Gets AConfirmation |
+| AN-121 | `newAppointmentWithBothGetsEmailOnly` | New Appointment With Both Gets Email Only |
+| AN-122 | `newAppointmentWithNoChannelGetsNothing` | New Appointment With No Channel Gets Nothing |
+| AN-123 | `confirmOnlyFoldsTheReminderIntoTheConfirmation` | Confirm Only Folds The Reminder Into The Confirmation |
+| AN-124 | `changedAppointmentGetsAnUpdateOnItsChannel` | Changed Appointment Gets An Update On Its Channel |
+| AN-125 | `unchangedSentAppointmentGetsNothing` | Unchanged Sent Appointment Gets Nothing |
+| AN-126 | `deletedSentAppointmentGetsACancellationOnItsChannel` | Deleted Sent Appointment Gets ACancellation On Its Channel |
+| AN-127 | `deletedUnsentAppointmentGetsNothing` | Deleted Unsent Appointment Gets Nothing |
+| AN-128 | `reminderOnceByTheChannelOfTheContact` | Reminder Once By The Channel Of The Contact |
+| AN-129 | `reminderIsNotSentTwice` | Reminder Is Not Sent Twice |
+| AN-130 | `reminderNotDueIsNotSent` | Reminder Not Due Is Not Sent |
+| AN-131 | `removedOccurrenceIsCancelledOnItsChannel` | Removed Occurrence Is Cancelled On Its Channel |
+| AN-132 | `onTheDayBothChannelsAreSentOnTheDay` | On The Day Both Channels Are Sent On The Day |
+| AN-133 | `onTheDayTextIsSentWhenEmailHasGone` | On The Day Text Is Sent When Email Has Gone |
+| AN-134 | `onTheDayEmailIsSentWhenTextHasGone` | On The Day Email Is Sent When Text Has Gone |
+| AN-135 | `onTheDayIsNotSentAgainOnceBothHaveGone` | On The Day Is Not Sent Again Once Both Have Gone |
+| AN-136 | `onTheDayIsSentForASingleChannel` | On The Day Is Sent For ASingle Channel |
+| AN-137 | `onTheDayIsNotSentOnAnotherDay` | On The Day Is Not Sent On Another Day |
+| AN-138 | `sameDayBookingGivesItsEmailAndThenTheOnTheDayText` | Same Day Booking Gives Its Email And Then The On The Day Text |
+| AN-139 | `sameDayTextBookingCoversTheDaysText` | Same Day Text Booking Covers The Days Text |
+| AN-140 | `sameDaySmsIsSentWhenBookedEarlierAndTheDayComes` | Same Day Sms Is Sent When Booked Earlier And The Day Comes |
+| AN-141 | `caseSevenEmailIsTheConfirmationWhenWindowOpensLate` | Case Seven Email Is The Confirmation When Window Opens Late |
+| AN-142 | `caseSevenTextIsTheOnTheDayTextWhenWindowOpensLate` | Case Seven Text Is The On The Day Text When Window Opens Late |
+| AN-143 | `caseSevenBothIsEmailThenTheOnTheDayText` | Case Seven Both Is Email Then The On The Day Text |
+| AN-144 | `caseEightNoReminderOnTheDay` | Case Eight No Reminder On The Day |
+| AN-145 | `reminderOnTheDayIsReplacedByTheOnTheDayText` | Reminder On The Day Is Replaced By The On The Day Text |
+| AN-146 | `channelSwitchedToTextSendsOnlyWhatIsPending` | Channel Switched To Text Sends Only What Is Pending |
+| AN-147 | `scenarioCreatedThirtySixHoursAheadBothChannels` | Scenario Created Thirty Six Hours Ahead Both Channels |
+| AN-148 | `scenarioCreatedTwentyFiveHoursAheadBothChannels` | Scenario Created Twenty Five Hours Ahead Both Channels |
+| AN-149 | `scenarioBookedOnTheDayBothChannels` | Scenario Booked On The Day Both Channels |
+| AN-150 | `singleAppointmentEndedBeforeTheEdgeIsExpired` | Single Appointment Ended Before The Edge Is Expired |
+| AN-151 | `repeatTrimKeepsOnlyTheExceptionsStillToCome` | Repeat Trim Keeps Only The Exceptions Still To Come |
+| AN-152 | `trimKeepsTheMessageSignatureSoTheContactIsNotMessaged` | Trim Keeps The Message Signature So The Contact Is Not Messaged |
+| AN-153 | `limitsStopMessagesOnceReached` | Limits Stop Messages Once Reached |
+| AN-154 | `limitsAreCheckedHourFirst` | Limits Are Checked Hour First |
+| AN-155 | `failedMessageWaitsBeforeItIsTriedAgain` | Failed Message Waits Before It Is Tried Again |
+| AN-156 | `failedMessageIsGivenUpAfterMaxRetries` | Failed Message Is Given Up After Max Retries |
+| AN-157 | `messageWithNoFailureMayBeTried` | Message With No Failure May Be Tried |
+| AN-158 | `channelNeedsItsOwnAddress` | Channel Needs Its Own Address |
+| AN-159 | `missingEmailAddressSendsNothingByEmailButTextStillGoes` | Missing Email Address Sends Nothing By Email But Text Still Goes |
+| AN-160 | `noUsableChannelSendsNothing` | No Usable Channel Sends Nothing |
+| AN-161 | `onTheDayUsesTheReminderTemplateWhenNotSet` | On The Day Uses The Reminder Template When Not Set |
+| AN-162 | `reminderIs24ElapsedHoursAcrossTheClockChange` | Reminder Is24 Elapsed Hours Across The Clock Change |
+| AN-163 | `onTheDayIsTheLocalDateAcrossTheClockChange` | On The Day Is The Local Date Across The Clock Change |
+| AN-164 | `onTheDayAndReminderAcrossTheYearBoundary` | On The Day And Reminder Across The Year Boundary |
+| AN-165 | `onTheDayAndReminderAcrossTheLeapDay` | On The Day And Reminder Across The Leap Day |
+| AN-166 | `backlogOfChangesGivesOneUpdate` | Backlog Of Changes Gives One Update |
+| AN-167 | `deletedAndRecreatedInsideTheHoldSendsOneConfirmation` | Deleted And Recreated Inside The Hold Sends One Confirmation |
+| AN-168 | `secondOccurrenceOfARepeatIsStillReminded` | Second Occurrence Of ARepeat Is Still Reminded |
+| AN-169 | `signatureChangesOnlyForWhatMessagesShow` | Signature Changes Only For What Messages Show |
+| AN-170 | `editWithinConfirmOnlyReplacesTheReminder` | Edit Within Confirm Only Replaces The Reminder |
+| AN-171 | `secondCopyCannotTakeTheDataLock` | Second Copy Cannot Take The Data Lock |
+| AN-172 | `smsKeyIsReportedInTheLastThirtyDays` | Sms Key Is Reported In The Last Thirty Days |
+| AN-173 | `onlyASentMessageIsRecorded` | Only ASent Message Is Recorded |
+| AN-174 | `blankEmailSenderSendsNothingAndSaysWhy` | Blank Email Sender Sends Nothing And Says Why |
+| AN-175 | `blankSmsSenderSendsNothingAndSaysWhy` | Blank Sms Sender Sends Nothing And Says Why |
+| AN-176 | `whitespaceOnlySenderCountsAsBlank` | Whitespace Only Sender Counts As Blank |
+| AN-177 | `emailIsSentWithTheIniSender` | Email Is Sent With The Ini Sender |
+| AN-178 | `smsIsSentWithTheIniSenderAndTheText` | Sms Is Sent With The Ini Sender And The Text |
+| AN-179 | `transportFailureIsReturnedWithItsReason` | Transport Failure Is Returned With Its Reason |
+| AN-180 | `maybeSentIsReturnedAsMaybeSent` | Maybe Sent Is Returned As Maybe Sent |
+| AN-181 | `templateFirstLineIsTheSubjectAndTheRestIsTheBody` | Template First Line Is The Subject And The Rest Is The Body |
+| AN-182 | `smsTemplateIsOneLineOfText` | Sms Template Is One Line Of Text |
+| AN-183 | `templateWithNoSubjectIsRejected` | Template With No Subject Is Rejected |
+| AN-184 | `shippedTemplatesHaveNoSenderLine` | Shipped Templates Have No Sender Line |
+| AN-185 | `missingSenderWarningsNameEachBlankChannel` | Missing Sender Warnings Name Each Blank Channel |
+
+### A.3 Start-up and shutdown (3a)
+
+| New ID | Archive code or name | Title, as written in the archive |
+|---|---|---|
+| SS-101 | `K24` | #24: when the app opens, overlapping appointments are listed, and nothing is changed |
+| SS-102 | `L02` | Local: an appointment and a contact made in ContactManager are saved, and are there after a restart (no Google) |
+| SS-103 | `L03` | Local: an appointment file moved into the archive is not loaded at start-up, and start-up leaves it in the archive |
+| SS-104 | `L04` | Local: a start with no to-do or history file opens and writes its data (#100) |
+| SS-105 | `L05` | #105 Notes, plain text: a contact's to-do list and history are saved as plain files, and a restart reads them back |
+| SS-106 | `L06` | #105 Notes, encrypted: a contact's to-do list and history are saved encrypted, with no plain text on disk, and a restart reads them back |
+| SS-107 | `old_contact_test` | Loads a contact file written before the email and phone labels existed, and checks that it keeps its meaning. |
+
+### A.4 By menu and function (3b)
+
+| New ID | Archive code or name | Title, as written in the archive |
+|---|---|---|
+| MF-101 | `MG01` | Tidy Contacts merges two entries for one person when they share an address and do not conflict |
+| MF-102 | `MG02` | Tidy Contacts does not merge two entries that share an address but have different names |
+| MF-103 | `T02` | Tidy Contacts lists an entry it cannot fix, leaves it alone, and still fixes the other entry on the contact |
+| MF-104 | `T03` | Tidy Contacts lists a title with a colon, and leaves it and its number as they are |
+| MF-105 | `U34` | #34: double-clicking a calendar entry opens its contact, and keeps the calendar row and its focus |
+| MF-106 | `P30` | #30: a weekly appointment is listed on each week in the repeats window, and stored once |
+| MF-107 | `P31` | #30: an edit of a repeat changes its appointment; a move to another day moves the appointment and the focus with it |
+| MF-108 | `T40` | #75: a weekly repeat keeps its 14:00 London time across the clocks going back |
+| MF-109 | `B78` | #78: a birthday saved on a contact shows in the calendar straight away, with birthdays shown |
+| MF-110 | `O79` | #79: a repeat that started before today, with later dates, is in the overview's future appointments |
+| MF-111 | `W30` | #30: a repeat whose source is older than the window is listed, and the source is not |
+| MF-112 | `T30` | #30: Goto Today selects the first entry that has not ended, including a repeat, rather than the end of the list |
+| MF-113 | `P33` | #73: shortening a repeat from a later entry keeps the focus on the nearest entry of that repeat |
+| MF-114 | `removedOccurrenceOnlyForARepeat` | Removed Occurrence Only For ARepeat |
+| MF-115 | `listedOccurrencesOfARepeat` | Listed Occurrences Of ARepeat |
+| MF-116 | `removedOccurrenceIsNotListed` | Removed Occurrence Is Not Listed |
+| MF-117 | `repeatWithEveryOccurrenceRemovedListsNothing` | Repeat With Every Occurrence Removed Lists Nothing |
+| MF-118 | `periodsTouchingAtAnEndDoNotClash` | Periods Touching At An End Do Not Clash |
+| MF-119 | `clashIgnoresARemovedOccurrence` | Clash Ignores ARemoved Occurrence |
+| MF-120 | `clashWithAListedOccurrence` | Clash With AListed Occurrence |
+| MF-121 | `repeatWithNoOccurrenceLeftIsFound` | Repeat With No Occurrence Left Is Found |
+| MF-122 | `clashIsNotReportedForAnEmptyRepeat` | Clash Is Not Reported For An Empty Repeat |
+| MF-123 | `getDateGivesACopyThatStaysTheSame` | Get Date Gives ACopy That Stays The Same |
+| MF-124 | `repeatStartMovesToTheFirstOccurrenceInTheWindow` | Repeat Start Moves To The First Occurrence In The Window |
+| MF-125 | `repeatWithNoOccurrenceLeftIsExpired` | Repeat With No Occurrence Left Is Expired |
+| MF-126 | `focusGoesToTheNearestDate` | Focus Goes To The Nearest Date |
+| MF-127 | `twoDigitYearsUseTheCenturyOfThisYear` | Two Digit Years Use The Century Of This Year |
+| MF-128 | `numericDatesAreParsed` | Numeric Dates Are Parsed |
+| MF-129 | `typedDatesAreParsed` | Typed Dates Are Parsed |
+
+### A.5 By dialog (3c)
+
+| New ID | Archive code or name | Title, as written in the archive |
+|---|---|---|
+| DL-101 | `ED02` | Editor: a save with a bad entry is refused, focus goes to the first, nothing is saved, and the typed text is kept |
+| DL-102 | `E06` | Editor: an older bad entry that was never edited still stops a save, and is shown with focus |
+| DL-103 | `F05` | #66: an unchanged bad entry does not stop switching to another contact |
+| DL-104 | `F09` | #66: moving the selection on, as Tidy Contacts does, does not check the open contact's entries |
+| DL-105 | `F12` | #68: quitting with edits asks Save, Discard or Cancel: Save refuses a bad entry, Discard keeps the stored contact |
+| DL-106 | `ED03` | Editor: an older entry with its label in the address is tidied when opened, and saved with the next change |
+| DL-107 | `E04` | Editor: a phone typed with (0) after the country code and a label after the number is saved tidily |
+| DL-108 | `E05` | Editor: clearing the only detail of a contact saves the change |
+| DL-109 | `D30` | #30: the appointment form keeps a repeat's type and interval, and gives back none for an appointment that does not repeat |
+| DL-110 | `E30` | #30: a repeat ends after a number of times, or on a date, in the list and in the form |
+| DL-111 | `Q34` | #74: OK on the edit of a repeat that started 11 days ago closes the form, with no dialog |
+| DL-112 | `Q35` | #74: a start three months back is accepted, and OK then closes the form, as with a start 11 days back |
+
+### A.6 Accessibility (area 4)
+
+| New ID | Archive code or name | Title, as written in the archive |
+|---|---|---|
+| AC-101 | `L05` | #101: Show Screen Reader Text: shows the name, role, value and description of the focused control, and says it is an approximation |
+| AC-102 | `L06` | #101: the accessibility debug checkbox in the screen reader text dialog turns console tracing on and off |
+
+---
+
+## Appendix B. Traceability: specification section to tests
+
+| Specification section | Tests |
 |---|---|
-| U01 | #105 Uploads: purge the account, then upload 250 contacts and 1,000 appointments (half by the Google API, half by ContactManager), left in place |
+| 1 Overview (keyboard operation, screen reader) | AC-001 to AC-018 |
+| 2.1 Files and folders | SS-001, SS-008, SS-011, SS-013, GS-014 |
+| 2.2 The ini file | SS-012, AN-036, AN-037, AN-038, AN-039, AN-045 |
+| 2.3 Settings (Setup) | DL-001 to DL-007 |
+| 2.4 Messages and templates | AN-036 to AN-039, AN-044 |
+| 2.5 Encryption and passwords | SS-002, SS-003, SS-014, MF-007, DL-025, DL-026, GS-013 |
+| 2.6 Linking services | DL-007, GS-034, GS-042, AN-043 |
+| 3.1 Opening and creating contacts | MF-001, MF-022, MF-035 |
+| 3.2 Editing a contact | DL-014 to DL-018, GS-001 to GS-007 |
+| 3.3 Storage | GS-002, GS-008, GS-012, GS-014, SS-009 |
+| 3.4 Searching | MF-014 to MF-021 |
+| 3.5 Tidy Records | MF-006, DL-028 |
+| 3.6 Hiding and deleting | GS-008, GS-011, MF-037, AN-026, AN-027, GS-029 |
+| 3.7 Import and export | MF-003, MF-004, MF-005, DL-030 |
+| 3.8 Transactions | MF-040, MF-041, MF-042, DL-021 |
+| 4.1 What is listed | MF-009, GS-023, GS-038 |
+| 4.2 Moving around the list | MF-025, MF-045 to MF-049 |
+| 4.3 Typing a date | DL-027, MF-045 |
+| 4.4 Creating and changing | MF-028 to MF-033 |
+| 4.5 The appointment form | DL-008 to DL-011 |
+| 4.6 Repeats | GS-020 to GS-022, DL-012, DL-013, AN-015, AN-016 |
+| 4.7 Clashes | DL-011, SS-005, GS-030 |
+| 4.8 Storage, archive, deletion | GS-024, GS-018, GS-023 |
+| 4.9 Birthdays | MF-009 (birthdays list), GS-001 |
+| 5.1 Messages | AN-001 to AN-006, AN-015 |
+| 5.2 Who is messaged | AN-029, AN-030, AN-026, AN-027 |
+| 5.3 By channel setting | AN-001 to AN-006, AN-028 |
+| 5.4 The hold | AN-009 to AN-014 |
+| 5.5 Send window | AN-017, AN-020, AN-021 |
+| 5.6 Confirm-only | AN-008 |
+| 5.7 Limits | AN-022, AN-023 |
+| 5.8 Missed messages and backlogs | AN-031 to AN-034 |
+| 5.9 Two copies | AN-035, GS-039 |
+| 5.10 Failures | AN-040 to AN-042 |
+| 5.11 Expiry and warnings | AN-043, SS-006, SS-007, AN-036, AN-037 |
+| 5.12 What is not messaged | AN-014, AN-025 |
+| 6 Menus and keys | MF-001 to MF-053 |
+| 7.1 What is synchronised | GS-001, GS-002, GS-015, GS-016, GS-025 to GS-027 |
+| 7.2 Masters and conflicts | GS-005 to GS-010 |
+| 7.3 The sync process | GS-001 to GS-004 |
+| 7.4 The calendar window | GS-023, GS-038 |
+| 7.5 Retries and rate limits | GS-033, GS-036 |
+| 7.6 Interrupted syncs | GS-035 |
+| 7.7 Failures and recovery | GS-031, GS-034, GS-036 |
 
-### Updates (every other sync test)
+---
 
-| Code | Test |
-|---|---|
-| A01 | Add an appointment locally, no sync: Google unchanged |
-| A02 | Event made on Google: downloaded once across two syncs |
-| A03 | Identical events on Google (duplicates): both kept, no growth on re-sync |
-| A04 | Same event added locally and on Google before sync: both kept |
-| A05 | Edit a downloaded event before a second sync: change reaches Google |
-| A06 | Event moved on Google between syncs: app picks it up |
-| A07 | Event deleted in the app after it synced: deleted on Google |
-| A08 | Event deleted on Google between syncs: app does not keep a live copy |
-| A09 | Overlapping appointments added locally: both uploaded, neither merged |
-| A10 | Large upload: 40 local appointments reach Google once |
-| A11 | Read-only event (organised by someone else): not uploaded across syncs |
-| A12 | Stray spaces and newlines in a location: no spurious upload |
-| A13 | Local ID of a Google event is the same across syncs |
-| A14 | #105 Appointment deleted in the app and changed on Google, ContactManager master: the app's delete wins, so Google deletes it too (item 4) |
-| A15 | #105 Appointment deleted on Google and changed in the app, ContactManager master: created on Google again with the app's change (item 4) |
-| AR01 | #105 Archive: an entry that the window leaves behind is archived; moved into the window on Google, it is restored and leaves the archive |
-| AR02 | #105 Archive: an archived entry changed on Google, still outside the window, has its archived copy brought up to date |
-| AR03 | #105 Archive: an archived entry cancelled on Google leaves the archive, and is kept in the deleted folder |
-| C01 | Add a contact locally, no sync: Google unchanged |
-| C02 | Contact made on Google: downloaded once across two syncs |
-| C03 | Add then delete locally before any sync: nothing reaches Google |
-| C04 | Contact deleted on Google between syncs: removed from the app |
-| C05 | Contact deleted in the app after it synced: deleted on Google |
-| C06 | Contact hidden in the app after it synced: Google agrees with the app |
-| C07 | Same name on both sides before sync: both kept |
-| C08 | Edit a downloaded contact before a second sync: change reaches Google |
-| C09 | Edit on Google between syncs: app picks it up without duplicating |
-| C10 | Out-of-sequence phones and emails: each value kept in some slot |
-| C103 | #103: the contact on the form stays loaded through a sync, in ContactManager master and in Google master, and the calendar entry does not move |
-| C11 | Stray spaces and newlines in Google data: no spurious upload |
-| C12 | Large upload: 40 local contacts reach Google once |
-| C13 | Unicode and apostrophes in names round-trip exactly |
-| C14 | Email-only contact (no name) is uploaded with its email |
-| C15 | Repeated syncs with no changes do not write to Google |
-| C16 | Edit keeps URLs the app does not hold (option 1 regression) |
-| C17 | #105 Contact changed in both places since the last sync, ContactManager master: the app's change is kept, once |
-| C18 | #105 Contact changed in both places since the last sync, Google master: Google's change is kept, once |
-| C19 | #105 Contact deleted on Google and changed in the app, ContactManager master: created on Google again with the app's change (item 4) |
-| C20 | #105 Contact deleted in the app and changed on Google, ContactManager master: the app's delete wins, so Google deletes it too (item 4) |
-| D01 | Clearing an email and a phone in the app removes them from Google |
-| E01 | #86: an ETag is stored from Google and sent with a change: a local edit reaches Google, with no conflict |
-| E02 | #86: Google's copy changed in its details since the last sync (non-matching ETag) and the app changed it too, ContactManager master: the app's version is sent, and the conflict is reported (item 4) |
-| E03 | #86: Google's ETag changed, but not its details (a field the app does not hold): the change is sent again with the new ETag, and reaches Google |
-| E04 | Editor: a phone typed with (0) after the country code and a label after the number is saved tidily |
-| E70 | #104 A local entry dated 1 January 1970, or with no start, is neither stored nor uploaded; a normal entry alongside is unaffected |
-| ED01 | Editor: a label typed after an address becomes its title, and Google gets it as that type |
-| ED02 | Editor: a save with a bad entry is refused, focus goes to the first, nothing is saved, and the typed text is kept |
-| ED03 | Editor: an older entry with its label in the address is tidied when opened, and saved with the next change |
-| F01 | More emails on Google than the app has slots: all of them are still on Google after an upload |
-| F02 | Google master: a bad entry downloaded from Google stops a save of the form, and nothing is uploaded |
-| F03 | More phones on Google than the app has slots: all of them are still on Google after an upload |
-| F04 | A save refused for a bad entry stops the next sync, so nothing is sent to Google |
-| F05 | #66: an unchanged bad entry does not stop switching to another contact |
-| F06 | #66: with a contact holding an unchanged bad entry open, a Google sync still runs |
-| F07 | #66: a contact kept with an unfixable entry is uploaded once, then not again on later syncs |
-| F08 | A contact with a clean address and no titles set: uploaded once, then not again on later syncs |
-| F09 | #66: moving the selection on, as Tidy Contacts does, does not check the open contact's entries |
-| F10 | #69: the report's steps: a bad entry from Google, Alt-E,D, Ctrl-S, Exit, relaunch, Tidy Contacts, Alt-E,D, Exit |
-| F13 | #68: switching contact, Tidy Contacts and sync ask Save or Discard when the contact has edits |
-| G40 | #30: a repeating Google event is stored once, with its repeat, and listed on each week |
-| G41 | #30: an edit of a repeat in the app changes the Google event, and the event stays repeating |
-| G42 | #30: a repeating Google event whose first occurrence is older than the window still lists its repeats |
-| G43 | #30: a Google repeat with a count is stored once and listed that many times, and an app edit keeps the count |
-| G44 | #30: an appointment on Google older than the one-year lookback is not downloaded |
-| LB01 | Four emails from Google (home, other, work, Partner): each keeps its slot and label, no write |
-| LB02 | A label changed in the app is sent to Google as that email's type |
-| LB03 | Emails with no labels set are sent with the labels they always had |
-| LF01 | #105 Local files: after two syncs the calendar folder holds each appointment once, and no file is empty |
-| LF02 | #105 Local files: a deleted appointment moves to the deleted folder, and is not left in the calendar folder |
-| M01 | ContactManager master adds a contact; Google master syncs it: no duplicate |
-| M02 | Google master downloads; ContactManager master edits; Google master re-syncs: one copy |
-| M03 | Deleted in ContactManager master: Google master does not bring it back |
-| M04 | Deleted on Google in Google master: ContactManager master does not bring it back |
-| M05 | Appointment: ContactManager master adds, Google master edits, ContactManager master picks it up |
-| M06 | Repeated switching with edits: values and notes survive, no duplicates |
-| M07 | Google master: a local-only edit is not sent, and Google's values stay |
-| M08 | ContactManager master: a change made on Google is kept, not overwritten |
-| N107 | #107: an appointment with no end time, or one ending on 1 Jan 1970, is not uploaded; the sync completes and the others reach Google |
-| N108 | #108: with the last calendar sync back at the epoch (as after a failed sync), the next sync sends only the appointment that was edited, not the ones it downloaded |
-| P01 | Four phones from Google (home, work, mobile, Pager): each keeps its slot and label, no write |
-| P02 | A phone label changed in the app is sent to Google as that number's type |
-| P03 | Phones with no labels set are sent with the labels they always had |
-| P04 | Seven phones on Google: the app holds six, the seventh goes to Comments |
-| R01 | #105 ContactManager master, edit in Google, repeat: the Google change reaches the app, one repeat on Google |
-| R02 | #105 Google master, edit in ContactManager, single: the next sync takes Google's location, and nothing is uploaded |
-| R03 | #105 Google master, edit in ContactManager, repeat: the next sync keeps the repeat and Google's location |
-| R04 | #105 Google master, edit in Google, single: the Google change is downloaded |
-| R05 | #105 Google master, edit in Google, repeat: the Google change is downloaded, and the repeat is kept |
-| R06 | #105 ContactManager master, repeat changed in both places since the last sync: the app's version wins, and the report says so (item 4) |
-| R07 | #105 ContactManager master, repeat moved on Google: the app shows the moved start, and one repeat |
-| R08 | #105 Repeat with no occurrence in the window: not downloaded, and it stays on Google once |
-| R09 | #105 Repeat with an exception: the excluded occurrence is not listed, and the other five are |
-| R10 | #102 A changed occurrence of a repeat, changed on Google, is downloaded as its own entry; the other occurrences are unchanged |
-| R11 | #105 Repeat with no occurrence left: every occurrence cancelled on Google, the app removes the repeat, and Google holds none |
-| RL05 | #94 A connection closed by Google part-way: the report says so and what to do, and a second sync finishes the uploads |
-| RS01 | #105 A sync that stops part-way resumes without repeating or losing its uploads (#93) |
-| T01 | Tidy Contacts puts right an older address label and a phone label; they go to Google; a second tidy changes nothing |
-| T40 | #75: a weekly repeat keeps its 14:00 London time across the clocks going back |
-| TC01 | #105 Two copies of ContactManager on one calendar: each sees the other's change, and nothing is duplicated |
-| TK01 | #105 Token: a sync token Google refuses is replaced by a full listing, and the sync completes |
-| TK02 | #105 Token: with no sync token, the listing is full and every entry in the window is downloaded |
-| TK03 | #105 Token: a sync token Google answers with 410 (gone), as with 400, is replaced by a full listing, and the sync completes |
-| TK04 | #105 Listing: after a full sync, the next sync lists only the changes since the last sync, and downloads no unchanged appointment |
-| U02 | #105 Uploads: 40 appointments added in the app inside the window are all on Google after one sync (the 66 not uploaded) |
-| W01 | #105 Window: an entry that starts before the window and ends inside it is downloaded, once |
-| W02 | #105 Window: an entry that ends before the window is not downloaded, and stays on Google once |
-| W03 | #105 Window: an entry beyond the far edge of the window is not downloaded, and stays on Google once |
-| W04 | #105 Window: widening the window downloads the entries it now reaches, once |
-| X01 | Blank and whitespace-only name fields: no crash, no duplicate |
-| X02 | Very long comment (6000 characters) round-trips intact |
-| X03 | Quotes, backslashes, ampersands, angle brackets, emoji and right-to-left text round-trip |
-| X04 | Phone number formats (international, brackets, extensions) keep their digits |
-| X05 | Same email on two different contacts: both kept, not merged |
-| X06 | Six emails on Google: the app holds four, and the rest go to Comments |
-| X07 | Birthdays: leap day and no-year birthday are not changed by the sync |
-| X08 | Multi-line address round-trips with formatting ignored |
-| X09 | Hidden, then shown again: the contact is back on Google |
-| X10 | Edit then delete between syncs: the stale edit is not uploaded |
-| X11 | All-day event on Google: read without crashing, not rewritten |
-| X12 | Event crossing midnight with a timezone offset keeps the same instant |
-| X13 | Local appointment with no end time: uploaded or refused, but no crash and no duplicate |
-| X14 | Unicode summary and multi-line description round-trip |
-| X15 | Event outside the sync window is not duplicated across syncs |
-| X16 | Appointment deleted on both sides before sync: no error, nothing left |
-| X17 | Conflict: location changed in the app and on Google; ContactManager master, so the app's change wins (item 4) |
-| X18 | Five back-to-back syncs with no change: no writes after the first |
-| X19 | Twenty contacts made in ContactManager master, then edits on Google under Google master |
-| X20 | An address with no type is held in the first address slot |
-| X81C | #81: cancelling the change of a repeat changes nothing |
-| X81D | #81: deleting just one occurrence of a repeat keeps the others, and Google leaves that date out |
-| X81E | #81: changing one occurrence and all following splits the repeat, and Google gets both parts |
-| X81G | #81: an occurrence deleted on Google is left out of the repeat in the app, when Google is the master |
-| X81H | #81: a split that moves the time keeps Google's deleted occurrence on the right time, in London time |
+## Appendix C. Requirements that have no test yet
 
-### Local (no Google)
-
-| Code | Test |
-|---|---|
-| B78 | #78: a birthday saved on a contact shows in the calendar straight away, with birthdays shown |
-| D30 | #30: the appointment form keeps a repeat's type and interval, and gives back none for an appointment that does not repeat |
-| E05 | Editor: clearing the only detail of a contact saves the change |
-| E06 | Editor: an older bad entry that was never edited still stops a save, and is shown with focus |
-| E30 | #30: a repeat ends after a number of times, or on a date, in the list and in the form |
-| F12 | #68: quitting with edits asks Save, Discard or Cancel: Save refuses a bad entry, Discard keeps the stored contact |
-| K24 | #24: when the app opens, overlapping appointments are listed, and nothing is changed |
-| L01 | Local: the message and appointment unit tests (autotest/archive/messages, QtTest), with no Google |
-| L02 | Local: an appointment and a contact made in ContactManager are saved, and are there after a restart (no Google) |
-| L03 | Local: an appointment file moved into the archive is not loaded at start-up, and start-up leaves it in the archive |
-| L04 | Local: a start with no to-do or history file opens and writes its data (#100) |
-| L05 | #105 Notes, plain text: a contact's to-do list and history are saved as plain files, and a restart reads them back |
-| L06 | #105 Notes, encrypted: a contact's to-do list and history are saved encrypted, with no plain text on disk, and a restart reads them back |
-| MG01 | Tidy Contacts merges two entries for one person when they share an address and do not conflict |
-| MG02 | Tidy Contacts does not merge two entries that share an address but have different names |
-| O79 | #79: a repeat that started before today, with later dates, is in the overview's future appointments |
-| P30 | #30: a weekly appointment is listed on each week in the repeats window, and stored once |
-| P31 | #30: an edit of a repeat changes its appointment; a move to another day moves the appointment and the focus with it |
-| P33 | #73: shortening a repeat from a later entry keeps the focus on the nearest entry of that repeat |
-| Q34 | #74: OK on the edit of a repeat that started 11 days ago closes the form, with no dialog |
-| Q35 | #74: a start three months back is accepted, and OK then closes the form, as with a start 11 days back |
-| RL01 | #94 A rate-limit answer (403 rateLimitExceeded) is retried with backoff, and the upload then completes |
-| RL02 | #94 A failure that is not a rate limit (400 badRequest) is not retried, and its reason is reported |
-| RL03 | #94 A rate limit that keeps coming back is given up after four retries, and the report gives the reason and a recovery step |
-| RL04 | #94 Repeated rate limits start the adaptive pacing, and the report says so |
-| T02 | Tidy Contacts lists an entry it cannot fix, leaves it alone, and still fixes the other entry on the contact |
-| T03 | Tidy Contacts lists a title with a colon, and leaves it and its number as they are |
-| T30 | #30: Goto Today selects the first entry that has not ended, including a repeat, rather than the end of the list |
-| U34 | #34: double-clicking a calendar entry opens its contact, and keeps the calendar row and its focus |
-| W30 | #30: a repeat whose source is older than the window is listed, and the source is not |
-
-## 6. Test hooks and infrastructure
-
-- **Fault injection** (`CM_TEST_FAULTS`, read in `googleaccess_network.cpp`): `r<n>=<status>:<reason>` answers the nth read
-  request, and `w<n>=...` answers the nth write request, without sending it to Google. `closed` gives a closed connection.
-- **Sync driver** (`autotest/archive/bench/sync_driver.cpp`): the operations used by the scenarios (adding, editing and deleting
-  appointments and contacts; syncs; dumps; settings; folder listings; the calendar list; repeat operations; contact notes).
-- **Scaled clock** (`scratchpad/accel/clock/fakeclock.c`): a preloaded shim that scales the real-time clock by `FAKE_SPEED`, from
-  `FAKE_START`. Used by the accelerated messaging test.
-
-## 7. Evidence
-
-- Accelerated messaging run: `test-results/20261102-2313/`, `test-results/20261103-0140/` (run-results.csv, report-final.md, expected.json).
-- Rules and decisions: `documents/messaging-rules.md`.
-- Bench runs: `scratchpad/bench/runs/`, one folder per scenario, with `report1.txt`, `dump.json`, `driver.log`, `stdout.log`.
-- Guide: `autotest/HEADLESS-TEST.md`.
+| No. | Item | What is needed |
+|---|---|---|
+| 1 | Spelling of the test domain `sgc.contacmanagertest` | Confirm before the first live run (0.4). |
+| 2 | The send-record write failure (issue #110, item 3) | A test that the message is retried and not sent twice (Appendix A and specification 5.10). |
+| 3 | The stub transports and the accelerated harness are in a scratch folder, not the repository | Bring them into `autotest/` before area 2 is run again. |
+| 4 | The Test Function menu item | Decide whether it is in the release (specification Appendix A, item 5), then test it accordingly. |
+| 5 | A test for the two-channel confirmation fallback | Decide the rule first (specification Appendix A, item 11). |
+| 6 | Google sync for a token refused on a later page of a listing (issue #110, item 19) | A test in area 1. |
+| 7 | Read-back of archive and deleted-folder writes (issue #110, item 18) | Extend AR01 to AR03 (Appendix A) to read the files back. |
+| 8 | Google-made appointments get no confirmation (issue #110, item 15) | Decide the rule first, then add a test in area 2. |
+| 9 | Re-pointing imported bench tests to the six fixtures | Done when the benches are rewritten (planned, issue #105). |
+| 10 | Area 4 tests need a person and a screen reader | Schedule with the tester; the expected results are recorded by hand. |
