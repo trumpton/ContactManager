@@ -74,84 +74,84 @@ How the imports are split: a scenario is an operation test (`IO`) if its body ca
 | IG-062 | P02 | 1346 | A phone label changed in the app is sent to Google as that number's type | Ported to the Google bench, not run |
 | IG-063 | P03 | 1365 | Phones with no labels set are sent with the labels they always had | Ported to the Google bench, not run |
 | IG-064 | P04 | 1379 | Seven phones on Google: the app holds six, the seventh goes to Comments | Ported to the Google bench, not run |
-| IG-065 | D01 | 1399 | Clearing an email and a phone in the app removes them from Google | To port |
+| IG-065 | D01 | 1399 | Clearing an email and a phone in the app removes them from Google | Ported to the Google bench, not run |
 | IG-066 | ED01 | 1436 | Editor: a label typed after an address becomes its title, and Google gets it as that type | Covered by DL-015 |
 | IG-067 | ED02 | 1453 | Editor: a save with a bad entry is refused, focus goes to the first, nothing is saved, and the typed text is kept | Covered by DL-014 |
-| IG-068 | F01 | 1507 | More emails on Google than the app has slots: all of them are still on Google after an upload | To port |
-| IG-069 | F02 | 1527 | Google master: a bad entry downloaded from Google stops a save of the form, and nothing is uploaded | To port |
-| IG-070 | F03 | 1553 | More phones on Google than the app has slots: all of them are still on Google after an upload | To port |
-| IG-071 | F04 | 1577 | A save refused for a bad entry stops the next sync, so nothing is sent to Google | To port |
-| IG-072 | F05 | 1630 | #66: an unchanged bad entry does not stop switching to another contact | To port |
-| IG-073 | F06 | 1647 | #66: with a contact holding an unchanged bad entry open, a Google sync still runs | To port |
-| IG-074 | F07 | 1658 | #66: a contact kept with an unfixable entry is uploaded once, then not again on later syncs | To port |
-| IG-075 | F08 | 1676 | A contact with a clean address and no titles set: uploaded once, then not again on later syncs | To port |
-| IG-076 | F09 | 1689 | #66: moving the selection on, as Tidy Contacts does, does not check the open contact's entries | To port |
-| IG-077 | F10 | 1702 | #69: the report's steps: a bad entry from Google, Alt-E,D, Ctrl-S, Exit, relaunch, Tidy Contacts, Alt-E,D, Exit | To port |
+| IG-068 | F01 | 1507 | More emails on Google than the app has slots: all of them are still on Google after an upload | Ported to the Google bench, not run |
+| IG-069 | F02 | 1527 | Google master: a bad entry downloaded from Google stops a save of the form, and nothing is uploaded | Ported to the Google bench, not run |
+| IG-070 | F03 | 1553 | More phones on Google than the app has slots: all of them are still on Google after an upload | Ported to the Google bench, not run |
+| IG-071 | F04 | 1577 | A save refused for a bad entry stops the next sync, so nothing is sent to Google | Ported to the Google bench, not run |
+| IG-072 | F05 | 1630 | #66: an unchanged bad entry does not stop switching to another contact | Ported to the Google bench, not run |
+| IG-073 | F06 | 1647 | #66: with a contact holding an unchanged bad entry open, a Google sync still runs | Ported to the Google bench, not run |
+| IG-074 | F07 | 1658 | #66: a contact kept with an unfixable entry is uploaded once, then not again on later syncs | Ported to the Google bench, not run |
+| IG-075 | F08 | 1676 | A contact with a clean address and no titles set: uploaded once, then not again on later syncs | Ported to the Google bench, not run |
+| IG-076 | F09 | 1689 | #66: moving the selection on, as Tidy Contacts does, does not check the open contact's entries | Ported to the Google bench, not run |
+| IG-077 | F10 | 1702 | #69: the report's steps: a bad entry from Google, Alt-E,D, Ctrl-S, Exit, relaunch, Tidy Contacts, Alt-E,D, Exit | Ported to the Google bench, not run |
 | IG-078 | F13 | 1779 | #68: switching contact, Tidy Contacts and sync ask Save or Discard when the contact has edits | Covered by DL-019 |
-| IG-079 | ED03 | 1820 | Editor: an older entry with its label in the address is tidied when opened, and saved with the next change | To port |
+| IG-079 | ED03 | 1820 | Editor: an older entry with its label in the address is tidied when opened, and saved with the next change | Ported to the Google bench, not run |
 | IG-080 | E04 | 1837 | Editor: a phone typed with (0) after the country code and a label after the number is saved tidily | Covered by DL-016 |
-| IG-081 | T01 | 1869 | Tidy Contacts puts right an older address label and a phone label; they go to Google; a second tidy changes nothing | To port |
-| IG-082 | T03 | 1914 | Tidy Contacts lists a title with a colon, and leaves it and its number as they are | To port |
+| IG-081 | T01 | 1869 | Tidy Contacts puts right an older address label and a phone label; they go to Google; a second tidy changes nothing | Ported to the Google bench, not run |
+| IG-082 | T03 | 1914 | Tidy Contacts lists a title with a colon, and leaves it and its number as they are | Ported to the Google bench, not run |
 | IG-083 | D30 | 2134 | #30: the appointment form keeps a repeat's type and interval, and gives back none for an appointment that does not repeat | Covered by DL-012 |
-| IG-084 | G40 | 2163 | #30: a repeating Google event is stored once, with its repeat, and listed on each week | To port |
+| IG-084 | G40 | 2163 | #30: a repeating Google event is stored once, with its repeat, and listed on each week | Ported to the Google bench, not run |
 | IG-085 | T40 | 2177 | #75: a weekly repeat keeps its 14:00 London time across the clocks going back | Covered by GS-028 |
-| IG-086 | O79 | 2225 | #79: a repeat that started before today, with later dates, is in the overview's future appointments | To port |
+| IG-086 | O79 | 2225 | #79: a repeat that started before today, with later dates, is in the overview's future appointments | Ported to the Google bench, not run |
 | IG-087 | X81D | 2257 | #81: deleting just one occurrence of a repeat keeps the others, and Google leaves that date out | Covered by GS-021 |
 | IG-088 | X81E | 2283 | #81: changing one occurrence and all following splits the repeat, and Google gets both parts | Covered by GS-022 |
-| IG-089 | X81C | 2307 | #81: cancelling the change of a repeat changes nothing | To port |
-| IG-090 | X81G | 2325 | #81: an occurrence deleted on Google is left out of the repeat in the app, when Google is the master | To port |
-| IG-091 | X81H | 2351 | #81: a split that moves the time keeps Google's deleted occurrence on the right time, in London time | To port |
-| IG-092 | G41 | 2383 | #30: an edit of a repeat in the app changes the Google event, and the event stays repeating | To port |
-| IG-093 | G42 | 2420 | #30: a repeating Google event whose first occurrence is older than the window still lists its repeats | To port |
-| IG-094 | G43 | 2462 | #30: a Google repeat with a count is stored once and listed that many times, and an app edit keeps the count | To port |
-| IG-095 | G44 | 2497 | #30: an appointment on Google older than the one-year lookback is not downloaded | To port |
-| IG-096 | Q35 | 2542 | #74: a start three months back is accepted, and OK then closes the form, as with a start 11 days back | To port |
-| IG-097 | E01 | 2616 | #86: an ETag is stored from Google and sent with a change: a local edit reaches Google, with no conflict | To port |
-| IG-098 | E02 | 2635 | #86: Google's copy changed in its details since the last sync (non-matching ETag) and the app changed it too, ContactManager master: the app's version is sent, and the conflict is reported (item 4) | To port |
-| IG-099 | E03 | 2653 | #86: Google's ETag changed, but not its details (a field the app does not hold): the change is sent again with the new ETag, and reaches Google | To port |
-| IG-100 | C103 | 2675 | #103: the contact on the form stays loaded through a sync, in ContactManager master and in Google master, and the calendar entry does not move | To port |
+| IG-089 | X81C | 2307 | #81: cancelling the change of a repeat changes nothing | Ported to the Google bench, not run |
+| IG-090 | X81G | 2325 | #81: an occurrence deleted on Google is left out of the repeat in the app, when Google is the master | Ported to the Google bench, not run |
+| IG-091 | X81H | 2351 | #81: a split that moves the time keeps Google's deleted occurrence on the right time, in London time | Ported to the Google bench, not run |
+| IG-092 | G41 | 2383 | #30: an edit of a repeat in the app changes the Google event, and the event stays repeating | Ported to the Google bench, not run |
+| IG-093 | G42 | 2420 | #30: a repeating Google event whose first occurrence is older than the window still lists its repeats | Ported to the Google bench, not run |
+| IG-094 | G43 | 2462 | #30: a Google repeat with a count is stored once and listed that many times, and an app edit keeps the count | Ported to the Google bench, not run |
+| IG-095 | G44 | 2497 | #30: an appointment on Google older than the one-year lookback is not downloaded | Ported to the Google bench, not run |
+| IG-096 | Q35 | 2542 | #74: a start three months back is accepted, and OK then closes the form, as with a start 11 days back | Ported to the Google bench, not run |
+| IG-097 | E01 | 2616 | #86: an ETag is stored from Google and sent with a change: a local edit reaches Google, with no conflict | Ported to the Google bench, not run |
+| IG-098 | E02 | 2635 | #86: Google's copy changed in its details since the last sync (non-matching ETag) and the app changed it too, ContactManager master: the app's version is sent, and the conflict is reported (item 4) | Ported to the Google bench, not run |
+| IG-099 | E03 | 2653 | #86: Google's ETag changed, but not its details (a field the app does not hold): the change is sent again with the new ETag, and reaches Google | Ported to the Google bench, not run |
+| IG-100 | C103 | 2675 | #103: the contact on the form stays loaded through a sync, in ContactManager master and in Google master, and the calendar entry does not move | Ported to the Google bench, not run |
 | IG-101 | N107 | 2712 | #107: an appointment with no end time, or one ending on 1 Jan 1970, is not uploaded; the sync completes and the others reach Google | Covered by GS-025 |
-| IG-102 | N108 | 2734 | #108: with the last calendar sync back at the epoch (as after a failed sync), the next sync sends only the appointment that was edited, not the ones it downloaded | To port |
-| IG-103 | R01 | 2775 | #105 ContactManager master, edit in Google, repeat: the Google change reaches the app, one repeat on Google | To port |
-| IG-104 | R02 | 2792 | #105 Google master, edit in ContactManager, single: the next sync takes Google's location, and nothing is uploaded | To port |
-| IG-105 | R03 | 2807 | #105 Google master, edit in ContactManager, repeat: the next sync keeps the repeat and Google's location | To port |
-| IG-106 | R04 | 2825 | #105 Google master, edit in Google, single: the Google change is downloaded | To port |
-| IG-107 | R05 | 2838 | #105 Google master, edit in Google, repeat: the Google change is downloaded, and the repeat is kept | To port |
+| IG-102 | N108 | 2734 | #108: with the last calendar sync back at the epoch (as after a failed sync), the next sync sends only the appointment that was edited, not the ones it downloaded | Ported to the Google bench, not run |
+| IG-103 | R01 | 2775 | #105 ContactManager master, edit in Google, repeat: the Google change reaches the app, one repeat on Google | Ported to the Google bench, not run |
+| IG-104 | R02 | 2792 | #105 Google master, edit in ContactManager, single: the next sync takes Google's location, and nothing is uploaded | Ported to the Google bench, not run |
+| IG-105 | R03 | 2807 | #105 Google master, edit in ContactManager, repeat: the next sync keeps the repeat and Google's location | Ported to the Google bench, not run |
+| IG-106 | R04 | 2825 | #105 Google master, edit in Google, single: the Google change is downloaded | Ported to the Google bench, not run |
+| IG-107 | R05 | 2838 | #105 Google master, edit in Google, repeat: the Google change is downloaded, and the repeat is kept | Ported to the Google bench, not run |
 | IG-108 | AR01 | 2867 | #105 Archive: an entry that the window leaves behind is archived; moved into the window on Google, it is restored and leaves the archive | Covered by GS-023 |
-| IG-109 | U02 | 3030 | #105 Uploads: 40 appointments added in the app inside the window are all on Google after one sync (the 66 not uploaded) | To port |
+| IG-109 | U02 | 3030 | #105 Uploads: 40 appointments added in the app inside the window are all on Google after one sync (the 66 not uploaded) | Ported to the Google bench, not run |
 | IG-110 | L06 | 3259 | #105 Notes, encrypted: a contact's to-do list and history are saved encrypted, with no plain text on disk, and a restart reads them back | Covered by GS-013 |
-| IG-111 | W01 | 3267 | #105 Window: an entry that starts before the window and ends inside it is downloaded, once | To port |
+| IG-111 | W01 | 3267 | #105 Window: an entry that starts before the window and ends inside it is downloaded, once | Ported to the Google bench, not run |
 | IG-112 | W02 | 3279 | #105 Window: an entry that ends before the window is not downloaded, and stays on Google once | Covered by GS-023 |
 | IG-113 | W03 | 3290 | #105 Window: an entry beyond the far edge of the window is not downloaded, and stays on Google once | Covered by GS-038 |
-| IG-114 | W04 | 3301 | #105 Window: widening the window downloads the entries it now reaches, once | To port |
-| IG-115 | TK01 | 3315 | #105 Token: a sync token Google refuses is replaced by a full listing, and the sync completes | To port |
-| IG-116 | TK03 | 3330 | #105 Token: a sync token Google answers with 410 (gone), as with 400, is replaced by a full listing, and the sync completes | To port |
-| IG-117 | TK04 | 3349 | #105 Listing: after a full sync, the next sync lists only the changes since the last sync, and downloads no unchanged appointment | To port |
-| IG-118 | TK02 | 3361 | #105 Token: with no sync token, the listing is full and every entry in the window is downloaded | To port |
-| IG-119 | R06 | 3373 | #105 ContactManager master, repeat changed in both places since the last sync: the app's version wins, and the report says so (item 4) | To port |
-| IG-120 | R07 | 3396 | #105 ContactManager master, repeat moved on Google: the app shows the moved start, and one repeat | To port |
-| IG-121 | R08 | 3412 | #105 Repeat with no occurrence in the window: not downloaded, and it stays on Google once | To port |
-| IG-122 | R09 | 3423 | #105 Repeat with an exception: the excluded occurrence is not listed, and the other five are | To port |
+| IG-114 | W04 | 3301 | #105 Window: widening the window downloads the entries it now reaches, once | Ported to the Google bench, not run |
+| IG-115 | TK01 | 3315 | #105 Token: a sync token Google refuses is replaced by a full listing, and the sync completes | Ported to the Google bench, not run |
+| IG-116 | TK03 | 3330 | #105 Token: a sync token Google answers with 410 (gone), as with 400, is replaced by a full listing, and the sync completes | Ported to the Google bench, not run |
+| IG-117 | TK04 | 3349 | #105 Listing: after a full sync, the next sync lists only the changes since the last sync, and downloads no unchanged appointment | Ported to the Google bench, not run |
+| IG-118 | TK02 | 3361 | #105 Token: with no sync token, the listing is full and every entry in the window is downloaded | Ported to the Google bench, not run |
+| IG-119 | R06 | 3373 | #105 ContactManager master, repeat changed in both places since the last sync: the app's version wins, and the report says so (item 4) | Ported to the Google bench, not run |
+| IG-120 | R07 | 3396 | #105 ContactManager master, repeat moved on Google: the app shows the moved start, and one repeat | Ported to the Google bench, not run |
+| IG-121 | R08 | 3412 | #105 Repeat with no occurrence in the window: not downloaded, and it stays on Google once | Ported to the Google bench, not run |
+| IG-122 | R09 | 3423 | #105 Repeat with an exception: the excluded occurrence is not listed, and the other five are | Ported to the Google bench, not run |
 | IG-123 | TC01 | 3441 | #105 Two copies of ContactManager on one calendar: each sees the other's change, and nothing is duplicated | Covered by GS-039 |
 | IG-124 | RS01 | 3457 | #105 A sync that stops part-way resumes without repeating or losing its uploads (#93) | Covered by GS-035 |
-| IG-125 | AR02 | 3474 | #105 Archive: an archived entry changed on Google, still outside the window, has its archived copy brought up to date | To port |
-| IG-126 | AR03 | 3493 | #105 Archive: an archived entry cancelled on Google leaves the archive, and is kept in the deleted folder | To port |
-| IG-127 | E70 | 3511 | #104 A local entry dated 1 January 1970, or with no start, is neither stored nor uploaded; a normal entry alongside is unaffected | To port |
+| IG-125 | AR02 | 3474 | #105 Archive: an archived entry changed on Google, still outside the window, has its archived copy brought up to date | Ported to the Google bench, not run |
+| IG-126 | AR03 | 3493 | #105 Archive: an archived entry cancelled on Google leaves the archive, and is kept in the deleted folder | Ported to the Google bench, not run |
+| IG-127 | E70 | 3511 | #104 A local entry dated 1 January 1970, or with no start, is neither stored nor uploaded; a normal entry alongside is unaffected | Ported to the Google bench, not run |
 | IG-128 | RL01 | 3574 | #94 A rate-limit answer (403 rateLimitExceeded) is retried with backoff, and the upload then completes | Covered by GS-033 |
-| IG-129 | RL02 | 3586 | #94 A failure that is not a rate limit (400 badRequest) is not retried, and its reason is reported | To port |
-| IG-130 | RL03 | 3595 | #94 A rate limit that keeps coming back is given up after four retries, and the report gives the reason and a recovery step | To port |
-| IG-131 | RL04 | 3608 | #94 Repeated rate limits start the adaptive pacing, and the report says so | To port |
-| IG-132 | RL05 | 3619 | #94 A connection closed by Google part-way: the report says so and what to do, and a second sync finishes the uploads | To port |
+| IG-129 | RL02 | 3586 | #94 A failure that is not a rate limit (400 badRequest) is not retried, and its reason is reported | Ported to the Google bench, not run |
+| IG-130 | RL03 | 3595 | #94 A rate limit that keeps coming back is given up after four retries, and the report gives the reason and a recovery step | Ported to the Google bench, not run |
+| IG-131 | RL04 | 3608 | #94 Repeated rate limits start the adaptive pacing, and the report says so | Ported to the Google bench, not run |
+| IG-132 | RL05 | 3619 | #94 A connection closed by Google part-way: the report says so and what to do, and a second sync finishes the uploads | Ported to the Google bench, not run |
 | IG-133 | C17 | 3640 | #105 Contact changed in both places since the last sync, ContactManager master: the app's change is kept, once | Covered by GS-005 |
 | IG-134 | C18 | 3654 | #105 Contact changed in both places since the last sync, Google master: Google's change is kept, once | Covered by GS-005 |
-| IG-135 | C19 | 3668 | #105 Contact deleted on Google and changed in the app, ContactManager master: created on Google again with the app's change (item 4) | To port |
-| IG-136 | C20 | 3682 | #105 Contact deleted in the app and changed on Google, ContactManager master: the app's delete wins, so Google deletes it too (item 4) | To port |
-| IG-137 | LF01 | 3695 | #105 Local files: after two syncs the calendar folder holds each appointment once, and no file is empty | To port |
-| IG-138 | LF02 | 3723 | #105 Local files: a deleted appointment moves to the deleted folder, and is not left in the calendar folder | To port |
-| IG-139 | A14 | 3739 | #105 Appointment deleted in the app and changed on Google, ContactManager master: the app's delete wins, so Google deletes it too (item 4) | To port |
-| IG-140 | A15 | 3751 | #105 Appointment deleted on Google and changed in the app, ContactManager master: created on Google again with the app's change (item 4) | To port |
-| IG-141 | R11 | 3813 | #105 Repeat with no occurrence left: every occurrence cancelled on Google, the app removes the repeat, and Google holds none | To port |
-| IG-142 | R10 | 3829 | #102 A changed occurrence of a repeat, changed on Google, is downloaded as its own entry; the other occurrences are unchanged | To port |
+| IG-135 | C19 | 3668 | #105 Contact deleted on Google and changed in the app, ContactManager master: created on Google again with the app's change (item 4) | Ported to the Google bench, not run |
+| IG-136 | C20 | 3682 | #105 Contact deleted in the app and changed on Google, ContactManager master: the app's delete wins, so Google deletes it too (item 4) | Ported to the Google bench, not run |
+| IG-137 | LF01 | 3695 | #105 Local files: after two syncs the calendar folder holds each appointment once, and no file is empty | Ported to the Google bench, not run |
+| IG-138 | LF02 | 3723 | #105 Local files: a deleted appointment moves to the deleted folder, and is not left in the calendar folder | Ported to the Google bench, not run |
+| IG-139 | A14 | 3739 | #105 Appointment deleted in the app and changed on Google, ContactManager master: the app's delete wins, so Google deletes it too (item 4) | Ported to the Google bench, not run |
+| IG-140 | A15 | 3751 | #105 Appointment deleted on Google and changed in the app, ContactManager master: created on Google again with the app's change (item 4) | Ported to the Google bench, not run |
+| IG-141 | R11 | 3813 | #105 Repeat with no occurrence left: every occurrence cancelled on Google, the app removes the repeat, and Google holds none | Ported to the Google bench, not run |
+| IG-142 | R10 | 3829 | #102 A changed occurrence of a repeat, changed on Google, is downloaded as its own entry; the other occurrences are unchanged | Ported to the Google bench, not run |
 
 ## Operation scenarios (IO, area 3)
 
