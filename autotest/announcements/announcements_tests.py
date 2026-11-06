@@ -377,9 +377,11 @@ def check_expectations(expects, groups, sent, codes):
             results.append((False, "sent %d times: %s" % (len(hits), label)))
         used.update(hits)
         m = sent[hits[0]]
-        if not (e["when"] <= m.time <= e["when"] + CHECK):
+        # A confirmation may arrive up to CONFIRM_LATE after its time; other messages, one check (CHECK) after it.
+        late = M.CONFIRM_LATE if e["kind"] == M.KIND["confirm"] else CHECK
+        if not (e["when"] <= m.time <= e["when"] + late):
             results.append((False, "late or early: %s sent %s, expected %s to %s" % (label, m.time, e["when"],
-                                                                                 e["when"] + CHECK)))
+                                                                                 e["when"] + late)))
         elif e["must_not"] and (e["must_not"] in m.subject or e["must_not"] in m.body):
             results.append((False, "contains '%s': %s" % (e["must_not"], label)))
         else:

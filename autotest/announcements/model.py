@@ -5,7 +5,7 @@
 #   events   the operations on the program (appointments, edits, deletions, contact changes, shutdowns, checks), by time
 #   expect   the messages the test expects, each with its recipient, channel, kind, the time it is due, and the appointment
 #            time quoted in it.  A message is on time when it is sent between the due time and one check later (six
-#            minutes at 360 times real time, specification 0.7).
+#            minutes at 360 times real time, specification 0.7). A confirmation may be up to CONFIRM_LATE (15 minutes) late.
 #   groups   counts expected inside a time window, for tests where the messages come in batches and their order is not known
 #   refused  the refused sends expected (the stub refuses them, and the program retries them)
 #   logs     text the program's log must (or must not) hold at the end of the run
@@ -39,6 +39,7 @@ LONDON = zoneinfo.ZoneInfo("Europe/London")
 UTC = dt.timezone.utc
 SPEED = 360                                    # 10 real seconds = 1 hour
 CHECK = dt.timedelta(minutes=6)                # one check of the program at 360 times (specification 0.7)
+CONFIRM_LATE = dt.timedelta(minutes=15)        # a confirmation may arrive up to this long after its time (the bench's rule)
 H = dt.timedelta(hours=1)
 M5 = dt.timedelta(minutes=5)
 M6 = dt.timedelta(minutes=6)
@@ -617,15 +618,19 @@ def an016(B):
     # The last message is the on-the-day message at 07:00 on day 3, inside run A's three days.
     cr, first = T(B, 0, "09:00"), T(B, 1, "10:00")
     expected = [conf("AN-016", "email", 5, cr + M5, first)]
+    # The first occurrence is made 25 hours ahead, so it is confirmed less than 36 hours before its start and gets no
+    # reminder (the reminder rule, section 5.1). Its reminder is therefore not expected. The later two are reminded.
     for k in (1, 2, 3):
         occ = T(B, k, "10:00")
-        expected.append(rem("AN-016", "email", 5, occ))
+        if k > 1:
+            expected.append(rem("AN-016", "email", 5, occ))
         expected.append(tod("AN-016", "email", 5, occ))
         expected.append(tod("AN-016", "sms", 5, occ))
     return dict(events=[(cr, op_add(5, "AN-016 George daily", first, first + H, repeat=1, kind="1"))],
                 expect=expected,
-                note="A daily repeat of three occurrences, in run A. It was a weekly repeat over three weeks, which needs "
-                     "sixteen virtual days; the procedure is shortened to fit run A's three days.")
+                note="A daily repeat of three occurrences, in run A. The first occurrence is confirmed less than 36 hours "
+                     "before its start, so it gets no reminder (5.1); the second and third are reminded once each. It was a "
+                     "weekly repeat over three weeks, which needs sixteen virtual days, so it is shortened to fit run A.")
 
 
 # ------------------------------------------------------------------------------------------------ the tests, and the runs
