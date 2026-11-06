@@ -183,10 +183,10 @@ How the imports are split: a scenario is an operation test (`IO`) if its body ca
 | ID | Archive ID | Line in `google_bench.py` | Title (from the archive)  | Status |
 |---|---|---|---|---|
 | IA-001 | L05 | 2577 | #101: Show Screen Reader Text: shows the name, role, value and description of the focused control, and says it is an approximation | Covered by AC-004 |
-| IA-002 | L06 | 2590 | #101: the accessibility debug checkbox in the screen reader text dialog turns console tracing on and off | To port |
+| IA-002 | L06 | 2590 | #101: the accessibility debug checkbox in the screen reader text dialog turns console tracing on and off | Ported to the accessibility bench, not run |
 
 ## Old-file test (OF, area 3)
 
 | ID | Archive file | Line | Title | Status |
 |---|---|---|---|---|---|
-| OF-001 | old_contact_test.cpp | - | Loads a contact file written before the email and phone labels existed, and checks that it keeps its meaning | To port |
+| OF-001 | old_contact_test.cpp | - | Loads a contact file written before the email and phone labels existed, and checks that it keeps its meaning | Ported to autotest/unit/oldfile, not run |
