@@ -126,42 +126,32 @@ The durations are estimated in `documents/test-duration-estimate.md`.
 
 These tests use the six fixture contacts (0.4), a disposable account (0.6), and the two masters (0.3). Each test starts from a clean account, unless the test says it continues from the one before.
 
+**Merged tests.** Tests that run the same kind of steps on the same account are one test here, so the whole section runs in fewer app runs. Each merged test lists the IDs it replaces, and every check of those tests is kept.
+
+**Clean-up.** The clean-up removes the records a run created, by the IDs the run recorded or by a search for the test prefix. It never lists the whole account.
+
 ### 1.1 Contacts: creation, change, deletion and support files
 
 | ID | Title | Procedure and expected result | Run |
 |---|---|---|---|
 | GS-001 | The six fixture contacts created in ContactManager reach Google once, with their values | Create contacts 1 to 6 with their fixture values, save, sync. Expect six contacts on Google with the name, email, phone and birthday (1, 3, 5 only). No duplicates on a second sync. | Both |
 | GS-002 | A fixture contact made on Google downloads once, with its contact and history files written | Create contact 2 on Google. Sync. Expect one contact in the app, its files written, its Google ID stored, and a second sync adds nothing. | Both |
-| GS-003 | A change to a fixture contact's phone in ContactManager reaches Google, and is recorded in its history | Change contact 1's mobile in the app. Sync. Expect the new number on Google, and a history entry for the change. | CM |
-| GS-004 | A change to a fixture contact's email on Google reaches the app with no duplicate, and is recorded in history | Change contact 2's email on Google. Sync (CM). Expect the new address in the app, one contact, and a history entry. | CM |
-| GS-005 | When both sides change the same field, ContactManager as master sends its version and reports the conflict | Change contact 3's surname in the app and on Google, sync. Expect the app's surname on Google, and the report to say the app's version was sent. | CM |
-| GS-006 | When both sides change the same field, Google as master keeps Google's version and records the change | As GS-005, with Google as master. Expect Google's surname in the app, the app's edit gone, and a history entry. | G |
-| GS-007 | An edit made only in the app is replaced by Google's copy at the next sync when Google is master | Change contact 4's phone in the app, sync (G). Expect Google's phone in the app and no upload. | G |
-| GS-008 | A fixture contact deleted in the app is deleted on Google, and its files move to the deleted folder | Delete contact 5 in the app, sync (CM), run Tidy Records. Expect the contact gone from Google, its contact, history and to-do files in `contact/deleted/`. | CM |
-| GS-009 | A fixture contact deleted in the app stays deleted when Google is master | As GS-008, with Google as master. Expect the contact gone from both, and not brought back. | G |
+| GS-003 | Edits made in ContactManager and on Google each reach the other side in one sync, and are recorded in history. *Merges GS-004.* | Change contact 1's mobile in the app, and contact 2's email on Google. Sync (CM). Expect the new mobile on Google and the new email in the app, one copy of each, and a history entry on each contact. | CM |
+| GS-005 | When both sides change the same field, the master's version is kept, and an edit made only in the app is replaced when Google is master. *Merges GS-005 (as written), GS-006, GS-007.* | Change contact 3's surname in the app and on Google, and sync (CM): expect the app's surname on Google, and the report to say the app's version was sent. Under Google master, make the same change and sync: expect Google's surname in the app and a history entry. Then, under Google master, change contact 4's phone in the app only, and sync: expect Google's phone in the app and no upload. | Both |
+| GS-008 | A fixture contact deleted in the app is deleted on Google under either master, and its files move to the deleted folder. *Merges GS-008 (as written), GS-009.* | Delete contact 5 in the app, sync, and run Tidy Records. Expect the contact gone from Google, and its contact, history and to-do files in `contact/deleted/`. Under Google master, delete contact 5 again in the app and sync: expect it gone from both, and not brought back. | Both |
 | GS-010 | A fixture contact deleted on Google is removed from the app, not restored | Delete contact 6 on Google, sync. Expect the contact removed from the app and moved to the deleted folder. | Both |
 | GS-011 | A hidden fixture contact stays on Google as hidden and is not messaged | Hide contact 1, sync. Expect Google to agree, and no message for contact 1 (area 2 checks the message). | Both |
-| GS-012 | Edits made on Google leave a contact's history and to-do files unchanged, and both are readable after a restart | Give contact 3 a history and a to-do item. Edit contact 3 on Google. Sync. Restart the program. Expect both files unchanged except as the edit requires, and both readable. | Both |
-| GS-013 | With encryption on, no plain text of a contact, history or to-do is on disk after a sync | Set `[database] encrypted=yes`. Sync with contacts 1 to 6. Search the database folder for their names and notes. Expect no plain-text match. | Both |
-| GS-014 | A deleted contact keeps its history and to-do files together, and moving them back restores it | Delete contact 2, run Tidy Records. Move its three files back to `contact/`. Restart. Expect the contact, history and to-do restored. | CM |
+| GS-012 | History and to-do files survive edits on Google, a deletion and a restore, both plain and encrypted. *Merges GS-012 (as written), GS-013, GS-014.* | Give contact 3 a history and a to-do item. Edit contact 3 on Google, sync and restart: expect both files unchanged except as the edit requires, and readable. Set `[database] encrypted=yes`, sync contacts 1 to 6, and search the database folder for their names and notes: expect no plain-text match. Delete contact 2 and run Tidy Records; move its three files back into `contact/`, and restart: expect the contact, history and to-do restored. | Both |
 
 ### 1.2 Appointments: upload, download and sync
 
 | ID | Title | Procedure and expected result | Run |
 |---|---|---|---|
-| GS-015 | An appointment for contact 1 added in the app is uploaded once, linked to contact 1, and not copied on a second sync | Add an appointment for contact 1 in the app. Sync twice. Expect one event on Google, linked to contact 1, and no copy added. | Both |
-| GS-016 | An appointment made on Google for contact 2 is downloaded once and linked to contact 2 | Create an event for contact 2 on Google. Sync twice. Expect one appointment in the app, linked to contact 2. | Both |
-| GS-017 | An appointment for contact 3 moved on Google shows its new time in the app, as one entry | Move contact 3's appointment on Google. Sync (CM). Expect the new time in the app and one entry. | CM |
-| GS-018 | An appointment for contact 4 deleted in the app is deleted on Google | Delete contact 4's appointment in the app, sync (CM). Expect it gone from Google. | CM |
-| GS-019 | An appointment deleted on Google is removed in the app and not restored when Google is master | Delete contact 4's appointment on Google. Sync (G). Expect it removed from the app and not restored. | G |
-| GS-020 | A weekly repeat for contact 5 uploads as one repeating event, listed on each week in the window | Add a weekly repeat for contact 5. Sync. Expect one repeating event on Google, and each week in the window listed in the app. | Both |
-| GS-021 | Deleting one occurrence of contact 5's repeat leaves the others, and Google omits that date | Delete one occurrence in the app, sync. Expect the other dates kept in the app, and the deleted date absent on Google. | Both |
-| GS-022 | Splitting contact 5's repeat ("this and following") sends both parts to Google without duplicates | Change one occurrence and all that follow, sync. Expect two repeats on Google, the earlier unchanged and the later changed, and no duplicates. | Both |
-| GS-023 | An appointment that ends before the calendar window is not downloaded and stays on Google | Put an appointment for contact 6 entirely before the window on Google. Sync. Expect it absent from the app, and still on Google. | Both |
-| GS-024 | An archived appointment moved back into the window on Google is restored from the archive | Archive an expired appointment, then move it into the window on Google. Sync. Expect it restored and gone from the archive. | Both |
-| GS-025 | An appointment with no end time is not uploaded, the report says why, and the others sync | Add one appointment with no end time and two good ones. Sync. Expect the two on Google, and the report to name the one not uploaded and the reason. | Both |
-| GS-026 | An appointment dated 1 January 1970 is not uploaded and the others sync | Add an appointment dated 1 January 1970 and a good one. Sync. Expect only the good one on Google. | Both |
-| GS-027 | An appointment organised by someone else is not uploaded across syncs | Create on Google an appointment whose organiser is another person. Sync twice (CM). Expect no upload, and no copy in the app beyond its download. | CM |
+| GS-015 | An appointment added in the app, or made on Google, reaches the other side once, linked to its contact. *Merges GS-015 (as written), GS-016.* | Add an appointment for contact 1 in the app, and one for contact 2 on Google. Sync twice. Expect one event on Google linked to contact 1, and one appointment in the app linked to contact 2, with no copies on the second sync. | Both |
+| GS-017 | An appointment moved or deleted on one side reaches the other. *Merges GS-017 (as written), GS-018, GS-019.* | Move contact 3's appointment on Google, and sync (CM): expect the new time in the app, as one entry. Delete contact 4's appointment in the app, and sync (CM): expect it gone from Google. Under Google master, delete another appointment for contact 4 on Google, and sync: expect it removed from the app and not restored. | Both |
+| GS-020 | A weekly repeat is uploaded, one occurrence can be deleted, and the repeat can be split, with no duplicates. *Merges GS-020 (as written), GS-021, GS-022, in sequence on one repeat.* | Add a weekly repeat for contact 5, and sync: expect one repeating event on Google, listed on each week in the window. Delete one occurrence in the app, and sync: expect Google to omit that date and the others to stay. Change one occurrence and all that follow, and sync: expect two repeats on Google, the earlier unchanged and the later changed, and no duplicates. | Both |
+| GS-023 | Appointments outside the calendar window are not downloaded, and an archived appointment is restored when it moves back into the window. *Merges GS-023 (as written), GS-024.* | Put an appointment for contact 6 entirely before the window on Google, and sync: expect it absent from the app and still on Google. Archive an expired appointment, move it into the window on Google, and sync: expect it restored and gone from the archive. | Both |
+| GS-025 | Appointments that cannot be uploaded are not uploaded, the report says why, and the others sync. *Merges GS-025 (as written), GS-026, GS-027.* | Add one appointment with no end time, one dated 1 January 1970, and a good one. Sync: expect only the good one on Google, and the report to name the two that were not uploaded and why. Create on Google an appointment whose organiser is another person, and sync twice (CM): expect no upload, and no copy in the app beyond its download. | Both |
 | GS-028 | An appointment crossing the clocks going back keeps its London time on Google and in the app | Add a weekly 14:00 repeat across the end of British Summer Time. Sync. Expect 14:00 London time on both sides for each date. | Both |
 | GS-029 | An appointment for a deleted contact is kept, shows as "Deleted contact", and is not changed on Google until edited | Delete contact 1 with an appointment. Sync. Expect the appointment kept in the app, shown as Deleted contact, and unchanged on Google. | Both |
 | GS-030 | Two overlapping appointments for different contacts both reach Google, and neither is merged | Add two overlapping appointments for contacts 1 and 2. Sync. Expect two events on Google, with their own times. | Both |
@@ -170,18 +160,14 @@ These tests use the six fixture contacts (0.4), a disposable account (0.6), and 
 
 | ID | Title | Procedure and expected result | Run |
 |---|---|---|---|
-| GS-031 | A sync with no network reports the failure, changes no local file, and a later sync completes | Disconnect the network. Sync. Expect an error and no local change. Reconnect, sync. Expect success. | Both |
-| GS-032 | Google refusing one contact's email leaves that contact unsent, with the reason, and the others sync | Give contact 2 an email Google does not accept. Sync. Expect contact 2 reported, not uploaded, and the others synced. | Both |
-| GS-033 | An upload that Google answers with a server error is retried, and does not duplicate the record | Inject a 500 reply on one upload (fault plan). Sync. Expect retries, then one record on Google. | Both |
-| GS-034 | A refused sign-in tells the user to sign in again and changes nothing locally | Revoke the app's access on Google. Sync. Expect the report to say to sign in again, and no local change. Sign in again, sync. Expect success. | Both |
-| GS-035 | A sync stopped part-way resumes from its progress file, with no upload repeated and none lost | Stop the program during uploads of 20 contacts. Restart, sync. Expect each contact on Google once. | Both |
-| GS-036 | A rate limit on upload is retried with waits, and a failure gives its reason | Inject rate-limit replies. Sync. Expect retries with waits, the pacing to adapt, and, when it fails, the reason and recovery step in the report. | Both |
-| GS-037 | A malformed reply for one contact skips that contact with a reason and keeps the others | Inject a malformed reply for contact 3. Sync. Expect contact 3 skipped and reported, and the others unchanged. | Both |
-| GS-038 | Changing the calendar window does not delete appointments outside it, locally or on Google | Narrow the window in Setup, sync. Expect appointments outside it kept on Google, and archived locally only where they have expired. | Both |
+| GS-031 | A sync that cannot run (no network, or a refused sign-in) changes no local file and reports why, and a later sync completes. *Merges GS-031 (as written), GS-034.* | Disconnect the network, and sync: expect an error and no local change. Reconnect, and sync: expect success. Revoke the app's access on Google, and sync: expect the report to say to sign in again, and no local change. Sign in again, and sync: expect success. | Both |
+| GS-032 | A bad entry or reply for one contact is reported with its reason, and the others sync. *Merges GS-032 (as written), GS-037.* | Give contact 2 an email Google does not accept, and sync: expect contact 2 reported, not uploaded, and the others synced. Inject a malformed reply for contact 3, and sync: expect contact 3 skipped and reported, and the others unchanged. | Both |
+| GS-033 | Google's server errors and rate limits are retried, with no duplicate record, and a failure gives its reason. *Merges GS-033 (as written), GS-036.* | Inject a 500 reply on one upload, and rate-limit replies on others (fault plan), and sync: expect retries with waits and one record per contact on Google. Make the rate limit persist: expect the pacing to adapt, and, if the sync fails, the report to give the reason and the recovery step. | Both |
+| GS-035 | A sync stopped part-way resumes from its progress file, with no upload repeated and none lost | Stop the program during uploads of 20 contacts. Restart, and sync. Expect each contact on Google once. | Both |
+| GS-038 | Changing the calendar window does not delete appointments outside it, locally or on Google | Narrow the window in Setup, and sync. Expect appointments outside it kept on Google, and archived locally only where they have expired. | Both |
 | GS-039 | Two copies of the program on one calendar each see the other's change, with no duplicates | Run two copies on one data folder's calendar. Change an appointment in one. Sync both. Expect the change in the other, and no duplicate. | Both |
 | GS-040 | Switching the master between syncs, with edits on both sides, leaves one copy of each record | Edit contacts 1 and 2 on both sides, sync (CM). Switch to G, edit again, sync. Expect one copy of each record. | Both |
-| GS-041 | The clean-up utility removes all test records, and the next sync starts from an empty account | Run the default clean-up, then sync. Expect no test records on Google and an empty sync. | Both |
-| GS-042 | The set-up utility's saved account works, and the clean-up refuses an account that is not the saved one | Run the set-up `--check`. Expect the account to work. Run clean-up with a different token. Expect it to stop before any delete. | Both |
+| GS-041 | The clean-up removes only the records of the run, and the set-up's saved account is the one used. *Merges GS-041 (as written), GS-042.* | Run the set-up `--check`: expect the account to work. Run the clean-up with a token for another account: expect it to stop before any delete. Run the clean-up: expect no test records left, and the next sync to start from an empty account. The clean-up finds records by the IDs the run recorded, or by a search for the test prefix. It does not list the whole account. | Both |
 
 ---
 
@@ -484,7 +470,7 @@ Counts: Google sync 143, Announcements 85, Start-up and shutdown 7, By menu and 
 | GS-112 | `C12` | Large upload: 40 local contacts reach Google once |
 | GS-113 | `C13` | Unicode and apostrophes in names round-trip exactly |
 | GS-114 | `C14` | Email-only contact (no name) is uploaded with its email |
-| GS-115 | `C15` | Repeated syncs with no changes do not write to Google |
+| GS-115 | `C15` | Merged into X18 (above): repeated syncs with no changes do not write to Google |
 | GS-116 | `C16` | Edit keeps URLs the app does not hold (option 1 regression) |
 | GS-117 | `A01` | Add an appointment locally, no sync: Google unchanged |
 | GS-118 | `A02` | Event made on Google: downloaded once across two syncs |
@@ -524,7 +510,7 @@ Counts: Google sync 143, Announcements 85, Start-up and shutdown 7, By menu and 
 | GS-152 | `X15` | Event outside the sync window is not duplicated across syncs |
 | GS-153 | `X16` | Appointment deleted on both sides before sync: no error, nothing left |
 | GS-154 | `X17` | Conflict: location changed in the app and on Google; ContactManager master, so the app's change wins (item 4) |
-| GS-155 | `X18` | Five back-to-back syncs with no change: no writes after the first |
+| GS-155 | `X18` | Two back-to-back syncs with no change: no writes after the first (shortened from five; merges C15, see its entry) |
 | GS-156 | `X19` | Twenty contacts made in ContactManager master, then edits on Google under Google master |
 | GS-157 | `LB01` | Four emails from Google (home, other, work, Partner): each keeps its slot and label, no write |
 | GS-158 | `LB02` | A label changed in the app is sent to Google as that email's type |
@@ -781,15 +767,15 @@ Counts: Google sync 143, Announcements 85, Start-up and shutdown 7, By menu and 
 | Specification section | Tests |
 |---|---|
 | 1 Overview (keyboard operation, screen reader) | AC-001 to AC-018 |
-| 2.1 Files and folders | SS-001, SS-008, SS-011, SS-013, GS-014 |
+| 2.1 Files and folders | SS-001, SS-008, SS-011, SS-013, GS-012 |
 | 2.2 The ini file | SS-012, AN-036, AN-037, AN-038, AN-039, AN-045 |
 | 2.3 Settings (Setup) | DL-001 to DL-007 |
 | 2.4 Messages and templates | AN-036 to AN-039, AN-044 |
-| 2.5 Encryption and passwords | SS-002, SS-003, SS-014, MF-007, DL-025, DL-026, GS-013 |
-| 2.6 Linking services | DL-007, GS-034, GS-042, AN-043 |
+| 2.5 Encryption and passwords | SS-002, SS-003, SS-014, MF-007, DL-025, DL-026, GS-012 |
+| 2.6 Linking services | DL-007, GS-031, GS-041, AN-043 |
 | 3.1 Opening and creating contacts | MF-001, MF-022, MF-035 |
-| 3.2 Editing a contact | DL-014 to DL-018, GS-001 to GS-007 |
-| 3.3 Storage | GS-002, GS-008, GS-012, GS-014, SS-009 |
+| 3.2 Editing a contact | DL-014 to DL-018, GS-001 to GS-014 |
+| 3.3 Storage | GS-002, GS-008, GS-012, SS-009 |
 | 3.4 Searching | MF-014 to MF-021 |
 | 3.5 Tidy Records | MF-006, DL-028 |
 | 3.6 Hiding and deleting | GS-008, GS-011, MF-037, AN-026, AN-027, GS-029 |
@@ -800,9 +786,9 @@ Counts: Google sync 143, Announcements 85, Start-up and shutdown 7, By menu and 
 | 4.3 Typing a date | DL-027, MF-045 |
 | 4.4 Creating and changing | MF-028 to MF-033 |
 | 4.5 The appointment form | DL-008 to DL-011 |
-| 4.6 Repeats | GS-020 to GS-022, DL-012, DL-013, AN-015, AN-016 |
+| 4.6 Repeats | GS-020, DL-012, DL-013, AN-015, AN-016 |
 | 4.7 Clashes | DL-011, SS-005, GS-030 |
-| 4.8 Storage, archive, deletion | GS-024, GS-018, GS-023 |
+| 4.8 Storage, archive, deletion | GS-023, GS-017 |
 | 4.9 Birthdays | MF-009 (birthdays list), GS-001 |
 | 5.1 Messages | AN-001 to AN-006, AN-015 |
 | 5.2 Who is messaged | AN-029, AN-030, AN-026, AN-027 |
@@ -817,13 +803,13 @@ Counts: Google sync 143, Announcements 85, Start-up and shutdown 7, By menu and 
 | 5.11 Expiry and warnings | AN-043, SS-006, SS-007, AN-036, AN-037 |
 | 5.12 What is not messaged | AN-014, AN-025 |
 | 6 Menus and keys | MF-001 to MF-053 |
-| 7.1 What is synchronised | GS-001, GS-002, GS-015, GS-016, GS-025 to GS-027 |
+| 7.1 What is synchronised | GS-001, GS-002, GS-015, GS-025 |
 | 7.2 Masters and conflicts | GS-005 to GS-010 |
-| 7.3 The sync process | GS-001 to GS-004 |
+| 7.3 The sync process | GS-001 to GS-003 |
 | 7.4 The calendar window | GS-023, GS-038 |
-| 7.5 Retries and rate limits | GS-033, GS-036 |
+| 7.5 Retries and rate limits | GS-033 |
 | 7.6 Interrupted syncs | GS-035 |
-| 7.7 Failures and recovery | GS-031, GS-034, GS-036 |
+| 7.7 Failures and recovery | GS-031, GS-033 |
 
 ---
 
