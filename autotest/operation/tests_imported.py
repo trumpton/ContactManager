@@ -22,7 +22,7 @@ def _add(tag, **fields):
 
 def _live(run, surname):
     """The contacts of the dump with this surname that are not deleted."""
-    return [c for c in run.contacts() if c.get("surname") == surname and c.get("deleted") != "true"]
+    return [c for c in run.contacts() if c.get("surname") == surname and c.get("deleted") not in (True, "true")]
 
 
 def _today():
@@ -51,7 +51,7 @@ def _home_contacts_dir(home):
 
 def _io002_build(home):
     return [run_spec([_add("MG01", email="mg01@test.invalid", phone="+44 20 7946 0601"),
-                      _add("MG01", email="mg01@test.invalid"),
+                      _add("MG01", email="mg01@test.invalid", comments="kept note"),
                       {"op": "merge_duplicates", "name": "mg01"}, oc.dump_op()])]
 
 
@@ -64,7 +64,8 @@ def _io002_check(runs, home):
             check("the merged entry holds the address and the phone",
                   c.get("email") == "mg01@test.invalid" and "7946 0601" in str(c.get("phone", "")),
                   "email %r, phone %r" % (c.get("email"), c.get("phone"))),
-            blocked("the note of the second entry is kept", "add_contact cannot set comments yet")]
+            check("the note of the second entry is kept", "kept note" in str(c.get("comments", "")),
+                  "comments %r" % c.get("comments"))]
 
 
 test("IO-002", "Tidy Contacts merges two entries for one person when they share an address and do not conflict",
