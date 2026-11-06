@@ -208,7 +208,7 @@ SS-009,2026-11-06,9283d87,PASS,,
 SS-010,2026-11-06,9283d87,PASS,,
 SS-011,2026-11-06,974607e,FAIL,"Needs checking: six contacts load, so the unreadable contact file may be among them.",
 SS-012,2026-11-06,974607e,FAIL,,Needs checking: the log does not say the ini file was not found.
-SS-013,2026-11-06,9283d87,NOT RUN,,"Attempted at 6fe63f6 and BLOCKED: running as root, so file permissions are not enforced and a read-only folder cannot be made. Run the bench as a user without root."
+SS-013,2026-11-06,101cd90,FAIL,"Program: when the data folder is read-only, Save does not stop or report the failure. ContactDatabase::save fails and its caller (mainwindow.cpp, db.save()) ignores the result, so no error is shown. The stored data is not lost.","Run as the user cmtest, not root, after the read-only folder was set with chmod at the end of the first run."
 SS-014,2026-11-06,9283d87,PASS,,
 SS-015,2026-11-06,9283d87,PASS,,
 MF-001,2026-11-06,b09408e,PASS,,
@@ -232,7 +232,7 @@ MF-018,2026-11-06,b09408e,PASS,,
 MF-019,2026-11-06,637be09,PASS,,
 MF-020,2026-11-06,9283d87,PASS,,
 MF-021,2026-11-06,b09408e,FAIL,,"Needs checking: the driver reads the calendar's rows here, not the contacts list, so the hidden contact is not found. The handler skips hidden contacts, but the spec says it lists them (decision needed)."
-MF-022,2026-11-06,9283d87,NOT RUN,,Attempted at 6fe63f6 and BLOCKED: Identify Me is chosen in Setup from a list the bench cannot set yet.
+MF-022,2026-11-06,101cd90,PASS,,"Identify Me is set through the navigator (navigator_select). Ctrl+Shift+O is checked as bound to Goto Me, and Goto Me is triggered through its menu item, as the key cannot be pressed here."
 MF-023,2026-11-06,974607e,FAIL,"Needs checking: with Easy Notepad present, Goto Journal does not start it.",Check whether Easy Notepad is installed on this machine.
 MF-024,2026-11-06,974607e,FAIL,"Needs checking: Ctrl+Shift+L shows the contact's to-do item, not the user's list.",
 MF-025,2026-11-06,9283d87,PASS,,
@@ -265,14 +265,14 @@ MF-051,2026-11-06,9283d87,PASS,,
 MF-052,2026-11-06,9283d87,PASS,,
 MF-053,2026-11-06,974607e,FAIL,"Needs checking: Contact Details (Alt+D) is still disabled after Alt+E, D with a contact open.",
 DL-001,2026-11-06,974607e,PASS,,Only the window days are read here; the other controls need their own reads (their names are in configuration.ui).
-DL-002,2026-11-06,9283d87,NOT RUN,,Attempted at 6fe63f6 and BLOCKED: Identify Me is chosen in Setup from a list the bench cannot set yet (see MF-022).
+DL-002,2026-11-06,101cd90,PASS,,"As MF-022: Setup is reopened to read the Identify Me choice. Ctrl+Shift+O is checked as bound to Goto Me, and Goto Me is triggered through its menu item."
 DL-003,2026-11-06,974607e,PASS,,The calendar master's control is not identified yet; the contacts one is checked.
 DL-004,2026-11-06,9283d87,PASS,,
 DL-005,2026-11-06,974607e,FAIL,Needs checking: the expiry warning appears for 25/1/35 and for 2035; whether those should be accepted needs the spec.,
 DL-007,2026-11-06,974607e,FAIL,Needs checking: Reset does not remove the Google account here.,"The sign-in code of Change is not checked: it needs the device sign-in with Google, which the operation tests do not reach."
 DL-008,2026-11-06,974607e,PASS,,"The For, From and To fields are typed in the program's own date format; checked by DL-010."
 DL-009,2026-11-06,9283d87,PASS,,
-DL-010,2026-11-06,9283d87,NOT RUN,,"Attempted at 6fe63f6 and BLOCKED: the arrows and the To field are dates in the program's own format, which the bench does not set yet (AccessibleDateRangeEdit)."
+DL-010,2026-11-06,101cd90,PASS,"Needs checking: Up on To's hour, from 23:00 to 22:00, makes the duration zero, which the program shows as 'reminder'.","The duration arrow is the X field of the start, and To's hour is the hour field, both set by cursor position in the text."
 DL-011,2026-11-06,974607e,FAIL,Needs checking: the clash offer and the declined save are not confirmed by the read-back.,
 DL-012,2026-11-06,b09408e,FAIL,,Needs checking: the single appointment is not found by the test.
 DL-013,2026-11-06,974607e,FAIL,Needs checking: the repeat count of three is not stored (the repeat count field is empty).,The end by date is not checked: the date is typed in the program's date format and is not set by the bench yet.

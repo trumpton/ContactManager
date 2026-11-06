@@ -371,10 +371,25 @@ test("MF-021", "Duplicate Hidden Auto-Email Entries lists hidden contacts that s
      _mf021_build, _mf021_check)
 
 
-test("MF-022", "Goto Me (Ctrl+Shift+O) opens the contact set as Identify Me",
-     lambda home: [run_spec(oc.fixtures_ops())], lambda runs, home: [],
-     blocked_reason="Identify Me is chosen in Setup from a list the bench cannot set yet (the Setup dialog's list is not "
-                    "recorded). Once it can be set, press Ctrl+Shift+O and check the contact that opens.")
+def _mf022_build(home):
+    # Identify Me is chosen in Setup, the form is closed with OK, and Ctrl+Shift+O opens the contact chosen
+    return [run_spec(oc.fixtures_ops()),
+            run_spec([oc.hold_op(), oc.menu_op("setup", "actionSetup"), oc.navigator_select_op("pick", "IdentifyMe", "Carter"),
+                      oc.press_op("ok", "OK"), oc.shortcut_op("key", "Ctrl+Shift+O"), oc.menu_op("goto", "actionGotoMe"),
+                      oc.state_op("s"), oc.hold_op(False),
+                      oc.dump_op()])]
+
+
+def _mf022_check(runs, home):
+    r = runs[1]
+    return [oc.check("Setup's Identify Me is set to Carter", r.value("pick_selected") is True,
+                     "selected %r" % r.value("pick_selected")),
+            oc.check("Ctrl+Shift+O is bound to Goto Me, and it is enabled", r.value("key_action") == "actionGotoMe"
+                     and r.value("key_enabled") is True, "bound to %r, enabled %r" % (r.value("key_action"), r.value("key_enabled"))),
+            oc.check("Goto Me opens Carter", r.value("s_loaded") == "Carter", "loaded %r" % r.value("s_loaded"))]
+
+
+test("MF-022", "Goto Me (Ctrl+Shift+O) opens the contact set as Identify Me", _mf022_build, _mf022_check)
 
 
 def _mf023_build(home):

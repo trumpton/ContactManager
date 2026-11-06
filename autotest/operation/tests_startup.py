@@ -282,24 +282,31 @@ def _ss012_check(runs, home):
 test("SS-012", "Start with no ini file uses the defaults and reports that the file is missing", _ss012_runs, _ss012_check)
 
 
-def _ss013_blocked():
-    if hasattr(os, "geteuid") and os.geteuid() == 0:
-        return ("running as root: file permissions are not enforced in this container, so a read-only folder cannot be "
-                "made. Run the bench as a user without root to test it.")
-    return None
-
-
 def _ss013_runs(home):
-    ops = oc.fixtures_ops()
-    return [run_spec(ops)]
+    # run 1 saves the fixtures, then the data folder is made read-only; run 2 starts on it, edits a contact and saves;
+    # run 3 makes the folder writable again and reads the data back
+    data = os.path.join(home, "TrumptonApps", "ContactManager")
+    return [run_spec(oc.fixtures_ops() + [oc.exec_op("/bin/chmod", ["-R", "a-w", data])]),
+            run_spec([oc.edit_contact_op(1, {"names": "Jack ReadOnly"}), oc.save_op(), oc.dump_op("after-save.json")]),
+            run_spec([oc.exec_op("/bin/chmod", ["-R", "u+w", data]), oc.dump_op()])]
 
 
 def _ss013_check(runs, home):
-    return [blocked("read-only folder", "not run here")]
+    r = runs[2]
+    return [check("the program starts on the read-only folder and shows its data",
+                  r.contact(oc.surname(1)).get("names") is not None, "no contact read back"),
+            check("the edit saved to the read-only folder is not stored",
+                  r.contact(oc.surname(1)).get("names") != "Jack ReadOnly",
+                  "names read back: %r" % r.contact(oc.surname(1)).get("names")),
+            check("the stored contacts are still there", len(r.contacts()) == 6,
+                  "%d contacts read back" % len(r.contacts())),
+            check("the failed save is reported to the user",
+                  any("dialog" in l.lower() and ("save" in l.lower() or "read" in l.lower() or "error" in l.lower())
+                      for l in runs[1].log.splitlines()),
+                  "no error dialog about the save in run 2")]
 
 
-test("SS-013", "Start with a read-only data folder reports the error and loses no data",
-     _ss013_runs, _ss013_check, blocked_reason=_ss013_blocked())
+test("SS-013", "Start with a read-only data folder reports the error and loses no data", _ss013_runs, _ss013_check)
 
 
 def _ss014_runs(home):
