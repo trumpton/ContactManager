@@ -495,6 +495,28 @@ Each menu item is tested by choosing it from the menu, and by its key where it h
 | DL-029 | Message boxes default to the safe answer, and Escape cancels without action | Delete a contact; press Escape. Expect no delete. | Automated |
 | DL-030 | Export and Import file dialogs leave no file when cancelled | Export; cancel. Expect no file. | Automated |
 
+### 3d. Imported operation tests
+
+These tests were imported from the archive bench (`documents/imported-tests.md`). Each runs as an operation test, in an empty home folder, with the same results as above.
+
+| ID | Title | Procedure and expected result | How run |
+|---|---|---|---|
+| IO-002 | Tidy Contacts merges two entries for one person when they share an address and do not conflict | Two entries for one person with the same address, one with a phone; run Tidy Contacts. Expect one live entry holding the address and the phone. (The note of the second entry is not yet checked: BLOCKED.) | Automated |
+| IO-003 | Tidy Contacts does not merge two entries that share an address but have different names | Two entries with the same address and different names; run Tidy Contacts. Expect both entries still there, and nothing merged. | Automated |
+| IO-004 | Quitting with edits asks Save, Discard or Cancel: Save refuses a bad entry, Discard keeps the stored contact | Edit a contact to a bad email; Save at the quit prompt is refused and the window stays open; Cancel keeps it open; Discard closes it. Expect the stored contact unchanged, with no bad email and no phone change. | Automated |
+| IO-006 | Tidy Contacts lists an entry it cannot fix, leaves it alone, and still fixes the other entry on the contact | A contact with an email that has two labels and a phone with a label; run Tidy Contacts. Expect the email listed as unfixable and left as it was, and the phone fixed. | Automated |
+| IO-007 | Double-clicking a calendar entry opens its contact, and keeps the calendar row and its focus | A calendar entry for a contact; click it. Expect that contact opened, the same calendar row kept, and focus on the calendar list. | Automated |
+| IO-009 | A weekly appointment is listed on each week in the repeats window, and stored once | A weekly appointment; list the calendar. Expect one row for each week in the repeats window, and the appointment stored once. Selecting a repeat opens its contact. | Automated |
+| IO-010 | An edit of a repeat changes its appointment; a move to another day moves the appointment and the focus with it | A weekly appointment; edit one occurrence's summary (the change is stored once; the focus stays on the repeat), then move that occurrence to the next day. Expect the appointment moved by one day, with the focus on it. | Automated |
+| IO-011 | A birthday saved on a contact shows in the calendar straight away, with birthdays shown | Save a birthday on a contact, with birthdays shown; read the calendar without a restart. Expect the new date shown and the old one gone. (BLOCKED: the driver cannot set a birthday yet.) | Automated |
+| IO-012 | A repeat whose source is older than the window is listed, and the source is not | A weekly appointment that started 120 days ago; list the calendar. Expect its repeats in the window listed, the source not listed, and the source stored once. | Automated |
+| IO-014 | Goto Today selects the first entry that has not ended, including a repeat, rather than the end of the list | A weekly repeat that started three days ago; press Goto Today. Expect the entry four days ahead selected, not the end of the list. | Automated |
+| IO-015 | Shortening a repeat from a later entry keeps the focus on the nearest entry of that repeat | A weekly repeat; shorten it from its fifteenth occurrence. Expect two entries left and the Add row, with focus on the nearest remaining entry of that repeat. | Automated |
+| IO-016 | OK on the edit of a repeat that started 11 days ago closes the form, with no dialog | A repeat (every three weeks, 32 times) that started 11 days ago; edit it and press OK. Expect the form to close, with no dialog shown. | Automated |
+| IO-018 | An appointment file moved into the archive is not loaded at start-up, and start-up leaves it in the archive | Save an appointment; move its file into the calendar's archive folder; start the program. Expect the appointment not loaded, and the file still in the archive. | Automated |
+| IO-019 | A start with no to-do or history file opens and writes its data | Start the program in an empty home folder. Expect the program to start and write its data. | Automated |
+| IO-020 | Notes in plain text: a contact's to-do list and history are saved as plain files, and a restart reads them back | Give a contact a to-do list and a history; save; restart. Expect plain `.todolist` and `.history` files holding the text, and the contact read back after the restart. | Automated |
+
 ---
 
 ## 4. Accessibility (manual, with automated checks)

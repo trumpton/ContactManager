@@ -158,25 +158,25 @@ How the imports are split: a scenario is an operation test (`IO`) if its body ca
 | ID | Archive ID | Line in `google_bench.py` | Title (from the archive)  | Status |
 |---|---|---|---|---|
 | IO-001 | E06 | 1487 | Editor: an older bad entry that was never edited still stops a save, and is shown with focus | Covered by DL-014 |
-| IO-002 | MG01 | 1597 | Tidy Contacts merges two entries for one person when they share an address and do not conflict | To port |
-| IO-003 | MG02 | 1616 | Tidy Contacts does not merge two entries that share an address but have different names | To port |
-| IO-004 | F12 | 1748 | #68: quitting with edits asks Save, Discard or Cancel: Save refuses a bad entry, Discard keeps the stored contact | To port |
+| IO-002 | MG01 | 1597 | Tidy Contacts merges two entries for one person when they share an address and do not conflict | Ported to the operation bench, not run |
+| IO-003 | MG02 | 1616 | Tidy Contacts does not merge two entries that share an address but have different names | Ported to the operation bench, not run |
+| IO-004 | F12 | 1748 | #68: quitting with edits asks Save, Discard or Cancel: Save refuses a bad entry, Discard keeps the stored contact | Ported to the operation bench, not run |
 | IO-005 | E05 | 1856 | Editor: clearing the only detail of a contact saves the change | Covered by DL-018 |
-| IO-006 | T02 | 1896 | Tidy Contacts lists an entry it cannot fix, leaves it alone, and still fixes the other entry on the contact | To port |
-| IO-007 | U34 | 2027 | #34: double-clicking a calendar entry opens its contact, and keeps the calendar row and its focus | To port |
+| IO-006 | T02 | 1896 | Tidy Contacts lists an entry it cannot fix, leaves it alone, and still fixes the other entry on the contact | Ported to the operation bench, not run |
+| IO-007 | U34 | 2027 | #34: double-clicking a calendar entry opens its contact, and keeps the calendar row and its focus | Ported to the operation bench, not run |
 | IO-008 | K24 | 2045 | #24: when the app opens, overlapping appointments are listed, and nothing is changed | Covered by SS-005 |
-| IO-009 | P30 | 2075 | #30: a weekly appointment is listed on each week in the repeats window, and stored once | To port |
-| IO-010 | P31 | 2101 | #30: an edit of a repeat changes its appointment; a move to another day moves the appointment and the focus with it | To port |
-| IO-011 | B78 | 2205 | #78: a birthday saved on a contact shows in the calendar straight away, with birthdays shown | To port |
-| IO-012 | W30 | 2403 | #30: a repeat whose source is older than the window is listed, and the source is not | To port |
+| IO-009 | P30 | 2075 | #30: a weekly appointment is listed on each week in the repeats window, and stored once | Ported to the operation bench, not run |
+| IO-010 | P31 | 2101 | #30: an edit of a repeat changes its appointment; a move to another day moves the appointment and the focus with it | Ported to the operation bench, not run |
+| IO-011 | B78 | 2205 | #78: a birthday saved on a contact shows in the calendar straight away, with birthdays shown | Ported to the operation bench, not run |
+| IO-012 | W30 | 2403 | #30: a repeat whose source is older than the window is listed, and the source is not | Ported to the operation bench, not run |
 | IO-013 | E30 | 2433 | #30: a repeat ends after a number of times, or on a date, in the list and in the form | Covered by DL-013 |
-| IO-014 | T30 | 2482 | #30: Goto Today selects the first entry that has not ended, including a repeat, rather than the end of the list | To port |
-| IO-015 | P33 | 2506 | #73: shortening a repeat from a later entry keeps the focus on the nearest entry of that repeat | To port |
-| IO-016 | Q34 | 2527 | #74: OK on the edit of a repeat that started 11 days ago closes the form, with no dialog | To port |
+| IO-014 | T30 | 2482 | #30: Goto Today selects the first entry that has not ended, including a repeat, rather than the end of the list | Ported to the operation bench, not run |
+| IO-015 | P33 | 2506 | #73: shortening a repeat from a later entry keeps the focus on the nearest entry of that repeat | Ported to the operation bench, not run |
+| IO-016 | Q34 | 2527 | #74: OK on the edit of a repeat that started 11 days ago closes the form, with no dialog | Ported to the operation bench, not run |
 | IO-017 | L02 | 3163 | Local: an appointment and a contact made in ContactManager are saved, and are there after a restart (no Google) | Covered by SS-009 |
-| IO-018 | L03 | 3176 | Local: an appointment file moved into the archive is not loaded at start-up, and start-up leaves it in the archive | To port |
-| IO-019 | L04 | 3197 | Local: a start with no to-do or history file opens and writes its data (#100) | To port |
-| IO-020 | L05 | 3254 | #105 Notes, plain text: a contact's to-do list and history are saved as plain files, and a restart reads them back | To port |
+| IO-018 | L03 | 3176 | Local: an appointment file moved into the archive is not loaded at start-up, and start-up leaves it in the archive | Ported to the operation bench, not run |
+| IO-019 | L04 | 3197 | Local: a start with no to-do or history file opens and writes its data (#100) | Ported to the operation bench, not run |
+| IO-020 | L05 | 3254 | #105 Notes, plain text: a contact's to-do list and history are saved as plain files, and a restart reads them back | Ported to the operation bench, not run |
 
 ## Accessibility scenarios (IA, area 4)
 
