@@ -51,6 +51,8 @@ python3 autotest/utilities/clean_test_data.py             # delete the test data
 python3 autotest/utilities/clean_test_data.py --yes       # as above, without the question
 ```
 
+The default clean-up finds the test data by search (the test domain for contacts, the test prefix for appointments), not by listing the account. A search returns one page of contacts at a time, so the clean-up searches again after each pass, up to 20 passes, and stops at once if a delete fails.
+
 `--all-data` deletes **everything**: every contact in the account's contact list, and every appointment on its primary calendar. Other calendars and "other contacts" are not touched. It needs the account's address typed in, and it cannot be combined with `--yes`:
 
 ```sh

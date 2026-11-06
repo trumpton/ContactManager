@@ -73,11 +73,11 @@ These are choices the bench makes where the specification and the program leave 
 - **Report wording.** Checks on what the report says (GS-005, GS-031, GS-033, GS-025, GS-032) match words in the driver's
   log loosely. Tighten each once the program's report text is confirmed.
 
-## Known failures expected on the first run
+## GS-041 and the clean-up
 
-- **GS-041, the default clean-up lists the whole account.** `autotest/utilities/clean_test_data.py` lists every contact
-  (`people/me/connections`) and every event by default. Section 0.6 and GS-041 require a search for the test records
-  instead. The check reports this as a failure until the utility is changed.
+The default clean-up (`autotest/utilities/clean_test_data.py`) finds the test records by search: the People search for
+the test domain, and the Calendar search for the test prefix. It does not list the account. GS-041 checks this by
+reading the utility's source: its listing calls may appear only in the `--all-data` branch.
 
 ## Driver change
 

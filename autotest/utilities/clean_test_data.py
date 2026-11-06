@@ -10,6 +10,8 @@
 # Test data is what the tests create, and it is identified on any account:
 #   contacts whose email address is in the test domain (test_fixtures.json: identifier.email_domain)
 #   appointments on the primary calendar whose summary starts with the test prefix (identifier.event_prefix)
+# The default clean-up FINDS them by search (the People search for the domain, the Calendar search for the prefix).
+# It does not list the account.  Only --all-data lists the whole account.
 #
 # --all-data deletes every contact in the account's contact list and every appointment on its primary calendar
 # (other calendars and "other contacts" are not touched).  It cannot be used with --yes: you must type the
@@ -29,6 +31,7 @@ import testaccount as ta                      # noqa: E402
 import setup_test_account as sta              # noqa: E402
 
 PACE_SECONDS = 0.2     # a short gap between deletes, so the account is not hit with a burst
+MAX_PASSES = 20        # searches for test data, one after another, before the clean-up stops (default clean-up only)
 
 
 def list_contacts(token, base=None):
@@ -59,12 +62,37 @@ def list_events(token, base=None):
             return out
 
 
+def search_test_contacts(token, fixtures, base=None):
+    """Test contacts found by a search for the test domain (not a listing of the account).  The search returns one page
+    of matches (at most 30); the caller deletes them and searches again until none are left."""
+    domain = fixtures["identifier"]["email_domain"]
+    q = urllib.parse.urlencode({"query": domain, "readMask": "names,emailAddresses", "pageSize": 30})
+    reply = gc.get_json((base or gc.PEOPLE_URL) + "/people:searchContacts?" + q, token)
+    people = [r["person"] for r in (reply or {}).get("results", []) if "person" in r]
+    return [p for p in people if ta.is_test_contact(contact_emails(p), fixtures)]
+
+
+def search_test_events(token, fixtures, base=None):
+    """Test appointments found by a search for the test prefix on the primary calendar (not a listing of it)."""
+    prefix = fixtures["identifier"]["event_prefix"]
+    out, page = [], None
+    while True:
+        q = {"q": prefix.strip(), "singleEvents": "false", "showDeleted": "false", "maxResults": 250}
+        if page:
+            q["pageToken"] = page
+        reply = gc.get_json((base or gc.CALENDAR_URL) + "/events?" + urllib.parse.urlencode(q), token)
+        out += [e for e in (reply or {}).get("items", []) if ta.is_test_event(e.get("summary"), fixtures)]
+        page = (reply or {}).get("nextPageToken")
+        if not page:
+            return out
+
+
 def contact_emails(person):
     return [e.get("value", "") for e in person.get("emailAddresses", [])]
 
 
 def choose(contacts, events, fixtures, all_data):
-    """The contacts and appointments to delete."""
+    """The contacts and appointments to delete, from a full listing (used only with --all-data)."""
     if all_data:
         return list(contacts), list(events)
     cs = [c for c in contacts if ta.is_test_contact(contact_emails(c), fixtures)]
@@ -121,9 +149,10 @@ def main(argv=None):
                   file=sys.stderr)
             return 1
         fixtures = ta.load_fixtures()
-        contacts = list_contacts(token)
-        events = list_events(token)
-        cs, es = choose(contacts, events, fixtures, args.all_data)
+        if args.all_data:
+            cs, es = choose(list_contacts(token), list_events(token), fixtures, True)
+        else:
+            cs, es = search_test_contacts(token, fixtures), search_test_events(token, fixtures)
         scope = "EVERYTHING" if args.all_data else "the test data"
         print(f"Account: {email}")
         print(f"Would delete {scope}: {len(cs)} contact(s), {len(es)} appointment(s)")
@@ -144,7 +173,20 @@ def main(argv=None):
             if input("Delete the test data? [y/N] ").strip().lower() not in ("y", "yes"):
                 print("Nothing was deleted.")
                 return 0
-        deleted, failed = delete_all(token, cs, es)
+        deleted, failed = [], []
+        passes = 0
+        while True:
+            d, f = delete_all(token, cs, es)
+            deleted += d
+            failed += f
+            passes += 1
+            # A search returns at most one page of contacts, so the test data is searched for again until none is left.
+            # A failure stops the passes, so the same record is not tried again and again.
+            if args.all_data or failed or passes >= MAX_PASSES:
+                break
+            cs, es = search_test_contacts(token, fixtures), search_test_events(token, fixtures)
+            if not (cs or es):
+                break
         print(f"Deleted {len(deleted)} record(s). Failed: {len(failed)}.")
         for f in failed:
             print("  FAILED", f, file=sys.stderr)

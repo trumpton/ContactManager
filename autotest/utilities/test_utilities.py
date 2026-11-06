@@ -255,28 +255,56 @@ class CleanTests(MockTestCase):
         self.assertEqual([p["resourceName"] for p in got], ["people/c1", "people/c2"])
         self.assertEqual(self.mock.requests[-1][2].get("pageToken"), "P2")
 
-    def test_default_run_lists_and_deletes_only_test_data(self):
+    def test_default_run_searches_and_deletes_only_test_data(self):
         self._token_for("disposable@example.com")
-        self.mock.serve("GET", "/v1/people/me/connections", 200, {"connections": [
-            {"resourceName": "people/c1", "names": [{"displayName": "Jack O'Neil"}],
-             "emailAddresses": [{"value": "jack.oneil@sgc.contacmanagertest"}]},
-            {"resourceName": "people/c9", "names": [{"displayName": "Real Person"}],
-             "emailAddresses": [{"value": "real@example.com"}]}]})
+        # first search finds the test contact (and a real one the search should not have returned)
+        self.mock.serve("GET", "/v1/people:searchContacts", 200, {"results": [
+            {"person": {"resourceName": "people/c1", "names": [{"displayName": "Jack O'Neil"}],
+                        "emailAddresses": [{"value": "jack.oneil@sgc.contacmanagertest"}]}},
+            {"person": {"resourceName": "people/c9", "names": [{"displayName": "Real Person"}],
+                        "emailAddresses": [{"value": "real@example.com"}]}}]})
         self.mock.serve("GET", "/calendar/primary/events", 200, {"items": [
             {"id": "e1", "summary": "TEST Jack O'Neil: confirm"},
             {"id": "e2", "summary": "Dentist"}]})
         self.mock.serve("DELETE", "/v1/people/c1:deleteContact", 200, None)
         self.mock.serve("DELETE", "/calendar/primary/events/e1", 204, None)
+        # the second search finds nothing, so the clean-up stops
+        self.mock.serve("GET", "/v1/people:searchContacts", 200, {})
+        self.mock.serve("GET", "/calendar/primary/events", 200, {"items": []})
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             code = clean.main(["--config", str(self.config), "--yes"])
         self.assertEqual(code, 0, out.getvalue())
         deletes = [r[1] for r in self.mock.requests if r[0] == "DELETE"]
         self.assertEqual(deletes, ["/v1/people/c1:deleteContact", "/calendar/primary/events/e1"])
+        searches = [r for r in self.mock.requests if r[0] == "GET" and r[1].endswith(("searchContacts", "/events"))]
+        self.assertTrue(all(r[2].get("q") for r in searches if r[1].endswith("/events")), searches)
+        self.assertFalse([r for r in self.mock.requests if r[1].endswith("/people/me/connections")],
+                         "the default clean-up must not list the account's contacts")
+
+    def test_default_run_repeats_the_search_when_a_page_is_deleted(self):
+        self._token_for("disposable@example.com")
+        self.mock.serve("GET", "/v1/people:searchContacts", 200, {"results": [
+            {"person": {"resourceName": "people/c1",
+                        "emailAddresses": [{"value": "jack.oneil@sgc.contacmanagertest"}]}}]})
+        self.mock.serve("GET", "/calendar/primary/events", 200, {"items": []})
+        self.mock.serve("DELETE", "/v1/people/c1:deleteContact", 200, None)
+        self.mock.serve("GET", "/v1/people:searchContacts", 200, {"results": [
+            {"person": {"resourceName": "people/c2",
+                        "emailAddresses": [{"value": "samantha.carter@sgc.contacmanagertest"}]}}]})
+        self.mock.serve("GET", "/calendar/primary/events", 200, {"items": []})
+        self.mock.serve("DELETE", "/v1/people/c2:deleteContact", 200, None)
+        self.mock.serve("GET", "/v1/people:searchContacts", 200, {})
+        self.mock.serve("GET", "/calendar/primary/events", 200, {"items": []})
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = clean.main(["--config", str(self.config), "--yes"])
+        self.assertEqual(code, 0)
+        deletes = [r[1] for r in self.mock.requests if r[0] == "DELETE"]
+        self.assertEqual(deletes, ["/v1/people/c1:deleteContact", "/v1/people/c2:deleteContact"])
 
     def test_dry_run_deletes_nothing(self):
         self._token_for("disposable@example.com")
-        self.mock.serve("GET", "/v1/people/me/connections", 200, {"connections": []})
+        self.mock.serve("GET", "/v1/people:searchContacts", 200, {})
         self.mock.serve("GET", "/calendar/primary/events", 200, {"items": [{"id": "e1", "summary": "TEST x"}]})
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
