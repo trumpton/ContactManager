@@ -236,9 +236,9 @@ MF-022,2026-11-06,9283d87,NOT RUN,,"Run 9283d87: blocked: MF-022: BLOCKED, Ident
 MF-023,2026-11-06,9283d87,FAIL,,"Run 9283d87: with Easy Notepad present, the journal opens in it: the program did not start Easy Notepad"
 MF-024,2026-11-06,9283d87,FAIL,,Run 9283d87: Ctrl+Shift+L shows the user's list: to-do shows 'MF024 contact list item\n'
 MF-025,2026-11-06,9283d87,PASS,,
-MF-026,2026-11-06,fa1ea81,FAIL,,"Bench: the date box is still not recorded; the driver records the Go To Date box only when no hold is set, so check the key path."
+MF-026,2026-11-06,cac83bd,FAIL,,"Program or spec: the cursor is at the start of the day field (position 4 of 15), and the spec says the cursor is at the end. Decide which is right."
 MF-027,2026-11-06,9283d87,FAIL,,Run 9283d87: Alt+M moves to the email: focus 'editFirstName'
-MF-028,2026-11-06,fa1ea81,FAIL,,"Bench: the appointment form is opened, but its For field is still not read (see the detail)."
+MF-028,2026-11-06,cac83bd,FAIL,,"Bench: Ctrl+I does not open the appointment form in this test, so its For field is not read. Check the shortcut is delivered."
 MF-029,2026-11-06,9283d87,PASS,,
 MF-030,2026-11-06,fa1ea81,FAIL,,"Bench: the appointment form is opened, but its For field is still not read (see the detail)."
 MF-031,2026-11-06,9283d87,PASS,,
@@ -255,7 +255,7 @@ MF-041,2026-11-06,9283d87,FAIL,,Run 9283d87: the entry is recorded in the contac
 MF-042,2026-11-06,fa1ea81,FAIL,,Bench: the report is written to a file the test does not read yet.
 MF-043,2026-11-06,9283d87,FAIL,,Run 9283d87: Manual opens: windows: ['Contact Manager Help']
 MF-044,2026-11-06,9283d87,PASS,,
-MF-045,2026-11-06,fa1ea81,FAIL,,"Bench: the date box is not recorded, so Escape cannot be checked."
+MF-045,2026-11-06,cac83bd,FAIL,,"Bench: the calendar row is not read after Escape, so the list cannot be checked."
 MF-046,2026-11-06,9283d87,PASS,,
 MF-047,2026-11-06,9283d87,PASS,,
 MF-048,2026-11-06,9283d87,PASS,,
@@ -289,7 +289,7 @@ DL-023,2026-11-06,9283d87,FAIL,,"Run 9283d87: the entry added while open, and fo
 DL-024,2026-11-06,9283d87,FAIL,,Run 9283d87: the manual opens: windows: ['Contact Manager Help']
 DL-025,2026-11-06,9283d87,PASS,,
 DL-026,2026-11-06,9283d87,PASS,,
-DL-027,2026-11-06,fa1ea81,FAIL,,"Bench: the date box is not recorded, so the date entry is not checked."
+DL-027,2026-11-06,cac83bd,FAIL,,"Bench: the typed date is only partly read, so the list move is not checked."
 DL-028,2026-11-06,9283d87,PASS,,
 DL-029,2026-11-06,9283d87,PASS,,
 DL-030,2026-11-06,9283d87,PASS,,
