@@ -72,7 +72,7 @@ The Google tests take a median of 77 seconds each, and the longest takes over 6 
 | Calendar listings (`getCalendar`, one page at a time) | 537 pages, median 2.0 s each, 1,065 s in all (30 per cent of the request time) |
 | One request per changed appointment (`getAppointment`) | 6,593 requests, median 246 ms each, 1,702 s in all (48 per cent of the request time) |
 | Updates to contacts and appointments | 223 contact updates (median 1.7 s) and 498 appointment updates (median 0.45 s) |
-| The rest of the scenario time (not measured separately) | about 40 s: the bench's clean-up and its checks |
+| The rest of the scenario time, inside the scenario (not measured separately) | about 39 s: the bench's own checks and listings of the Google side. The clean-up before and after each scenario is not in the 77 s: it is timed by nothing, and is added to the total run time. |
 
 Four things make each Google test slow:
 
