@@ -56,6 +56,10 @@
 #include <QAbstractSpinBox>
 #include <QDateTimeEdit>
 #include <QAbstractItemView>
+#include <QAccessible>
+#include <QMenu>
+#include <QMenuBar>
+#include <QTabWidget>
 #include <QLabel>
 #include "warningchoice.h"
 #include <functional>
@@ -87,6 +91,20 @@ static void record(const QString &key, const QJsonValue &value)
     results.insert(key, value) ;
     QFile f(outdir + "/results.json") ;
     if (f.open(QIODevice::WriteOnly)) f.write(QJsonDocument(results).toJson()) ;
+}
+
+// The menu items below the given actions, with their depth; separators are left out (accessibility tests)
+static void listMenuActions(const QList<QAction*> &actions, int depth, QJsonArray &out)
+{
+    for (QAction *a : actions) {
+        if (a->isSeparator()) continue ;
+        QJsonObject o ;
+        o.insert("text", a->text()) ;
+        o.insert("depth", depth) ;
+        o.insert("enabled", a->isEnabled()) ;
+        out.append(o) ;
+        if (a->menu()) listMenuActions(a->menu()->actions(), depth + 1, out) ;
+    }
 }
 
 static void note(const QString &text)
@@ -805,6 +823,7 @@ int main(int argc, char *argv[])
             else if (k=="p") QTest::keyClick(target, Qt::Key_P) ;
             else if (k=="right") QTest::keyClick(target, Qt::Key_Right) ;
             else if (k=="left") QTest::keyClick(target, Qt::Key_Left) ;
+            else if (k=="enter") QTest::keyClick(target, Qt::Key_Return) ;
             else if (k.size()==1 && k[0].isDigit()) QTest::keyClick(target, Qt::Key_0 + k[0].digitValue()) ;
             QJsonArray hints, titles ;
             for (int r = 0; r < w.calendarlist.rowCount(); r++) {
@@ -1156,6 +1175,58 @@ int main(int argc, char *argv[])
             }
             record(name + "_set", QJsonValue(done)) ;
             note(QString("set_widget %1: %2").arg(op["object"].toString(), done ? "set" : "not set")) ;
+
+        } else if (kind == "menus") {
+            // The menu bar, every item with its depth and whether it is enabled (accessibility: names and mnemonics)
+            QJsonArray items ;
+            listMenuActions(w.menuBar()->actions(), 0, items) ;
+            record(op["name"].toString() + "_menus", items) ;
+
+        } else if (kind == "tabs") {
+            // The names of the main window's tabs, in order (accessibility: each tab is named, with its Alt key)
+            QJsonArray tabs ;
+            for (int i = 0; i < w.ui->tabBar->count(); i++) tabs.append(w.ui->tabBar->tabText(i)) ;
+            record(op["name"].toString() + "_tabs", tabs) ;
+
+        } else if (kind == "controls") {
+            // The controls a user reaches with Tab, in the top window (or the main window), and their names
+            QString name = op["name"].toString() ;
+            QWidget *top = (op["scope"].toString() == "main" || !QApplication::activeModalWidget())
+                           ? (QWidget*)&w : QApplication::activeModalWidget() ;
+            QJsonArray items ;
+            for (QWidget *c : top->findChildren<QWidget*>()) {
+                if (!c->isVisible() || !(int(c->focusPolicy()) & int(Qt::TabFocus))) continue ;
+                QString label = c->accessibleName() ;
+                if (label.isEmpty()) {
+                    QAccessibleInterface *iface = QAccessible::queryAccessibleInterface(c) ;
+                    if (iface) label = iface->text(QAccessible::Name) ;
+                }
+                QJsonObject o ;
+                o.insert("object", c->objectName()) ;
+                o.insert("class", QString(c->metaObject()->className())) ;
+                o.insert("name", label) ;
+                items.append(o) ;
+            }
+            record(name + "_controls", items) ;
+
+        } else if (kind == "focus") {
+            // Where the keyboard focus is, the window it is in, the dialog that is open (if any), and the calendar row
+            QString name = op["name"].toString() ;
+            QWidget *f = QApplication::focusWidget() ;
+            QWidget *modal = QApplication::activeModalWidget() ;
+            record(name + "_focus", QJsonValue(f ? f->objectName() : QString())) ;
+            record(name + "_focusclass", QJsonValue(f ? QString(f->metaObject()->className()) : QString())) ;
+            record(name + "_focuswindow", QJsonValue(f ? f->window()->windowTitle() : QString())) ;
+            record(name + "_modal", QJsonValue(modal ? modal->windowTitle() : QString())) ;
+            record(name + "_focus_in_modal", QJsonValue(f && modal ? (f->window() == modal) : false)) ;
+            record(name + "_row", QJsonValue(w.ui->listCalendar->currentIndex().row())) ;
+
+        } else if (kind == "acc_rows") {
+            // The accessible text of each calendar entry, as a screen reader reads it
+            QJsonArray rows ;
+            for (int r = 0; r < w.calendarlist.rowCount(); r++)
+                rows.append(w.calendarlist.data(w.calendarlist.index(r, 0), Qt::AccessibleTextRole).toString()) ;
+            record(op["name"].toString() + "_rows", rows) ;
 
         } else {
             note("unknown operation: " + kind) ;
