@@ -7,6 +7,8 @@
 #include "../Lib/supportfunctions.h"
 #include "../Lib/iniconfig.h"
 
+#include <QAbstractSpinBox>
+#include <QLineEdit>
 #include <QStandardPaths>
 #include <QRegularExpression>
 
@@ -48,6 +50,12 @@ Configuration::Configuration(QWidget *parent) :
     settingDatabaseMaster = ContactManagerMaster ;
 
     ui->setupUi(this);
+
+    // Spin and date boxes read through their internal line edit, which needs the same name
+    for (QAbstractSpinBox *spin : findChildren<QAbstractSpinBox *>())
+        for (QLineEdit *edit : spin->findChildren<QLineEdit *>())
+            edit->setAccessibleName(spin->accessibleName()) ;
+
     settings = new QSettings("trumpton.org.uk", "ContactManager");
 
     // Load INI file from Data directory, TrumptonApps directory, otherwise application directory

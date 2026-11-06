@@ -5,6 +5,8 @@
 
 #include <QDateTime>
 #include <QDate>
+#include <QAbstractSpinBox>
+#include <QLineEdit>
 #include <QTime>
 #include <QTimeZone>
 
@@ -20,6 +22,12 @@ AppointmentForm::AppointmentForm(QWidget *parent) :
     appt.createNew() ;
 
     ui->setupUi(this);
+
+    // Spin and date boxes read through their internal line edit, which needs the same name
+    for (QAbstractSpinBox *spin : findChildren<QAbstractSpinBox *>())
+        for (QLineEdit *edit : spin->findChildren<QLineEdit *>())
+            edit->setAccessibleName(spin->accessibleName()) ;
+
     ui->contactName->setFocus() ;
     ui->contactName->setReadOnly(true) ;
 }
