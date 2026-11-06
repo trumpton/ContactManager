@@ -36,8 +36,8 @@ Nothing here imports from or reads the archive folder. The clock and the stubs a
     python3 autotest/announcements/announcements_tests.py                 # every run, in parallel
     python3 autotest/announcements/announcements_tests.py --runs A,B      # some runs (N needs A, so A is added)
 
-The runs run in parallel, as section 2.0 says, and do not touch Google. The main set takes about 16 minutes (the longest run
-is four virtual days). Run W takes about 66 minutes (sixteen virtual days, see below). The evidence goes to `--out`
+The runs run in parallel, as section 2.0 says, and do not touch Google. The whole set takes about 16 minutes (the longest run
+is four virtual days). The evidence goes to `--out`
 (default: a timestamped folder in your home folder). `report.md` and `summary.json` are at the top; each run has a folder
 with its home, its outbox (every message as a file, sent or refused), and each segment's ops, driver log, dumps and stdout.
 
@@ -74,7 +74,7 @@ that its own rule keeps apart, the bench splits them (see the list below).
 
 | Run | Tests | Length (virtual) | Notes |
 |---|---|---|---|
-| A | AN-001 to AN-015, AN-017 to AN-021, AN-024, AN-025, AN-047 | 3 days | Plain tests, limits raised. AN-047 checks the run as a whole. |
+| A | AN-001 to AN-021, AN-024, AN-025, AN-047 | 3 days | Plain tests, limits raised. AN-016 is a daily repeat, ending on day 3. AN-047 checks the run as a whole. |
 | B | AN-026 to AN-030 | 3 days | Contact state. Each test has its own contact. |
 | C1 | AN-031 | 3 days | Shutdown at 10:02 on day 0, restart at 10:20. |
 | C2 | AN-032 | 1 day | Shutdown 11:00 on day 0 to 06:00 on day 1. |
@@ -90,7 +90,6 @@ that its own rule keeps apart, the bench splits them (see the list below).
 | G3a / G3b / G3c | AN-040 / AN-041 / AN-042 | 3 days | A stub failure each (two refusals / always refused / one text refused with a reason). |
 | G4 | AN-048 | 4 days | Reminders off at the start, on at day 3. |
 | N | AN-035 | 1 hour | A second copy on run A's home, from 09:00 to 10:00 on day 1. |
-| W | AN-016 | 16 days, 9 hours | Weekly repeat, three occurrences. Not in the sixteen-minute set. |
 
 ## Where the specification and the rules disagree
 
@@ -102,9 +101,9 @@ These are recorded in each test's note in `model.py`, and in the report. The exp
    2, and a reminder is not sent on the day (5.1). So the message at 07:00 is the on-the-day message.
 3. **AN-003.** The row says "no text". A contact with both channels gets the on-the-day text as well (5.2, 5.3), so that
    text is expected. The confirmation itself is by email only.
-4. **AN-016.** The row says "over three weeks", but it is in run A (three days). It is in its own run W, which is sixteen
-   days long. This makes the bench's total time much longer than sixteen minutes; the spec should choose a shorter procedure
-   or accept the run.
+4. **AN-016.** The row said "over three weeks", which needs sixteen virtual days and so could not fit the four-day limit. The
+   procedure is now a daily repeat of three occurrences (days 1 to 3), so it runs in run A and the set stays at about sixteen
+   minutes. The specification row is updated to match.
 5. **Runs that the rule keeps apart.** The specification's table puts several tests in one run, but its own rule (2.0)
    says a change to the ini file, the templates, the stub's failures, a restart, or a date keeps tests apart. The bench
    therefore has one run each for the blank senders (G1a, G1b), the templates (G2a, G2b, G2c), the failures (G3a, G3b, G3c),

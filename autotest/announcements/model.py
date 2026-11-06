@@ -109,10 +109,11 @@ def on_the_day(occ):
     return dt.datetime.combine(occ.date(), dt.time(7, 0))
 
 
-def op_add(n, summary, start, end, repeat=None):
+def op_add(n, summary, start, end, repeat=None, kind="2"):
+    # kind: the repeat type (1 daily, 2 weekly, as appointment.h); repeat: the interval in those units
     fields = {"summary": summary, "from": utc_text(start), "to": utc_text(end), "location": ""}
     if repeat:
-        fields["repeat"] = "2"                   # weekly
+        fields["repeat"] = kind
         fields["repeatinterval"] = str(repeat)
     return {"op": "add_appointment", "surname": CONTACT[n]["surname"], "fields": fields}
 
@@ -609,20 +610,22 @@ def an035(B):
                      "warning and send nothing: run A's messages in that hour must be none.")
 
 
-# ------------------------------------------------------------------------------------------------ run W: three weeks
+# ------------------------------------------------------------------------------------------------ AN-016: a daily repeat
 
 def an016(B):
-    first, cr = T(B, 2, "10:00"), T(B, 0, "10:00")
+    # Created at 09:00 on day 0 as a daily repeat, first on day 1 at 10:00, with occurrences on days 1, 2 and 3.
+    # The last message is the on-the-day message at 07:00 on day 3, inside run A's three days.
+    cr, first = T(B, 0, "09:00"), T(B, 1, "10:00")
     expected = [conf("AN-016", "email", 5, cr + M5, first)]
-    for k in (2, 9, 16):
+    for k in (1, 2, 3):
         occ = T(B, k, "10:00")
         expected.append(rem("AN-016", "email", 5, occ))
         expected.append(tod("AN-016", "email", 5, occ))
         expected.append(tod("AN-016", "sms", 5, occ))
-    return dict(events=[(cr, op_add(5, "AN-016 George weekly", first, first + H, repeat=1))],
+    return dict(events=[(cr, op_add(5, "AN-016 George daily", first, first + H, repeat=1, kind="1"))],
                 expect=expected,
-                note="The procedure says 'over three weeks', which is longer than run A's three days, so it is in run W "
-                     "(sixteen virtual days and nine hours). It is not in the sixteen-minute set.")
+                note="A daily repeat of three occurrences, in run A. It was a weekly repeat over three weeks, which needs "
+                     "sixteen virtual days; the procedure is shortened to fit run A's three days.")
 
 
 # ------------------------------------------------------------------------------------------------ the tests, and the runs
@@ -687,8 +690,8 @@ ALL = [
     test("AN-048", "Setup's 'Enable SMS and Email Reminders' off stops all automatic messages", "G4", an048),
     # a second copy, alongside run A
     test("AN-035", "A second copy on the same data folder sends no messages and shows the warning", "N", an035),
-    # three weeks
-    test("AN-016", "Each occurrence of a repeat is reminded once", "W", an016),
+    # a daily repeat over three days, in run A
+    test("AN-016", "Each occurrence of a repeat is reminded once", "A", an016),
 ]
 
 
@@ -701,7 +704,7 @@ def _run(rid, base, end, tests, **opts):
 # with a new process and its clock at the segment's start.  Events are placed in the segment they fall in.
 RUNS = [
     _run("A", NOV2, T(NOV2, 3, "09:00"), ["AN-001", "AN-002", "AN-003", "AN-004", "AN-005", "AN-006", "AN-007", "AN-008",
-                                           "AN-009", "AN-010", "AN-011", "AN-012", "AN-013", "AN-014", "AN-015", "AN-017",
+                                           "AN-009", "AN-010", "AN-011", "AN-012", "AN-013", "AN-014", "AN-015", "AN-016", "AN-017",
                                            "AN-018", "AN-019", "AN-020", "AN-021", "AN-024", "AN-025", "AN-047"],
          limits="raised", segments=[("A", NOV2, T(NOV2, 3, "09:00"), {})]),
     _run("B", NOV2, T(NOV2, 3, "09:00"), ["AN-026", "AN-027", "AN-028", "AN-029", "AN-030"], limits="raised",
@@ -748,6 +751,4 @@ RUNS = [
          segments=[("G4", NOV2, T(NOV2, 4, "09:00"), {"enablereminders": "no"})]),
     _run("N", NOV2, T(NOV2, 1, "10:00"), ["AN-035"], limits="raised", shares_home="A",
          segments=[("N", T(NOV2, 1, "09:00"), T(NOV2, 1, "10:00"), {})]),
-    _run("W", NOV2, T(NOV2, 16, "09:00"), ["AN-016"], limits="raised",
-         segments=[("W", NOV2, T(NOV2, 16, "09:00"), {})]),
 ]
