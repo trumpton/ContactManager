@@ -15,6 +15,7 @@ Companions: `documents/specification.md` (what the program does, the reference f
    - 3b. By menu and function (F9 is covered in area 1)
    - 3c. By dialog
 4. Accessibility
+5. Capacity stress test (not part of the normal cycle)
 - Appendix A. Tests imported from the archive, with their titles
 - Appendix B. Traceability: specification section to tests
 - Appendix C. Requirements that have no test yet
@@ -412,6 +413,14 @@ Accessibility tests are carried out with a screen reader (NVDA or the platform's
 
 ---
 
+## 5. Capacity stress test
+
+This is not part of the normal test cycle. It checks how the program and Google behave with a very large data set: 250 contacts and 1,000 appointments. It is run on the scratch account only, when the capacity of the sync is in question. It is not expected in routine runs, and the specification does not expect thousands of records in any other test.
+
+| ID | Title | Procedure and expected result | How run |
+|---|---|---|---|
+| CS-001 | Purge the account, then upload 250 contacts and 1,000 appointments, half by the Google API and half by ContactManager, and leave them in place | Imported from the archive as `U01` (`autotest/archive/google_bench.py`). The purge removes everything of each kind on the account, so run it only on the scratch account. Expect every contact and appointment on Google once, and the sync to finish within its time. Records are left in place. | Automated (bench), capacity only |
+
 ## Appendix A. Tests imported from the archive
 
 These tests were written earlier and exist in `autotest/archive/`. They are kept, with their titles as they were written. Each is given a new ID in its area, with its original code. Those that use the test bench's own test data (the `Bench` contacts and `BENCH ` appointments) will be re-pointed to the six fixtures (0.4) when the benches are rewritten.
@@ -420,7 +429,7 @@ Sources: `autotest/archive/google_bench.py` (bench scenarios), `autotest/archive
 
 Area assignment is by the test's content: a test that calls the sync, or whose title is about Google or sync, is in area 1; the other tests are placed in the area of the feature they check. The code letters are not reused between tests: two bench scenarios share the code L05 and L06 (the screen-reader tests of #101 and the notes tests of #105). Their new IDs keep them apart.
 
-Counts: Google sync 144, Announcements 85, Start-up and shutdown 7, By menu and function 29, By dialog 12, Accessibility 2. Total 279.
+Counts: Google sync 143, Announcements 85, Start-up and shutdown 7, By menu and function 29, By dialog 12, Accessibility 2. Total 278 (U01 is in section 5, a capacity stress test).
 
 ### A.1 Google sync (area 1)
 
@@ -525,7 +534,6 @@ Counts: Google sync 144, Announcements 85, Start-up and shutdown 7, By menu and 
 | GS-197 | `R05` | #105 Google master, edit in Google, repeat: the Google change is downloaded, and the repeat is kept |
 | GS-198 | `AR01` | #105 Archive: an entry that the window leaves behind is archived; moved into the window on Google, it is restored and leaves the archive |
 | GS-199 | `U02` | #105 Uploads: 40 appointments added in the app inside the window are all on Google after one sync (the 66 not uploaded) |
-| GS-200 | `U01` | #105 Uploads: purge the account, then upload 250 contacts and 1,000 appointments (half by the Google API, half by ContactManager), left in place |
 | GS-201 | `W01` | #105 Window: an entry that starts before the window and ends inside it is downloaded, once |
 | GS-202 | `W02` | #105 Window: an entry that ends before the window is not downloaded, and stays on Google once |
 | GS-203 | `W03` | #105 Window: an entry beyond the far edge of the window is not downloaded, and stays on Google once |
