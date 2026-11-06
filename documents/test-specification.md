@@ -36,7 +36,7 @@ Every test has a unique ID and a one-line title. The prefix is the area:
 | `MF` | By menu and function (3b) |
 | `DL` | By dialog (3c) |
 | `AC` | Accessibility (area 4) |
-| `UT` | Unit suite (section 6; a reference for the suite as a whole) |
+| `UT-001` to `UT-114` | Unit suite (section 6), one number for each unit test |
 
 Each test has its own number within its area.
 
@@ -478,7 +478,124 @@ This is not part of the normal test cycle. It checks how the program and Google 
 
 ## 6. Unit suite
 
-Reference `UT`. The unit suite is one build and one run of unit tests. It covers 114 unit tests: 84 announcement tests (area 2), 16 calendar tests (area 3b) and 14 sync tests (area 1). Its tests are not listed one by one here. The bench scenario L01 is the bench's runner for the suite, so it is not counted again. The suite is included in the cycle total in `documents/test-duration-estimate.md`.
+Reference `UT`. The unit suite is one build and one run of unit tests, numbered `UT-001` to `UT-114` in the order they run. It covers 114 unit tests: 84 announcement tests (area 2), 22 calendar tests (area 3b) and 8 sync tests (area 1). The numbers follow the order of the test functions in the file, and the group column gives each one's section in the file. The bench scenario L01 is the bench's runner for the suite, so it is not counted again. The suite is included in the cycle total in `documents/test-duration-estimate.md`.
+
+| ID | Unit test (function in `tst_messages.cpp`) | Area | Group in the file |
+|---|---|---|---|
+| UT-001 | `reminderDueWithinTheReminderHours` | Announcements (area 2) | The reminder: 24 hours before |
+| UT-002 | `reminderDueAtTheStartOfTheDayBefore` | Announcements (area 2) | The reminder: 24 hours before |
+| UT-003 | `reminderDueForAnAppointmentThatHasStarted` | Announcements (area 2) | The reminder: 24 hours before |
+| UT-004 | `reminderFollowsRemindHours` | Announcements (area 2) | The reminder: 24 hours before |
+| UT-005 | `confirmOnlyJustInside36Hours` | Announcements (area 2) | The confirm-only window: 36 hours by default |
+| UT-006 | `confirmOnlyExactly36HoursIsNot` | Announcements (area 2) | The confirm-only window: 36 hours by default |
+| UT-007 | `confirmOnlyForShortNotice` | Announcements (area 2) | The confirm-only window: 36 hours by default |
+| UT-008 | `confirmOnlyAndReminderMeetAtTheBoundary` | Announcements (area 2) | The confirm-only window: 36 hours by default |
+| UT-009 | `confirmOnlyDefaultIs1Point5TimesRemind` | Announcements (area 2) | The confirm-only window: 36 hours by default |
+| UT-010 | `confirmOnlyUsesAValidValue` | Announcements (area 2) | The confirm-only window: 36 hours by default |
+| UT-011 | `confirmOnlyLessThanRemindUsesTheDefault` | Announcements (area 2) | The confirm-only window: 36 hours by default |
+| UT-012 | `confirmOnlyNotANumberUsesTheDefault` | Announcements (area 2) | The confirm-only window: 36 hours by default |
+| UT-013 | `remindHoursDefaultsAndLimits` | Announcements (area 2) | The confirm-only window: 36 hours by default |
+| UT-014 | `holdLastsWaitMinutes` | Announcements (area 2) | The hold, the send window and the same day |
+| UT-015 | `sendWindowIsStartInclusiveEndExclusive` | Announcements (area 2) | The hold, the send window and the same day |
+| UT-016 | `onTheDayUsesLocalDate` | Announcements (area 2) | The hold, the send window and the same day |
+| UT-017 | `dayRecordKeepsTheChannelsOfTheDay` | Announcements (area 2) | The hold, the send window and the same day |
+| UT-018 | `newAppointmentByEmailGetsAConfirmation` | Announcements (area 2) | The messages decided for an appointment |
+| UT-019 | `newAppointmentByTextGetsAConfirmation` | Announcements (area 2) | The messages decided for an appointment |
+| UT-020 | `newAppointmentWithBothGetsEmailOnly` | Announcements (area 2) | The messages decided for an appointment |
+| UT-021 | `newAppointmentWithNoChannelGetsNothing` | Announcements (area 2) | The messages decided for an appointment |
+| UT-022 | `confirmOnlyFoldsTheReminderIntoTheConfirmation` | Announcements (area 2) | The messages decided for an appointment |
+| UT-023 | `changedAppointmentGetsAnUpdateOnItsChannel` | Announcements (area 2) | The messages decided for an appointment |
+| UT-024 | `unchangedSentAppointmentGetsNothing` | Announcements (area 2) | The messages decided for an appointment |
+| UT-025 | `deletedSentAppointmentGetsACancellationOnItsChannel` | Announcements (area 2) | The messages decided for an appointment |
+| UT-026 | `deletedUnsentAppointmentGetsNothing` | Announcements (area 2) | The messages decided for an appointment |
+| UT-027 | `reminderOnceByTheChannelOfTheContact` | Announcements (area 2) | The messages decided for an appointment |
+| UT-028 | `reminderIsNotSentTwice` | Announcements (area 2) | The messages decided for an appointment |
+| UT-029 | `reminderNotDueIsNotSent` | Announcements (area 2) | The messages decided for an appointment |
+| UT-030 | `removedOccurrenceIsCancelledOnItsChannel` | Announcements (area 2) | The messages decided for an appointment |
+| UT-031 | `removedOccurrenceOnlyForARepeat` | Announcements (area 2) | The messages decided for an appointment |
+| UT-032 | `onTheDayBothChannelsAreSentOnTheDay` | Announcements (area 2) | The on-the-day messages: both channels, once each, on the day |
+| UT-033 | `onTheDayTextIsSentWhenEmailHasGone` | Announcements (area 2) | The on-the-day messages: both channels, once each, on the day |
+| UT-034 | `onTheDayEmailIsSentWhenTextHasGone` | Announcements (area 2) | The on-the-day messages: both channels, once each, on the day |
+| UT-035 | `onTheDayIsNotSentAgainOnceBothHaveGone` | Announcements (area 2) | The on-the-day messages: both channels, once each, on the day |
+| UT-036 | `onTheDayIsSentForASingleChannel` | Announcements (area 2) | The on-the-day messages: both channels, once each, on the day |
+| UT-037 | `onTheDayIsNotSentOnAnotherDay` | Announcements (area 2) | The on-the-day messages: both channels, once each, on the day |
+| UT-038 | `sameDayBookingGivesItsEmailAndThenTheOnTheDayText` | Announcements (area 2) | The on-the-day messages: both channels, once each, on the day |
+| UT-039 | `sameDayTextBookingCoversTheDaysText` | Announcements (area 2) | The on-the-day messages: both channels, once each, on the day |
+| UT-040 | `sameDaySmsIsSentWhenBookedEarlierAndTheDayComes` | Announcements (area 2) | The on-the-day messages: both channels, once each, on the day |
+| UT-041 | `caseSevenEmailIsTheConfirmationWhenWindowOpensLate` | Announcements (area 2) | The cases in the messaging rules document, decided one message at a time |
+| UT-042 | `caseSevenTextIsTheOnTheDayTextWhenWindowOpensLate` | Announcements (area 2) | The cases in the messaging rules document, decided one message at a time |
+| UT-043 | `caseSevenBothIsEmailThenTheOnTheDayText` | Announcements (area 2) | The cases in the messaging rules document, decided one message at a time |
+| UT-044 | `caseEightNoReminderOnTheDay` | Announcements (area 2) | The cases in the messaging rules document, decided one message at a time |
+| UT-045 | `reminderOnTheDayIsReplacedByTheOnTheDayText` | Announcements (area 2) | The cases in the messaging rules document, decided one message at a time |
+| UT-046 | `channelSwitchedToTextSendsOnlyWhatIsPending` | Announcements (area 2) | The cases in the messaging rules document, decided one message at a time |
+| UT-047 | `scenarioCreatedThirtySixHoursAheadBothChannels` | Announcements (area 2) | The timing and the messages together, at the 24 and 36 hour boundaries |
+| UT-048 | `scenarioCreatedTwentyFiveHoursAheadBothChannels` | Announcements (area 2) | The timing and the messages together, at the 24 and 36 hour boundaries |
+| UT-049 | `scenarioBookedOnTheDayBothChannels` | Announcements (area 2) | The timing and the messages together, at the 24 and 36 hour boundaries |
+| UT-050 | `listedOccurrencesOfARepeat` | Calendar (area 3b) | Appointments: the occurrences the calendar lists |
+| UT-051 | `removedOccurrenceIsNotListed` | Calendar (area 3b) | Appointments: the occurrences the calendar lists |
+| UT-052 | `repeatWithEveryOccurrenceRemovedListsNothing` | Calendar (area 3b) | Appointments: the occurrences the calendar lists |
+| UT-053 | `periodsTouchingAtAnEndDoNotClash` | Calendar (area 3b) | Appointments: the occurrences the calendar lists |
+| UT-054 | `clashIgnoresARemovedOccurrence` | Calendar (area 3b) | Appointments: the occurrences the calendar lists |
+| UT-055 | `clashWithAListedOccurrence` | Calendar (area 3b) | Appointments: the occurrences the calendar lists |
+| UT-056 | `repeatWithNoOccurrenceLeftIsFound` | Calendar (area 3b) | Appointments: the occurrences the calendar lists |
+| UT-057 | `clashIsNotReportedForAnEmptyRepeat` | Calendar (area 3b) | Appointments: the occurrences the calendar lists |
+| UT-058 | `getDateGivesACopyThatStaysTheSame` | Calendar (area 3b) | Appointments: the occurrences the calendar lists |
+| UT-059 | `sentStateDoesNotCountAsAnEdit` | Calendar (area 3b) | Appointments: the occurrences the calendar lists |
+| UT-060 | `googleRecordCopyDoesNotRestartTheWait` | Calendar (area 3b) | Appointments: the occurrences the calendar lists |
+| UT-061 | `contactLinkIsKeptWhenTheContactExists` | Calendar (area 3b) | Appointments: the occurrences the calendar lists |
+| UT-062 | `contactLinkIsSetByAnExactNameMatch` | Calendar (area 3b) | Appointments: the occurrences the calendar lists |
+| UT-063 | `contactLinkIsRemovedWhenTheNameMatchesMoreThanOne` | Calendar (area 3b) | Appointments: the occurrences the calendar lists |
+| UT-064 | `contactLinkIsRemovedWhenNoNameMatches` | Calendar (area 3b) | Appointments: the occurrences the calendar lists |
+| UT-065 | `singleAppointmentEndedBeforeTheEdgeIsExpired` | Calendar (area 3b) | Expired appointments and repeats that have passed the edge of the window (issue #96) |
+| UT-066 | `repeatStartMovesToTheFirstOccurrenceInTheWindow` | Calendar (area 3b) | Expired appointments and repeats that have passed the edge of the window (issue #96) |
+| UT-067 | `repeatTrimKeepsOnlyTheExceptionsStillToCome` | Calendar (area 3b) | Expired appointments and repeats that have passed the edge of the window (issue #96) |
+| UT-068 | `repeatWithNoOccurrenceLeftIsExpired` | Calendar (area 3b) | Expired appointments and repeats that have passed the edge of the window (issue #96) |
+| UT-069 | `trimKeepsTheMessageSignatureSoTheContactIsNotMessaged` | Calendar (area 3b) | Expired appointments and repeats that have passed the edge of the window (issue #96) |
+| UT-070 | `focusGoesToTheNearestDate` | Calendar (area 3b) | Expired appointments and repeats that have passed the edge of the window (issue #96) |
+| UT-071 | `twoDigitYearsUseTheCenturyOfThisYear` | Calendar (area 3b) | Expired appointments and repeats that have passed the edge of the window (issue #96) |
+| UT-072 | `ratePacerIsOffWithoutRateLimits` | Sync (area 1) | Issue #94: pacing of the uploads after Google's rate limits |
+| UT-073 | `ratePacerStartsAtFourSecondsAfterFiveLimitedOfAHundred` | Sync (area 1) | Issue #94: pacing of the uploads after Google's rate limits |
+| UT-074 | `ratePacerHalvesEvery500DownToHalfASecond` | Sync (area 1) | Issue #94: pacing of the uploads after Google's rate limits |
+| UT-075 | `ratePacerCountsOnlyTheLastHundred` | Sync (area 1) | Issue #94: pacing of the uploads after Google's rate limits |
+| UT-076 | `numericDatesAreParsed` | Sync (area 1) | Issue #94: pacing of the uploads after Google's rate limits |
+| UT-077 | `typedDatesAreParsed` | Sync (area 1) | Issue #94: pacing of the uploads after Google's rate limits |
+| UT-078 | `loadKeepsTheSavedUpdatedDate` | Sync (area 1) | Issue #94: pacing of the uploads after Google's rate limits |
+| UT-079 | `mergedSentStateDoesNotCountAsAnEdit` | Sync (area 1) | Issue #94: pacing of the uploads after Google's rate limits |
+| UT-080 | `limitsStopMessagesOnceReached` | Announcements (area 2) | Corner cases from issue #110 |
+| UT-081 | `limitsAreCheckedHourFirst` | Announcements (area 2) | Corner cases from issue #110 |
+| UT-082 | `failedMessageWaitsBeforeItIsTriedAgain` | Announcements (area 2) | Corner cases from issue #110 |
+| UT-083 | `failedMessageIsGivenUpAfterMaxRetries` | Announcements (area 2) | Corner cases from issue #110 |
+| UT-084 | `messageWithNoFailureMayBeTried` | Announcements (area 2) | Corner cases from issue #110 |
+| UT-085 | `channelNeedsItsOwnAddress` | Announcements (area 2) | Corner cases from issue #110 |
+| UT-086 | `missingEmailAddressSendsNothingByEmailButTextStillGoes` | Announcements (area 2) | Corner cases from issue #110 |
+| UT-087 | `noUsableChannelSendsNothing` | Announcements (area 2) | Corner cases from issue #110 |
+| UT-088 | `onTheDayUsesTheReminderTemplateWhenNotSet` | Announcements (area 2) | Corner cases from issue #110 |
+| UT-089 | `reminderIs24ElapsedHoursAcrossTheClockChange` | Announcements (area 2) | Corner cases from issue #110 |
+| UT-090 | `onTheDayIsTheLocalDateAcrossTheClockChange` | Announcements (area 2) | Corner cases from issue #110 |
+| UT-091 | `onTheDayAndReminderAcrossTheYearBoundary` | Announcements (area 2) | Corner cases from issue #110 |
+| UT-092 | `onTheDayAndReminderAcrossTheLeapDay` | Announcements (area 2) | Corner cases from issue #110 |
+| UT-093 | `backlogOfChangesGivesOneUpdate` | Announcements (area 2) | Corner cases from issue #110 |
+| UT-094 | `deletedAndRecreatedInsideTheHoldSendsOneConfirmation` | Announcements (area 2) | Corner cases from issue #110 |
+| UT-095 | `secondOccurrenceOfARepeatIsStillReminded` | Announcements (area 2) | Corner cases from issue #110 |
+| UT-096 | `signatureChangesOnlyForWhatMessagesShow` | Announcements (area 2) | Corner cases from issue #110 |
+| UT-097 | `editWithinConfirmOnlyReplacesTheReminder` | Announcements (area 2) | Corner cases from issue #110 |
+| UT-098 | `secondCopyCannotTakeTheDataLock` | Announcements (area 2) | Corner cases from issue #110 |
+| UT-099 | `smsKeyIsReportedInTheLastThirtyDays` | Announcements (area 2) | Corner cases from issue #110 |
+| UT-100 | `onlyASentMessageIsRecorded` | Announcements (area 2) | Corner cases from issue #110 |
+| UT-101 | `blankEmailSenderSendsNothingAndSaysWhy` | Announcements (area 2) | Message senders: from ContactManager.ini only, never from the template |
+| UT-102 | `blankSmsSenderSendsNothingAndSaysWhy` | Announcements (area 2) | Message senders: from ContactManager.ini only, never from the template |
+| UT-103 | `whitespaceOnlySenderCountsAsBlank` | Announcements (area 2) | Message senders: from ContactManager.ini only, never from the template |
+| UT-104 | `emailIsSentWithTheIniSender` | Announcements (area 2) | Message senders: from ContactManager.ini only, never from the template |
+| UT-105 | `smsIsSentWithTheIniSenderAndTheText` | Announcements (area 2) | Message senders: from ContactManager.ini only, never from the template |
+| UT-106 | `transportFailureIsReturnedWithItsReason` | Announcements (area 2) | Message senders: from ContactManager.ini only, never from the template |
+| UT-107 | `maybeSentIsReturnedAsMaybeSent` | Announcements (area 2) | Message senders: from ContactManager.ini only, never from the template |
+| UT-108 | `templateFirstLineIsTheSubjectAndTheRestIsTheBody` | Announcements (area 2) | Templates: the first line is the subject (or the text), and there is no sender line |
+| UT-109 | `smsTemplateIsOneLineOfText` | Announcements (area 2) | Templates: the first line is the subject (or the text), and there is no sender line |
+| UT-110 | `templateWithNoSubjectIsRejected` | Announcements (area 2) | Templates: the first line is the subject (or the text), and there is no sender line |
+| UT-111 | `shippedTemplatesHaveNoSenderLine` | Announcements (area 2) | Templates: the first line is the subject (or the text), and there is no sender line |
+| UT-112 | `missingSenderWarningsNameEachBlankChannel` | Announcements (area 2) | Startup: a warning for each blank sender |
+| UT-113 | `testCodeIsTheLeadingCode` | Announcements (area 2) | Startup: a warning for each blank sender |
+| UT-114 | `testTagIsReplacedAndNothingElseChanges` | Announcements (area 2) | Startup: a warning for each blank sender |
 
 Its tests are being rewritten and moved with the archive (ticket #121), and its run instructions are kept there until then.
 
