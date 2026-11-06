@@ -1,7 +1,7 @@
 #!/bin/sh
 # Builds sync_driver (autotest/archive/bench/sync_driver.cpp) against the application's objects.
 #
-# The application must already be built in BUILD (qmake6 and make, HEADLESS-TEST.md section 1).  The driver is
+# The application must already be built in BUILD (qmake6 and make, documents/headless-test.md section 1).  The driver is
 # compiled with the same defines and include paths as the Makefile, and linked with every object of the build
 # except main.o, so it always uses the current application code.
 #

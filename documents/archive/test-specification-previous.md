@@ -334,4 +334,4 @@ Conventions the tests rely on:
 - Accelerated messaging run: `test-results/20261102-2313/`, `test-results/20261103-0140/` (run-results.csv, report-final.md, expected.json).
 - Rules and decisions: `documents/messaging-rules.md`.
 - Bench runs: `scratchpad/bench/runs/`, one folder per scenario, with `report1.txt`, `dump.json`, `driver.log`, `stdout.log`.
-- Guide: `autotest/HEADLESS-TEST.md`.
+- Guide: `documents/headless-test.md`.

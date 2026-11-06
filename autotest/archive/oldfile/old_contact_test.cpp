@@ -1,6 +1,6 @@
 // Loads a contact file written before the email and phone labels existed, and checks that it keeps its meaning.
 // The working folder (argv[1]) must hold old-contact.contact and old-other.contact; the test writes its copy there too.
-// Build: see autotest/HEADLESS-TEST.md, section 5a.  Run with CM_TEST_SECRET set, as the bench does.
+// Build: see documents/headless-test.md, section 5a.  Run with CM_TEST_SECRET set, as the bench does.
 #include <QApplication>
 #include <QFile>
 #include <QDir>
