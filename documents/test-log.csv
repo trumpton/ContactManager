@@ -198,100 +198,100 @@ GS-040,,,NOT RUN,,
 GS-041,,,NOT RUN,,
 SS-001,2026-11-06,2fab977,PASS,,
 SS-002,2026-11-06,2fab977,PASS,,
-SS-003,2026-11-06,2fab977,FAIL,,
+SS-003,2026-11-06,2fab977,FAIL,,"Needs checking: Three wrong passwords offer set-up or close, and close exits without c"
 SS-004,2026-11-06,2fab977,PASS,,
-SS-005,2026-11-06,2fab977,FAIL,,
+SS-005,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
 SS-006,2026-11-06,2fab977,PASS,,
-SS-007,2026-11-06,2fab977,FAIL,,
-SS-008,2026-11-06,2fab977,FAIL,,
-SS-009,2026-11-06,2fab977,FAIL,,
+SS-007,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+SS-008,2026-11-06,2fab977,FAIL,,"Needs checking: The first start on a day makes one backup zip, and a second start that"
+SS-009,2026-11-06,2fab977,FAIL,,"Bench: the stored text ends in a newline, and the expected text does not."
 SS-010,2026-11-06,2fab977,PASS,,
-SS-011,2026-11-06,2fab977,FAIL,,
-SS-012,2026-11-06,2fab977,FAIL,,
+SS-011,2026-11-06,2fab977,FAIL,,"Bench: six contacts load, but the test expects the unreadable file to leave five; check the fixture set-up."
+SS-012,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
 SS-013,2026-11-06,2fab977,NOT RUN,,Blocked: no check could be made (see the operation report).
 SS-014,2026-11-06,2fab977,PASS,,
 SS-015,2026-11-06,2fab977,PASS,,
-MF-001,2026-11-06,2fab977,FAIL,,
-MF-002,2026-11-06,2fab977,FAIL,,
-MF-003,2026-11-06,2fab977,FAIL,,
-MF-004,2026-11-06,2fab977,FAIL,,
-MF-005,2026-11-06,2fab977,FAIL,,
+MF-001,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+MF-002,2026-11-06,2fab977,FAIL,,Needs checking: File > Save (Ctrl+S) saves the open contact and its files
+MF-003,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+MF-004,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+MF-005,2026-11-06,2fab977,FAIL,,Needs checking: File > Import reads an export back without duplicates
 MF-006,2026-11-06,2fab977,PASS,,
-MF-007,2026-11-06,2fab977,FAIL,,
-MF-008,2026-11-06,2fab977,FAIL,,
+MF-007,2026-11-06,2fab977,FAIL,,Needs checking: File > Key and Password enables items according to whether the program
+MF-008,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
 MF-009,2026-11-06,2fab977,PASS,,
-MF-010,2026-11-06,2fab977,FAIL,,
+MF-010,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
 MF-011,2026-11-06,2fab977,PASS,,
 MF-012,2026-11-06,2fab977,PASS,,
-MF-013,2026-11-06,2fab977,FAIL,,
-MF-014,2026-11-06,2fab977,FAIL,,
-MF-015,2026-11-06,2fab977,FAIL,,
-MF-016,2026-11-06,2fab977,FAIL,,
-MF-017,2026-11-06,2fab977,FAIL,,
-MF-018,2026-11-06,2fab977,FAIL,,
-MF-019,2026-11-06,2fab977,FAIL,,
-MF-020,2026-11-06,2fab977,FAIL,,
-MF-021,2026-11-06,2fab977,FAIL,,
+MF-013,2026-11-06,2fab977,FAIL,Ticket #119 is open: the File menu still has the Test Function item.,Needs checking: The File menu has no Test Function item
+MF-014,2026-11-06,2fab977,FAIL,,Needs checking: Find Here (Ctrl+F) and Find Next (F3) move through matches on the page
+MF-015,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+MF-016,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+MF-017,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+MF-018,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+MF-019,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+MF-020,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+MF-021,2026-11-06,2fab977,FAIL,,Needs checking: Duplicate Hidden Auto-Email Entries lists hidden contacts that share a
 MF-022,2026-11-06,2fab977,NOT RUN,,Blocked: no check could be made (see the operation report).
-MF-023,2026-11-06,2fab977,FAIL,,
-MF-024,2026-11-06,2fab977,FAIL,,
+MF-023,2026-11-06,2fab977,FAIL,,"Needs checking: Goto Journal (Ctrl+J) opens the journal in Easy Notepad, and a missing"
+MF-024,2026-11-06,2fab977,FAIL,,"Bench: the stored text ends in a newline, and the expected text does not."
 MF-025,2026-11-06,2fab977,PASS,,
-MF-026,2026-11-06,2fab977,FAIL,,
-MF-027,2026-11-06,2fab977,FAIL,,
-MF-028,2026-11-06,2fab977,FAIL,,
+MF-026,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+MF-027,2026-11-06,2fab977,FAIL,,"Needs checking: Goto Contact Details (Alt+N, M, A, P, B) moves to each section of the "
+MF-028,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
 MF-029,2026-11-06,2fab977,PASS,,
-MF-030,2026-11-06,2fab977,FAIL,,
+MF-030,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
 MF-031,2026-11-06,2fab977,PASS,,
-MF-032,2026-11-06,2fab977,FAIL,,
-MF-033,2026-11-06,2fab977,FAIL,,
+MF-032,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+MF-033,2026-11-06,2fab977,FAIL,,Needs checking: Remove Appointment (Ctrl+R) deletes the selected entry after confirmat
 MF-034,2026-11-06,2fab977,PASS,,
 MF-035,2026-11-06,2fab977,PASS,,
-MF-036,2026-11-06,2fab977,FAIL,,
-MF-037,2026-11-06,2fab977,FAIL,,
+MF-036,2026-11-06,2fab977,FAIL,,"Needs checking: Contact Details enables editing of the open contact (Alt+E, D)"
+MF-037,2026-11-06,2fab977,FAIL,,"Bench: the answer to the question is set after the menu operation that opens it, so the driver stalls on the question and the rest of the test does not run."
 MF-038,2026-11-06,2fab977,NOT RUN,,Blocked: no check could be made (see the operation report).
-MF-039,2026-11-06,2fab977,FAIL,,
-MF-040,2026-11-06,2fab977,FAIL,,
-MF-041,2026-11-06,2fab977,FAIL,,
-MF-042,2026-11-06,2fab977,FAIL,,
-MF-043,2026-11-06,2fab977,FAIL,,
-MF-044,2026-11-06,2fab977,FAIL,,
-MF-045,2026-11-06,2fab977,FAIL,,
+MF-039,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+MF-040,2026-11-06,2fab977,FAIL,,Needs checking: Transaction Income (Ctrl++) adds an income entry to the contact's log
+MF-041,2026-11-06,2fab977,FAIL,,Needs checking: Transaction Expense (Ctrl+-) adds an expense entry to the contact's lo
+MF-042,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+MF-043,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+MF-044,2026-11-06,2fab977,FAIL,,Needs checking: About shows the program's name and version
+MF-045,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
 MF-046,2026-11-06,2fab977,PASS,,
 MF-047,2026-11-06,2fab977,PASS,,
 MF-048,2026-11-06,2fab977,PASS,,
-MF-049,2026-11-06,2fab977,FAIL,,Partly blocked: some checks could not be made (see the operation report).
+MF-049,2026-11-06,2fab977,FAIL,,"Partly blocked: some checks could not be made (see the operation report). Needs checking: With no contact open, Space, N, P and the arrows beep and change nothi"
 MF-050,2026-11-06,2fab977,PASS,,
 MF-051,2026-11-06,2fab977,PASS,,
-MF-052,2026-11-06,2fab977,FAIL,,
-MF-053,2026-11-06,2fab977,FAIL,,
-DL-001,2026-11-06,2fab977,FAIL,,
+MF-052,2026-11-06,2fab977,FAIL,,"Bench: the stored text ends in a newline, and the expected text does not."
+MF-053,2026-11-06,2fab977,FAIL,,"Needs checking: Contact Details (Alt+D) is unavailable with no contact open, and avail"
+DL-001,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
 DL-002,2026-11-06,2fab977,NOT RUN,,Blocked: no check could be made (see the operation report).
-DL-003,2026-11-06,2fab977,FAIL,,
-DL-004,2026-11-06,2fab977,FAIL,,
-DL-005,2026-11-06,2fab977,FAIL,,
-DL-007,2026-11-06,2fab977,FAIL,,
-DL-008,2026-11-06,2fab977,FAIL,,
+DL-003,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+DL-004,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+DL-005,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+DL-007,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+DL-008,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
 DL-009,2026-11-06,2fab977,PASS,,
 DL-010,2026-11-06,2fab977,NOT RUN,,Blocked: no check could be made (see the operation report).
-DL-011,2026-11-06,2fab977,FAIL,,
-DL-012,2026-11-06,2fab977,FAIL,,
-DL-013,2026-11-06,2fab977,FAIL,,
+DL-011,2026-11-06,2fab977,FAIL,,"Needs checking: A clash in the appointment form offers a change, and declining saves n"
+DL-012,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+DL-013,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
 DL-014,2026-11-06,2fab977,PASS,,
 DL-015,2026-11-06,2fab977,PASS,,
 DL-016,2026-11-06,2fab977,PASS,,
-DL-017,2026-11-06,2fab977,FAIL,,
+DL-017,2026-11-06,2fab977,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
 DL-018,2026-11-06,2fab977,PASS,,
 DL-019,2026-11-06,2fab977,PASS,,
-DL-020,2026-11-06,8c6434b,FAIL,,
-DL-021,2026-11-06,8c6434b,FAIL,,
-DL-022,2026-11-06,8c6434b,FAIL,,
-DL-023,2026-11-06,8c6434b,FAIL,,Partly blocked: some checks could not be made (see the operation report). Partly blocked: some checks could not be made.
-DL-024,2026-11-06,8c6434b,FAIL,,
-DL-025,2026-11-06,8c6434b,FAIL,,
-DL-026,2026-11-06,8c6434b,FAIL,,
-DL-027,2026-11-06,8c6434b,FAIL,,
+DL-020,2026-11-06,8c6434b,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+DL-021,2026-11-06,8c6434b,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+DL-022,2026-11-06,8c6434b,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+DL-023,2026-11-06,8c6434b,FAIL,,"Partly blocked: some checks could not be made (see the operation report). Partly blocked: some checks could not be made. Needs checking: The Logs window updates while open, and closing it returns focus to th"
+DL-024,2026-11-06,8c6434b,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+DL-025,2026-11-06,8c6434b,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+DL-026,2026-11-06,8c6434b,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
+DL-027,2026-11-06,8c6434b,FAIL,,"Needs checking: The typed-date box moves the list for valid dates, and beeps and close"
 DL-028,2026-11-06,8c6434b,PASS,,
-DL-029,2026-11-06,8c6434b,FAIL,,
+DL-029,2026-11-06,8c6434b,FAIL,,"Bench: the test sets Yes and No before the question, so the answer is not Escape and Escape is not tested. The deletion comes from the set answers."
 DL-030,2026-11-06,8c6434b,PASS,,
 AC-001,,,NOT RUN,,
 AC-002,,,NOT RUN,,
@@ -455,14 +455,14 @@ IG-140,,,NOT RUN,,
 IG-141,,,NOT RUN,,
 IG-142,,,NOT RUN,,
 IO-001,,,NOT RUN,,
-IO-002,2026-11-06,8c6434b,FAIL,,
+IO-002,2026-11-06,8c6434b,FAIL,,Needs checking: Tidy Contacts merges two entries for one person when they share an add
 IO-003,2026-11-06,8c6434b,PASS,,
 IO-004,2026-11-06,8c6434b,PASS,,
 IO-005,,,NOT RUN,,
 IO-006,2026-11-06,8c6434b,PASS,,
 IO-007,2026-11-06,8c6434b,PASS,,
 IO-008,,,NOT RUN,,
-IO-009,2026-11-06,8c6434b,FAIL,,
+IO-009,2026-11-06,8c6434b,FAIL,,Bench: the expected row count is one less than the weeks in the window (window edge).
 IO-010,2026-11-06,8c6434b,PASS,,
 IO-011,2026-11-06,8c6434b,NOT RUN,,Blocked: no check could be made.
 IO-012,2026-11-06,8c6434b,PASS,,
@@ -471,7 +471,7 @@ IO-014,2026-11-06,8c6434b,PASS,,
 IO-015,2026-11-06,8c6434b,PASS,,
 IO-016,2026-11-06,8c6434b,PASS,,
 IO-017,,,NOT RUN,,
-IO-018,2026-11-06,8c6434b,FAIL,,
+IO-018,2026-11-06,8c6434b,FAIL,,Bench: the appointment file is not found where the test looks (no saved file to move).
 IO-019,2026-11-06,8c6434b,PASS,,
 IO-020,2026-11-06,8c6434b,PASS,,
 IA-001,,,NOT RUN,,
