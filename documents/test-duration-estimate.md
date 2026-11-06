@@ -2,7 +2,7 @@
 
 Companion to `documents/test-specification.md`. It gives how long one full cycle of the tests takes, by area, with the basis for each figure.
 
-A cycle runs every test once. It takes about **8 hours 01 minutes to 11 hours 41 minutes** of machine time and person time together. That excludes the capacity stress test in section 5 of the test specification (U01, 17 minutes 42 seconds), which is not part of a normal cycle. Only the screen-reader tests in area 4 need a person, about **1 hour 12 minutes to 1 hour 30 minutes**. Everything else is automated: area 1 needs the network and the disposable Google account, and area 2 needs the accelerated harness.
+A cycle runs every test once. It takes about **8 hours 30 minutes to 12 hours 24 minutes** of machine time and person time together. That excludes the capacity stress test in section 5 of the test specification (U01, 17 minutes 42 seconds), which is not part of a normal cycle. Only the screen-reader tests in area 4 need a person, about **1 hour 12 minutes to 1 hour 30 minutes**. Everything else is automated: area 1 needs the network and the disposable Google account, and area 2 needs the accelerated harness.
 
 ---
 
@@ -10,13 +10,13 @@ A cycle runs every test once. It takes about **8 hours 01 minutes to 11 hours 41
 
 | Area | Tests | Automated | Person's time | Total (low to high) |
 |---|---|---|---|---|
-| 1 Google sync (live system access) | 42 new, 142 imported (U01 is in section 5) | 5 h 09 min to 7 h 43 min | none | 5 h 09 min to 7 h 43 min |
+| 1 Google sync (live system access) | 24 tests (47 runs), 142 imported (U01 is in section 5) | 5 h 38 min to 8 h 26 min | none | 5 h 38 min to 8 h 26 min |
 | 5 Capacity stress test (not part of the normal cycle) | CS-001, the imported U01 | 17 min 42 s | none | 17 min 42 s, shown separately |
 | 2 Announcements (offline, accelerated clock, stub transports) | 48 new, in 10 parallel runs | 16 min to 17 min (the longest run) | none | 16 min to 17 min |
 | 6 Unit suite | 114 imported | 3 min to 5 min | none | 3 min to 5 min |
 | 3 Operation testing | 97 new, 20 imported (IO-001 to IO-020), 1 old-file test (OF-001) | 1 h 18 min to 2 h 03 min | none | 1 h 18 min to 2 h 03 min |
 | 4 Accessibility (manual, with automated checks) | 18 new, 2 imported | 3 min | 1 h 12 min to 1 h 30 min | 1 h 15 min to 1 h 33 min |
-| **Total (cycle, excluding section 5)** | **205 new, 278 imported** | **6 h 49 min to 10 h 11 min** | **1 h 12 min to 1 h 30 min** | **8 h 01 min to 11 h 41 min** |
+| **Total (cycle, excluding section 5)** | **187 new, 278 imported** | **7 h 18 min to 10 h 54 min** | **1 h 12 min to 1 h 30 min** | **8 h 30 min to 12 h 24 min** |
 
 The unit suite is one build and one run, covering all 114 unit tests: 84 announcement tests (area 2), 22 calendar tests (area 3b) and 8 sync tests (area 1). The bench scenario L01 is the bench's runner for the same suite, so it is not counted again.
 
@@ -53,10 +53,10 @@ Area 3 is automated. Its figures are the operation runner's runs through the tes
 
 ### 2.3 What each area counts
 
-- **Area 1** counts the 42 new live tests and the 142 imported Google scenarios (`documents/imported-tests.md`), at the median (77 s) for the low figure and the 90th percentile (102 s) for the high figure. The durations were calculated on 131 Google scenarios and 31 operation scenarios. The register now has 142 and 20, and the durations have not been recalculated; this needs checking. The clean-up is counted once. U01 is not counted here: it is the capacity stress test in section 5 of the test specification (CS-001), and is shown on its own line.
+- **Area 1** counts the 47 live runs of the 24 tests (GS-001 to GS-041; the 18 merged IDs run as part of their tests, section 1 of `documents/test-specification.md`) and the 142 imported Google scenarios (`documents/imported-tests.md`). Each live run is 3 to 5 minutes, and each imported scenario is 77 s (median) to 102 s (90th percentile), plus 15 to 30 minutes of clean-up. These are the same figures as before, and they reproduce the earlier 5 h 09 min to 7 h 43 min for 42 tests and 131 scenarios.
 - **Section 5 (capacity stress test)** counts U01 (CS-001) at its measured time, 17 min 42 s. It runs on the scratch account only, when capacity is in question.
 - **Area 2** counts the 48 new accelerated tests (AN-001 to AN-048).
-- **Area 3** counts the 97 new operation tests (SS: 15, MF: 53, DL: 29, including DL-022) at 20 to 40 seconds each, the five minutes for the multi-run tests, and the 20 imported operation scenarios (IO-001 to IO-020, see `documents/imported-tests.md`; the estimate's earlier figure was 31 SS 6, MF 13, DL 12) at the measured times, plus the old-file test.
+- **Area 3** counts the 97 new operation tests (SS: 15, MF: 53, DL: 29, including DL-022) at 20 to 40 seconds each, the five minutes for the multi-run tests, and the 20 imported operation scenarios (IO-001 to IO-020, see `documents/imported-tests.md`; the estimate's earlier figure was 31 SS 6, MF 13, DL 12) at the measured times, plus the old-file test. The durations for area 3 have not been recalculated for the change from 31 to 20 imported operation scenarios, since their per-scenario times are not yet measured; the figure above still uses 31.
 - **Area 4** counts the 18 new screen-reader tests (manual) and the two imported accessibility scenarios (automated).
 
 ---
@@ -105,7 +105,7 @@ What would make them faster, in order of effect (these are suggestions for the b
 
 | Risk | Effect | Mitigation |
 |---|---|---|
-| Google changes its limits or latency | Area 1 takes longer, and the rate-limit tests (GS-036) change | Measure again at the first full cycle, and update this estimate. |
+| Google changes its limits or latency | Area 1 takes longer, and the rate-limit tests (GS-033, which carries GS-036) change | Measure again at the first full cycle, and update this estimate. |
 | The scratch account keeps growing | Each Google listing takes longer (section 3) | Tidy the account before each cycle, or give the bench a fresh calendar. |
 | The accelerated harness is not yet in the repository (test specification Appendix B, item 3) | Area 2 cannot be run from the repository until it is brought in | A prerequisite. The estimate assumes it is in place. |
 | The operation runner is not finished | Area 3 is estimated, and not yet measured | Measure the first full run of area 3, and update the 20 to 40 second figure. |

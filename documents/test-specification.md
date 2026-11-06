@@ -139,7 +139,31 @@ These tests use the six fixture contacts (0.4), a disposable account (0.6), and 
 | 1.2 Appointments | 8 | GS-015, GS-017, GS-020, GS-023, GS-025 | GS-028, GS-029, GS-030 |
 | 1.3 Interruptions, limits, tokens and copies | 8 | GS-031, GS-032, GS-033, GS-041 | GS-035, GS-038, GS-039, GS-040 |
 
-So there are 13 merged tests, which together contain the checks of 31 tests from an earlier draft, and 11 single tests: 42 in all. Every check is kept.
+The earlier draft had **42 tests**, GS-001 to GS-042. Eighteen of those draft tests run the same steps as another test, so they are **merged** into it: the test that is run also carries their checks, and they are not run on their own. The table below gives each merged ID and the test it is merged into. So the 24 tests above run 47 times in all (section 1.5), and all 42 IDs are still tracked: the 18 merged IDs have their own rows in `documents/test-log.csv`.
+
+**Merged IDs.** Each of these is run as part of the test named in the second column.
+
+| Merged ID | Merged into | What its checks cover |
+|---|---|---|
+| GS-004 | GS-003 | An email changed on Google reaches the app once, with no duplicate |
+| GS-006 | GS-005 | When both sides change a field, Google as master keeps Google's version |
+| GS-007 | GS-005 | An edit made only in the app is replaced by Google's copy, Google as master |
+| GS-009 | GS-008 | A contact deleted in the app stays deleted, Google as master |
+| GS-013 | GS-012 | With encryption on, no plain text is on disk after a sync |
+| GS-014 | GS-012 | A deleted contact's history and to-do files stay together, and moving them back restores it |
+| GS-016 | GS-015 | An appointment made on Google for contact 2 is downloaded once, linked to contact 2 |
+| GS-018 | GS-017 | An appointment deleted in the app is deleted on Google |
+| GS-019 | GS-017 | An appointment deleted on Google is removed in the app, Google as master |
+| GS-021 | GS-020 | Deleting one occurrence of a repeat leaves the others |
+| GS-022 | GS-020 | Splitting a repeat ("this and following") gives no duplicates |
+| GS-024 | GS-023 | An archived appointment moved back into the window is restored from the archive |
+| GS-026 | GS-025 | An appointment dated 1 January 1970 is not uploaded, and the others sync |
+| GS-027 | GS-025 | An appointment organised by someone else is not uploaded across syncs |
+| GS-034 | GS-031 | A refused sign-in tells the user to sign in again, and changes nothing locally |
+| GS-036 | GS-033 | A rate limit on upload is retried with waits, and a failure gives its reason |
+| GS-037 | GS-032 | A malformed reply for one contact skips that contact with a reason, and the others sync |
+| GS-042 | GS-041 | The set-up's saved account is the one used, and the clean-up refuses any other account |
+
 
 **Running one test on its own.** Every test can be run on its own, as its ID, for example GS-008. A merged test runs as a whole: GS-008 includes the checks of the test merged into it (deleting a contact when Google is master), so running GS-008 runs both. The only set-up a test needs is the fixture contacts (GS-001, creating contacts 1 to 6 and saving). No test relies on another test's result, except the steps of GS-020, which are in sequence on one repeat.
 
@@ -183,6 +207,57 @@ So there are 13 merged tests, which together contain the checks of 31 tests from
 | GS-039 | Two copies of the program on one calendar each see the other's change, with no duplicates | Run two copies on one data folder's calendar. Change an appointment in one. Sync both. Expect the change in the other, and no duplicate. | Both |
 | GS-040 | Switching the master between syncs, with edits on both sides, leaves one copy of each record | Edit contacts 1 and 2 on both sides, sync (CM). Switch to G, edit again, sync. Expect one copy of each record. | Both |
 | GS-041 | The clean-up removes only the records of the run, and the set-up's saved account is the one used. | Run the set-up `--check`: expect the account to work. Run the clean-up with a token for another account: expect it to stop before any delete. Run the clean-up: expect no test records left, and the next sync to start from an empty account. The clean-up finds records by the IDs the run recorded, or by a search for the test prefix. It does not list the whole account. | Both |
+
+### 1.4 Set-up and running
+
+The bench is in `autotest/googlesync/`: `googlesync_tests.py` (the tests, their runner and checks), `gs_common.py` (the helpers: Google calls, fixture contacts and events on Google, home folders, running the driver) and `driver/` (the headless sync driver, which starts the program, runs its operations and writes a dump of the contacts and appointments).
+
+1. Set up the disposable Google account once, with `autotest/utilities/setup_test_account.py`. The account file is kept outside the repository.
+2. Build the program, then the driver: `sh autotest/googlesync/driver/build_driver.sh ~/build-contactmanager`. This writes `~/build-contactmanager/sync_driver`; use `--driver` to point elsewhere.
+
+    python3 autotest/googlesync/googlesync_tests.py --list
+    python3 autotest/googlesync/googlesync_tests.py                  # all, one after another
+    python3 autotest/googlesync/googlesync_tests.py GS-008           # one test on its own
+    python3 autotest/googlesync/googlesync_tests.py GS-008 GS-010 --out ~/gs-run
+
+Tests run one at a time, never in parallel, because Google rate-limits them. Each test, and each configuration of it, starts from an empty test account and clears up afterwards. The clean-up finds the bench's records by the test domain and the test prefix. It does not list the whole account.
+
+Evidence goes to `--out` (by default a timestamped folder in the home folder, outside the repository). Each test and configuration has a folder with its homes, the driver's runs (ops, log, dump, results), `checks.txt` (every check, marked `pass`, `FAIL` or `BLOCKED`), and a `summary.json` at the top.
+
+### 1.5 Configurations and the number of runs
+
+A test marked **Both** runs twice: under **CM** (ContactManager is the master) and under **G** (Google is the master). The test sets the master in each home before its first run. GS-003 is CM only. So the 24 tests make **47 runs**: 23 tests run twice, and GS-003 runs once.
+
+### 1.6 Checks that are blocked, and why
+
+Some checks cannot yet be made. The bench reports each as `BLOCKED` in `checks.txt`, not as a pass.
+
+| Test | Check | Reason |
+|---|---|---|
+| GS-011 | Google shows contact 1 as hidden | The bench does not know how the program marks a hidden contact on Google. Confirm, then add the check. |
+| GS-011 | No message for contact 1 | Messages are area 2 (AN-027). |
+| GS-015 | The link to contact 1 on Google | The rule for the link the program writes to Google is not confirmed. The bench checks the program's side: the appointment's contact, read back from the dump. |
+| GS-031 | Real network loss and a revoked grant | The bench injects them with `CM_TEST_FAULTS`. It does not disconnect the network or revoke the grant. |
+| GS-032 | Malformed reply for contact 3 | The fault plan (`googleaccess_network.cpp`) has status and `closed` faults only. A malformed-reply fault needs adding there. |
+| GS-033 | Pacing adapts | The bench does not yet read request timings from the log. |
+
+### 1.7 Interpretations to confirm
+
+These are the choices the bench makes where the specification and the program leave a detail open. Each is named in its test.
+
+- **Tidy Records** is run as the driver's `tidy_full` (Tidy Contacts, as the menu runs it).
+- **The window** is set with the keys `windowbefore` and `windowafter` (days). The ini key for the download window (`downloaddaysbefore`, ticket #118) is not yet read by the program, so GS-023 and GS-038 use the Setup window.
+- **The link from a Google appointment to a contact** is made by the contact being an attendee of the Google event (GS-015, GS-017, GS-023, GS-038). The program's rule needs confirming. If it differs, change `create_linked_event` in one place.
+- **GS-008, Google master.** The bench deletes contact 5 again, syncs, then syncs again and checks that the contact is not brought back.
+- **GS-012, encryption.** The encrypted check uses a home whose database is encrypted from its first run, not a plain home switched to encryption, because the program does not convert files that already exist (section 2.5).
+- **GS-035 (20 contacts).** The test stops the sync with `w11=closed`, a connection closed by Google at the eleventh write. The 20 contacts are extra contacts in the test domain; the six fixture contacts are not used.
+- **Report wording.** The checks on what the report says (GS-005, GS-031, GS-033, GS-025, GS-032) match words in the driver's log loosely. Each is to be tightened once the program's report text is confirmed.
+
+### 1.8 Clean-up, GS-041 and the driver
+
+The default clean-up (`autotest/utilities/clean_test_data.py`) finds the test records by search: the People search for the test domain, and the Calendar search for the test prefix. It does not list the account. GS-041 checks this by reading the utility's source: its listing calls may appear only in the `--all-data` branch.
+
+The driver's contact dump includes `hidden` and `deleted` flags for each contact (GS-008, GS-011). The driver must be rebuilt before the next run.
 
 ---
 
