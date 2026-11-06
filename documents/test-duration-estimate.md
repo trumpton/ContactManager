@@ -18,7 +18,7 @@ A cycle runs every test once. It takes about **8 hours 01 minutes to 11 hours 41
 | 4 Accessibility (manual, with automated checks) | 18 new, 2 imported | 3 min | 1 h 12 min to 1 h 30 min | 1 h 15 min to 1 h 33 min |
 | **Total (cycle, excluding section 5)** | **205 new, 278 imported** | **6 h 49 min to 10 h 11 min** | **1 h 12 min to 1 h 30 min** | **8 h 01 min to 11 h 41 min** |
 
-The unit suite is one build and one run, covering all 114 unit tests: 84 announcement tests (area 2), 16 calendar tests (area 3b) and 14 sync tests (area 1). The bench scenario L01 is the bench's runner for the same suite, so it is not counted again.
+The unit suite is one build and one run, covering all 114 unit tests: 84 announcement tests (area 2), 22 calendar tests (area 3b) and 8 sync tests (area 1). The bench scenario L01 is the bench's runner for the same suite, so it is not counted again.
 
 Area 3 is automated. Its figures are the operation runner's runs through the test driver, not a person's time. Each new test is one driver run, about 20 to 40 seconds with the program's start-up and the six fixture contacts. The imported scenarios are the bench's own runs, at the same measured times as area 1.
 
