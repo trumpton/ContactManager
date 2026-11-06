@@ -209,6 +209,7 @@ int main(int argc, char *argv[])
     QWidget *lastmodal = nullptr ;
     int clicksonthis = 0 ;
     QString nextanswer ;     // The button the next yes/no question is answered with, set by an "answer" operation
+    QString nextkey ;        // A key sent to the next yes/no question (Escape, Enter), set by an "answer" operation with a key
     bool holdDialogs = false ;   // while set, an ordinary dialog is left open for a "press" or "widgets" operation
     QList<QDateTime> nextfroms ;   // The start each appointment form is given when it is shown, then OK is pressed
     QTimer *tick = new QTimer(&a) ;
@@ -233,6 +234,15 @@ int main(int argc, char *argv[])
                     return ;
                 }
             }
+        }
+
+        // A question answered by a key, as a user presses Escape or Enter on it
+        if (!nextkey.isEmpty() && QString(m->metaObject()->className()) == "WarningYesNo") {
+            Qt::Key k = (nextkey == "Enter") ? Qt::Key_Return : Qt::Key_Escape ;
+            note("key " + nextkey + " to question: " + m->windowTitle()) ;
+            nextkey.clear() ;
+            QTest::keyClick(m, k) ;
+            return ;
         }
 
         if (!nextanswer.isEmpty()) {
@@ -866,8 +876,13 @@ int main(int argc, char *argv[])
 
         } else if (kind == "answer") {
             // Clicks the button with this text on the next dialog that asks a question
-            nextanswer = op["text"].toString() ;
-            note("answer next question: " + nextanswer) ;
+            if (op.contains("key")) {
+                nextkey = op["key"].toString() ;
+                note("answer next question with key: " + nextkey) ;
+            } else {
+                nextanswer = op["text"].toString() ;
+                note("answer next question: " + nextanswer) ;
+            }
 
         } else if (kind == "exit") {
             // File > Exit, or Alt-F4: the window's close event decides whether the window closes.  The event is sent

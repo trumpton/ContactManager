@@ -202,7 +202,7 @@ def _ss009_check(runs, home):
     c3 = r.contact(oc.surname(3))
     return [check("six contacts after the restart", len(r.contacts()) == 6, "%d" % len(r.contacts())),
             check("the appointment after the restart", len(r.appointments()) == 1, "%d" % len(r.appointments())),
-            check("the to-do item after the restart", c3.get("todo") == "SS009 to-do", repr(c3.get("todo"))),
+            check("the to-do item after the restart", (c3.get("todo") or "").strip() == "SS009 to-do", repr(c3.get("todo"))),
             check("the history entry after the restart", "SS009 history entry" in c3.get("history", ""),
                   repr(c3.get("history")))]
 

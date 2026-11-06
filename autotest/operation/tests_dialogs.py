@@ -474,7 +474,7 @@ test("DL-028", "The tidy progress window shows its summary, and closes", _dl028_
 
 def _dl029_build(home):
     return [run_spec(oc.fixtures_ops()),
-            run_spec([oc.open_op(1, "o"), oc.hold_op(), oc.menu_op("del", "actionDeleteContact"), oc.keys_op("esc", "Escape"),
+            run_spec([oc.open_op(1, "o"), oc.hold_op(), oc.answer_key_op("Escape"), oc.menu_op("del", "actionDeleteContact"),
                       oc.hold_op(False), oc.dump_op()])]
 
 

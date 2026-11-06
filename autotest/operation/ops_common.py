@@ -332,6 +332,11 @@ def state_op(name):
     return {"op": "state", "name": name}
 
 
+def answer_key_op(key):
+    """The next yes/no question is answered by this key (Escape or Enter), as a user would press it."""
+    return {"op": "answer", "key": key}
+
+
 def answer_op(text):
     """Clicks the button with this text on the next question (a message box with buttons)."""
     return {"op": "answer", "text": text}

@@ -291,7 +291,7 @@ DL-025,2026-11-06,8c6434b,FAIL,,"Bench: the driver does not record this window, 
 DL-026,2026-11-06,8c6434b,FAIL,,"Bench: the driver does not record this window, list or value yet, so the check reads nothing (see the detail)."
 DL-027,2026-11-06,8c6434b,FAIL,,"Needs checking: The typed-date box moves the list for valid dates, and beeps and close"
 DL-028,2026-11-06,8c6434b,PASS,,
-DL-029,2026-11-06,8c6434b,FAIL,,"Bench: the test sets Yes and No before the question, so the answer is not Escape and Escape is not tested. The deletion comes from the set answers."
+DL-029,2026-11-06,8c6434b,FAIL,,"Bench: the test set no answer, so the question was not answered and the driver gave up on it. Corrected: the test now presses Escape at the question (answer_key_op, driver key support)."
 DL-030,2026-11-06,8c6434b,PASS,,
 AC-001,,,NOT RUN,,
 AC-002,,,NOT RUN,,
