@@ -187,82 +187,115 @@ These tests use the six fixture contacts (0.4), a disposable account (0.6), and 
 
 ## 2. Announcements (offline, accelerated clock, stub transports)
 
-These tests run the program headless, with the stub transports (0.8), on the accelerated clock (0.7). Each test is one scenario of about one to three days of program time; the scenarios are combined into one three-day run for AN-041. Expected times are program times. A message is on time when sent at the expected time or at the next check (within 6 minutes).
+These tests run the program headless, with the stub transports (0.8), on the accelerated clock (0.7). Expected times are program times. A message is on time when sent at the expected time or at the next check (within 6 minutes). The tests are grouped into runs, as section 2.0 explains.
 
 Defaults apply unless a test says otherwise: hold 5 minutes, send window 07:00 to 22:00, reminder 24 hours before, confirm-only 36 hours, limits 5 an hour and 10 a day.
+
+### 2.0 How the announcement tests are run
+
+The announcement tests run as **runs**. A run is one headless process of the program, with its own data folder, its own home folder and its own accelerated clock. Runs are independent, so **the runs listed below run in parallel**, and the whole set takes as long as the longest run: at most four virtual days, which is 16 minutes of real time at 360 times.
+
+**Why the runs are grouped.** Two tests can share a run only if neither changes anything the other relies on. These things are shared by every test in a run, so each is kept to one run:
+- a contact's state (email or text ticked, a deleted or hidden contact, a removed address);
+- a global setting, template or sender in the ini file;
+- the stub transport's failures;
+- the default limits (5 an hour, 10 a day), or the raised limits (20000);
+- a restart or a second copy of the program;
+- the date a run starts from.
+
+| Run | Tests | Why it is a separate run | Length |
+|---|---|---|---|
+| A (main) | AN-001 to AN-021, AN-024, AN-025, AN-047 | Plain tests on any fixture contact. Limits raised to 20000. | 3 virtual days |
+| B (contact state) | AN-026 to AN-030 | Each changes one contact's state (deleted, hidden, a channel changed, no channel, no address). Each uses its own contact. | up to 3 virtual days |
+| C (restarts) | AN-031 to AN-034, AN-043 | Each stops and restarts the program. The restart times are part of each test. | up to 4 virtual days |
+| L (limits) | AN-022, AN-023 | Need the defaults (5 an hour, 10 a day). AN-023 also restarts the program. | up to 2 virtual days |
+| D (dates) | AN-045, AN-046 | Each starts the clock on a date of its own (a clock change; New Year). | up to 2 virtual days |
+| G1 (senders) | AN-036, AN-037 | Each blanks a sender in the ini file. | up to 1 virtual day |
+| G2 (templates) | AN-038, AN-039, AN-044 | Each changes a message template. | up to 2 virtual days |
+| G3 (transport) | AN-040, AN-041, AN-042 | Each makes the stub transport fail. | up to 2 virtual days |
+| G4 (reminders) | AN-048 | Turns the reminders off for the whole run. | up to 3 virtual days |
+| N (second copy) | AN-035 | Starts a second copy on run A's data folder while run A runs. The second copy holds no lock, so it sends nothing. | alongside run A |
+
+**Selection.** The operator chooses which tests to run. By default every test is selected. A selected test starts only the run it belongs to, with only the selected tests in it. A request for AN-017 alone runs only AN-017, in run A.
+
+**Stopping.** A run ends when every selected test in it has completed, or at four virtual days, whichever comes first. A test completes at the last time any of its expected messages is due, plus one hour of program time, to check that nothing else is sent. A test with no expected message completes one hour after its last step. So a test that completes after one virtual day ends its run after one virtual day.
+
+**Unpicking the messages.** Each message is matched to its test by its recipient and the appointment time it quotes. Each test's appointment times are its own, so the match is unique within a run. A subject that carries the test number is an option, and needs the message template to carry it (a decision is pending).
+
+**Time.** The runs run in parallel, so the set takes about 16 minutes: the longest run, at four virtual days, plus start-up. That is the target the operator has accepted.
 
 ### 2.1 Creation, update and cancellation
 
 | ID | Title | Procedure and expected result | Run |
 |---|---|---|---|
-| AN-001 | An appointment made for contact 1 at 10:00 is confirmed by email at 10:05 | Create at 10:00, three days ahead. Expect one email to contact 1 at 10:05, with the details. | Accelerated |
-| AN-002 | An appointment made for contact 3 is confirmed by text at 10:05 | As AN-001, for contact 3 (text only). Expect one text at 10:05, and no email. | Accelerated |
-| AN-003 | An appointment for contact 5 (both channels) is confirmed by email only | As AN-001, for contact 5. Expect one email at 10:05 and no text. | Accelerated |
-| AN-004 | On the day, an email-only contact gets one email from 07:00 | Appointment for contact 2 on day 2. Expect one email at 07:00 on day 2. | Accelerated |
-| AN-005 | On the day, a text-only contact gets one text from 07:00 | Appointment for contact 4 on day 2. Expect one text at 07:00 on day 2. | Accelerated |
-| AN-006 | On the day, a contact with both channels gets an email, then a text | Appointment for contact 6 on day 2. Expect one email, then one text, from 07:00 on day 2. | Accelerated |
-| AN-007 | A reminder is sent 24 hours before, once | Appointment for contact 2 at 15:00 on day 3. Expect one reminder email at 15:00 on day 2. | Accelerated |
-| AN-008 | An appointment made 30 hours before its start gets its confirmation only, with no reminder | Create for contact 4 at 09:00 on day 2, for 15:00 on day 3. Expect one confirmation, and no reminder. | Accelerated |
-| AN-009 | Edits within the hold give one confirmation with the final details | Create for contact 1; edit at +2 and +4 minutes. Expect one confirmation at +9 minutes with the final details. | Accelerated |
-| AN-010 | An edit and its reversal within the hold send nothing | Create for contact 1; change at +2, change back at +4. Expect one confirmation with the original details, at +9 minutes, or nothing if deleted before. | Accelerated |
-| AN-011 | An edit after confirmation sends one update with the final details, after the hold | Confirm; at +1 hour, move twice within the hold. Expect one update, with the final details, at the end of the hold. | Accelerated |
-| AN-012 | A cancellation after confirmation is sent at once, not held | Confirm; at +1 hour, delete. Expect a cancellation at once, on the same channel. | Accelerated |
-| AN-013 | An appointment created and deleted before confirmation sends nothing | Create at 10:00; delete at 10:01. Expect nothing sent. | Accelerated |
-| AN-014 | A title or location change alone sends no update | Confirm; change the title only. Expect nothing sent. | Accelerated |
-| AN-015 | A repeat occurrence removed after confirmation sends a cancellation for that date only | Weekly repeat for contact 2, confirmed; delete one occurrence. Expect one cancellation for that date, by email, and no other message. | Accelerated |
-| AN-016 | Each occurrence of a repeat is reminded once | Weekly repeat for contact 5 over three weeks. Expect one reminder per occurrence, and none twice. | Accelerated |
+| AN-001 | An appointment made for contact 1 at 10:00 is confirmed by email at 10:05 | Create at 10:00, three days ahead. Expect one email to contact 1 at 10:05, with the details. | Accelerated, run A |
+| AN-002 | An appointment made for contact 3 is confirmed by text at 10:05 | As AN-001, for contact 3 (text only). Expect one text at 10:05, and no email. | Accelerated, run A |
+| AN-003 | An appointment for contact 5 (both channels) is confirmed by email only | As AN-001, for contact 5. Expect one email at 10:05 and no text. | Accelerated, run A |
+| AN-004 | On the day, an email-only contact gets one email from 07:00 | Appointment for contact 2 on day 2. Expect one email at 07:00 on day 2. | Accelerated, run A |
+| AN-005 | On the day, a text-only contact gets one text from 07:00 | Appointment for contact 4 on day 2. Expect one text at 07:00 on day 2. | Accelerated, run A |
+| AN-006 | On the day, a contact with both channels gets an email, then a text | Appointment for contact 6 on day 2. Expect one email, then one text, from 07:00 on day 2. | Accelerated, run A |
+| AN-007 | A reminder is sent 24 hours before, once | Appointment for contact 2 at 15:00 on day 3. Expect one reminder email at 15:00 on day 2. | Accelerated, run A |
+| AN-008 | An appointment made 30 hours before its start gets its confirmation only, with no reminder | Create for contact 4 at 09:00 on day 2, for 15:00 on day 3. Expect one confirmation, and no reminder. | Accelerated, run A |
+| AN-009 | Edits within the hold give one confirmation with the final details | Create for contact 1; edit at +2 and +4 minutes. Expect one confirmation at +9 minutes with the final details. | Accelerated, run A |
+| AN-010 | An edit and its reversal within the hold send nothing | Create for contact 1; change at +2, change back at +4. Expect one confirmation with the original details, at +9 minutes, or nothing if deleted before. | Accelerated, run A |
+| AN-011 | An edit after confirmation sends one update with the final details, after the hold | Confirm; at +1 hour, move twice within the hold. Expect one update, with the final details, at the end of the hold. | Accelerated, run A |
+| AN-012 | A cancellation after confirmation is sent at once, not held | Confirm; at +1 hour, delete. Expect a cancellation at once, on the same channel. | Accelerated, run A |
+| AN-013 | An appointment created and deleted before confirmation sends nothing | Create at 10:00; delete at 10:01. Expect nothing sent. | Accelerated, run A |
+| AN-014 | A title or location change alone sends no update | Confirm; change the title only. Expect nothing sent. | Accelerated, run A |
+| AN-015 | A repeat occurrence removed after confirmation sends a cancellation for that date only | Weekly repeat for contact 2, confirmed; delete one occurrence. Expect one cancellation for that date, by email, and no other message. | Accelerated, run A |
+| AN-016 | Each occurrence of a repeat is reminded once | Weekly repeat for contact 5 over three weeks. Expect one reminder per occurrence, and none twice. | Accelerated, run A |
 
 ### 2.2 Send window, silent period and backlogs
 
 | ID | Title | Procedure and expected result | Run |
 |---|---|---|---|
-| AN-017 | An appointment made at 21:30 is confirmed at 07:00, when the window opens | Create at 21:30 for the next day. Expect the confirmation at 07:00, not before. | Accelerated |
-| AN-018 | A reminder due in the silent period is sent once, at 07:00 | Appointment whose reminder is due at 23:00. Expect the reminder at 07:00, once. | Accelerated |
-| AN-019 | Edits made overnight send one update at 07:00, with the final times | Confirm at 20:00; edit at 21:00, 22:30 and 23:30. Expect one update at 07:00 with the final times. | Accelerated |
-| AN-020 | A send due at 22:00 waits until 07:00 | Create so that the confirmation is due at 22:00. Expect it sent at 07:00 the next day. | Accelerated |
-| AN-021 | A message due at 07:00 is sent at 07:00 | Create so that the confirmation is due at 07:00. Expect it sent at 07:00. | Accelerated |
-| AN-022 | Twelve appointments for contact 6 created overnight send five at 07:00, five at 08:00, and the rest once the daily limit clears | Create twelve for contact 6 at 23:00. Expect 5 at 07:00, 5 at 08:00, the last two after the daily limit clears. | Accelerated |
-| AN-023 | The limits hold across a restart | Send ten messages to contact 2 on day 1; restart at 12:00. Expect no further messages to contact 2 until the daily limit clears. | Accelerated |
+| AN-017 | An appointment made at 21:30 is confirmed at 07:00, when the window opens | Create at 21:30 for the next day. Expect the confirmation at 07:00, not before. | Accelerated, run A |
+| AN-018 | A reminder due in the silent period is sent once, at 07:00 | Appointment whose reminder is due at 23:00. Expect the reminder at 07:00, once. | Accelerated, run A |
+| AN-019 | Edits made overnight send one update at 07:00, with the final times | Confirm at 20:00; edit at 21:00, 22:30 and 23:30. Expect one update at 07:00 with the final times. | Accelerated, run A |
+| AN-020 | A send due at 22:00 waits until 07:00 | Create so that the confirmation is due at 22:00. Expect it sent at 07:00 the next day. | Accelerated, run A |
+| AN-021 | A message due at 07:00 is sent at 07:00 | Create so that the confirmation is due at 07:00. Expect it sent at 07:00. | Accelerated, run A |
+| AN-022 | Twelve appointments for contact 6 created overnight send five at 07:00, five at 08:00, and the rest once the daily limit clears | Create twelve for contact 6 at 23:00. Expect 5 at 07:00, 5 at 08:00, the last two after the daily limit clears. | Accelerated, run L |
+| AN-023 | The limits hold across a restart | Send ten messages to contact 2 on day 1; restart at 12:00. Expect no further messages to contact 2 until the daily limit clears. | Accelerated, run L |
 
 ### 2.3 Expired, irrelevant and blocked messages
 
 | ID | Title | Procedure and expected result | Run |
 |---|---|---|---|
-| AN-024 | An appointment already started gets no reminder | Appointment that starts at 10:00; the reminder time passes after its start. Expect no reminder. | Accelerated |
-| AN-025 | No message is sent for a past appointment | Appointment that ended yesterday. Run the clock forward. Expect nothing. | Accelerated |
-| AN-026 | A deleted contact's appointments send no messages | Contact 3 deleted; appointments made before. Expect nothing sent to contact 3. | Accelerated |
-| AN-027 | A hidden contact's appointments send no messages | Contact 4 hidden; appointments made. Expect nothing sent to contact 4. | Accelerated |
-| AN-028 | A channel changed after confirmation sends only what is pending on the new channel, and nothing again | Contact 5 confirmed by email; change to text only. Expect only pending messages on text, and no repeat of the email. | Accelerated |
-| AN-029 | A contact with neither channel ticked is sent nothing | Contact with no channel ticked. Expect no message of any kind. | Accelerated |
-| AN-030 | A confirmation falls back to text when email is ticked but the contact has no email address | Contact 1 with email ticked and its address removed, and text ticked with a mobile number. Create an appointment. Expect one text confirmation and no email (specification 5.2). | Accelerated |
+| AN-024 | An appointment already started gets no reminder | Appointment that starts at 10:00; the reminder time passes after its start. Expect no reminder. | Accelerated, run A |
+| AN-025 | No message is sent for a past appointment | Appointment that ended yesterday. Run the clock forward. Expect nothing. | Accelerated, run A |
+| AN-026 | A deleted contact's appointments send no messages | Contact 3 deleted; appointments made before. Expect nothing sent to contact 3. | Accelerated, run B |
+| AN-027 | A hidden contact's appointments send no messages | Contact 4 hidden; appointments made. Expect nothing sent to contact 4. | Accelerated, run B |
+| AN-028 | A channel changed after confirmation sends only what is pending on the new channel, and nothing again | Contact 5 confirmed by email; change to text only. Expect only pending messages on text, and no repeat of the email. | Accelerated, run B |
+| AN-029 | A contact with neither channel ticked is sent nothing | Contact with no channel ticked. Expect no message of any kind. | Accelerated, run B |
+| AN-030 | A confirmation falls back to text when email is ticked but the contact has no email address | Contact 1 with email ticked and its address removed, and text ticked with a mobile number. Create an appointment. Expect one text confirmation and no email (specification 5.2). | Accelerated, run B |
 
 ### 2.4 Restarts, shutdown and two copies
 
 | ID | Title | Procedure and expected result | Run |
 |---|---|---|---|
-| AN-031 | A shutdown during a hold sends the message after restart, with the current details | Create; shut down at +2 minutes; restart at +20 minutes. Expect the confirmation at restart, with the details as they are then. | Accelerated |
-| AN-032 | A reminder missed while the program was off is not sent late once the appointment is on that day | Shut down from 11:00 the day before until 06:00 on the day; appointment at 15:00 on the day. Expect no reminder, and the on-the-day message from 07:00. | Accelerated |
-| AN-033 | A restart in the middle of a day does not repeat the on-the-day messages | Send on-the-day messages; restart at 12:00. Expect none repeated. | Accelerated |
-| AN-034 | Three days off with many edits send one message per appointment, not one per change | Edit ten appointments twenty times each while off; restart. Expect one message per appointment. | Accelerated |
-| AN-035 | A second copy on the same data folder sends no messages and shows the warning | Start a second copy. Expect the warning "Messages Not Sent" and no message from the second copy. | Both copies |
+| AN-031 | A shutdown during a hold sends the message after restart, with the current details | Create; shut down at +2 minutes; restart at +20 minutes. Expect the confirmation at restart, with the details as they are then. | Accelerated, run C |
+| AN-032 | A reminder missed while the program was off is not sent late once the appointment is on that day | Shut down from 11:00 the day before until 06:00 on the day; appointment at 15:00 on the day. Expect no reminder, and the on-the-day message from 07:00. | Accelerated, run C |
+| AN-033 | A restart in the middle of a day does not repeat the on-the-day messages | Send on-the-day messages; restart at 12:00. Expect none repeated. | Accelerated, run C |
+| AN-034 | Three days off with many edits send one message per appointment, not one per change | Edit ten appointments twenty times each while off; restart. Expect one message per appointment. | Accelerated, run C |
+| AN-035 | A second copy on the same data folder sends no messages and shows the warning | Start a second copy. Expect the warning "Messages Not Sent" and no message from the second copy. | Both copies, alongside run N |
 
 ### 2.5 Setup, templates and sending failures
 
 | ID | Title | Procedure and expected result | Run |
 |---|---|---|---|
-| AN-036 | A blank email sender sends no email, logs "sender missing", and adds nothing to history | Blank `[email-reminder] sender`. Expect no email, the log entry, the start-up warning, and no history entry. | Accelerated |
-| AN-037 | A blank text sender sends no text, logs "sender missing", and adds nothing to history | Blank `[sms-reminder] sender`. As AN-036 for texts. | Accelerated |
-| AN-038 | With no on-the-day template, the reminder template is used on the day | Remove `emailtoday`. Expect the reminder template's text on the day. | Accelerated |
-| AN-039 | A template file that cannot be read sends nothing, and the log says why | Point `emailconfirmation` at a missing file. Expect no email, and the log entry. | Accelerated |
-| AN-040 | A send refused by the transport is retried after 5 minutes, and recorded once when it succeeds | Stub refuses the first two sends. Expect retries at +5 and +10 minutes, success on the third try, and one history entry. | Accelerated |
-| AN-041 | A send that always fails is given up after 10 tries, and the log says so | Stub refuses every send. Expect ten tries, then no more, and a log entry giving up. | Accelerated |
-| AN-042 | A text refused by the transport is not recorded as sent, and the reason is logged | Stub refuses one text with a reason. Expect the reason in the log, no history entry, and a retry. | Accelerated |
-| AN-043 | The SMS key expiry warning appears at start-up within 30 days of expiry, and not before | Set expiry 29 days ahead, start; then 31 days ahead, start. Expect a warning only for the first. | Accelerated |
-| AN-044 | A multi-line text template sends only its first line | Text template with two lines. Expect only the first line sent. | Accelerated |
-| AN-045 | A clock change in March keeps the reminder at 24 elapsed hours, and sends in local time | Reminder across 28 March 2027. Expect the reminder 24 hours before, and the window in local time. | Accelerated |
-| AN-046 | A reminder and on-the-day message across New Year are sent on the right dates | Appointment for 1 January with reminder on 31 December. Expect both on the right days. | Accelerated |
-| AN-047 | A three-day mixed run of AN-001 to AN-046 sends every expected message once, and nothing unexpected | Combine the scenarios, run three days. Compare the sent list with the expected list. Expect every expected message on time, once, and no extra. | Accelerated |
-| AN-048 | Setup's "Enable SMS and Email Reminders" off stops all automatic messages | Untick it. Create an appointment for contact 1 and run three days. Expect no message of any kind. Tick it again, create an appointment, and expect its confirmation at the hold's end. | Accelerated |
+| AN-036 | A blank email sender sends no email, logs "sender missing", and adds nothing to history | Blank `[email-reminder] sender`. Expect no email, the log entry, the start-up warning, and no history entry. | Accelerated, run G1 |
+| AN-037 | A blank text sender sends no text, logs "sender missing", and adds nothing to history | Blank `[sms-reminder] sender`. As AN-036 for texts. | Accelerated, run G1 |
+| AN-038 | With no on-the-day template, the reminder template is used on the day | Remove `emailtoday`. Expect the reminder template's text on the day. | Accelerated, run G2 |
+| AN-039 | A template file that cannot be read sends nothing, and the log says why | Point `emailconfirmation` at a missing file. Expect no email, and the log entry. | Accelerated, run G2 |
+| AN-040 | A send refused by the transport is retried after 5 minutes, and recorded once when it succeeds | Stub refuses the first two sends. Expect retries at +5 and +10 minutes, success on the third try, and one history entry. | Accelerated, run G3 |
+| AN-041 | A send that always fails is given up after 10 tries, and the log says so | Stub refuses every send. Expect ten tries, then no more, and a log entry giving up. | Accelerated, run G3 |
+| AN-042 | A text refused by the transport is not recorded as sent, and the reason is logged | Stub refuses one text with a reason. Expect the reason in the log, no history entry, and a retry. | Accelerated, run G3 |
+| AN-043 | The SMS key expiry warning appears at start-up within 30 days of expiry, and not before | Set expiry 29 days ahead, start; then 31 days ahead, start. Expect a warning only for the first. | Accelerated, run C |
+| AN-044 | A multi-line text template sends only its first line | Text template with two lines. Expect only the first line sent. | Accelerated, run G2 |
+| AN-045 | A clock change in March keeps the reminder at 24 elapsed hours, and sends in local time | Reminder across 28 March 2027. Expect the reminder 24 hours before, and the window in local time. | Accelerated, run D |
+| AN-046 | A reminder and on-the-day message across New Year are sent on the right dates | Appointment for 1 January with reminder on 31 December. Expect both on the right days. | Accelerated, run D |
+| AN-047 | Run A, as a whole: every expected message of the run is sent once, on time, and nothing unexpected is sent | Run A runs with its selected tests. Compare the messages sent with the expected list for those tests. Expect every expected message on time, once, and no extra. | Accelerated, run A |
+| AN-048 | Setup's "Enable SMS and Email Reminders" off stops all automatic messages | Untick it. Create an appointment for contact 1 and run three days. Expect no message of any kind. Tick it again, create an appointment, and expect its confirmation at the hold's end. | Accelerated, run G4 |
 
 ---
 

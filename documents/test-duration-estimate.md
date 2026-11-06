@@ -2,7 +2,7 @@
 
 Companion to `documents/test-specification.md`. It gives how long one full cycle of the tests takes, by area, with the basis for each figure.
 
-A cycle runs every test once. It takes about **10 hours to 14 hours 44 minutes** of machine time and person time together. Only the screen-reader tests in area 4 need a person, about **1 hour 12 minutes to 1 hour 30 minutes**. Everything else is automated: area 1 needs the network and the disposable Google account, and area 2 needs the accelerated harness.
+A cycle runs every test once. It takes about **8 hours 19 minutes to 11 hours 59 minutes** of machine time and person time together. Only the screen-reader tests in area 4 need a person, about **1 hour 12 minutes to 1 hour 30 minutes**. Everything else is automated: area 1 needs the network and the disposable Google account, and area 2 needs the accelerated harness.
 
 ---
 
@@ -11,11 +11,11 @@ A cycle runs every test once. It takes about **10 hours to 14 hours 44 minutes**
 | Area | Tests | Automated | Person's time | Total (low to high) |
 |---|---|---|---|---|
 | 1 Google sync (live) | 42 new, 132 imported (one of them is U01) | 5 h 27 min to 8 h 00 min | none | 5 h 27 min to 8 h 00 min |
-| 2 Announcements (accelerated) | 48 new | 1 h 57 min to 3 h 02 min | none | 1 h 57 min to 3 h 02 min |
+| 2 Announcements (accelerated) | 48 new, in 10 parallel runs | 16 min to 17 min (the longest run) | none | 16 min to 17 min |
 | Unit suite (112 tests, in areas 1, 2 and 3b) | 112 imported | 3 min to 5 min | none | 3 min to 5 min |
 | 3 Operation: start-up, menus and dialogs | 97 new, 31 imported, 1 old-file test | 1 h 18 min to 2 h 03 min | none | 1 h 18 min to 2 h 03 min |
 | 4 Accessibility | 18 new, 2 imported | 3 min | 1 h 12 min to 1 h 30 min | 1 h 15 min to 1 h 33 min |
-| **Total** | **205 new, 279 imported** | **8 h 48 min to 13 h 14 min** | **1 h 12 min to 1 h 30 min** | **10 h 00 min to 14 h 44 min** |
+| **Total** | **205 new, 279 imported** | **7 h 07 min to 10 h 29 min** | **1 h 12 min to 1 h 30 min** | **8 h 19 min to 11 h 59 min** |
 
 The unit suite is one build and one run, covering all 112 unit tests: 84 announcement tests (area 2), 16 calendar tests (area 3b) and 12 sync tests (area 1). The bench scenario L01 is the bench's runner for the same suite, so it is not counted again.
 
@@ -42,8 +42,8 @@ Area 3 is automated. Its figures are the operation runner's runs through the tes
 |---|---|---|
 | New Google test (area 1) | 3 to 5 minutes each | A sync takes about 77 s to 102 s. A test with a manual edit on Google takes longer. |
 | Accelerated speed (area 2) | 360 times real time: 10 real seconds = 1 hour | Specification 0.7. A three-day run is 12 minutes. |
-| Accelerated batches | 8 batches of about six scenarios each, each run for three days (AN-048 is in one of them), plus one combined three-day run (AN-047) | One batch is 12 minutes plus 1 minute to set up. The combined run is 13 minutes. |
-| Accelerated re-runs | Up to 1.5 times the batch time | Allows for one re-run of a check. |
+| Accelerated runs | Ten runs in parallel, each with its own data folder and clock (test specification section 2.0): A (3 virtual days), B (3), C (4), L (2), D (2), G1 (1), G2 (2), G3 (2), G4 (3), and N alongside A | Each run ends when its selected tests complete, or at four virtual days. The longest run sets the time: four virtual days is 16 minutes, plus about a minute to start. |
+| Accelerated re-runs | A failed run is re-run once, alone, and the time is the longest run again | Keeps the set within the accepted 16 minutes plus one re-run of the longest run. |
 | Clean-up (area 1) | 15 to 30 minutes, before and after a full run | The clean-up deletes each record with a 0.2 s pause, and a full run leaves about 1,250 records. |
 | New operation test (area 3) | 20 s (low) to 40 s (high) each | One driver run: the program's start-up, the six fixture contacts, the test's keys or menu action, and the check. |
 | Multi-run operation tests (area 3) | Five minutes in total | Tests with a restart, a second copy, a wait or a kill (SS-004, SS-006, SS-008, SS-014). |
