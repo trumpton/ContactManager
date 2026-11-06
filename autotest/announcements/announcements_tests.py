@@ -377,8 +377,8 @@ def check_expectations(expects, groups, sent, codes):
             results.append((False, "sent %d times: %s" % (len(hits), label)))
         used.update(hits)
         m = sent[hits[0]]
-        # A confirmation may arrive up to CONFIRM_LATE after its time; other messages, one check (CHECK) after it.
-        late = M.CONFIRM_LATE if e["kind"] == M.KIND["confirm"] else CHECK
+        # A confirmation, update or cancellation may arrive up to CONFIRM_LATE after its time; others, one check (CHECK).
+        late = M.CONFIRM_LATE if e["kind"] in M.LATE_KINDS else CHECK
         if not (e["when"] <= m.time <= e["when"] + late):
             results.append((False, "late or early: %s sent %s, expected %s to %s" % (label, m.time, e["when"],
                                                                                  e["when"] + late)))
@@ -387,8 +387,8 @@ def check_expectations(expects, groups, sent, codes):
         else:
             results.append((True, "on time: " + label + " at %s" % m.time))
     for g in groups:
-        # A confirmation group's window ends CONFIRM_LATE after its stated end, as a single confirmation may (the bench's rule).
-        end = g["end"] + M.CONFIRM_LATE if g["kind"] == M.KIND["confirm"] else g["end"]
+        # A group of confirmations, updates or cancellations ends CONFIRM_LATE after its stated end (the bench's rule).
+        end = g["end"] + M.CONFIRM_LATE if g["kind"] in M.LATE_KINDS else g["end"]
         inside = [i for i, m in enumerate(sent) if m.code == g["code"] and m.channel == g["channel"]
                   and m.kind == g["kind"] and g["start"] <= m.time <= end]
         used.update(inside)

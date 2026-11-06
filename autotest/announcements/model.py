@@ -39,7 +39,7 @@ LONDON = zoneinfo.ZoneInfo("Europe/London")
 UTC = dt.timezone.utc
 SPEED = 360                                    # 10 real seconds = 1 hour
 CHECK = dt.timedelta(minutes=6)                # one check of the program at 360 times (specification 0.7)
-CONFIRM_LATE = dt.timedelta(minutes=15)        # a confirmation may arrive up to this long after its time (the bench's rule)
+CONFIRM_LATE = dt.timedelta(minutes=15)        # a confirmation, update or cancellation may arrive up to this long late (the bench's rule)
 H = dt.timedelta(hours=1)
 M5 = dt.timedelta(minutes=5)
 M6 = dt.timedelta(minutes=6)
@@ -48,9 +48,11 @@ SENDER_EMAIL = "Bench Clinic <bench@test.invalid>"
 SENDER_SMS = "Bench Clinic"
 NOV2 = dt.datetime(2026, 11, 2)                # day 0 of the main runs: Monday
 DEC30 = dt.datetime(2026, 12, 30)              # for the New Year test
-MAR27 = dt.datetime(2027, 3, 27)               # for the clock-change test (the change is at 01:00 on 28 March)
+MAR26 = dt.datetime(2027, 3, 26)               # for the clock-change test (the change is at 01:00 on 28 March)
 
 KIND = {"confirm": "Confirmation", "update": "Updated", "cancel": "Cancelled", "reminder": "Reminder", "today": "Today"}
+# The kinds that may arrive up to CONFIRM_LATE late. Reminders and on-the-day messages keep the one-check window.
+LATE_KINDS = (KIND["confirm"], KIND["update"], KIND["cancel"])
 
 
 # ------------------------------------------------------------------------------------------------ the contacts
@@ -337,7 +339,7 @@ def an019(B):
     cr = T(B, 0, "19:55")
     occ = T(B, 3, "10:00")
     return dict(events=[(cr, op_add(1, "AN-019 Jack overnight", occ, occ + H)),
-                        (T(B, 0, "21:00"), op_move("AN-019 Jack overnight", T(B, 3, "10:30"), T(B, 3, "11:30"))),
+                        (T(B, 0, "22:15"), op_move("AN-019 Jack overnight", T(B, 3, "10:30"), T(B, 3, "11:30"))),
                         (T(B, 0, "22:30"), op_move("AN-019 Jack overnight", T(B, 3, "10:45"), T(B, 3, "11:45"))),
                         (T(B, 0, "23:30"), op_move("AN-019 Jack overnight", T(B, 3, "11:00"), T(B, 3, "12:00")))],
                 expect=[conf("AN-019", "email", 1, T(B, 0, "20:00"), occ),
@@ -500,13 +502,15 @@ def an023(B):
 # ------------------------------------------------------------------------------------------------ runs D1 and D2: dates
 
 def an045(B):
+    # Made 26 March at 10:00 for 12:00 on 28 March: 50 hours ahead, so the reminder is not confirm-only (36 hours).
     occ = dt.datetime(2027, 3, 28, 12, 0)             # 12:00 British Summer Time, the day after the change
-    cr = dt.datetime(2027, 3, 27, 10, 0)
+    cr = dt.datetime(2027, 3, 26, 10, 0)
     return dict(events=[(cr, op_add(1, "AN-045 Jack clock", occ, occ + H))],
                 expect=[conf("AN-045", "email", 1, cr + M5, occ), rem("AN-045", "email", 1, occ),
                         tod("AN-045", "email", 1, occ)],
                 note="The reminder is 24 elapsed hours before: 11:00 on 27 March, one hour earlier than wall-clock 24 "
-                     "hours, because the clock goes forward at 01:00 on 28 March.")
+                     "hours, because the clock goes forward at 01:00 on 28 March. The appointment is made on 26 March, "
+                     "so it is not confirm-only.")
 
 
 def an046(B):
@@ -545,10 +549,12 @@ def an038(B):
 def an039(B):
     occ, cr = T(B, 3, "10:00"), T(B, 0, "10:00")
     return dict(events=[(cr, op_add(1, "AN-039 Jack missing file", occ, occ + H))],
-                expect=[rem("AN-039", "email", 1, occ), tod("AN-039", "email", 1, occ)],
+                expect=[],
                 logs=[("could not load", True)],
-                note="emailconfirmation points at a file that does not exist (run G2b). The confirmation is not sent; the "
-                     "reminder and the on-the-day message use their own templates.")
+                note="emailconfirmation points at a file that does not exist (run G2b). The confirmation is never sent, and "
+                     "the program then sends nothing else for the appointment: the confirmation is the next step until it is "
+                     "sent (messagedecision.cpp), so the reminder and the on-the-day message are not sent either. The spec "
+                     "row says the appointment 'sends nothing'.")
 
 
 def an040(B):
@@ -565,10 +571,12 @@ def an040(B):
 def an041(B):
     occ, cr = T(B, 3, "10:00"), T(B, 0, "10:00")
     return dict(events=[(cr, op_add(2, "AN-041 Samantha gives up", occ, occ + H))], expect=[],
-                refused=[("AN-041", "Confirmation", 10), ("AN-041", "Reminder", 10), ("AN-041", "Today", 10)],
+                refused=[("AN-041", "Confirmation", 10), ("AN-041", "Reminder", 0), ("AN-041", "Today", 0)],
                 logs=[("given up", True)],
-                note="The stub refuses every send to this address (run G3b). Each message is tried ten times and then given "
-                     "up. The log says 'Given up on ... after 10 tries' (mainwindow_timer_alert.cpp).")
+                note="The stub refuses every send to this address (run G3b). The confirmation is tried ten times and then "
+                     "given up, and the log says 'Given up on ... after 10 tries' (mainwindow_timer_alert.cpp). Nothing else "
+                     "is tried after that: the confirmation is still the next step, so no reminder or on-the-day message is "
+                     "attempted (messagedecision.cpp; the spec row says 'then no more').")
 
 
 def an042(B):
@@ -729,8 +737,8 @@ RUNS = [
          segments=[("L1", NOV2, T(NOV2, 2, "08:10"), {})]),
     _run("L2", NOV2, T(NOV2, 2, "09:00"), ["AN-023"], limits="default",
          segments=[("L2a", NOV2, T(NOV2, 1, "12:00"), {}), ("L2b", T(NOV2, 1, "12:00"), T(NOV2, 2, "09:00"), {})]),
-    _run("D1", MAR27, T(MAR27, 1, "13:00"), ["AN-045"], limits="raised",
-         segments=[("D1", MAR27, T(MAR27, 1, "13:00"), {})]),
+    _run("D1", MAR26, T(MAR26, 2, "13:00"), ["AN-045"], limits="raised",
+         segments=[("D1", MAR26, T(MAR26, 2, "13:00"), {})]),
     _run("D2", DEC30, T(DEC30, 2, "09:00"), ["AN-046"], limits="raised",
          segments=[("D2", DEC30, T(DEC30, 2, "09:00"), {})]),
     _run("G1a", NOV2, T(NOV2, 0, "12:00"), ["AN-036"], limits="raised", email_sender="",

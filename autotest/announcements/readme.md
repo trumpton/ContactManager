@@ -83,7 +83,7 @@ that its own rule keeps apart, the bench splits them (see the list below).
 | C5 | AN-043 | minutes | Two starts: the key expires in 29 days (warning), then in 31 days (none). |
 | L1 | AN-022 | 2 days | Default limits (5 an hour, 10 a day). |
 | L2 | AN-023 | 2 days | Default limits, restart at 12:00 on day 1. |
-| D1 | AN-045 | 2 days | Starts 27 March 2027, across the clock change on 28 March. |
+| D1 | AN-045 | 2 days, 13 hours | Starts 26 March 2027. The appointment is made that day, and its reminder falls across the clock change on 28 March. |
 | D2 | AN-046 | 2 days | Starts 30 December 2026, across New Year. |
 | G1a / G1b | AN-036 / AN-037 | 12 hours | A blank sender each (email / text). |
 | G2a / G2b / G2c | AN-038 / AN-039 / AN-044 | 1 to 3 days | A template change each (emailtoday blank / missing file / two-line text). |

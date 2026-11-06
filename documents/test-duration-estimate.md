@@ -43,7 +43,7 @@ Area 3 is automated. Its figures are the operation runner's runs through the tes
 |---|---|---|
 | New Google test (area 1) | 3 to 5 minutes each | A sync takes about 77 s to 102 s. A test with a manual edit on Google takes longer. |
 | Accelerated speed (area 2) | 360 times real time: 10 real seconds = 1 hour | Specification 0.7. A three-day run is 12 minutes. |
-| Accelerated runs | Ten runs in parallel, each with its own data folder and clock (test specification section 2.0): A (3 virtual days, including AN-016, a daily repeat over three days), B (3), C (4), L (2), D (2), G1 (1), G2 (2), G3 (2), G4 (3), and N alongside A | Each run ends when its selected tests complete, or at four virtual days. The longest run sets the time: four virtual days is 16 minutes, plus about a minute to start. |
+| Accelerated runs | Ten runs in parallel, each with its own data folder and clock (test specification section 2.0): A (3 virtual days, including AN-016, a daily repeat over three days), B (3), C (4), L (2), D (3), G1 (1), G2 (2), G3 (2), G4 (3), and N alongside A | Each run ends when its selected tests complete, or at four virtual days. The longest run sets the time: four virtual days is 16 minutes, plus about a minute to start. |
 | Accelerated re-runs | A failed run is re-run once, alone, and the time is the longest run again | Keeps the set within the accepted 16 minutes plus one re-run of the longest run. |
 | Clean-up (area 1) | 15 to 30 minutes, before and after a full run | The clean-up deletes each record with a 0.2 s pause, and a full run leaves about 1,250 records. |
 | New operation test (area 3) | 20 s (low) to 40 s (high) each | One driver run: the program's start-up, the six fixture contacts, the test's keys or menu action, and the check. |

@@ -102,7 +102,7 @@ Every record the tests create carries an identifier, so it can be found and remo
 
 Area 2 runs on a clock that goes faster than real time: **10 real seconds = 1 hour**, that is 360 times real time. Three days (72 hours) take 12 minutes.
 
-At 360 times, one real second is 6 minutes of program time. The program checks for due messages once per real second, so a message can be up to one check (6 minutes) late in program time. Area 2 expectations allow this: a message is **on time** when it is sent at the expected minute, or at the next check (within 6 minutes), and not later. Any later is a failure. A confirmation is the exception: it may arrive up to **15 virtual minutes** after its expected time, and not later.
+At 360 times, one real second is 6 minutes of program time. The program checks for due messages once per real second, so a message can be up to one check (6 minutes) late in program time. Area 2 expectations allow this: a message is **on time** when it is sent at the expected minute, or at the next check (within 6 minutes), and not later. Any later is a failure. A confirmation, an update and a cancellation are the exception: each may arrive up to **15 virtual minutes** after its expected time, and not later.
 
 The clock is set by the test harness, through a shim that changes the time the program reads (the shim is in the scratch folder, with the harness: Appendix B, item 3). The program's own timers and time reads all follow it.
 
@@ -206,7 +206,7 @@ The announcement tests run as **runs**. A run is one headless process of the pro
 | B (contact state) | AN-026 to AN-030 | Each changes one contact's state (deleted, hidden, a channel changed, no channel, no address). Each uses its own contact. | up to 3 virtual days |
 | C (restarts) | AN-031 to AN-034, AN-043 | Each stops and restarts the program. The restart times are part of each test. | up to 4 virtual days |
 | L (limits) | AN-022, AN-023 | Need the defaults (5 an hour, 10 a day). AN-023 also restarts the program. | up to 2 virtual days |
-| D (dates) | AN-045, AN-046 | Each starts the clock on a date of its own (a clock change; New Year). | up to 2 virtual days |
+| D (dates) | AN-045, AN-046 | Each starts the clock on a date of its own (a clock change; New Year). | up to 3 virtual days |
 | G1 (senders) | AN-036, AN-037 | Each blanks a sender in the ini file. | up to 1 virtual day |
 | G2 (templates) | AN-038, AN-039, AN-044 | Each changes a message template. | up to 2 virtual days |
 | G3 (transport) | AN-040, AN-041, AN-042 | Each makes the stub transport fail. | up to 2 virtual days |
@@ -250,7 +250,7 @@ The announcement tests run as **runs**. A run is one headless process of the pro
 |---|---|---|---|
 | AN-017 | An appointment made at 21:30 is confirmed at 07:00, when the window opens | Create at 21:30 for the next day. Expect the confirmation at 07:00, not before. | Accelerated, run A |
 | AN-018 | A reminder due in the silent period is sent once, at 07:00 | Appointment whose reminder is due at 23:00. Expect the reminder at 07:00, once. | Accelerated, run A |
-| AN-019 | Edits made overnight send one update at 07:00, with the final times | Confirm at 20:00; edit at 21:00, 22:30 and 23:30. Expect one update at 07:00 with the final times. | Accelerated, run A |
+| AN-019 | Edits made overnight send one update at 07:00, with the final times | Confirm at 20:00; edit at 22:15, 22:30 and 23:30. Expect one update at 07:00 with the final times. (The edits are after the send window closes at 22:00, so none is sent overnight.) | Accelerated, run A |
 | AN-020 | A send due at 22:00 waits until 07:00 | Create so that the confirmation is due at 22:00. Expect it sent at 07:00 the next day. | Accelerated, run A |
 | AN-021 | A message due at 07:00 is sent at 07:00 | Create so that the confirmation is due at 07:00. Expect it sent at 07:00. | Accelerated, run A |
 | AN-022 | Twelve appointments for contact 6 created overnight send five at 07:00, five at 08:00, and the rest once the daily limit clears | Create twelve for contact 6 at 23:00. Expect 5 at 07:00, 5 at 08:00, the last two after the daily limit clears. | Accelerated, run L |
@@ -291,7 +291,7 @@ The announcement tests run as **runs**. A run is one headless process of the pro
 | AN-042 | A text refused by the transport is not recorded as sent, and the reason is logged | Stub refuses one text with a reason. Expect the reason in the log, no history entry, and a retry. | Accelerated, run G3 |
 | AN-043 | The SMS key expiry warning appears at start-up within 30 days of expiry, and not before | Set expiry 29 days ahead, start; then 31 days ahead, start. Expect a warning only for the first. | Accelerated, run C |
 | AN-044 | A multi-line text template sends only its first line | Text template with two lines. Expect only the first line sent. | Accelerated, run G2 |
-| AN-045 | A clock change in March keeps the reminder at 24 elapsed hours, and sends in local time | Reminder across 28 March 2027. Expect the reminder 24 hours before, and the window in local time. | Accelerated, run D |
+| AN-045 | A clock change in March keeps the reminder at 24 elapsed hours, and sends in local time | Made on 26 March 2027 at 10:00 for 12:00 on 28 March, so not confirm-only. Expect the confirmation at 10:05 on 26 March, a reminder at 11:00 on 27 March (24 elapsed hours, one hour earlier than wall-clock, across the clock change), and the on-the-day message from 07:00 on 28 March. | Accelerated, run D |
 | AN-046 | A reminder and on-the-day message across New Year are sent on the right dates | Appointment for 1 January with reminder on 31 December. Expect both on the right days. | Accelerated, run D |
 | AN-047 | Run A, as a whole: every expected message of the run is sent once, on time, and nothing unexpected is sent | Run A runs with its selected tests. Compare the messages sent with the expected list for those tests. Expect every expected message on time, once, and no extra. | Accelerated, run A |
 | AN-048 | Setup's "Enable SMS and Email Reminders" off stops all automatic messages | Untick it. Create an appointment for contact 1 and run three days. Expect no message of any kind. Tick it again, create an appointment, and expect its confirmation at the hold's end. | Accelerated, run G4 |
