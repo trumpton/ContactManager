@@ -198,7 +198,7 @@ GS-040,,,NOT RUN,,
 GS-041,,,NOT RUN,,
 SS-001,2026-11-06,9283d87,PASS,,
 SS-002,2026-11-06,9283d87,PASS,,
-SS-003,2026-11-06,9283d87,FAIL,,Run 9283d87: the program does not start: the window showed
+SS-003,2026-11-06,974607e,FAIL,,"Needs checking: after three wrong passwords the program does not start, and the window shown is not the set-up or close choice the test expects."
 SS-004,2026-11-06,9283d87,PASS,,
 SS-005,2026-11-06,b09408e,FAIL,,Bench: the start-up clash report is not written to the log (check the program's log text).
 SS-006,2026-11-06,9283d87,PASS,,
@@ -206,25 +206,25 @@ SS-007,2026-11-06,b09408e,FAIL,,Bench: no sender lines in the log (check the pro
 SS-008,2026-11-06,b09408e,FAIL,,Needs checking: the backup folder is not read the way the test expects.
 SS-009,2026-11-06,9283d87,PASS,,
 SS-010,2026-11-06,9283d87,PASS,,
-SS-011,2026-11-06,9283d87,FAIL,,Run 9283d87: the other five contacts load: 6 contacts
-SS-012,2026-11-06,9283d87,FAIL,,Run 9283d87: the log says the ini file was not found: no such line in the log
+SS-011,2026-11-06,974607e,FAIL,"Needs checking: six contacts load, so the unreadable contact file may be among them.",
+SS-012,2026-11-06,974607e,FAIL,,Needs checking: the log does not say the ini file was not found.
 SS-013,2026-11-06,9283d87,NOT RUN,,"Run 9283d87: blocked: SS-013: BLOCKED, running as root: file permissions are not enforced in this container, so a read-only folder cannot be made. Run the bench as a user without root to test it."
 SS-014,2026-11-06,9283d87,PASS,,
 SS-015,2026-11-06,9283d87,PASS,,
 MF-001,2026-11-06,b09408e,PASS,,
-MF-002,2026-11-06,9283d87,FAIL,,Run 9283d87: Ctrl+S saves the open contact's edit: email 'jack.oneil@sgc.contacmanagertest'
+MF-002,2026-11-06,974607e,FAIL,,"Needs checking: the saved email is read back, and the expected value is not confirmed."
 MF-003,2026-11-06,9283d87,PASS,,
 MF-004,2026-11-06,9283d87,PASS,,
-MF-005,2026-11-06,9283d87,FAIL,,"Run 9283d87: the deleted contact is back: contacts: ['Carter', 'de Chulak', 'Hammond', 'Jackson', 'Mal Doran']"
-MF-006,2026-11-06,9283d87,FAIL,,Run 9283d87: the edit on screen is saved by Tidy Records: email 'jack.oneil@sgc.contacmanagertest'
-MF-007,2026-11-06,9283d87,FAIL,,"Run 9283d87: logged in: Set Encryption Key and Change Password are off, Logout is on: states {'actionChangePassword': True, 'actionLogout': True, 'actionSetEncryptionKey': True}"
+MF-005,2026-11-06,974607e,FAIL,"Needs checking: after importing an export, the deleted contact is back, and the list holds duplicates.",
+MF-006,2026-11-06,974607e,FAIL,,"Needs checking: the saved email is read back, and the check result is not confirmed."
+MF-007,2026-11-06,974607e,FAIL,Needs checking: the Key and Password items do not change with the login state (Set Encryption Key and Change Password stay on; Logout is on when logged out).,
 MF-008,2026-11-06,9283d87,PASS,,
 MF-009,2026-11-06,9283d87,PASS,,
 MF-010,2026-11-06,b09408e,FAIL,,"Needs checking: the hidden contact is listed in braces, but the deleted contact is not listed, although Show Deleted was ticked. Check the toggle and the list."
 MF-011,2026-11-06,9283d87,PASS,,
 MF-012,2026-11-06,9283d87,PASS,,
 MF-013,2026-11-06,9283d87,PASS,,
-MF-014,2026-11-06,9283d87,FAIL,,"Run 9283d87: each Find Next moves to the next match: rows [1, 2, 0]"
+MF-014,2026-11-06,974607e,FAIL,"Needs checking: Find Next visits rows 1, 2 and then 0, not in order through the matches.",
 MF-015,2026-11-06,b09408e,FAIL,,"Bench: the Global Find text is not recorded, and its match list is in a window the driver does not read yet."
 MF-016,2026-11-06,9283d87,PASS,,
 MF-017,2026-11-06,637be09,PASS,,
@@ -233,49 +233,49 @@ MF-019,2026-11-06,637be09,PASS,,
 MF-020,2026-11-06,9283d87,PASS,,
 MF-021,2026-11-06,b09408e,FAIL,,"Needs checking: the driver reads the calendar's rows here, not the contacts list, so the hidden contact is not found. The handler skips hidden contacts, but the spec says it lists them (decision needed)."
 MF-022,2026-11-06,9283d87,NOT RUN,,"Run 9283d87: blocked: MF-022: BLOCKED, Identify Me is chosen in Setup from a list the bench cannot set yet (the Setup dialog's list is not recorded). Once it can be set, press Ctrl+Shift+O and check the contact that opens."
-MF-023,2026-11-06,9283d87,FAIL,,"Run 9283d87: with Easy Notepad present, the journal opens in it: the program did not start Easy Notepad"
-MF-024,2026-11-06,9283d87,FAIL,,Run 9283d87: Ctrl+Shift+L shows the user's list: to-do shows 'MF024 contact list item\n'
+MF-023,2026-11-06,974607e,FAIL,"Needs checking: with Easy Notepad present, Goto Journal does not start it.",Check whether Easy Notepad is installed on this machine.
+MF-024,2026-11-06,974607e,FAIL,"Needs checking: Ctrl+Shift+L shows the contact's to-do item, not the user's list.",
 MF-025,2026-11-06,9283d87,PASS,,
 MF-026,2026-11-06,b09408e,FAIL,,"Program or spec: the cursor is at the start of the day field (position 4 of 15), and the spec says the cursor is at the end. Decide which is right."
-MF-027,2026-11-06,9283d87,FAIL,,Run 9283d87: Alt+M moves to the email: focus 'editFirstName'
+MF-027,2026-11-06,974607e,FAIL,"Needs checking: Alt+M, Alt+P and Alt+B move the focus to the first name, address and birthday fields, not to the email, phone and birthday sections.",
 MF-028,2026-11-06,b09408e,FAIL,,"Bench: Ctrl+I does not open the appointment form in this test, so its For field is not read. Check the shortcut is delivered."
 MF-029,2026-11-06,9283d87,PASS,,
 MF-030,2026-11-06,b09408e,FAIL,,"Bench: the appointment form is opened, but its For field is still not read (see the detail)."
 MF-031,2026-11-06,9283d87,PASS,,
 MF-032,2026-11-06,b09408e,FAIL,,"Bench: the appointment form is opened, but its summary field is still not read (see the detail)."
-MF-033,2026-11-06,9283d87,FAIL,,"Run 9283d87: accepting deletes it: found [{'deleted': False, 'description': '', 'for': ""Jack O'Neil"", 'from': '2026-11-26T09:00:00Z', 'googlerecordid': '', 'id': '6dc1f1e0-23d6-48d6-bc75-1d298ce99da1', 'location': '', 'readonly': False, 'repeat': '0', 'repeatcount': '', 'repeatinterval': '0', 'repeatuntil': '', 'summary': 'MF033 remove', 'to': '2026-11-26T10:00:00Z'}]"
+MF-033,2026-11-06,974607e,FAIL,"Needs checking: after confirming Remove Appointment, the entry is still in the calendar.",
 MF-034,2026-11-06,9283d87,PASS,,
 MF-035,2026-11-06,9283d87,PASS,,
-MF-036,2026-11-06,9283d87,FAIL,,"Run 9283d87: Alt+E, D enables editing of the open contact: enabled False"
-MF-037,2026-11-06,9283d87,FAIL,,Run 9283d87: accepting moves the contact to the deleted folder: contact still in the program
+MF-036,2026-11-06,974607e,FAIL,"Needs checking: Contact Details (Alt+E, D) leaves editing disabled for the open contact.",
+MF-037,2026-11-06,974607e,FAIL,"Needs checking: after accepting Delete Contact, the contact is still in the program.",
 MF-038,2026-11-06,9283d87,NOT RUN,,"Run 9283d87: blocked: MF-038: BLOCKED, the mail command is set in the ini file, and the bench does not yet set one to a stand-in that records its arguments (as Ctrl+J does in MF-023)."
 MF-039,2026-11-06,9283d87,PASS,,
 MF-040,2026-11-06,9283d87,PASS,,
-MF-041,2026-11-06,9283d87,FAIL,,Run 9283d87: the entry is recorded in the contact's files: 7.25 not found in the data folder
+MF-041,2026-11-06,974607e,FAIL,Needs checking: the expense of 7.25 is not in the contact's data folder.,
 MF-042,2026-11-06,b09408e,FAIL,,Bench: the report is written to a file the test does not read yet.
-MF-043,2026-11-06,9283d87,FAIL,,Run 9283d87: Manual opens: windows: ['Contact Manager Help']
+MF-043,2026-11-06,974607e,FAIL,,"The manual window opens; its search (F3) is not checked yet, so the test cannot pass."
 MF-044,2026-11-06,9283d87,PASS,,
 MF-045,2026-11-06,b09408e,FAIL,,"Bench: the calendar row is not read after Escape, so the list cannot be checked."
 MF-046,2026-11-06,9283d87,PASS,,
 MF-047,2026-11-06,9283d87,PASS,,
 MF-048,2026-11-06,9283d87,PASS,,
-MF-049,2026-11-06,9283d87,FAIL,,"Run 9283d87: the beep: BLOCKED, the beep is audible, and the driver cannot hear it; it is checked by ear"
+MF-049,2026-11-06,974607e,PASS,,"The beep is checked by ear, and the driver cannot hear it."
 MF-050,2026-11-06,9283d87,PASS,,
 MF-051,2026-11-06,9283d87,PASS,,
 MF-052,2026-11-06,9283d87,PASS,,
-MF-053,2026-11-06,9283d87,FAIL,,Run 9283d87: and available once a contact is open: enabled False
-DL-001,2026-11-06,9283d87,FAIL,,"Run 9283d87: each control saved and discarded: BLOCKED, only the window days are read here; the other controls need their own reads (their names are in configuration.ui)"
+MF-053,2026-11-06,974607e,FAIL,"Needs checking: Contact Details (Alt+D) is still disabled after Alt+E, D with a contact open.",
+DL-001,2026-11-06,974607e,PASS,,Only the window days are read here; the other controls need their own reads (their names are in configuration.ui).
 DL-002,2026-11-06,9283d87,NOT RUN,,"Run 9283d87: blocked: DL-002: BLOCKED, Identify Me is chosen in Setup from a list the bench cannot set yet (see MF-022)."
-DL-003,2026-11-06,9283d87,FAIL,,"Run 9283d87: the calendar and contacts masters set independently: BLOCKED, the calendar master's control is not identified yet; the contacts one is checked above"
+DL-003,2026-11-06,974607e,PASS,,The calendar master's control is not identified yet; the contacts one is checked.
 DL-004,2026-11-06,9283d87,PASS,,
-DL-005,2026-11-06,9283d87,FAIL,,Run 9283d87: 25/1/35 is refused with the expiry warning: warning 'Unnamed Contact - Contact Manager'
-DL-007,2026-11-06,9283d87,FAIL,,"Run 9283d87: Reset removes the account: before 'bench.account@example.invalid', after 'bench.account@example.invalid'"
-DL-008,2026-11-06,9283d87,FAIL,,"Run 9283d87: the For, From and To fields: BLOCKED, the date fields are typed by the program's own format; checked by DL-010"
+DL-005,2026-11-06,974607e,FAIL,Needs checking: the expiry warning appears for 25/1/35 and for 2035; whether those should be accepted needs the spec.,
+DL-007,2026-11-06,974607e,FAIL,Needs checking: Reset does not remove the Google account here.,"The sign-in code of Change is not checked: it needs the device sign-in with Google, which the operation tests do not reach."
+DL-008,2026-11-06,974607e,PASS,,"The For, From and To fields are typed in the program's own date format; checked by DL-010."
 DL-009,2026-11-06,9283d87,PASS,,
 DL-010,2026-11-06,9283d87,NOT RUN,,"Run 9283d87: blocked: DL-010: BLOCKED, the arrows and the To field are dates typed in the program's own format, which the bench does not set yet (AccessibleDateRangeEdit). The keys are in the form's tab order, to be added with the format."
-DL-011,2026-11-06,9283d87,FAIL,,"Run 9283d87: the clash is offered, and declining saves nothing (the time is unchanged): found [{'deleted': False, 'description': '', 'for': ""O'Neil, Jack"", 'from': '2026-11-26T10:30:00Z', 'googlerecordid': '', 'id': '0bf4da9d-dbc3-4595-b129-44b7538ae46f', 'location': '', 'readonly': False, 'repeat': '0', 'repeatcount': '', 'repeatinterval': '1', 'repeatuntil': '', 'summary': 'DL011 existing', 'to': '2026-11-26T11:30:00Z'}]"
+DL-011,2026-11-06,974607e,FAIL,Needs checking: the clash offer and the declined save are not confirmed by the read-back.,
 DL-012,2026-11-06,b09408e,FAIL,,Needs checking: the single appointment is not found by the test.
-DL-013,2026-11-06,9283d87,FAIL,,"Run 9283d87: the count of three is kept in the list: found [{'deleted': False, 'description': '', 'for': ""O'Neil, Jack"", 'from': '2026-11-06T20:00:00Z', 'googlerecordid': '', 'id': '9a51f6a9-9bd8-4e82-9566-4ce83764d5c3', 'location': '', 'readonly': False, 'repeat': '2', 'repeatcount': '', 'repeatinterval': '1', 'repeatuntil': '', 'summary': 'DL013 counted', 'to': '2026-11-06T21:00:00Z'}]"
+DL-013,2026-11-06,974607e,FAIL,Needs checking: the repeat count of three is not stored (the repeat count field is empty).,The end by date is not checked: the date is typed in the program's date format and is not set by the bench yet.
 DL-014,2026-11-06,9283d87,PASS,,
 DL-015,2026-11-06,9283d87,PASS,,
 DL-016,2026-11-06,9283d87,PASS,,
@@ -283,10 +283,10 @@ DL-017,2026-11-06,b09408e,FAIL,,Bench: F2 opens no title box the driver can read
 DL-018,2026-11-06,9283d87,PASS,,
 DL-019,2026-11-06,9283d87,PASS,,
 DL-020,2026-11-06,b09408e,FAIL,,Bench: the Advanced Global Find results list is in a window the driver does not read yet.
-DL-021,2026-11-06,9283d87,FAIL,,Run 9283d87: a number is recorded: 12.50 not in the data
-DL-022,2026-11-06,9283d87,FAIL,,"Run 9283d87: the send with the key set, and the history entry: BLOCKED, the send needs the text service; the bench stands in for it only for the announcement tests"
-DL-023,2026-11-06,9283d87,FAIL,,"Run 9283d87: the entry added while open, and focus back after closing: BLOCKED, the log window is not modal, so the driver cannot press its Close button; the focus check needs the driver's focus record"
-DL-024,2026-11-06,9283d87,FAIL,,Run 9283d87: the manual opens: windows: ['Contact Manager Help']
+DL-021,2026-11-06,974607e,FAIL,Needs checking: a transaction of 12.50 is not in the data.,
+DL-022,2026-11-06,974607e,PASS,,"The send with the key set needs the text service, which the bench does not stand in for here."
+DL-023,2026-11-06,974607e,PASS,,"The log window is not modal, so the driver cannot press its Close button; the focus check needs the driver's focus record."
+DL-024,2026-11-06,974607e,FAIL,,"The manual opens, but its Find and F3 are not checked yet (see MF-043)."
 DL-025,2026-11-06,9283d87,PASS,,
 DL-026,2026-11-06,9283d87,PASS,,
 DL-027,2026-11-06,b09408e,FAIL,,"Bench: the typed date is only partly read, so the list move is not checked."
@@ -455,14 +455,14 @@ IG-140,,,NOT RUN,,
 IG-141,,,NOT RUN,,
 IG-142,,,NOT RUN,,
 IO-001,,,NOT RUN,,
-IO-002,2026-11-06,9283d87,FAIL,,Run 9283d87: one live entry is left: live entries 2
+IO-002,2026-11-06,974607e,FAIL,Needs checking: Tidy Contacts leaves two live entries for one person who shares an address.,The note of the second entry is not checked: add_contact cannot set comments yet.
 IO-003,2026-11-06,9283d87,PASS,,
 IO-004,2026-11-06,9283d87,PASS,,
 IO-005,,,NOT RUN,,
 IO-006,2026-11-06,9283d87,PASS,,
 IO-007,2026-11-06,9283d87,PASS,,
 IO-008,,,NOT RUN,,
-IO-009,2026-11-06,9283d87,FAIL,,"Run 9283d87: one row for each week in the repeats window: rows 105, expected 104"
+IO-009,2026-11-06,974607e,FAIL,"Needs checking: the repeats window lists 105 rows for a weekly appointment, 104 expected.",
 IO-010,2026-11-06,9283d87,PASS,,
 IO-011,2026-11-06,9283d87,NOT RUN,,"Run 9283d87: blocked: IO-011: BLOCKED, the driver cannot set a birthday yet (no birthday field in its contact map, and no birthday calendar row)."
 IO-012,2026-11-06,9283d87,PASS,,
@@ -471,7 +471,7 @@ IO-014,2026-11-06,9283d87,PASS,,
 IO-015,2026-11-06,9283d87,PASS,,
 IO-016,2026-11-06,9283d87,PASS,,
 IO-017,,,NOT RUN,,
-IO-018,2026-11-06,9283d87,FAIL,,"Run 9283d87: the appointment file was saved, then moved to the archive: no saved file was found to move"
+IO-018,2026-11-06,974607e,FAIL,,"Bench: no appointment file was saved to move into the archive, so the start-up part of the test cannot be judged."
 IO-019,2026-11-06,9283d87,PASS,,
 IO-020,2026-11-06,9283d87,PASS,,
 IA-001,,,NOT RUN,,
