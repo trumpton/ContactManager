@@ -387,11 +387,13 @@ def check_expectations(expects, groups, sent, codes):
         else:
             results.append((True, "on time: " + label + " at %s" % m.time))
     for g in groups:
+        # A confirmation group's window ends CONFIRM_LATE after its stated end, as a single confirmation may (the bench's rule).
+        end = g["end"] + M.CONFIRM_LATE if g["kind"] == M.KIND["confirm"] else g["end"]
         inside = [i for i, m in enumerate(sent) if m.code == g["code"] and m.channel == g["channel"]
-                  and m.kind == g["kind"] and g["start"] <= m.time <= g["end"]]
+                  and m.kind == g["kind"] and g["start"] <= m.time <= end]
         used.update(inside)
         results.append((len(inside) == g["count"], "%d %s %s in %s to %s (expected %d)" % (
-            len(inside), g["code"], g["kind"], g["start"], g["end"], g["count"])))
+            len(inside), g["code"], g["kind"], g["start"], end, g["count"])))
     for i, m in enumerate(sent):
         if m.code in codes and i not in used:
             results.append((False, "unexpected: %s %s to %s at %s" % (m.code, m.kind, m.to, m.time)))
@@ -405,6 +407,8 @@ def evaluate(out):
         rid = t["run"]
         run = ALL_RUNS[rid]
         run_dir = os.path.join(out, rid)
+        if not os.path.isdir(run_dir):
+            continue                                  # its run was not selected for this set: not reported as a failure
         outbox_dir = os.path.join(out, run["shares_home"] if run.get("shares_home") else rid, "outbox")
         outbox = load_outbox(outbox_dir)
         sent = [m for m in outbox if m.result == "sent"]
