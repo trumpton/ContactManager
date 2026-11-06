@@ -403,7 +403,7 @@ def _mf023_build(home):
     ini = oc.INI_BASE + "\n[journal]\nfilename=%s\neasynotepadexe=%s\n" % (journal, script)
     with open(os.path.join(home, "TrumptonApps", "ContactManager.ini"), "w", encoding="utf-8") as f:
         f.write(ini)
-    return [run_spec(oc.fixtures_ops()), run_spec([oc.menu_op("j", "actionGotoJournal"), oc.dump_op()])]
+    return [run_spec(oc.fixtures_ops()), run_spec([oc.open_op(1, "o"), oc.menu_op("j", "actionGotoJournal"), oc.dump_op()])]
 
 
 def _mf023_check(runs, home):
@@ -610,10 +610,30 @@ def _mf037_check(runs, home):
 test("MF-037", "Delete Contact asks for confirmation, then moves the contact to the deleted folder", _mf037_build, _mf037_check)
 
 
+def _mf038_build(home):
+    # the mail command is a script that records its arguments, as Easy Notepad does in MF-023
+    marker = os.path.join(home, "mail-args.txt")
+    script = os.path.join(home, "fake-mail.sh")
+    with open(script, "w", encoding="utf-8") as f:
+        f.write("#!/bin/sh\nprintf '%%s\\n' \"$@\" > \"%s\"\n" % marker)
+    os.chmod(script, 0o755)
+    ini = oc.INI_BASE + "\n[email]\ncommand=%s $TO $NAME\n" % script
+    with open(os.path.join(home, "TrumptonApps", "ContactManager.ini"), "w", encoding="utf-8") as f:
+        f.write(ini)
+    return [run_spec(oc.fixtures_ops()),
+            run_spec([oc.open_op(1, "o"), oc.menu_op("mail", "action_Email_Contact"), oc.wait_op(500), oc.dump_op()])]
+
+
+def _mf038_check(runs, home):
+    marker = os.path.join(home, "mail-args.txt")
+    args = open(marker, encoding="utf-8").read() if os.path.exists(marker) else ""
+    return [check("the mail command runs", os.path.exists(marker), "the mail command did not run"),
+            check("with the recipient's address", "jack.oneil@sgc.contacmanagertest" in args, "arguments %r" % args),
+            check("and the contact's name", "O'Neil" in args, "arguments %r" % args)]
+
+
 test("MF-038", "Send EMail Contact (Ctrl+M) starts the mail command with the recipient and name filled in",
-     lambda home: [run_spec(oc.fixtures_ops())], lambda runs, home: [],
-     blocked_reason="the mail command is set in the ini file, and the bench does not yet set one to a stand-in that records "
-                    "its arguments (as Ctrl+J does in MF-023).")
+     _mf038_build, _mf038_check)
 
 _opens("MF-039", "SMS Contact (Ctrl+Shift+M) opens the text form for the contact", "action_SMS_Contact", "SMS",
        obj="recipientText")

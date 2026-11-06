@@ -233,7 +233,7 @@ MF-019,2026-11-06,637be09,PASS,,
 MF-020,2026-11-06,9283d87,PASS,,
 MF-021,2026-11-06,b09408e,FAIL,,"Needs checking: the driver reads the calendar's rows here, not the contacts list, so the hidden contact is not found. The handler skips hidden contacts, but the spec says it lists them (decision needed)."
 MF-022,2026-11-06,101cd90,PASS,,"Identify Me is set through the navigator (navigator_select). Ctrl+Shift+O is checked as bound to Goto Me, and Goto Me is triggered through its menu item, as the key cannot be pressed here."
-MF-023,2026-11-06,974607e,FAIL,"Needs checking: with Easy Notepad present, Goto Journal does not start it.",Check whether Easy Notepad is installed on this machine.
+MF-023,2026-11-06,c140fdb,PASS,,The check covers the journal opening in Easy Notepad. The missing-program error that the spec also describes is not checked.
 MF-024,2026-11-06,974607e,FAIL,"Needs checking: Ctrl+Shift+L shows the contact's to-do item, not the user's list.",
 MF-025,2026-11-06,9283d87,PASS,,
 MF-026,2026-11-06,b09408e,FAIL,,"Program or spec: the cursor is at the start of the day field (position 4 of 15), and the spec says the cursor is at the end. Decide which is right."
@@ -248,7 +248,7 @@ MF-034,2026-11-06,9283d87,PASS,,
 MF-035,2026-11-06,9283d87,PASS,,
 MF-036,2026-11-06,974607e,FAIL,"Needs checking: Contact Details (Alt+E, D) leaves editing disabled for the open contact.",
 MF-037,2026-11-06,974607e,FAIL,"Needs checking: after accepting Delete Contact, the contact is still in the program.",
-MF-038,2026-11-06,9283d87,NOT RUN,,"Run 9283d87: blocked: MF-038: BLOCKED, the mail command is set in the ini file, and the bench does not yet set one to a stand-in that records its arguments (as Ctrl+J does in MF-023)."
+MF-038,2026-11-06,c140fdb,PASS,,"The mail command is a recording script set as [email] command in the ini file, so its arguments are checked, not a real mail client."
 MF-039,2026-11-06,9283d87,PASS,,
 MF-040,2026-11-06,9283d87,PASS,,
 MF-041,2026-11-06,974607e,FAIL,Needs checking: the expense of 7.25 is not in the contact's data folder.,
@@ -464,7 +464,7 @@ IO-007,2026-11-06,9283d87,PASS,,
 IO-008,,,NOT RUN,,
 IO-009,2026-11-06,974607e,FAIL,"Needs checking: the repeats window lists 105 rows for a weekly appointment, 104 expected.",
 IO-010,2026-11-06,9283d87,PASS,,
-IO-011,2026-11-06,9283d87,NOT RUN,,"Run 9283d87: blocked: IO-011: BLOCKED, the driver cannot set a birthday yet (no birthday field in its contact map, and no birthday calendar row)."
+IO-011,2026-11-06,c140fdb,PASS,,"The birthday is set through the contact form and saved, then read from the calendar rows (with birthdays shown). Dates are three and six days ahead, so they fall in the calendar window."
 IO-012,2026-11-06,9283d87,PASS,,
 IO-013,,,NOT RUN,,
 IO-014,2026-11-06,9283d87,PASS,,
