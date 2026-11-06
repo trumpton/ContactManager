@@ -70,6 +70,7 @@
 #include "appointmentform.h"
 #include "../Lib/accessibledaterangeedit.h"
 #include "../Lib/accessibledatetimeedit.h"
+#include "../Lib/lineeditnavigator.h"
 #undef private
 #include "contact.h"
 #include "contactdatabase.h"
@@ -1182,25 +1183,48 @@ int main(int argc, char *argv[])
                 record(name + "_" + obj, QJsonValue(value)) ;
             }
             if (op["rows"].toBool(false)) {
-                QAbstractItemView *view = nullptr ;
-                for (QWidget *tl : QApplication::topLevelWidgets()) {
-                    if (!tl->isVisible()) continue ;
-                    for (QAbstractItemView *v : tl->findChildren<QAbstractItemView*>()) {
-                        if (!v->isVisibleTo(tl)) continue ;
-                        if (v->hasFocus()) { view = v ; break ; }
-                        if (!view || (view->model() && view->model()->rowCount() == 0 && v->model() && v->model()->rowCount() > 0)) view = v ;
+                // A list in the active dialog (File > Open, Global Find) is a line edit that holds its items: read those first
+                QWidget *scope = QApplication::activeModalWidget() ? QApplication::activeModalWidget() : (QWidget*)&w ;
+                // The active dialog first, then the other visible windows, and the main window last
+                LineEditNavigator *nav = nullptr ;
+                QList<QWidget*> scopes ;
+                scopes.append(scope) ;
+                for (QWidget *tl : QApplication::topLevelWidgets())
+                    if (tl->isVisible() && tl != scope && tl != (QWidget*)&w) scopes.append(tl) ;
+                scopes.append((QWidget*)&w) ;
+                for (QWidget *sc : scopes)
+                    for (LineEditNavigator *n : sc->findChildren<LineEditNavigator*>())
+                        if (!nav && n->size() > 0) nav = n ;
+                if (nav) {
+                    QJsonArray rows ;
+                    for (int r = 0; r < nav->size(); r++) rows.append(nav->itemText(r)) ;
+                    record(name + "_rows", rows) ;
+                    record(name + "_current", QJsonValue(nav->currentIndex())) ;
+                } else {
+                    QAbstractItemView *view = nullptr ;
+                    // A list in the active modal dialog (File > Open, Global Find) is the one the test is about
+                    if (QWidget *modal = QApplication::activeModalWidget())
+                        for (QAbstractItemView *v : modal->findChildren<QAbstractItemView*>())
+                            if (!view && v->model() && v->model()->rowCount() > 0) view = v ;
+                    if (!view) for (QWidget *tl : QApplication::topLevelWidgets()) {
+                        if (!tl->isVisible()) continue ;
+                        for (QAbstractItemView *v : tl->findChildren<QAbstractItemView*>()) {
+                            if (!v->isVisibleTo(tl)) continue ;
+                            if (v->hasFocus()) { view = v ; break ; }
+                            if (!view || (view->model() && view->model()->rowCount() == 0 && v->model() && v->model()->rowCount() > 0)) view = v ;
+                        }
+                        if (view && view->hasFocus()) break ;
                     }
-                    if (view && view->hasFocus()) break ;
+                    QJsonArray rows ;
+                    int current = -1 ;
+                    if (view && view->model()) {
+                        for (int r = 0; r < view->model()->rowCount(); r++)
+                            rows.append(view->model()->index(r, 0).data(Qt::DisplayRole).toString()) ;
+                        current = view->currentIndex().row() ;
+                    }
+                    record(name + "_rows", rows) ;
+                    record(name + "_current", QJsonValue(current)) ;
                 }
-                QJsonArray rows ;
-                int current = -1 ;
-                if (view && view->model()) {
-                    for (int r = 0; r < view->model()->rowCount(); r++)
-                        rows.append(view->model()->index(r, 0).data(Qt::DisplayRole).toString()) ;
-                    current = view->currentIndex().row() ;
-                }
-                record(name + "_rows", rows) ;
-                record(name + "_current", QJsonValue(current)) ;
             }
 
         } else if (kind == "set_widget") {
