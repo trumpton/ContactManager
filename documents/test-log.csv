@@ -225,15 +225,15 @@ MF-011,2026-11-06,9283d87,PASS,,
 MF-012,2026-11-06,9283d87,PASS,,
 MF-013,2026-11-06,9283d87,PASS,,
 MF-014,2026-11-06,974607e,FAIL,"Needs checking: Find Next visits rows 1, 2 and then 0, not in order through the matches.",
-MF-015,2026-11-06,b09408e,FAIL,,"Bench: the Global Find text is not recorded, and its match list is in a window the driver does not read yet."
+MF-015,2026-11-06,c16a8f6,PASS,,"Hides one contact first, so the bracketed hidden entry can be checked."
 MF-016,2026-11-06,9283d87,PASS,,
 MF-017,2026-11-06,637be09,PASS,,
 MF-018,2026-11-06,b09408e,PASS,,
 MF-019,2026-11-06,637be09,PASS,,
 MF-020,2026-11-06,9283d87,PASS,,
 MF-021,2026-11-06,b09408e,FAIL,,"Needs checking: the driver reads the calendar's rows here, not the contacts list, so the hidden contact is not found. The handler skips hidden contacts, but the spec says it lists them (decision needed)."
-MF-022,2026-11-06,101cd90,PASS,,"Identify Me is set through the navigator (navigator_select). Ctrl+Shift+O is checked as bound to Goto Me, and Goto Me is triggered through its menu item, as the key cannot be pressed here."
-MF-023,2026-11-06,c140fdb,PASS,,The check covers the journal opening in Easy Notepad. The missing-program error that the spec also describes is not checked.
+MF-022,2026-11-06,c16a8f6,PASS,,"Ctrl+Shift+O is checked as bound to Goto Me; Goto Me is run from its menu item, as the bench cannot press the shortcut."
+MF-023,2026-11-06,c16a8f6,PASS,,The check covers the Easy Notepad case only; the missing-program error is not checked.
 MF-024,2026-11-06,974607e,FAIL,"Needs checking: Ctrl+Shift+L shows the contact's to-do item, not the user's list.",
 MF-025,2026-11-06,9283d87,PASS,,
 MF-026,2026-11-06,b09408e,FAIL,,"Program or spec: the cursor is at the start of the day field (position 4 of 15), and the spec says the cursor is at the end. Decide which is right."
@@ -248,11 +248,11 @@ MF-034,2026-11-06,9283d87,PASS,,
 MF-035,2026-11-06,9283d87,PASS,,
 MF-036,2026-11-06,974607e,FAIL,"Needs checking: Contact Details (Alt+E, D) leaves editing disabled for the open contact.",
 MF-037,2026-11-06,974607e,FAIL,"Needs checking: after accepting Delete Contact, the contact is still in the program.",
-MF-038,2026-11-06,c140fdb,PASS,,"The mail command is a recording script set as [email] command in the ini file, so its arguments are checked, not a real mail client."
+MF-038,2026-11-06,c16a8f6,PASS,,The mail command is a recording script set in the ini file.
 MF-039,2026-11-06,9283d87,PASS,,
 MF-040,2026-11-06,9283d87,PASS,,
 MF-041,2026-11-06,974607e,FAIL,Needs checking: the expense of 7.25 is not in the contact's data folder.,
-MF-042,2026-11-06,b09408e,FAIL,,Bench: the report is written to a file the test does not read yet.
+MF-042,2026-11-06,c16a8f6,FAIL,"Program: Transaction Report is not implemented. Its handler is a TODO (mainwindow_menu_transaction.cpp), so no report is written and no year is asked.",
 MF-043,2026-11-06,974607e,FAIL,,"The manual window opens; its search (F3) is not checked yet, so the test cannot pass."
 MF-044,2026-11-06,9283d87,PASS,,
 MF-045,2026-11-06,b09408e,FAIL,,"Bench: the calendar row is not read after Escape, so the list cannot be checked."
@@ -264,32 +264,32 @@ MF-050,2026-11-06,9283d87,PASS,,
 MF-051,2026-11-06,9283d87,PASS,,
 MF-052,2026-11-06,9283d87,PASS,,
 MF-053,2026-11-06,974607e,FAIL,"Needs checking: Contact Details (Alt+D) is still disabled after Alt+E, D with a contact open.",
-DL-001,2026-11-06,974607e,PASS,,Only the window days are read here; the other controls need their own reads (their names are in configuration.ui).
-DL-002,2026-11-06,101cd90,PASS,,"As MF-022: Setup is reopened to read the Identify Me choice. Ctrl+Shift+O is checked as bound to Goto Me, and Goto Me is triggered through its menu item."
-DL-003,2026-11-06,974607e,PASS,,The calendar master's control is not identified yet; the contacts one is checked.
+DL-001,2026-11-06,c16a8f6,PASS,,Covers the window days and the birthdays box only; the other Setup controls are not read yet.
+DL-002,2026-11-06,c16a8f6,PASS,,"As MF-022: Ctrl+Shift+O is checked as bound to Goto Me, and Goto Me runs from its menu item."
+DL-003,2026-11-06,c16a8f6,FAIL,,Spec mismatch: the spec asks for separate calendar and contacts masters. Setup has one master choice (Database Management: Contact Manager or Google). Decision needed.
 DL-004,2026-11-06,9283d87,PASS,,
 DL-005,2026-11-06,974607e,FAIL,Needs checking: the expiry warning appears for 25/1/35 and for 2035; whether those should be accepted needs the spec.,
 DL-007,2026-11-06,974607e,FAIL,Needs checking: Reset does not remove the Google account here.,"The sign-in code of Change is not checked: it needs the device sign-in with Google, which the operation tests do not reach."
-DL-008,2026-11-06,974607e,PASS,,"The For, From and To fields are typed in the program's own date format; checked by DL-010."
+DL-008,2026-11-06,c16a8f6,PASS,,"The For, From and To fields are read before Enter; the date format is checked by DL-010."
 DL-009,2026-11-06,9283d87,PASS,,
-DL-010,2026-11-06,101cd90,PASS,"Needs checking: Up on To's hour, from 23:00 to 22:00, makes the duration zero, which the program shows as 'reminder'.","The duration arrow is the X field of the start, and To's hour is the hour field, both set by cursor position in the text."
+DL-010,2026-11-06,c16a8f6,PASS,"Needs checking: Up on To's hour, from 23:00 to 22:00, makes the duration zero, which the program shows as 'reminder'.","The duration arrow is the X field of the start, and To's hour is the hour field, both set by cursor position in the text."
 DL-011,2026-11-06,974607e,FAIL,Needs checking: the clash offer and the declined save are not confirmed by the read-back.,
 DL-012,2026-11-06,b09408e,FAIL,,Needs checking: the single appointment is not found by the test.
-DL-013,2026-11-06,974607e,FAIL,Needs checking: the repeat count of three is not stored (the repeat count field is empty).,The end by date is not checked: the date is typed in the program's date format and is not set by the bench yet.
+DL-013,2026-11-06,c16a8f6,PASS,,
 DL-014,2026-11-06,9283d87,PASS,,
 DL-015,2026-11-06,9283d87,PASS,,
 DL-016,2026-11-06,9283d87,PASS,,
 DL-017,2026-11-06,b09408e,FAIL,,Bench: F2 opens no title box the driver can read.
 DL-018,2026-11-06,9283d87,PASS,,
 DL-019,2026-11-06,9283d87,PASS,,
-DL-020,2026-11-06,b09408e,FAIL,,Bench: the Advanced Global Find results list is in a window the driver does not read yet.
+DL-020,2026-11-06,c16a8f6,PASS,,Enter is checked with the first result.
 DL-021,2026-11-06,974607e,FAIL,Needs checking: a transaction of 12.50 is not in the data.,
 DL-022,2026-11-06,974607e,PASS,,"The send with the key set needs the text service, which the bench does not stand in for here."
 DL-023,2026-11-06,974607e,PASS,,"The log window is not modal, so the driver cannot press its Close button; the focus check needs the driver's focus record."
 DL-024,2026-11-06,974607e,FAIL,,"The manual opens, but its Find and F3 are not checked yet (see MF-043)."
 DL-025,2026-11-06,9283d87,PASS,,
 DL-026,2026-11-06,9283d87,PASS,,
-DL-027,2026-11-06,b09408e,FAIL,,"Bench: the typed date is only partly read, so the list move is not checked."
+DL-027,2026-11-06,c16a8f6,PASS,,"Blocked: a valid date moving the list (the calendar rows show the same first row for every day), and the beep (heard by ear, not by the driver)."
 DL-028,2026-11-06,9283d87,PASS,,
 DL-029,2026-11-06,9283d87,PASS,,
 DL-030,2026-11-06,9283d87,PASS,,
@@ -455,25 +455,25 @@ IG-140,,,NOT RUN,,
 IG-141,,,NOT RUN,,
 IG-142,,,NOT RUN,,
 IO-001,,,NOT RUN,,
-IO-002,2026-11-06,974607e,FAIL,Needs checking: Tidy Contacts leaves two live entries for one person who shares an address.,The note of the second entry is not checked: add_contact cannot set comments yet.
-IO-003,2026-11-06,9283d87,PASS,,
-IO-004,2026-11-06,9283d87,PASS,,
+IO-002,2026-11-06,c16a8f6,PASS,,The bench counted a deleted copy as live (a string compared to a boolean); fixed.
+IO-003,2026-11-06,c16a8f6,PASS,,
+IO-004,2026-11-06,c16a8f6,PASS,,
 IO-005,,,NOT RUN,,
-IO-006,2026-11-06,9283d87,PASS,,
-IO-007,2026-11-06,9283d87,PASS,,
+IO-006,2026-11-06,c16a8f6,PASS,,
+IO-007,2026-11-06,c16a8f6,PASS,,
 IO-008,,,NOT RUN,,
-IO-009,2026-11-06,974607e,FAIL,"Needs checking: the repeats window lists 105 rows for a weekly appointment, 104 expected.",
-IO-010,2026-11-06,9283d87,PASS,,
-IO-011,2026-11-06,c140fdb,PASS,,"The birthday is set through the contact form and saved, then read from the calendar rows (with birthdays shown). Dates are three and six days ahead, so they fall in the calendar window."
-IO-012,2026-11-06,9283d87,PASS,,
+IO-009,2026-11-06,c16a8f6,FAIL,"Needs checking: the repeats window lists 105 rows for a weekly appointment, 104 expected.",
+IO-010,2026-11-06,c16a8f6,PASS,,
+IO-011,2026-11-06,c16a8f6,PASS,,"The birthday is set through the contact form and saved, then read from the calendar rows (with birthdays shown)."
+IO-012,2026-11-06,c16a8f6,PASS,,
 IO-013,,,NOT RUN,,
-IO-014,2026-11-06,9283d87,PASS,,
-IO-015,2026-11-06,9283d87,PASS,,
-IO-016,2026-11-06,9283d87,PASS,,
+IO-014,2026-11-06,c16a8f6,PASS,,
+IO-015,2026-11-06,c16a8f6,PASS,,
+IO-016,2026-11-06,c16a8f6,PASS,,
 IO-017,,,NOT RUN,,
-IO-018,2026-11-06,974607e,FAIL,,"Bench: no appointment file was saved to move into the archive, so the start-up part of the test cannot be judged."
-IO-019,2026-11-06,9283d87,PASS,,
-IO-020,2026-11-06,9283d87,PASS,,
+IO-018,2026-11-06,c16a8f6,FAIL,,"Bench: the saved appointment file is not found where the test looks, so nothing is moved to the archive; start-up leaves the archived file in place."
+IO-019,2026-11-06,c16a8f6,PASS,,
+IO-020,2026-11-06,c16a8f6,PASS,,
 IA-001,,,NOT RUN,,
 IA-002,2026-11-06,9283d87,PASS,,
 OF-001,2026-11-06,8c6434b,PASS,,The first run hung on an error box until the run script gave the home folder its ini file (fixed in 8c6434b).
