@@ -16,7 +16,7 @@ Where this specification and the program differ, the program is the reference an
 5. Announcements and alerts
 6. Menus and keys
 7. Synchronisation with Google
-- Appendix A. Known inconsistencies and open points
+- Appendix A. Open points
 - Appendix B. Glossary
 
 ---
@@ -51,6 +51,17 @@ All data lives in one database folder (section 2.1). The program does not use a 
 - Nothing is sent to a contact unless the contact has the matching channel ticked and an address for it.
 - A failure to send is shown in the log, with the reason, and is retried a limited number of times.
 
+### 1.4 Accessible text
+
+The text a screen reader speaks, or a braille display shows, is part of the design. Two rules apply:
+
+- **Spoken text is short and succinct.** Say what the item is and its value or state, then stop. Put the most important words first, so a listener who stops early still has the essentials. Do not repeat what the screen reader already announces, such as the role of a control, the window title or the program's path.
+- **Text on a braille display is compact.** A braille line holds few characters. Use the fewest words that keep the meaning, and leave out padding and repeated separators. Put the most important words first, so they stay on the line when the display is scrolled.
+
+The same item gives the same text wherever it appears (the list, a dialog, or Show Screen Reader Text), so a user learns it once.
+
+Calendar entries do not yet meet these rules (Appendix A, item 5).
+
 ---
 
 ## 2. Configuration and set-up
@@ -76,7 +87,7 @@ Configuration is in two places:
 | `backup/` | database folder | Daily backups, as zip files named `<sequence>-<yyyymmdd>-backup.zip`. The two newest are kept. |
 | `sync-<phase>.progress` | database folder | The record of a sync in progress, so an interrupted sync can resume (section 7.6). Removed when the phase completes. |
 
-**Logs.** Every action that matters is written to the log, which is shown in the Logs window (File > Show > Logs). The window is not modal, and it updates as entries are added.
+**Logs.** Every action that matters is written to the log, which is shown in the Logs window (File > Show > Logs). The window is not modal, and it updates as entries are added. The log is not kept in a file.
 
 ### 2.2 The ini file
 
@@ -102,8 +113,8 @@ Each section, with its keys. A key that is not given takes the default shown.
 - `countrycode` — the country code, for example `0044`.
 
 **`[sms-reminder]`** — text messages
-- `agent` — `Voodoo` or `Esendex`.
-- `username` — for Voodoo, the HTTP API username. For Esendex, the account reference. The SMS password is set in Settings (for Esendex it is the API key).
+- `agent` — the SMS agent: one of the supported agents, `Voodoo` or `Esendex`.
+- `username` — the account name the agent needs: for Voodoo, the HTTP API username; for Esendex, the account reference. The SMS password (or API key) is set in Settings, whichever agent is used.
 - `sender` — the name shown to the recipient. For Esendex: letters and digits, a name registered with Esendex. **Required**: if blank, no text is sent, and a warning is logged at start-up.
 - `debug` — `yes` for debug output for support.
 
@@ -159,7 +170,7 @@ The Setup dialog is titled "Contact Manager - Setup". It is written to the setti
 |---|---|---|
 | Identify Me | My contact | The contact that is the user. Goto Me (Ctrl+Shift+O) opens it. |
 | Google Account | Change, Reset | Chooses or removes the Google account (2.6). Shows the last contact and calendar sync times. |
-| SMS Account | SMS Password | The SMS password, or API key for Esendex. |
+| SMS Account | SMS Password | The SMS password, or API key, for the agent in use. |
 | | SMS API key expires (optional) | The expiry date of the key, day/month/year, for example 25/01/2035. A warning is shown at start-up from 30 days before it. Blank if the key does not expire. |
 | Email Account | Email Password | The SMTP password. |
 | Synchronisation Selection | Calendar: Contact Manager is the master / Google is the master | Which side wins conflicts for appointments (7.2). |
@@ -208,23 +219,23 @@ Each message is a text file. Its first line is the subject (email) or the messag
 | `$FDATE` | the full date, dd-MMM-yyyy |
 | `$APPOINTMENTS` | the contact's next appointments, up to ten, soonest first. In an email body, one per line, as "10:00 on Friday 30 October". In a subject or a text, on one line, separated by "; ". |
 
-### 2.5 File encryption, the encryption key and passwords
+### 2.5 Encryption: the file encryption key and the login password
 
-Contact files, to-do lists and histories can be saved encrypted. The encryption is set up with two passwords:
+Contact files, to-do lists and histories can be saved encrypted. Two secrets are involved. This specification uses these names for them throughout:
 
-- **The encryption key**, set once and never changed. All encrypted files are protected by it. The key is typed twice when it is set.
-- **The initial (login) password**, typed each time the program starts. It protects the encryption key. It can be changed, and the key is then re-protected with the new password.
+- **The file encryption key** encrypts the files. It is created once and is never changed. It is typed twice when it is created.
+- **The login password** is typed each time the program starts. It decrypts the file encryption key, so without it no encrypted file can be read. It can be changed, and the file encryption key is then protected with the new password.
 
-File > Key and Password has three items:
-- **Set Encryption Key** — sets the key and the initial password. Available only when not logged in.
+File > Key and Password has three items. Their labels are as the program shows them (Appendix A, item 4):
+- **Set Encryption Key** — creates the file encryption key and the login password. Available only when not logged in.
 - **Change Password** — changes the login password, after the old one is typed. Available only when not logged in.
 - **Logout** — logs out, so the next action asks for the login password. Available only when logged in.
 
-**At start-up**, the program asks for the login password up to three times. If it still fails, it asks whether to set or reset the key, or to close.
+**At start-up**, the program asks for the login password up to three times. If it still fails, it asks whether to set or reset the file encryption key, or to close.
 
-**Losing the key is serious.** Without the key, encrypted files cannot be read. If the login password is forgotten, the same key can be installed again with a new login password. The key itself cannot be recovered from the program.
+**Losing the file encryption key is serious.** Without it, encrypted files cannot be read. If the login password is forgotten, the same file encryption key can be installed again with a new login password. The file encryption key cannot be recovered from the program.
 
-**Multiple copies.** Copies of the program on the same data folder share the same key, so only the first one needs to log in.
+**Multiple copies.** Copies of the program on the same data folder share the same file encryption key, so only the first one needs to log in.
 
 **Plain files.** When encryption is off, the same files are saved as plain text: `.contact`, `.todolist`, `.history`. Changing the encryption setting does not convert files that already exist.
 
@@ -243,9 +254,9 @@ The program reaches Google at `accounts.google.com`, `www.googleapis.com` and `p
 
 #### SMS (text messages)
 
-1. Choose the agent in `[sms-reminder] agent` (Voodoo or Esendex), and the username.
+1. Choose the agent in `[sms-reminder] agent` (one of the supported agents: Voodoo or Esendex), and the username.
 2. Set `[sms-reminder] sender`. Without it, texts are not sent.
-3. In Setup, enter the SMS password (the API key for Esendex). Enter the key's expiry date if the key expires.
+3. In Setup, enter the SMS password (or API key). Enter the key's expiry date if the key expires.
 4. A warning appears at start-up from 30 days before the expiry date.
 
 #### Email (automatic messages)
@@ -467,26 +478,28 @@ A birthday saved on a contact appears in the calendar at once, when birthdays ar
 
 ## 5. Announcements and alerts
 
-This section sets out the rules the program follows when it sends messages. The message logic has 112 unit tests (in `autotest/archive/messages`), and the rules were checked on an accelerated clock: earlier runs at 60 times real time, and the test specification's area 2 at 360 times. The full statement of the rules and the earlier test evidence is in `documents/messaging-rules.md`.
+This section sets out the rules the program follows when it sends messages. The rules were checked on an accelerated clock: earlier runs at 60 times real time, and the test specification's area 2 at 360 times. The full statement of the rules and the earlier test evidence is in `documents/messaging-rules.md`.
 
 ### 5.1 Which messages exist
 
-| Message | Sent when | Timing | Channel |
-|---|---|---|---|
-| Confirmation | An appointment is new, in the future, and not yet messaged. | After the hold (5.4), inside the send window. | Email if the contact has an email address and Email is ticked; otherwise text. If both are ticked, email. |
-| Update | An already confirmed appointment changes in start, end or repeat. | After the hold, with the final details. | As the confirmation. |
-| Cancellation | An already confirmed appointment is deleted. | At once (not held), inside the send window. | As the confirmation. |
-| Reminder | The appointment is within `remindhoursbefore` hours, and it is not confirm-only, and it is not today. | Inside the send window, once per occurrence. | As the confirmation. |
-| On the day | The appointment is today. | From `earliestsend` on the day, once per channel. | Each channel the contact has: email, then text. |
-| Removed occurrence | One occurrence of a repeat is removed. | Inside the send window. | Email. |
+Every message in this table is sent only inside the send window (5.5). The timing column says when a message becomes due. If it is due outside the window, it waits for the window to open.
+
+| Message | Sent when | Timing | Channel | Sent only in the send window |
+|---|---|---|---|---|
+| Confirmation | An appointment is new, in the future, and not yet messaged. | After the hold (5.4). | Email, if Email is ticked and the contact has an email address. Text, if Email is not ticked, Text is ticked and the contact has a mobile number. If both are ticked, email only. | Yes |
+| Update | An already confirmed appointment changes in start, end or repeat. | After the hold, with the final details. | As the confirmation. | Yes |
+| Cancellation | An already confirmed appointment is deleted. | Not held: at the first check inside the window. | As the confirmation. | Yes |
+| Reminder | The appointment is within `remindhoursbefore` hours, it is not confirm-only, and it is not today. | Once per occurrence. | As the confirmation. | Yes |
+| On the day | The appointment is today. | From `earliestsend` on the day, once per channel. | Each channel that is ticked and has its address or number: email, then text. | Yes |
+| Removed occurrence | One occurrence of a repeat is removed. | Not held: at the first check inside the window. | Email. | Yes |
 
 Nothing is sent for a past occurrence, or for an appointment deleted before it was confirmed.
 
 ### 5.2 Who is messaged
 
-- A contact must have the channel ticked (Confirm via Email, Confirm via SMS) and an address or number for it.
+- A contact must have the channel ticked (Confirm via Email, Confirm via SMS) and an address or number for that channel.
+- There is no fallback between channels. A message goes on the channel it is for. If a channel is ticked but the contact has no address for it, that message is not sent on the other channel. (The program does fall back for a confirmation: Appendix A, item 3.)
 - A deleted or hidden contact is not messaged.
-- A ticked channel with no address sends nothing on that channel. The other channel, if ticked, still sends its own messages (unit test `missingEmailAddressSendsNothingByEmailButTextStillGoes`). Whether a confirmation then falls back to the other channel is open: Appendix A, item 11.
 - A contact with neither channel ticked gets nothing.
 
 ### 5.3 By channel setting
@@ -512,9 +525,13 @@ A new or changed appointment waits `waitbeforesendmins` (5 minutes) after its la
 | Confirmed, then moved and cancelled | Cancellation sent at once. No update. |
 | Confirmed, then title or location changed only | Nothing. Only start, end and repeat count as changes. |
 
+A title or location change never sends an update. This is a confirmed decision.
+
 ### 5.5 Send window and silence
 
-Messages are sent only between `earliestsend` (07:00) and `latestsend` (22:00), local time. A message due outside the window waits until the window opens. The window opens with the first check after `earliestsend`, so a message due at 23:00 is sent at 07:00.
+Automatic messages (every message in 5.1) are sent only between `earliestsend` (07:00) and `latestsend` (22:00), local time. The window includes 07:00 and does not include 22:00. A message due outside the window waits until the window opens. The window opens with the first check after `earliestsend`, so a message due at 23:00 is sent at 07:00.
+
+A message the user sends by hand (Tasks > SMS Contact, Ctrl+Shift+M) is not automatic, and the window does not apply to it.
 
 ### 5.6 Confirm-only appointments
 
@@ -543,7 +560,7 @@ Only the copy that holds the lock file (`ContactManager.lock`, in the database f
 
 - A send that fails (the transport refuses it, or the server does not answer) is retried after 5 minutes (`SENDRETRYMINS`).
 - It is tried at most 10 times (`MAXMESSAGERETRIES`). After that it is given up, and the log says so.
-- A send is recorded as sent only when it is sent. What happens when the record itself cannot be written is not yet tested: Appendix A, item 12.
+- A send is recorded as sent only when it is sent.
 - A message is not sent while its channel's sender is blank. Nothing is added to the contact's history for it, and the log says "sender missing". A warning is shown at start-up.
 - A template that cannot be read means the message is not sent, and the log says so.
 
@@ -591,7 +608,6 @@ Menus, as built from the program's menu definitions (`mainwindow.ui`):
     - Deleted Contacts
     - Hidden Contacts
     - Show Screen Reader Text
-  - Test Function (developer use; see Appendix A, item 5)
 - **Search**
   - Find Here (Ctrl+F)
   - Find Next (F3)
@@ -663,10 +679,6 @@ Journal (Ctrl+J) is not a tab: it opens the contact's journal in Easy Notepad (2
 | Ctrl+M | Email the open contact in the user's mail program. |
 | Ctrl+Shift+M | Text the open contact. |
 
-### 6.4 Developer items
-
-**Test Function** (File menu) calls a diagnostic for the calendar list, for the development team. It is not part of the user's functions. Appendix A, item 5, records that it is still shown.
-
 ---
 
 ## 7. Synchronisation with Google
@@ -711,7 +723,7 @@ Only appointments in the calendar window are synced (default: 90 days before tod
 
 Repeats are downloaded with their first occurrence. A repeat whose first occurrence is older than the window is still listed on the dates in the window.
 
-The program's help says appointments are downloaded from one year back. The window setting governs the program as built, and this is listed in Appendix A, item 3.
+The program's help says appointments are downloaded from one year back. The window setting governs the program as built, and this is listed in Appendix A, item 2.
 
 ### 7.5 Retries and rate limits
 
@@ -738,24 +750,15 @@ When a sync stops, the last line of the report gives the reason and what to do:
 
 #---
 
-## Appendix A. Known inconsistencies and open points
+## Appendix A. Open points
 
-Each item is a difference between this specification, the program's help (File > Manual), the code, or the tests, with what is known. Each needs a decision before the next release.
+Each point is a difference that is still to be resolved. The specification states the rule that should apply. Points that have been agreed, and are now stated in the specification, are not repeated here.
 
-1. **Manual, section 8.1 (example ini).** The `smsconfirmation` line points to `emailconfirmation.msg`, not to a text file. The example also lists `[google] priority=ask`, which the code does not read (only `debug` is read). Check the example against the code, and remove `priority`.
-2. **Manual, section 5 (window).** The manual says the calendar window is set by `windowbefore` and `windowafter` in the ini file. The code reads them from Settings (2.3), and the ini file does not hold them.
-3. **Calendar download window.** The manual (section 7.1) says appointments are downloaded from one year back. The code downloads from the Setup window (90 days back by default). The bench test G44 expects appointments older than one year to be left out. Decide which is intended, then make the manual, the code and test G44 agree.
-4. **Title and location changes.** The manual says a changed appointment is messaged. The rules and the code send an update only for a change to start, end or repeat (5.4). Confirm that this is intended, and say so in the manual.
-5. **Test Function.** The File menu has a "Test Function" item that calls a calendar diagnostic. It is for developers. Decide whether it should be removed from the release, or hidden unless a developer option is set.
-6. **Accessible text is long (issue #22, open).** Calendar entries are read out with the whole program path and window title, which is long. Shorter accessible text for entries has not been done.
-7. **Count of unit tests.** `documents/messaging-rules.md` says 77 unit tests. The file `autotest/archive/messages/tst_messages.cpp` now defines 112 test functions. The messaging rules document should be updated.
-8. **Domain for test contacts.** The test contacts' emails use the domain `sgc.contacmanagertest` as it was specified. Check the spelling before the first live run: the clean-up utility finds test records by this domain.
-9. **Encryption key wording.** The program calls the database password "Encryption Key". The test set-up calls it the database password. The two are the same (2.5). The manual should use one name.
-10. **Log file.** The log is shown in the Logs window. Where it is stored on disk is not described in the manual. Add this to the manual if the file is kept.
-11. **Confirmation fallback.** The unit test `missingEmailAddressSendsNothingByEmailButTextStillGoes` expects a text to go when email is ticked but has no address. The rules (`documents/messaging-rules.md`) say there is no fallback between channels. Decide, for a confirmation with both channels ticked and one address missing, whether the other channel sends it, and make the rules and test agree.
-12. **Sent record that cannot be written.** Issue #110, item 3, asks that a message whose sent record cannot be written is retried and not sent twice. It is not tested yet, so the program's behaviour in that case is not confirmed.
-
----
+1. **Manual.** The program's help (File > Manual) must be corrected to match this specification. Its section 8.1 example has the `smsconfirmation` line pointing at the email file, and a `[google] priority` key that the program does not read. Its section 5 says the calendar window is set in the ini file; it is set in Setup (2.3). Its section 6.3 should say that a change to a title or location does not send an update (5.4).
+2. **Download window: decision needed.** The manual (section 7.1) says appointments are downloaded from one year back. The program downloads the window set in Setup (90 days back and 730 days forward by default, 7.4). The bench test G44 expects the one-year rule. Decide which is intended, then make the program, the manual and test G44 agree.
+3. **Fallback between channels: the program must change.** Section 5.2 states that there is no fallback. The program does fall back: when Email is ticked and the contact has no email address, a confirmation is sent by text. The unit test `missingEmailAddressSendsNothingByEmailButTextStillGoes` expects this (`confirm:sms`). The program and that test must change.
+4. **Names in the program.** The program's dialogs say "Encryption Key" and "Initial Password". They should use the names in section 2.5: the file encryption key and the login password. The labels in File > Key and Password should follow.
+5. **Calendar text is long (issue #22, open).** Calendar entries are read out with the program path and the window title, which section 1.4 rules out. Shorten the spoken text for entries.
 
 ## Appendix B. Glossary
 
@@ -774,3 +777,6 @@ Each item is a difference between this specification, the program's help (File >
 | Progress file | The record of an interrupted sync (7.6). |
 | Sync token | Google's marker for the last listing, so only changes are listed (7.3). |
 | ETag | Google's version tag for a record, used to detect a change made on Google (7.3). |
+| File encryption key | The key that encrypts the program's files. Created once, never changed (2.5). |
+| Login password | The password typed at start-up. It decrypts the file encryption key (2.5). |
+| Accessible text | The text a screen reader speaks, or a braille display shows, for a control or item. Short when spoken, compact on braille (1.4). |
