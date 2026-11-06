@@ -172,7 +172,7 @@ UT-111,2026-11-06,897039e,PASS,,
 UT-112,2026-11-06,897039e,PASS,,
 UT-113,2026-11-06,897039e,PASS,,
 UT-114,2026-11-06,897039e,PASS,,
-GS-001,2026-11-06,d3113d7,FAIL,"Needs checking: the sync reports the six contacts uploaded, but at the check Google showed none. Read again later, five of the six were there (the sixth not), so the check may have run before Google's listing caught up.","The second sync's driver reports 'No Key is present' and 'failed to login', so it loaded no contacts (0 contacts), which the second-sync checks then fail on. The bench's key comes from its default test secret, not the account file."
+GS-001,2026-11-06,5de4fb7,FAIL,Needs checking: contact 1: one copy on Google: 0 copies; contact 2: one copy on Google: 2 copies; contact 3: values on Google: birthday; contact 4: one copy on Google: 2 copies; contact 5: values on Google: birthday; contact 1: values after a second sync: birthday; contact 2: one copy after a second sync: 2 copies; contact 3: values after a second sync: birthday; contact 4: one copy after a second sync: 2 copies; contact 5: values after a second sync: birthday; the second sync adds no contact to the program: 0 contacts; the second sync adds no contact file: 8 files,Configs: CM FAIL
 GS-002,,,NOT RUN,,
 GS-003,,,NOT RUN,,
 GS-005,,,NOT RUN,,
