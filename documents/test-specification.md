@@ -129,7 +129,7 @@ These tests use the six fixture contacts (0.4), a disposable account (0.6), and 
 **How the tests are grouped.** Section 1 has three subsections, and each merge is inside one subsection:
 
 | Subsection | Tests | Merged tests (each replaces the IDs in its Replaces column) | Single tests (not merged) |
-|---|---|---|---|---|
+|---|---|---|---|
 | 1.1 Contacts | 8 | GS-003, GS-005, GS-008, GS-012 | GS-001, GS-002, GS-010, GS-011 |
 | 1.2 Appointments | 8 | GS-015, GS-017, GS-020, GS-023, GS-025 | GS-028, GS-029, GS-030 |
 | 1.3 Interruptions, limits, tokens and copies | 8 | GS-031, GS-032, GS-033, GS-041 | GS-035, GS-038, GS-039, GS-040 |
