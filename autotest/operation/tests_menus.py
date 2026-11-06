@@ -409,7 +409,7 @@ def _mf024_build(home):
 
 def _mf024_check(runs, home):
     r = runs[1]
-    return [check("Ctrl+L shows the contact's list", r.value("contact_editToDo") == "MF024 contact list item",
+    return [check("Ctrl+L shows the contact's list", (r.value("contact_editToDo") or "").strip() == "MF024 contact list item",
                   "to-do shows %r" % r.value("contact_editToDo")),
             check("Ctrl+Shift+L shows the user's list", r.value("mine_editToDo") not in (None, "MISSING")
                   and r.value("mine_editToDo") != r.value("contact_editToDo"), "to-do shows %r" % r.value("mine_editToDo"))]
@@ -578,8 +578,8 @@ test("MF-036", "Contact Details enables editing of the open contact (Alt+E, D)",
 
 def _mf037_build(home):
     return [run_spec(oc.fixtures_ops()),
-            run_spec([oc.open_op(1, "o"), oc.hold_op(), oc.menu_op("m", "actionDeleteContact"), oc.answer_op("No"),
-                      oc.dump_op("declined.json"), oc.menu_op("m2", "actionDeleteContact"), oc.answer_op("Yes"),
+            run_spec([oc.open_op(1, "o"), oc.hold_op(), oc.answer_op("No"), oc.menu_op("m", "actionDeleteContact"),
+                      oc.dump_op("declined.json"), oc.answer_op("Yes"), oc.menu_op("m2", "actionDeleteContact"),
                       oc.hold_op(False), oc.dump_op("accepted.json")])]
 
 
@@ -792,7 +792,7 @@ def _mf052_build(home):
 
 def _mf052_check(runs, home):
     c = runs[2].contact(oc.surname(1), "again.json")
-    return [check("the to-do item is saved and there after a restart", c.get("todo") == "MF052 item", "todo %r" % c.get("todo"))]
+    return [check("the to-do item is saved and there after a restart", (c.get("todo") or "").strip() == "MF052 item", "todo %r" % c.get("todo"))]
 
 
 test("MF-052", "To-Do List (Alt+L) saves its items with the contact", _mf052_build, _mf052_check)

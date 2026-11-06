@@ -221,7 +221,7 @@ def _ac025_build(home):
     return [oc.run_spec(oc.fixtures_ops()),
             oc.run_spec([oc.hold_op(), oc.menu_op("setup", "actionSetup"),
                          oc.set_op("bad", "smsKeyExpiry", text="not a date"), oc.press_op("ok", "OK"),
-                         oc.focus_op("f"), oc.widgets_op("w", ["qt_msgbox_label"]), oc.press_op("warnok", "OK"),
+                         focus_op("f"), oc.widgets_op("w", ["qt_msgbox_label"]), oc.press_op("warnok", "OK"),
                          oc.hold_op(False), oc.dump_op()])]
 
 
@@ -245,7 +245,7 @@ def _ac026_build(home):
     ops = [oc.hold_op()]
     for i, action in enumerate(["actionSetup", "action_Advanced_Find", "actionAbout"], start=1):
         ops += [oc.calendar_click_op("c%d" % i, summary, oc.surname(1)), oc.menu_op("m%d" % i, action),
-                oc.keys_op("esc%d" % i, "Escape"), oc.focus_op("after%d" % i)]
+                oc.keys_op("esc%d" % i, "Escape"), focus_op("after%d" % i)]
     ops.append(oc.hold_op(False))
     ops.append(oc.dump_op())
     return [oc.run_spec(oc.fixtures_ops() + [oc.appt_op(1, summary, oc.at(20, "10:00"), oc.at(20, "11:00")), oc.save_op()]),
