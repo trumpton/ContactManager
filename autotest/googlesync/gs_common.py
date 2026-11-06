@@ -328,9 +328,22 @@ class Run:
             return [l.strip() for l in f if l.strip()]
 
 
+def clear_stale_shared_memory():
+    """Removes shared memory left by a driver that was killed.  The program keeps its encryption key there, machine-wide, so a
+    stale segment would give a later run a key that its own data folder does not hold.  Only done when no driver is running."""
+    if subprocess.run(["pgrep", "-f", "sync_driver|operation.*driver|announce.*driver"], stdout=subprocess.DEVNULL).returncode == 0:
+        return
+    out = subprocess.run(["ipcs", "-m"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.decode("utf-8", "replace")
+    for line in out.splitlines():
+        parts = line.split()
+        if len(parts) >= 6 and parts[1].isdigit():
+            subprocess.run(["ipcrm", "-m", parts[1]], stderr=subprocess.DEVNULL)
+
+
 def run_driver(driver, home, name, ops, outdir, secret="gs-test-secret-only", setkey=True, faults=None,
                timeout=900, extra_env=None):
     """Runs the driver once, on the home.  Faults is the CM_TEST_FAULTS text (see the driver), or None."""
+    clear_stale_shared_memory()
     os.makedirs(outdir, exist_ok=True)
     opsfile = os.path.join(outdir, "ops.json")
     with open(opsfile, "w", encoding="utf-8") as f:
