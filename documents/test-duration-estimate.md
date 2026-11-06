@@ -10,12 +10,12 @@ A cycle runs every test once. It takes about **8 hours 01 minutes to 11 hours 41
 
 | Area | Tests | Automated | Person's time | Total (low to high) |
 |---|---|---|---|---|
-| 1 Google sync (live) | 42 new, 131 imported (U01 is in section 5) | 5 h 09 min to 7 h 43 min | none | 5 h 09 min to 7 h 43 min |
-| 5 Capacity stress test (not in the cycle) | CS-001, the imported U01 | 17 min 42 s | none | 17 min 42 s, shown separately |
-| 2 Announcements (accelerated) | 48 new, in 10 parallel runs | 16 min to 17 min (the longest run) | none | 16 min to 17 min |
-| Unit suite (not a section: 112 tests covering parts of areas 1, 2 and 3b) | 112 imported | 3 min to 5 min | none | 3 min to 5 min |
-| 3 Operation: start-up, menus and dialogs | 97 new, 31 imported, 1 old-file test | 1 h 18 min to 2 h 03 min | none | 1 h 18 min to 2 h 03 min |
-| 4 Accessibility | 18 new, 2 imported | 3 min | 1 h 12 min to 1 h 30 min | 1 h 15 min to 1 h 33 min |
+| 1 Google sync (live system access) | 42 new, 131 imported (U01 is in section 5) | 5 h 09 min to 7 h 43 min | none | 5 h 09 min to 7 h 43 min |
+| 5 Capacity stress test (not part of the normal cycle) | CS-001, the imported U01 | 17 min 42 s | none | 17 min 42 s, shown separately |
+| 2 Announcements (offline, accelerated clock, stub transports) | 48 new, in 10 parallel runs | 16 min to 17 min (the longest run) | none | 16 min to 17 min |
+| 6 Unit suite | 112 imported | 3 min to 5 min | none | 3 min to 5 min |
+| 3 Operation testing | 97 new, 31 imported, 1 old-file test | 1 h 18 min to 2 h 03 min | none | 1 h 18 min to 2 h 03 min |
+| 4 Accessibility (manual, with automated checks) | 18 new, 2 imported | 3 min | 1 h 12 min to 1 h 30 min | 1 h 15 min to 1 h 33 min |
 | **Total (cycle, excluding section 5)** | **205 new, 278 imported** | **6 h 49 min to 10 h 11 min** | **1 h 12 min to 1 h 30 min** | **8 h 01 min to 11 h 41 min** |
 
 The unit suite is one build and one run, covering all 112 unit tests: 84 announcement tests (area 2), 16 calendar tests (area 3b) and 12 sync tests (area 1). The bench scenario L01 is the bench's runner for the same suite, so it is not counted again.

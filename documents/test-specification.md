@@ -16,6 +16,7 @@ Companions: `documents/specification.md` (what the program does, the reference f
    - 3c. By dialog
 4. Accessibility (manual, with automated checks)
 5. Capacity stress test (not part of the normal cycle)
+6. Unit suite
 - Appendix A. Traceability: specification section to tests
 - Appendix B. Requirements that have no test yet
 
@@ -35,6 +36,7 @@ Every test has a unique ID and a one-line title. The prefix is the area:
 | `MF` | By menu and function (3b) |
 | `DL` | By dialog (3c) |
 | `AC` | Accessibility (area 4) |
+| `UT` | Unit suite (section 6; a reference for the suite as a whole) |
 
 Each test has its own number within its area.
 
@@ -416,7 +418,7 @@ Each menu item is tested by choosing it from the menu, and by its key where it h
 
 ---
 
-## 4. Accessibility
+## 4. Accessibility (manual, with automated checks)
 
 Accessibility tests come in two groups.
 
@@ -466,13 +468,21 @@ The automated checks cover the dialogs and controls named above, not every contr
 
 ---
 
-## 5. Capacity stress test
+## 5. Capacity stress test (not part of the normal cycle)
 
 This is not part of the normal test cycle. It checks how the program and Google behave with a very large data set: 250 contacts and 1,000 appointments. It is run on the scratch account only, when the capacity of the sync is in question. It is not expected in routine runs, and the specification does not expect thousands of records in any other test.
 
 | ID | Title | Procedure and expected result | How run |
 |---|---|---|---|
 | CS-001 | Purge the account, then upload 250 contacts and 1,000 appointments, half by the Google API and half by ContactManager, and leave them in place | The purge removes everything of each kind on the account, so run it only on the scratch account. Expect every contact and appointment on Google once, and the sync to finish within its time. Records are left in place. | Automated (bench), capacity only |
+
+## 6. Unit suite
+
+Reference `UT`. The unit suite is one build and one run of unit tests. It covers 112 unit tests: 84 announcement tests (area 2), 16 calendar tests (area 3b) and 12 sync tests (area 1). Its tests are not listed one by one here. The bench scenario L01 is the bench's runner for the suite, so it is not counted again. The suite is included in the cycle total in `documents/test-duration-estimate.md`.
+
+Its tests are being rewritten and moved with the archive (ticket #121), and its run instructions are kept there until then.
+
+---
 
 ## Appendix A. Traceability: specification section to tests
 
