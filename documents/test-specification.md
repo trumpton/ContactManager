@@ -478,7 +478,7 @@ This is not part of the normal test cycle. It checks how the program and Google 
 
 ## 6. Unit suite
 
-Reference `UT`. The unit suite is one build and one run of unit tests. It covers 112 unit tests: 84 announcement tests (area 2), 16 calendar tests (area 3b) and 12 sync tests (area 1). Its tests are not listed one by one here. The bench scenario L01 is the bench's runner for the suite, so it is not counted again. The suite is included in the cycle total in `documents/test-duration-estimate.md`.
+Reference `UT`. The unit suite is one build and one run of unit tests. It covers 114 unit tests: 84 announcement tests (area 2), 16 calendar tests (area 3b) and 14 sync tests (area 1). Its tests are not listed one by one here. The bench scenario L01 is the bench's runner for the suite, so it is not counted again. The suite is included in the cycle total in `documents/test-duration-estimate.md`.
 
 Its tests are being rewritten and moved with the archive (ticket #121), and its run instructions are kept there until then.
 
