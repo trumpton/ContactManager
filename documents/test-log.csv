@@ -208,7 +208,7 @@ SS-009,2026-11-06,9283d87,PASS,,
 SS-010,2026-11-06,9283d87,PASS,,
 SS-011,2026-11-06,974607e,FAIL,"Needs checking: six contacts load, so the unreadable contact file may be among them.",
 SS-012,2026-11-06,974607e,FAIL,,Needs checking: the log does not say the ini file was not found.
-SS-013,2026-11-06,9283d87,NOT RUN,,"Run 9283d87: blocked: SS-013: BLOCKED, running as root: file permissions are not enforced in this container, so a read-only folder cannot be made. Run the bench as a user without root to test it."
+SS-013,2026-11-06,9283d87,NOT RUN,,"Attempted at 6fe63f6 and BLOCKED: running as root, so file permissions are not enforced and a read-only folder cannot be made. Run the bench as a user without root."
 SS-014,2026-11-06,9283d87,PASS,,
 SS-015,2026-11-06,9283d87,PASS,,
 MF-001,2026-11-06,b09408e,PASS,,
@@ -232,7 +232,7 @@ MF-018,2026-11-06,b09408e,PASS,,
 MF-019,2026-11-06,637be09,PASS,,
 MF-020,2026-11-06,9283d87,PASS,,
 MF-021,2026-11-06,b09408e,FAIL,,"Needs checking: the driver reads the calendar's rows here, not the contacts list, so the hidden contact is not found. The handler skips hidden contacts, but the spec says it lists them (decision needed)."
-MF-022,2026-11-06,9283d87,NOT RUN,,"Run 9283d87: blocked: MF-022: BLOCKED, Identify Me is chosen in Setup from a list the bench cannot set yet (the Setup dialog's list is not recorded). Once it can be set, press Ctrl+Shift+O and check the contact that opens."
+MF-022,2026-11-06,9283d87,NOT RUN,,Attempted at 6fe63f6 and BLOCKED: Identify Me is chosen in Setup from a list the bench cannot set yet.
 MF-023,2026-11-06,974607e,FAIL,"Needs checking: with Easy Notepad present, Goto Journal does not start it.",Check whether Easy Notepad is installed on this machine.
 MF-024,2026-11-06,974607e,FAIL,"Needs checking: Ctrl+Shift+L shows the contact's to-do item, not the user's list.",
 MF-025,2026-11-06,9283d87,PASS,,
@@ -265,14 +265,14 @@ MF-051,2026-11-06,9283d87,PASS,,
 MF-052,2026-11-06,9283d87,PASS,,
 MF-053,2026-11-06,974607e,FAIL,"Needs checking: Contact Details (Alt+D) is still disabled after Alt+E, D with a contact open.",
 DL-001,2026-11-06,974607e,PASS,,Only the window days are read here; the other controls need their own reads (their names are in configuration.ui).
-DL-002,2026-11-06,9283d87,NOT RUN,,"Run 9283d87: blocked: DL-002: BLOCKED, Identify Me is chosen in Setup from a list the bench cannot set yet (see MF-022)."
+DL-002,2026-11-06,9283d87,NOT RUN,,Attempted at 6fe63f6 and BLOCKED: Identify Me is chosen in Setup from a list the bench cannot set yet (see MF-022).
 DL-003,2026-11-06,974607e,PASS,,The calendar master's control is not identified yet; the contacts one is checked.
 DL-004,2026-11-06,9283d87,PASS,,
 DL-005,2026-11-06,974607e,FAIL,Needs checking: the expiry warning appears for 25/1/35 and for 2035; whether those should be accepted needs the spec.,
 DL-007,2026-11-06,974607e,FAIL,Needs checking: Reset does not remove the Google account here.,"The sign-in code of Change is not checked: it needs the device sign-in with Google, which the operation tests do not reach."
 DL-008,2026-11-06,974607e,PASS,,"The For, From and To fields are typed in the program's own date format; checked by DL-010."
 DL-009,2026-11-06,9283d87,PASS,,
-DL-010,2026-11-06,9283d87,NOT RUN,,"Run 9283d87: blocked: DL-010: BLOCKED, the arrows and the To field are dates typed in the program's own format, which the bench does not set yet (AccessibleDateRangeEdit). The keys are in the form's tab order, to be added with the format."
+DL-010,2026-11-06,9283d87,NOT RUN,,"Attempted at 6fe63f6 and BLOCKED: the arrows and the To field are dates in the program's own format, which the bench does not set yet (AccessibleDateRangeEdit)."
 DL-011,2026-11-06,974607e,FAIL,Needs checking: the clash offer and the declined save are not confirmed by the read-back.,
 DL-012,2026-11-06,b09408e,FAIL,,Needs checking: the single appointment is not found by the test.
 DL-013,2026-11-06,974607e,FAIL,Needs checking: the repeat count of three is not stored (the repeat count field is empty).,The end by date is not checked: the date is typed in the program's date format and is not set by the bench yet.
