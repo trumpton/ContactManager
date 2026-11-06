@@ -69,6 +69,7 @@
 #include "mainwindow.h"
 #include "appointmentform.h"
 #include "../Lib/accessibledaterangeedit.h"
+#include "../Lib/accessibledatetimeedit.h"
 #undef private
 #include "contact.h"
 #include "contactdatabase.h"
@@ -339,9 +340,9 @@ int main(int argc, char *argv[])
 
         // The Go To Date box (dateInputDialog, a plain QDialog holding a date-time edit): recorded, then answered with the
         // next date answer, or cancelled
-        if (QString(m->metaObject()->className()) == "QDialog" && m->findChild<QDateTimeEdit*>()) {
-            QDateTimeEdit *dte = m->findChild<QDateTimeEdit*>() ;
-            QLineEdit *le = dte->findChild<QLineEdit*>() ;
+        if (QString(m->metaObject()->className()) == "QDialog" && m->findChild<AccessibleDateTimeEdit*>()) {
+            AccessibleDateTimeEdit *dte = m->findChild<AccessibleDateTimeEdit*>() ;
+            QLineEdit *le = dte ;
             QString answer = dateAnswers.isEmpty() ? QString() : dateAnswers.takeFirst() ;
             dialogCount++ ;
             QString prefix = QString("dialog_%1").arg(dialogCount) ;
