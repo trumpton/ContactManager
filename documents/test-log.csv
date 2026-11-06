@@ -1,0 +1,60 @@
+test,date,result,cm_notes,testbench_notes
+AN-001,2026-11-06,PASS,,
+AN-002,2026-11-06,PASS,,
+AN-003,2026-11-06,PASS,,
+AN-004,2026-11-06,PASS,,
+AN-005,2026-11-06,PASS,,
+AN-006,2026-11-06,PASS,,
+AN-007,2026-11-06,PASS,,
+AN-008,2026-11-06,PASS,,
+AN-009,2026-11-06,PASS,,
+AN-010,2026-11-06,PASS,,
+AN-011,2026-11-06,FAIL,"Update sent 9 minutes late (11:15:35, window to 11:13). Timing, not a logic error.","Window was six minutes. Fifteen-minute allowance for updates added in b1a569f; not re-run."
+AN-012,2026-11-06,FAIL,"Cancellation sent 9 minutes late (11:09:34, window to 11:06), though a cancellation is meant to go at once. The delay is the check interval.","Window was six minutes. Fifteen-minute allowance for cancellations added in b1a569f; not re-run."
+AN-013,2026-11-06,PASS,,
+AN-014,2026-11-06,PASS,,
+AN-015,2026-11-06,FAIL,"Cancellation sent 15 minutes late (11:15:34, window to 11:06). Timing, not a logic error.","Window was six minutes. Fifteen-minute allowance for cancellations added in b1a569f; not re-run."
+AN-016,2026-11-06,PASS,,"First occurrence is confirmed less than 36 hours before its start, so it gets no reminder. Expectation corrected in 6eb969f; daily repeat."
+AN-017,2026-11-06,PASS,,
+AN-018,2026-11-06,PASS,,
+AN-019,2026-11-06,FAIL,,"Edit at 21:00 is inside the send window, so the update at 21:09 is correct. Edit moved to 22:15 and spec row updated in b1a569f; not re-run."
+AN-020,2026-11-06,PASS,,
+AN-021,2026-11-06,PASS,,
+AN-022,2026-11-06,PASS,,"Group window was too narrow for late confirmations. Fifteen-minute allowance for groups added in 06d7256; this test failed before that."
+AN-023,2026-11-06,PASS,"Segmentation fault in an earlier full run (announce-full-1337). Not reproduced in later runs.","Group window was too narrow for late confirmations. Fifteen-minute allowance for groups added in 06d7256; this test failed before that."
+AN-024,2026-11-06,PASS,,
+AN-025,2026-11-06,PASS,,
+AN-026,2026-11-06,PASS,,
+AN-027,2026-11-06,PASS,,
+AN-028,2026-11-06,PASS,,
+AN-029,2026-11-06,PASS,,
+AN-030,2026-11-06,PASS,,
+AN-031,2026-11-06,PASS,,
+AN-032,2026-11-06,PASS,,
+AN-033,2026-11-06,PASS,"Segmentation fault in an earlier full run (announce-full-1337). Not reproduced in later runs.",
+AN-034,2026-11-06,PASS,,
+AN-035,2026-11-06,PASS,,
+AN-036,2026-11-06,PASS,,
+AN-037,2026-11-06,PASS,,
+AN-038,2026-11-06,PASS,"Segmentation fault in an earlier full run (announce-full-1337). Not reproduced in later runs.",
+AN-039,2026-11-06,FAIL,"A confirmation that failed ten tries blocked the reminder and the on-the-day message. Fixed in 73f67d8 (messagedecision.cpp, mainwindow_timer_alert.cpp); not re-run. Segmentation fault in an earlier full run (announce-full-1337).",
+AN-040,2026-11-06,PASS,,
+AN-041,2026-11-06,FAIL,"A confirmation that failed ten tries blocked the reminder and the on-the-day message. Fixed in 73f67d8 (messagedecision.cpp, mainwindow_timer_alert.cpp); not re-run.",
+AN-042,2026-11-06,PASS,,
+AN-043,2026-11-06,PASS,,
+AN-044,2026-11-06,PASS,,
+AN-045,2026-11-06,FAIL,,"Appointment made 26 hours ahead, so the reminder was correctly not sent (confirm-only). Test moved to start on 26 March, 50 hours ahead, in b1a569f; not re-run."
+AN-046,2026-11-06,PASS,,
+AN-047,2026-11-06,FAIL,,"Run-level check. Fails because AN-011, AN-012, AN-015 and AN-019 failed."
+AN-048,2026-11-06,PASS,,
+AC-019,2026-11-06,PASS,,
+AC-020,2026-11-06,PASS,,
+AC-021,2026-11-06,FAIL,,"Zero controls found in all five dialogs, so the dialogs were probably not opened. Not yet investigated."
+AC-022,2026-11-06,FAIL,,"The check after Tab expects different text from what is read. Not yet investigated."
+AC-023,2026-11-06,PASS,,
+AC-024,2026-11-06,PASS,,
+AC-025,2026-11-06,FAIL,,"Calls oc.focus_op, which does not exist; focus_op is defined in automated_tests.py."
+AC-026,2026-11-06,FAIL,,"Same cause as AC-025: oc.focus_op does not exist."
+AC-027,2026-11-06,PASS,,
+AC-028,2026-11-06,FAIL,"Typed-date box has an empty accessible name and description (to confirm).",
+AC-029,2026-11-06,FAIL,"Focus is empty after Tidy Records (to confirm).","Could be the bench's focus read. Not yet investigated."
