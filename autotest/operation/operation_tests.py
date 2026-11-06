@@ -28,6 +28,7 @@ import ops_common as oc                                    # noqa: E402
 import tests_startup                                       # noqa: E402,F401  (registers SS-001 to SS-015)
 import tests_menus                                         # noqa: E402,F401  (registers MF-001 to MF-053)
 import tests_dialogs                                       # noqa: E402,F401  (registers DL-001 to DL-030)
+import tests_imported                                      # noqa: E402,F401  (registers the imported IO-002 to IO-020)
 
 DEFAULT_DRIVER = os.path.join(os.path.expanduser("~"), "build-contactmanager", "driver")
 DEFAULT_OUT = os.path.join(os.path.expanduser("~"), "contactmanager-test-runs")
