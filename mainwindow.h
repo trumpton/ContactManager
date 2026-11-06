@@ -116,7 +116,6 @@ private slots:
     void on_action_Email_Contact_triggered();
     void on_action_SMS_Contact_triggered();
 
-    void on_actionTest_Function_triggered();
     void on_actionOpen_triggered();
 
     void on_actionEnableEditHistoryEdit_triggered();
