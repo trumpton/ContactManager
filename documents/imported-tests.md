@@ -1,6 +1,6 @@
 # Imported tests
 
-The tests imported from the archive bench (`autotest/archive/`, ticket #121). Each has its own ID, so every test can be tracked. The archive's own IDs are kept for reference, but they are not unique: `L05` and `L06` are each used for two different scenarios in `google_bench.py`, so the IDs in this register are the references.
+The tests imported from the archive bench. The archive has been removed: its code and results are in git history (commit 0da2cd8), and each imported test is now in the bench named in its status. Each has its own ID, so every test can be tracked. The archive's own IDs are kept for reference, but they are not unique: `L05` and `L06` are each used for two different scenarios in `google_bench.py`, so the IDs in this register are the references.
 
 The test results are in `documents/test-log.csv`, one row per ID.
 
@@ -8,7 +8,7 @@ How the imports are split: a scenario is an operation test (`IO`) if its body ca
 
 ## Google sync scenarios (IG, area 1)
 
-| ID | Archive ID | Line in `google_bench.py` | Title (from the archive)  | Status |
+| ID | Archive ID | Line in `google_bench.py` | Title (from the archive) | Status |
 |---|---|---|---|---|
 | IG-001 | C01 | 512 | Add a contact locally, no sync: Google unchanged | Ported to the Google bench, not run |
 | IG-002 | C02 | 519 | Contact made on Google: downloaded once across two syncs | Covered by GS-002 |
@@ -155,7 +155,7 @@ How the imports are split: a scenario is an operation test (`IO`) if its body ca
 
 ## Operation scenarios (IO, area 3)
 
-| ID | Archive ID | Line in `google_bench.py` | Title (from the archive)  | Status |
+| ID | Archive ID | Line in `google_bench.py` | Title (from the archive) | Status |
 |---|---|---|---|---|
 | IO-001 | E06 | 1487 | Editor: an older bad entry that was never edited still stops a save, and is shown with focus | Covered by DL-014 |
 | IO-002 | MG01 | 1597 | Tidy Contacts merges two entries for one person when they share an address and do not conflict | Ported to the operation bench, not run |
@@ -180,7 +180,7 @@ How the imports are split: a scenario is an operation test (`IO`) if its body ca
 
 ## Accessibility scenarios (IA, area 4)
 
-| ID | Archive ID | Line in `google_bench.py` | Title (from the archive)  | Status |
+| ID | Archive ID | Line in `google_bench.py` | Title (from the archive) | Status |
 |---|---|---|---|---|
 | IA-001 | L05 | 2577 | #101: Show Screen Reader Text: shows the name, role, value and description of the focused control, and says it is an approximation | Covered by AC-004 |
 | IA-002 | L06 | 2590 | #101: the accessibility debug checkbox in the screen reader text dialog turns console tracing on and off | Ported to the accessibility bench, not run |

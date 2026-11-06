@@ -130,7 +130,7 @@ bench_driver <outdir> <operations.json>
 
 The app keeps its local data under its HOME folder, not in the working directory: its settings are in
 `$HOME/.config/trumpton.org.uk` and its data in `$HOME/TrumptonApps/ContactManager`. The bench gives each run its own HOME
-(`prepare_home` in `google_bench.py`), so one run cannot load the contacts of an earlier one. A hand-run test must do the
+(`Home` in `autotest/googlesync/gs_common.py`), so one run cannot load the contacts of an earlier one. A hand-run test must do the
 same: use a new, empty HOME for each run, or it will load the earlier run's contacts.
 
 The app shows dialogs even headless. The bench's driver answers them: the key and login dialogs with `CM_TEST_SECRET`, the sync dialog by pressing its finish button, and every other dialog with its default button. It records each dialog it meets in `driver.log`.
@@ -161,7 +161,7 @@ written by an older version. Build one from the app's objects, not from the app'
 - Run it with `QT_QPA_PLATFORM=offscreen`, and in the background with a time limit, so a wait on a dialog does not
   hold up the session.
 
-**The old-file test** and its run instructions are kept in ticket #121 until the archive is removed.
+**The old-file test** is in `autotest/unit/oldfile`, and is run with `autotest/unit/run-old-contact-test.sh`.
 
 **Long builds.** A build can take longer than the two-minute limit of the tool that runs commands. Start it in the
 background with a log file, then wait for the log to show it has finished. This matters most after a change to a
@@ -172,7 +172,7 @@ test contacts. The bench's cleanup removes every contact named `Bench`. Stop any
 
 ## 6. Running the bench
 
-The archived bench is replaced by the rewritten tests (ticket #121). Its run instructions, durations and recorded results are kept in ticket #121 until the archive is removed, and are not repeated here.
+The archived bench has been replaced by the rewritten tests. Its code and recorded results are in git history (commit 0da2cd8), and are not repeated here.
 
 ## 7. Working with a human go-between
 

@@ -1,7 +1,7 @@
 # ContactManager Test Specification
 
 Version: as at 5 November 2026.
-Companions: `documents/specification.md` (what the program does, the reference for every test), `documents/test-duration-estimate.md` (how long the tests take), `documents/archive/test-specification-previous.md` (the earlier specification, with its results, kept for the record), and `autotest/utilities/readme.md` (the set-up and clean-up utilities).
+Companions: `documents/specification.md` (what the program does, the reference for every test), `documents/test-duration-estimate.md` (how long the tests take), and `autotest/utilities/readme.md` (the set-up and clean-up utilities).
 
 ---
 
