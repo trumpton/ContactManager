@@ -1,6 +1,7 @@
 #include "messagedecision.h"
 #include <QtGlobal>
 #include <QStringList>
+#include <QRegularExpression>
 
 QList<MessageStep> decideMessages(const MessageState &s)
 {
@@ -166,4 +167,19 @@ bool smsKeyDueSoon(const QDate &expiry, const QDate &today)
 bool sendWasMade(int result)
 {
     return result==1 || result==-4 ;
+}
+
+// The test code: two to four capital letters, a hyphen and three digits, at the start of the summary
+QString testCodeOf(const QString &summary)
+{
+    static const QRegularExpression code("^([A-Z]{2,4}-[0-9]{3})(\\s|$)") ;
+    QRegularExpressionMatch m = code.match(summary.trimmed()) ;
+    return m.hasMatch() ? m.captured(1) : QString() ;
+}
+
+QString replaceTestTag(const QString &text, const QString &code)
+{
+    QString result = text ;
+    result.replace("$TESTTAG", code) ;
+    return result ;
 }

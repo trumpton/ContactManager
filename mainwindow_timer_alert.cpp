@@ -635,6 +635,14 @@ bool MainWindow::loadMessage(QString filename,
     title.replace("$FDATE", start.toLocalTime().toString("dd-MMM-yyyy")) ;
     title.replace("$APPOINTMENTS", upcomingAppointments(calendar, contact.getField(Contact::ID), "; ")) ;
 
+    // Test builds only: with CM_TEST_MESSAGE_TAGS set, $TESTTAG is the test code of the appointment (for example AN-017), so
+    // a message can be matched to its test by eye.  Without the variable, nothing changes.
+    if (qEnvironmentVariableIsSet("CM_TEST_MESSAGE_TAGS")) {
+        QString code = testCodeOf(appt.getField(Appointment::Summary)) ;
+        title = replaceTestTag(title, code) ;
+        message = replaceTestTag(message, code) ;
+    }
+
     return !title.isEmpty();
 }
 
