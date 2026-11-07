@@ -363,8 +363,8 @@ def gs_005(t):
         now = google_for(3, surname=SUR_APP)
         t.check("Google has the program's surname", len(now) == 1 and g.surname_of(now[0]) == SUR_APP,
                 "%s" % [g.surname_of(p) for p in now])
-        t.check("the report says the program's version was sent", r.logged("sent"),
-                "report wording is matched loosely; tighten once confirmed")
+        t.check("the report says the program's version was uploaded", r.logged("(App) - Updating Google Contact Details (uploaded)"),
+                "the program's report line for the app's change")
     else:
         r = t.run(home, "both sides changed, Google master", [g.edit_contact(3, {"surname": SUR_APP}), g.save(),
                                                               g.sync(), g.dump("d2.json")])
