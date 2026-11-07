@@ -198,17 +198,17 @@ GS-040,,,NOT RUN,,,
 GS-041,,,NOT RUN,,,
 SS-001,2026-11-06,9283d87,PASS,~30.0 s?,,
 SS-002,2026-11-06,9283d87,PASS,~30.0 s?,,
-SS-003,2026-11-06,974607e,FAIL,,,"Needs checking: after three wrong passwords the program does not start, and the window shown is not the set-up or close choice the test expects."
+SS-003,2026-11-07,8c0d098,PASS,7.000 s,,"The program draws its window before it aborts, so the check is that it quits before the data is opened. Wrong-password run's key is set with the test's own secret."
 SS-004,2026-11-06,9283d87,PASS,~30.0 s?,,
-SS-005,2026-11-06,b09408e,FAIL,,,Bench: the start-up clash report is not written to the log (check the program's log text).
+SS-005,2026-11-07,8c0d098,PASS,9.000 s,,The clash dialog's title was not read from driver lines that start with a time; fixed in the bench.
 SS-006,2026-11-06,9283d87,PASS,~30.0 s?,,
-SS-007,2026-11-06,b09408e,FAIL,,,Bench: no sender lines in the log (check the program's log text).
-SS-008,2026-11-06,b09408e,FAIL,,,Needs checking: the backup folder is not read the way the test expects.
+SS-007,2026-11-07,8c0d098,PASS,10.0 s,,The program's log was not saved into the run folder; dumplog now writes there (it had written to the repository root).
+SS-008,2026-11-07,8c0d098,FAIL,,"Program or spec: the backup is made by a timer about 30 minutes after start, then hourly (mainwindow.cpp tick), not at start-up. These runs last seconds, so no backup is made on the first start of the day. Decide whether the spec requires a backup at start-up.",
 SS-009,2026-11-06,9283d87,PASS,~30.0 s?,,
 SS-010,2026-11-06,9283d87,PASS,~30.0 s?,,
-SS-011,2026-11-06,974607e,FAIL,,"Needs checking: six contacts load, so the unreadable contact file may be among them.",
-SS-012,2026-11-06,974607e,FAIL,,,Needs checking: the log does not say the ini file was not found.
-SS-013,2026-11-06,101cd90,FAIL,,"Program: when the data folder is read-only, Save does not stop or report the failure. ContactDatabase::save fails and its caller (mainwindow.cpp, db.save()) ignores the result, so no error is shown. The stored data is not lost.","Run as the user cmtest, not root, after the read-only folder was set with chmod at the end of the first run."
+SS-011,2026-11-07,8c0d098,FAIL,,"Program: the unreadable contact file loads as an empty entry marked deleted, and nothing is reported to the user.","The five live contacts are counted, and the load lines are not taken as a report."
+SS-012,2026-11-07,8c0d098,PASS,6.000 s,,The program's warning text was not recorded; the driver now reads the text of its own warning boxes.
+SS-013,2026-11-07,8c0d098,FAIL,,"Program: when the data folder is read-only, Save does not stop or report the failure. ContactDatabase::save fails and its caller (mainwindow.cpp, db.save()) ignores the result, so no error is shown. The stored data is not lost.","Run as the user cmtest, not root, after the read-only folder was set with chmod at the end of the first run."
 SS-014,2026-11-06,9283d87,PASS,~30.0 s?,,
 SS-015,2026-11-06,9283d87,PASS,~30.0 s?,,
 MF-001,2026-11-06,b09408e,PASS,~30.0 s?,,
