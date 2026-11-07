@@ -394,7 +394,9 @@ def run_driver(driver, home, name, ops, outdir, secret="gs-test-secret-only", se
         with open(lp, encoding="utf-8", errors="replace") as f:
             log += "\n" + f.read()
     dump = None
-    dp = os.path.join(outdir, "dump.json")
+    # The dump the run saved: the file its last dump op names (dump.json unless the test names another)
+    names = [op.get("file", "dump.json") for op in ops if op.get("op") == "dump"]
+    dp = os.path.join(outdir, names[-1] if names else "dump.json")
     if os.path.exists(dp):
         with open(dp, encoding="utf-8") as f:
             try:
