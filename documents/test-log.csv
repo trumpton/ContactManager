@@ -1,184 +1,184 @@
-test,date,release,result,cm_notes,testbench_notes,elapsed
-AN-001,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-002,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-003,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-004,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-005,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-006,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-007,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-008,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-009,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-010,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-011,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-012,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-013,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-014,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-015,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-016,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-017,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-018,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-019,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-020,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-021,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-022,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-023,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-024,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-025,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-026,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-027,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-028,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-029,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-030,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-031,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-032,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-033,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-034,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-035,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-036,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-037,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-038,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-039,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-040,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-041,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-042,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-043,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-044,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-045,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-046,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-047,2026-11-06,822e4c5,PASS,,,~1051.0
-AN-048,2026-11-06,822e4c5,PASS,,,~1051.0
-AC-019,2026-11-06,9283d87,PASS,,,~30?
-AC-020,2026-11-06,9283d87,PASS,,,~30?
-AC-021,2026-11-06,f58b29b,PASS,,,9.0-9.0
-AC-022,2026-11-06,b71eeb9,FAIL,"Program: with Show Screen Reader Text open, Tab from the calendar list moves the focus into that window's text box, not to the main window's tab bar (with the window closed, it does). The text therefore does not follow the main window.",,
-AC-023,2026-11-06,9283d87,PASS,,,~30?
-AC-024,2026-11-06,9283d87,PASS,,,~30?
-AC-025,2026-11-06,f58b29b,PASS,,"Headless run: the application focus is empty when no window is active, so the check reads the warning's own focus control (driver focus op now records it).",10.0-10.0
-AC-026,2026-11-06,b71eeb9,FAIL,"Program: Escape does not close Setup, Advanced Search or About when the focus is on a text or combo control in them. Sending Escape to the dialog itself closes About, so the control is absorbing it.","The keys op can now send to the dialog (target window), used to tell the two cases apart.",
-AC-027,2026-11-06,9283d87,PASS,,,~30?
-AC-028,2026-11-06,f58b29b,PASS,,,10.0-10.0
-AC-029,2026-11-06,f58b29b,PASS,,"Closes the Tidy summary through the operation driver's tidy op, and reads the main window's focus when the application focus is empty (headless).",11.0-11.0
-UT-001,2026-11-06,897039e,PASS,,,~0.015
-UT-002,2026-11-06,897039e,PASS,,,~0.015
-UT-003,2026-11-06,897039e,PASS,,,~0.015
-UT-004,2026-11-06,897039e,PASS,,,~0.015
-UT-005,2026-11-06,897039e,PASS,,,~0.015
-UT-006,2026-11-06,897039e,PASS,,,~0.015
-UT-007,2026-11-06,897039e,PASS,,,~0.015
-UT-008,2026-11-06,897039e,PASS,,,~0.015
-UT-009,2026-11-06,897039e,PASS,,,~0.015
-UT-010,2026-11-06,897039e,PASS,,,~0.015
-UT-011,2026-11-06,897039e,PASS,,,~0.015
-UT-012,2026-11-06,897039e,PASS,,,~0.015
-UT-013,2026-11-06,897039e,PASS,,,~0.015
-UT-014,2026-11-06,897039e,PASS,,,~0.015
-UT-015,2026-11-06,897039e,PASS,,,~0.015
-UT-016,2026-11-06,897039e,PASS,,,~0.015
-UT-017,2026-11-06,897039e,PASS,,,~0.015
-UT-018,2026-11-06,897039e,PASS,,,~0.015
-UT-019,2026-11-06,897039e,PASS,,,~0.015
-UT-020,2026-11-06,897039e,PASS,,,~0.015
-UT-021,2026-11-06,897039e,PASS,,,~0.015
-UT-022,2026-11-06,897039e,PASS,,,~0.015
-UT-023,2026-11-06,897039e,PASS,,,~0.015
-UT-024,2026-11-06,897039e,PASS,,,~0.015
-UT-025,2026-11-06,897039e,PASS,,,~0.015
-UT-026,2026-11-06,897039e,PASS,,,~0.015
-UT-027,2026-11-06,897039e,PASS,,,~0.015
-UT-028,2026-11-06,897039e,PASS,,,~0.015
-UT-029,2026-11-06,897039e,PASS,,,~0.015
-UT-030,2026-11-06,897039e,PASS,,,~0.015
-UT-031,2026-11-06,897039e,PASS,,,~0.015
-UT-032,2026-11-06,897039e,PASS,,,~0.015
-UT-033,2026-11-06,897039e,PASS,,,~0.015
-UT-034,2026-11-06,897039e,PASS,,,~0.015
-UT-035,2026-11-06,897039e,PASS,,,~0.015
-UT-036,2026-11-06,897039e,PASS,,,~0.015
-UT-037,2026-11-06,897039e,PASS,,,~0.015
-UT-038,2026-11-06,897039e,PASS,,,~0.015
-UT-039,2026-11-06,897039e,PASS,,,~0.015
-UT-040,2026-11-06,897039e,PASS,,,~0.015
-UT-041,2026-11-06,897039e,PASS,,,~0.015
-UT-042,2026-11-06,897039e,PASS,,,~0.015
-UT-043,2026-11-06,897039e,PASS,,,~0.015
-UT-044,2026-11-06,897039e,PASS,,,~0.015
-UT-045,2026-11-06,897039e,PASS,,,~0.015
-UT-046,2026-11-06,897039e,PASS,,,~0.015
-UT-047,2026-11-06,897039e,PASS,,,~0.015
-UT-048,2026-11-06,897039e,PASS,,,~0.015
-UT-049,2026-11-06,897039e,PASS,,,~0.015
-UT-050,2026-11-06,897039e,PASS,,,~0.015
-UT-051,2026-11-06,897039e,PASS,,,~0.015
-UT-052,2026-11-06,897039e,PASS,,,~0.015
-UT-053,2026-11-06,897039e,PASS,,,~0.015
-UT-054,2026-11-06,897039e,PASS,,,~0.015
-UT-055,2026-11-06,897039e,PASS,,,~0.015
-UT-056,2026-11-06,897039e,PASS,,,~0.015
-UT-057,2026-11-06,897039e,PASS,,,~0.015
-UT-058,2026-11-06,897039e,PASS,,,~0.015
-UT-059,2026-11-06,897039e,PASS,,,~0.015
-UT-060,2026-11-06,897039e,PASS,,,~0.015
-UT-061,2026-11-06,897039e,PASS,,,~0.015
-UT-062,2026-11-06,897039e,PASS,,,~0.015
-UT-063,2026-11-06,897039e,PASS,,,~0.015
-UT-064,2026-11-06,897039e,PASS,,,~0.015
-UT-065,2026-11-06,897039e,PASS,,,~0.015
-UT-066,2026-11-06,897039e,PASS,,,~0.015
-UT-067,2026-11-06,897039e,PASS,,,~0.015
-UT-068,2026-11-06,897039e,PASS,,,~0.015
-UT-069,2026-11-06,897039e,PASS,,,~0.015
-UT-070,2026-11-06,897039e,PASS,,,~0.015
-UT-071,2026-11-06,897039e,PASS,,,~0.015
-UT-072,2026-11-06,897039e,PASS,,,~0.015
-UT-073,2026-11-06,897039e,PASS,,,~0.015
-UT-074,2026-11-06,897039e,PASS,,,~0.015
-UT-075,2026-11-06,897039e,PASS,,,~0.015
-UT-076,2026-11-06,897039e,PASS,,,~0.015
-UT-077,2026-11-06,897039e,PASS,,,~0.015
-UT-078,2026-11-06,897039e,PASS,,,~0.015
-UT-079,2026-11-06,897039e,PASS,,,~0.015
-UT-080,2026-11-06,897039e,PASS,,,~0.015
-UT-081,2026-11-06,897039e,PASS,,,~0.015
-UT-082,2026-11-06,897039e,PASS,,,~0.015
-UT-083,2026-11-06,897039e,PASS,,,~0.015
-UT-084,2026-11-06,897039e,PASS,,,~0.015
-UT-085,2026-11-06,897039e,PASS,,,~0.015
-UT-086,2026-11-06,897039e,PASS,,,~0.015
-UT-087,2026-11-06,897039e,PASS,,,~0.015
-UT-088,2026-11-06,897039e,PASS,,,~0.015
-UT-089,2026-11-06,897039e,PASS,,,~0.015
-UT-090,2026-11-06,897039e,PASS,,,~0.015
-UT-091,2026-11-06,897039e,PASS,,,~0.015
-UT-092,2026-11-06,897039e,PASS,,,~0.015
-UT-093,2026-11-06,897039e,PASS,,,~0.015
-UT-094,2026-11-06,897039e,PASS,,,~0.015
-UT-095,2026-11-06,897039e,PASS,,,~0.015
-UT-096,2026-11-06,897039e,PASS,,,~0.015
-UT-097,2026-11-06,897039e,PASS,,,~0.015
-UT-098,2026-11-06,897039e,PASS,,,~0.015
-UT-099,2026-11-06,897039e,PASS,,,~0.015
-UT-100,2026-11-06,897039e,PASS,,,~0.015
-UT-101,2026-11-06,897039e,PASS,,,~0.015
-UT-102,2026-11-06,897039e,PASS,,,~0.015
-UT-103,2026-11-06,897039e,PASS,,,~0.015
-UT-104,2026-11-06,897039e,PASS,,,~0.015
-UT-105,2026-11-06,897039e,PASS,,,~0.015
-UT-106,2026-11-06,897039e,PASS,,,~0.015
-UT-107,2026-11-06,897039e,PASS,,,~0.015
-UT-108,2026-11-06,897039e,PASS,,,~0.015
-UT-109,2026-11-06,897039e,PASS,,,~0.015
-UT-110,2026-11-06,897039e,PASS,,,~0.015
-UT-111,2026-11-06,897039e,PASS,,,~0.015
-UT-112,2026-11-06,897039e,PASS,,,~0.015
-UT-113,2026-11-06,897039e,PASS,,,~0.015
-UT-114,2026-11-06,897039e,PASS,,,~0.015
-GS-001,2026-11-06,2c4bdd3,PASS,,"Configs: CM PASS, G PASS",208.4-208.5
-GS-002,2026-11-06,fb3b2c1,PASS,,"Configs: CM PASS, G PASS",163.7-167.8
-GS-003,2026-11-06,2c4bdd3,PASS,,Configs: CM PASS,199.2-199.2
-GS-005,2026-11-06,618ac3a,PASS,,"Configs: CM PASS, G PASS",193.2-291.8
-GS-008,2026-11-06,fb3b2c1,PASS,,"Configs: CM PASS, G PASS",205.6-287.1
-GS-010,2026-11-06,fb3b2c1,PASS,,"Configs: CM PASS, G PASS",203.7-212.3
-GS-011,,,NOT RUN,,"Batch incomplete: the clean Google run (release 5de4fb7) stopped during GS-011, when the session worker restarted. GS-011 and later did not run.",
+test,date,release,result,elapsed,cm_notes,testbench_notes
+AN-001,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-002,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-003,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-004,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-005,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-006,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-007,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-008,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-009,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-010,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-011,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-012,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-013,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-014,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-015,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-016,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-017,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-018,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-019,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-020,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-021,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-022,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-023,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-024,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-025,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-026,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-027,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-028,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-029,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-030,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-031,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-032,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-033,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-034,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-035,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-036,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-037,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-038,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-039,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-040,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-041,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-042,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-043,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-044,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-045,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-046,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-047,2026-11-06,822e4c5,PASS,~17.5 m,,
+AN-048,2026-11-06,822e4c5,PASS,~17.5 m,,
+AC-019,2026-11-06,9283d87,PASS,~30.000 s?,,
+AC-020,2026-11-06,9283d87,PASS,~30.000 s?,,
+AC-021,2026-11-06,f58b29b,PASS,9.000 s,,
+AC-022,2026-11-06,b71eeb9,FAIL,,"Program: with Show Screen Reader Text open, Tab from the calendar list moves the focus into that window's text box, not to the main window's tab bar (with the window closed, it does). The text therefore does not follow the main window.",
+AC-023,2026-11-06,9283d87,PASS,~30.000 s?,,
+AC-024,2026-11-06,9283d87,PASS,~30.000 s?,,
+AC-025,2026-11-06,f58b29b,PASS,10.000 s,,"Headless run: the application focus is empty when no window is active, so the check reads the warning's own focus control (driver focus op now records it)."
+AC-026,2026-11-06,b71eeb9,FAIL,,"Program: Escape does not close Setup, Advanced Search or About when the focus is on a text or combo control in them. Sending Escape to the dialog itself closes About, so the control is absorbing it.","The keys op can now send to the dialog (target window), used to tell the two cases apart."
+AC-027,2026-11-06,9283d87,PASS,~30.000 s?,,
+AC-028,2026-11-06,f58b29b,PASS,10.000 s,,
+AC-029,2026-11-06,f58b29b,PASS,11.000 s,,"Closes the Tidy summary through the operation driver's tidy op, and reads the main window's focus when the application focus is empty (headless)."
+UT-001,2026-11-06,897039e,PASS,~0.015 s,,
+UT-002,2026-11-06,897039e,PASS,~0.015 s,,
+UT-003,2026-11-06,897039e,PASS,~0.015 s,,
+UT-004,2026-11-06,897039e,PASS,~0.015 s,,
+UT-005,2026-11-06,897039e,PASS,~0.015 s,,
+UT-006,2026-11-06,897039e,PASS,~0.015 s,,
+UT-007,2026-11-06,897039e,PASS,~0.015 s,,
+UT-008,2026-11-06,897039e,PASS,~0.015 s,,
+UT-009,2026-11-06,897039e,PASS,~0.015 s,,
+UT-010,2026-11-06,897039e,PASS,~0.015 s,,
+UT-011,2026-11-06,897039e,PASS,~0.015 s,,
+UT-012,2026-11-06,897039e,PASS,~0.015 s,,
+UT-013,2026-11-06,897039e,PASS,~0.015 s,,
+UT-014,2026-11-06,897039e,PASS,~0.015 s,,
+UT-015,2026-11-06,897039e,PASS,~0.015 s,,
+UT-016,2026-11-06,897039e,PASS,~0.015 s,,
+UT-017,2026-11-06,897039e,PASS,~0.015 s,,
+UT-018,2026-11-06,897039e,PASS,~0.015 s,,
+UT-019,2026-11-06,897039e,PASS,~0.015 s,,
+UT-020,2026-11-06,897039e,PASS,~0.015 s,,
+UT-021,2026-11-06,897039e,PASS,~0.015 s,,
+UT-022,2026-11-06,897039e,PASS,~0.015 s,,
+UT-023,2026-11-06,897039e,PASS,~0.015 s,,
+UT-024,2026-11-06,897039e,PASS,~0.015 s,,
+UT-025,2026-11-06,897039e,PASS,~0.015 s,,
+UT-026,2026-11-06,897039e,PASS,~0.015 s,,
+UT-027,2026-11-06,897039e,PASS,~0.015 s,,
+UT-028,2026-11-06,897039e,PASS,~0.015 s,,
+UT-029,2026-11-06,897039e,PASS,~0.015 s,,
+UT-030,2026-11-06,897039e,PASS,~0.015 s,,
+UT-031,2026-11-06,897039e,PASS,~0.015 s,,
+UT-032,2026-11-06,897039e,PASS,~0.015 s,,
+UT-033,2026-11-06,897039e,PASS,~0.015 s,,
+UT-034,2026-11-06,897039e,PASS,~0.015 s,,
+UT-035,2026-11-06,897039e,PASS,~0.015 s,,
+UT-036,2026-11-06,897039e,PASS,~0.015 s,,
+UT-037,2026-11-06,897039e,PASS,~0.015 s,,
+UT-038,2026-11-06,897039e,PASS,~0.015 s,,
+UT-039,2026-11-06,897039e,PASS,~0.015 s,,
+UT-040,2026-11-06,897039e,PASS,~0.015 s,,
+UT-041,2026-11-06,897039e,PASS,~0.015 s,,
+UT-042,2026-11-06,897039e,PASS,~0.015 s,,
+UT-043,2026-11-06,897039e,PASS,~0.015 s,,
+UT-044,2026-11-06,897039e,PASS,~0.015 s,,
+UT-045,2026-11-06,897039e,PASS,~0.015 s,,
+UT-046,2026-11-06,897039e,PASS,~0.015 s,,
+UT-047,2026-11-06,897039e,PASS,~0.015 s,,
+UT-048,2026-11-06,897039e,PASS,~0.015 s,,
+UT-049,2026-11-06,897039e,PASS,~0.015 s,,
+UT-050,2026-11-06,897039e,PASS,~0.015 s,,
+UT-051,2026-11-06,897039e,PASS,~0.015 s,,
+UT-052,2026-11-06,897039e,PASS,~0.015 s,,
+UT-053,2026-11-06,897039e,PASS,~0.015 s,,
+UT-054,2026-11-06,897039e,PASS,~0.015 s,,
+UT-055,2026-11-06,897039e,PASS,~0.015 s,,
+UT-056,2026-11-06,897039e,PASS,~0.015 s,,
+UT-057,2026-11-06,897039e,PASS,~0.015 s,,
+UT-058,2026-11-06,897039e,PASS,~0.015 s,,
+UT-059,2026-11-06,897039e,PASS,~0.015 s,,
+UT-060,2026-11-06,897039e,PASS,~0.015 s,,
+UT-061,2026-11-06,897039e,PASS,~0.015 s,,
+UT-062,2026-11-06,897039e,PASS,~0.015 s,,
+UT-063,2026-11-06,897039e,PASS,~0.015 s,,
+UT-064,2026-11-06,897039e,PASS,~0.015 s,,
+UT-065,2026-11-06,897039e,PASS,~0.015 s,,
+UT-066,2026-11-06,897039e,PASS,~0.015 s,,
+UT-067,2026-11-06,897039e,PASS,~0.015 s,,
+UT-068,2026-11-06,897039e,PASS,~0.015 s,,
+UT-069,2026-11-06,897039e,PASS,~0.015 s,,
+UT-070,2026-11-06,897039e,PASS,~0.015 s,,
+UT-071,2026-11-06,897039e,PASS,~0.015 s,,
+UT-072,2026-11-06,897039e,PASS,~0.015 s,,
+UT-073,2026-11-06,897039e,PASS,~0.015 s,,
+UT-074,2026-11-06,897039e,PASS,~0.015 s,,
+UT-075,2026-11-06,897039e,PASS,~0.015 s,,
+UT-076,2026-11-06,897039e,PASS,~0.015 s,,
+UT-077,2026-11-06,897039e,PASS,~0.015 s,,
+UT-078,2026-11-06,897039e,PASS,~0.015 s,,
+UT-079,2026-11-06,897039e,PASS,~0.015 s,,
+UT-080,2026-11-06,897039e,PASS,~0.015 s,,
+UT-081,2026-11-06,897039e,PASS,~0.015 s,,
+UT-082,2026-11-06,897039e,PASS,~0.015 s,,
+UT-083,2026-11-06,897039e,PASS,~0.015 s,,
+UT-084,2026-11-06,897039e,PASS,~0.015 s,,
+UT-085,2026-11-06,897039e,PASS,~0.015 s,,
+UT-086,2026-11-06,897039e,PASS,~0.015 s,,
+UT-087,2026-11-06,897039e,PASS,~0.015 s,,
+UT-088,2026-11-06,897039e,PASS,~0.015 s,,
+UT-089,2026-11-06,897039e,PASS,~0.015 s,,
+UT-090,2026-11-06,897039e,PASS,~0.015 s,,
+UT-091,2026-11-06,897039e,PASS,~0.015 s,,
+UT-092,2026-11-06,897039e,PASS,~0.015 s,,
+UT-093,2026-11-06,897039e,PASS,~0.015 s,,
+UT-094,2026-11-06,897039e,PASS,~0.015 s,,
+UT-095,2026-11-06,897039e,PASS,~0.015 s,,
+UT-096,2026-11-06,897039e,PASS,~0.015 s,,
+UT-097,2026-11-06,897039e,PASS,~0.015 s,,
+UT-098,2026-11-06,897039e,PASS,~0.015 s,,
+UT-099,2026-11-06,897039e,PASS,~0.015 s,,
+UT-100,2026-11-06,897039e,PASS,~0.015 s,,
+UT-101,2026-11-06,897039e,PASS,~0.015 s,,
+UT-102,2026-11-06,897039e,PASS,~0.015 s,,
+UT-103,2026-11-06,897039e,PASS,~0.015 s,,
+UT-104,2026-11-06,897039e,PASS,~0.015 s,,
+UT-105,2026-11-06,897039e,PASS,~0.015 s,,
+UT-106,2026-11-06,897039e,PASS,~0.015 s,,
+UT-107,2026-11-06,897039e,PASS,~0.015 s,,
+UT-108,2026-11-06,897039e,PASS,~0.015 s,,
+UT-109,2026-11-06,897039e,PASS,~0.015 s,,
+UT-110,2026-11-06,897039e,PASS,~0.015 s,,
+UT-111,2026-11-06,897039e,PASS,~0.015 s,,
+UT-112,2026-11-06,897039e,PASS,~0.015 s,,
+UT-113,2026-11-06,897039e,PASS,~0.015 s,,
+UT-114,2026-11-06,897039e,PASS,~0.015 s,,
+GS-001,2026-11-06,2c4bdd3,PASS,3.5 m,,"Configs: CM PASS, G PASS"
+GS-002,2026-11-06,fb3b2c1,PASS,2.7 m - 2.8 m,,"Configs: CM PASS, G PASS"
+GS-003,2026-11-06,2c4bdd3,PASS,3.3 m,,Configs: CM PASS
+GS-005,2026-11-06,618ac3a,PASS,3.2 m - 4.9 m,,"Configs: CM PASS, G PASS"
+GS-008,2026-11-06,fb3b2c1,PASS,3.4 m - 4.8 m,,"Configs: CM PASS, G PASS"
+GS-010,2026-11-06,fb3b2c1,PASS,3.4 m - 3.5 m,,"Configs: CM PASS, G PASS"
+GS-011,,,NOT RUN,,,"Batch incomplete: the clean Google run (release 5de4fb7) stopped during GS-011, when the session worker restarted. GS-011 and later did not run."
 GS-012,,,NOT RUN,,,
 GS-015,,,NOT RUN,,,
 GS-017,,,NOT RUN,,,
@@ -196,103 +196,103 @@ GS-038,,,NOT RUN,,,
 GS-039,,,NOT RUN,,,
 GS-040,,,NOT RUN,,,
 GS-041,,,NOT RUN,,,
-SS-001,2026-11-06,9283d87,PASS,,,~30?
-SS-002,2026-11-06,9283d87,PASS,,,~30?
-SS-003,2026-11-06,974607e,FAIL,,"Needs checking: after three wrong passwords the program does not start, and the window shown is not the set-up or close choice the test expects.",
-SS-004,2026-11-06,9283d87,PASS,,,~30?
-SS-005,2026-11-06,b09408e,FAIL,,Bench: the start-up clash report is not written to the log (check the program's log text).,
-SS-006,2026-11-06,9283d87,PASS,,,~30?
-SS-007,2026-11-06,b09408e,FAIL,,Bench: no sender lines in the log (check the program's log text).,
-SS-008,2026-11-06,b09408e,FAIL,,Needs checking: the backup folder is not read the way the test expects.,
-SS-009,2026-11-06,9283d87,PASS,,,~30?
-SS-010,2026-11-06,9283d87,PASS,,,~30?
-SS-011,2026-11-06,974607e,FAIL,"Needs checking: six contacts load, so the unreadable contact file may be among them.",,
-SS-012,2026-11-06,974607e,FAIL,,Needs checking: the log does not say the ini file was not found.,
-SS-013,2026-11-06,101cd90,FAIL,"Program: when the data folder is read-only, Save does not stop or report the failure. ContactDatabase::save fails and its caller (mainwindow.cpp, db.save()) ignores the result, so no error is shown. The stored data is not lost.","Run as the user cmtest, not root, after the read-only folder was set with chmod at the end of the first run.",
-SS-014,2026-11-06,9283d87,PASS,,,~30?
-SS-015,2026-11-06,9283d87,PASS,,,~30?
-MF-001,2026-11-06,b09408e,PASS,,,~30?
-MF-002,2026-11-06,974607e,FAIL,,"Needs checking: the saved email is read back, and the expected value is not confirmed.",
-MF-003,2026-11-06,9283d87,PASS,,,~30?
-MF-004,2026-11-06,9283d87,PASS,,,~30?
-MF-005,2026-11-06,974607e,FAIL,"Needs checking: after importing an export, the deleted contact is back, and the list holds duplicates.",,
-MF-006,2026-11-06,974607e,FAIL,,"Needs checking: the saved email is read back, and the check result is not confirmed.",
-MF-007,2026-11-06,974607e,FAIL,Needs checking: the Key and Password items do not change with the login state (Set Encryption Key and Change Password stay on; Logout is on when logged out).,,
-MF-008,2026-11-06,9283d87,PASS,,,~30?
-MF-009,2026-11-06,9283d87,PASS,,,~30?
-MF-010,2026-11-06,b09408e,FAIL,,"Needs checking: the hidden contact is listed in braces, but the deleted contact is not listed, although Show Deleted was ticked. Check the toggle and the list.",
-MF-011,2026-11-06,9283d87,PASS,,,~30?
-MF-012,2026-11-06,9283d87,PASS,,,~30?
-MF-013,2026-11-06,9283d87,PASS,,,~30?
-MF-014,2026-11-06,974607e,FAIL,"Needs checking: Find Next visits rows 1, 2 and then 0, not in order through the matches.",,
-MF-015,2026-11-06,c16a8f6,PASS,,"Hides one contact first, so the bracketed hidden entry can be checked.",13.0-13.0
-MF-016,2026-11-06,9283d87,PASS,,,~30?
-MF-017,2026-11-06,637be09,PASS,,,~30?
-MF-018,2026-11-06,b09408e,PASS,,,~30?
-MF-019,2026-11-06,637be09,PASS,,,~30?
-MF-020,2026-11-06,9283d87,PASS,,,~30?
-MF-021,2026-11-06,b09408e,FAIL,,"Needs checking: the driver reads the calendar's rows here, not the contacts list, so the hidden contact is not found. The handler skips hidden contacts, but the spec says it lists them (decision needed).",
-MF-022,2026-11-06,c16a8f6,PASS,,"Ctrl+Shift+O is checked as bound to Goto Me; Goto Me is run from its menu item, as the bench cannot press the shortcut.",10.0-10.0
-MF-023,2026-11-06,c16a8f6,PASS,,The check covers the Easy Notepad case only; the missing-program error is not checked.,10.0-10.0
-MF-024,2026-11-06,974607e,FAIL,"Needs checking: Ctrl+Shift+L shows the contact's to-do item, not the user's list.",,
-MF-025,2026-11-06,9283d87,PASS,,,~30?
-MF-026,2026-11-06,b09408e,FAIL,,"Program or spec: the cursor is at the start of the day field (position 4 of 15), and the spec says the cursor is at the end. Decide which is right.",
-MF-027,2026-11-06,974607e,FAIL,"Needs checking: Alt+M, Alt+P and Alt+B move the focus to the first name, address and birthday fields, not to the email, phone and birthday sections.",,
-MF-028,2026-11-06,b09408e,FAIL,,"Bench: Ctrl+I does not open the appointment form in this test, so its For field is not read. Check the shortcut is delivered.",
-MF-029,2026-11-06,9283d87,PASS,,,~30?
-MF-030,2026-11-06,b09408e,FAIL,,"Bench: the appointment form is opened, but its For field is still not read (see the detail).",
-MF-031,2026-11-06,9283d87,PASS,,,~30?
-MF-032,2026-11-06,b09408e,FAIL,,"Bench: the appointment form is opened, but its summary field is still not read (see the detail).",
-MF-033,2026-11-06,974607e,FAIL,"Needs checking: after confirming Remove Appointment, the entry is still in the calendar.",,
-MF-034,2026-11-06,9283d87,PASS,,,~30?
-MF-035,2026-11-06,9283d87,PASS,,,~30?
-MF-036,2026-11-06,974607e,FAIL,"Needs checking: Contact Details (Alt+E, D) leaves editing disabled for the open contact.",,
-MF-037,2026-11-06,974607e,FAIL,"Needs checking: after accepting Delete Contact, the contact is still in the program.",,
-MF-038,2026-11-06,c16a8f6,PASS,,The mail command is a recording script set in the ini file.,10.0-10.0
-MF-039,2026-11-06,9283d87,PASS,,,~30?
-MF-040,2026-11-06,9283d87,PASS,,,~30?
-MF-041,2026-11-06,974607e,FAIL,Needs checking: the expense of 7.25 is not in the contact's data folder.,,
-MF-042,2026-11-06,c16a8f6,FAIL,"Program: Transaction Report is not implemented. Its handler is a TODO (mainwindow_menu_transaction.cpp), so no report is written and no year is asked.",,
-MF-043,2026-11-06,974607e,FAIL,,"The manual window opens; its search (F3) is not checked yet, so the test cannot pass.",
-MF-044,2026-11-06,9283d87,PASS,,,~30?
-MF-045,2026-11-06,b09408e,FAIL,,"Bench: the calendar row is not read after Escape, so the list cannot be checked.",
-MF-046,2026-11-06,9283d87,PASS,,,~30?
-MF-047,2026-11-06,9283d87,PASS,,,~30?
-MF-048,2026-11-06,9283d87,PASS,,,~30?
-MF-049,2026-11-06,974607e,PASS,,"The beep is checked by ear, and the driver cannot hear it.",~30?
-MF-050,2026-11-06,9283d87,PASS,,,~30?
-MF-051,2026-11-06,9283d87,PASS,,,~30?
-MF-052,2026-11-06,9283d87,PASS,,,~30?
-MF-053,2026-11-06,974607e,FAIL,"Needs checking: Contact Details (Alt+D) is still disabled after Alt+E, D with a contact open.",,
-DL-001,2026-11-06,c16a8f6,PASS,,Covers the window days and the birthdays box only; the other Setup controls are not read yet.,10.0-10.0
-DL-002,2026-11-06,c16a8f6,PASS,,"As MF-022: Ctrl+Shift+O is checked as bound to Goto Me, and Goto Me runs from its menu item.",10.0-10.0
-DL-003,2026-11-06,c16a8f6,FAIL,,Spec mismatch: the spec asks for separate calendar and contacts masters. Setup has one master choice (Database Management: Contact Manager or Google). Decision needed.,
-DL-004,2026-11-06,9283d87,PASS,,,~30?
-DL-005,2026-11-06,974607e,FAIL,Needs checking: the expiry warning appears for 25/1/35 and for 2035; whether those should be accepted needs the spec.,,
-DL-007,2026-11-06,974607e,FAIL,Needs checking: Reset does not remove the Google account here.,"The sign-in code of Change is not checked: it needs the device sign-in with Google, which the operation tests do not reach.",
-DL-008,2026-11-06,c16a8f6,PASS,,"The For, From and To fields are read before Enter; the date format is checked by DL-010.",10.0-10.0
-DL-009,2026-11-06,9283d87,PASS,,,~30?
-DL-010,2026-11-06,c16a8f6,PASS,"Needs checking: Up on To's hour, from 23:00 to 22:00, makes the duration zero, which the program shows as 'reminder'.","The duration arrow is the X field of the start, and To's hour is the hour field, both set by cursor position in the text.",10.0-10.0
-DL-011,2026-11-06,974607e,FAIL,Needs checking: the clash offer and the declined save are not confirmed by the read-back.,,
-DL-012,2026-11-06,b09408e,FAIL,,Needs checking: the single appointment is not found by the test.,
-DL-013,2026-11-06,c16a8f6,PASS,,,10.0-10.0
-DL-014,2026-11-06,9283d87,PASS,,,~30?
-DL-015,2026-11-06,9283d87,PASS,,,~30?
-DL-016,2026-11-06,9283d87,PASS,,,~30?
-DL-017,2026-11-06,b09408e,FAIL,,Bench: F2 opens no title box the driver can read.,
-DL-018,2026-11-06,9283d87,PASS,,,~30?
-DL-019,2026-11-06,9283d87,PASS,,,~30?
-DL-020,2026-11-06,c16a8f6,PASS,,Enter is checked with the first result.,13.0-13.0
-DL-021,2026-11-06,974607e,FAIL,Needs checking: a transaction of 12.50 is not in the data.,,
-DL-022,2026-11-06,974607e,PASS,,"The send with the key set needs the text service, which the bench does not stand in for here.",~30?
-DL-023,2026-11-06,974607e,PASS,,"The log window is not modal, so the driver cannot press its Close button; the focus check needs the driver's focus record.",~30?
-DL-024,2026-11-06,974607e,FAIL,,"The manual opens, but its Find and F3 are not checked yet (see MF-043).",
-DL-025,2026-11-06,9283d87,PASS,,,~30?
-DL-026,2026-11-06,9283d87,PASS,,,~30?
-DL-027,2026-11-06,c16a8f6,PASS,,"Blocked: a valid date moving the list (the calendar rows show the same first row for every day), and the beep (heard by ear, not by the driver).",10.0-10.0
-DL-028,2026-11-06,9283d87,PASS,,,~30?
-DL-029,2026-11-06,9283d87,PASS,,,~30?
-DL-030,2026-11-06,9283d87,PASS,,,~30?
+SS-001,2026-11-06,9283d87,PASS,~30.000 s?,,
+SS-002,2026-11-06,9283d87,PASS,~30.000 s?,,
+SS-003,2026-11-06,974607e,FAIL,,,"Needs checking: after three wrong passwords the program does not start, and the window shown is not the set-up or close choice the test expects."
+SS-004,2026-11-06,9283d87,PASS,~30.000 s?,,
+SS-005,2026-11-06,b09408e,FAIL,,,Bench: the start-up clash report is not written to the log (check the program's log text).
+SS-006,2026-11-06,9283d87,PASS,~30.000 s?,,
+SS-007,2026-11-06,b09408e,FAIL,,,Bench: no sender lines in the log (check the program's log text).
+SS-008,2026-11-06,b09408e,FAIL,,,Needs checking: the backup folder is not read the way the test expects.
+SS-009,2026-11-06,9283d87,PASS,~30.000 s?,,
+SS-010,2026-11-06,9283d87,PASS,~30.000 s?,,
+SS-011,2026-11-06,974607e,FAIL,,"Needs checking: six contacts load, so the unreadable contact file may be among them.",
+SS-012,2026-11-06,974607e,FAIL,,,Needs checking: the log does not say the ini file was not found.
+SS-013,2026-11-06,101cd90,FAIL,,"Program: when the data folder is read-only, Save does not stop or report the failure. ContactDatabase::save fails and its caller (mainwindow.cpp, db.save()) ignores the result, so no error is shown. The stored data is not lost.","Run as the user cmtest, not root, after the read-only folder was set with chmod at the end of the first run."
+SS-014,2026-11-06,9283d87,PASS,~30.000 s?,,
+SS-015,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-001,2026-11-06,b09408e,PASS,~30.000 s?,,
+MF-002,2026-11-06,974607e,FAIL,,,"Needs checking: the saved email is read back, and the expected value is not confirmed."
+MF-003,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-004,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-005,2026-11-06,974607e,FAIL,,"Needs checking: after importing an export, the deleted contact is back, and the list holds duplicates.",
+MF-006,2026-11-06,974607e,FAIL,,,"Needs checking: the saved email is read back, and the check result is not confirmed."
+MF-007,2026-11-06,974607e,FAIL,,Needs checking: the Key and Password items do not change with the login state (Set Encryption Key and Change Password stay on; Logout is on when logged out).,
+MF-008,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-009,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-010,2026-11-06,b09408e,FAIL,,,"Needs checking: the hidden contact is listed in braces, but the deleted contact is not listed, although Show Deleted was ticked. Check the toggle and the list."
+MF-011,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-012,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-013,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-014,2026-11-06,974607e,FAIL,,"Needs checking: Find Next visits rows 1, 2 and then 0, not in order through the matches.",
+MF-015,2026-11-06,c16a8f6,PASS,13.000 s,,"Hides one contact first, so the bracketed hidden entry can be checked."
+MF-016,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-017,2026-11-06,637be09,PASS,~30.000 s?,,
+MF-018,2026-11-06,b09408e,PASS,~30.000 s?,,
+MF-019,2026-11-06,637be09,PASS,~30.000 s?,,
+MF-020,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-021,2026-11-06,b09408e,FAIL,,,"Needs checking: the driver reads the calendar's rows here, not the contacts list, so the hidden contact is not found. The handler skips hidden contacts, but the spec says it lists them (decision needed)."
+MF-022,2026-11-06,c16a8f6,PASS,10.000 s,,"Ctrl+Shift+O is checked as bound to Goto Me; Goto Me is run from its menu item, as the bench cannot press the shortcut."
+MF-023,2026-11-06,c16a8f6,PASS,10.000 s,,The check covers the Easy Notepad case only; the missing-program error is not checked.
+MF-024,2026-11-06,974607e,FAIL,,"Needs checking: Ctrl+Shift+L shows the contact's to-do item, not the user's list.",
+MF-025,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-026,2026-11-06,b09408e,FAIL,,,"Program or spec: the cursor is at the start of the day field (position 4 of 15), and the spec says the cursor is at the end. Decide which is right."
+MF-027,2026-11-06,974607e,FAIL,,"Needs checking: Alt+M, Alt+P and Alt+B move the focus to the first name, address and birthday fields, not to the email, phone and birthday sections.",
+MF-028,2026-11-06,b09408e,FAIL,,,"Bench: Ctrl+I does not open the appointment form in this test, so its For field is not read. Check the shortcut is delivered."
+MF-029,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-030,2026-11-06,b09408e,FAIL,,,"Bench: the appointment form is opened, but its For field is still not read (see the detail)."
+MF-031,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-032,2026-11-06,b09408e,FAIL,,,"Bench: the appointment form is opened, but its summary field is still not read (see the detail)."
+MF-033,2026-11-06,974607e,FAIL,,"Needs checking: after confirming Remove Appointment, the entry is still in the calendar.",
+MF-034,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-035,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-036,2026-11-06,974607e,FAIL,,"Needs checking: Contact Details (Alt+E, D) leaves editing disabled for the open contact.",
+MF-037,2026-11-06,974607e,FAIL,,"Needs checking: after accepting Delete Contact, the contact is still in the program.",
+MF-038,2026-11-06,c16a8f6,PASS,10.000 s,,The mail command is a recording script set in the ini file.
+MF-039,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-040,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-041,2026-11-06,974607e,FAIL,,Needs checking: the expense of 7.25 is not in the contact's data folder.,
+MF-042,2026-11-06,c16a8f6,FAIL,,"Program: Transaction Report is not implemented. Its handler is a TODO (mainwindow_menu_transaction.cpp), so no report is written and no year is asked.",
+MF-043,2026-11-06,974607e,FAIL,,,"The manual window opens; its search (F3) is not checked yet, so the test cannot pass."
+MF-044,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-045,2026-11-06,b09408e,FAIL,,,"Bench: the calendar row is not read after Escape, so the list cannot be checked."
+MF-046,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-047,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-048,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-049,2026-11-06,974607e,PASS,~30.000 s?,,"The beep is checked by ear, and the driver cannot hear it."
+MF-050,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-051,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-052,2026-11-06,9283d87,PASS,~30.000 s?,,
+MF-053,2026-11-06,974607e,FAIL,,"Needs checking: Contact Details (Alt+D) is still disabled after Alt+E, D with a contact open.",
+DL-001,2026-11-06,c16a8f6,PASS,10.000 s,,Covers the window days and the birthdays box only; the other Setup controls are not read yet.
+DL-002,2026-11-06,c16a8f6,PASS,10.000 s,,"As MF-022: Ctrl+Shift+O is checked as bound to Goto Me, and Goto Me runs from its menu item."
+DL-003,2026-11-06,c16a8f6,FAIL,,,Spec mismatch: the spec asks for separate calendar and contacts masters. Setup has one master choice (Database Management: Contact Manager or Google). Decision needed.
+DL-004,2026-11-06,9283d87,PASS,~30.000 s?,,
+DL-005,2026-11-06,974607e,FAIL,,Needs checking: the expiry warning appears for 25/1/35 and for 2035; whether those should be accepted needs the spec.,
+DL-007,2026-11-06,974607e,FAIL,,Needs checking: Reset does not remove the Google account here.,"The sign-in code of Change is not checked: it needs the device sign-in with Google, which the operation tests do not reach."
+DL-008,2026-11-06,c16a8f6,PASS,10.000 s,,"The For, From and To fields are read before Enter; the date format is checked by DL-010."
+DL-009,2026-11-06,9283d87,PASS,~30.000 s?,,
+DL-010,2026-11-06,c16a8f6,PASS,10.000 s,"Needs checking: Up on To's hour, from 23:00 to 22:00, makes the duration zero, which the program shows as 'reminder'.","The duration arrow is the X field of the start, and To's hour is the hour field, both set by cursor position in the text."
+DL-011,2026-11-06,974607e,FAIL,,Needs checking: the clash offer and the declined save are not confirmed by the read-back.,
+DL-012,2026-11-06,b09408e,FAIL,,,Needs checking: the single appointment is not found by the test.
+DL-013,2026-11-06,c16a8f6,PASS,10.000 s,,
+DL-014,2026-11-06,9283d87,PASS,~30.000 s?,,
+DL-015,2026-11-06,9283d87,PASS,~30.000 s?,,
+DL-016,2026-11-06,9283d87,PASS,~30.000 s?,,
+DL-017,2026-11-06,b09408e,FAIL,,,Bench: F2 opens no title box the driver can read.
+DL-018,2026-11-06,9283d87,PASS,~30.000 s?,,
+DL-019,2026-11-06,9283d87,PASS,~30.000 s?,,
+DL-020,2026-11-06,c16a8f6,PASS,13.000 s,,Enter is checked with the first result.
+DL-021,2026-11-06,974607e,FAIL,,Needs checking: a transaction of 12.50 is not in the data.,
+DL-022,2026-11-06,974607e,PASS,~30.000 s?,,"The send with the key set needs the text service, which the bench does not stand in for here."
+DL-023,2026-11-06,974607e,PASS,~30.000 s?,,"The log window is not modal, so the driver cannot press its Close button; the focus check needs the driver's focus record."
+DL-024,2026-11-06,974607e,FAIL,,,"The manual opens, but its Find and F3 are not checked yet (see MF-043)."
+DL-025,2026-11-06,9283d87,PASS,~30.000 s?,,
+DL-026,2026-11-06,9283d87,PASS,~30.000 s?,,
+DL-027,2026-11-06,c16a8f6,PASS,10.000 s,,"Blocked: a valid date moving the list (the calendar rows show the same first row for every day), and the beep (heard by ear, not by the driver)."
+DL-028,2026-11-06,9283d87,PASS,~30.000 s?,,
+DL-029,2026-11-06,9283d87,PASS,~30.000 s?,,
+DL-030,2026-11-06,9283d87,PASS,~30.000 s?,,
 AC-001,,,NOT RUN,,,
 AC-002,,,NOT RUN,,,
 AC-003,,,NOT RUN,,,
@@ -455,43 +455,43 @@ IG-140,,,NOT RUN,,,
 IG-141,,,NOT RUN,,,
 IG-142,,,NOT RUN,,,
 IO-001,,,NOT RUN,,,
-IO-002,2026-11-06,c16a8f6,PASS,,The bench counted a deleted copy as live (a string compared to a boolean); fixed.,6.0-6.0
-IO-003,2026-11-06,c16a8f6,PASS,,,6.0-6.0
-IO-004,2026-11-06,c16a8f6,PASS,,,11.0-11.0
+IO-002,2026-11-06,c16a8f6,PASS,6.000 s,,The bench counted a deleted copy as live (a string compared to a boolean); fixed.
+IO-003,2026-11-06,c16a8f6,PASS,6.000 s,,
+IO-004,2026-11-06,c16a8f6,PASS,11.000 s,,
 IO-005,,,NOT RUN,,,
-IO-006,2026-11-06,c16a8f6,PASS,,,6.0-6.0
-IO-007,2026-11-06,c16a8f6,PASS,,,6.0-6.0
+IO-006,2026-11-06,c16a8f6,PASS,6.000 s,,
+IO-007,2026-11-06,c16a8f6,PASS,6.000 s,,
 IO-008,,,NOT RUN,,,
-IO-009,2026-11-06,c16a8f6,FAIL,"Needs checking: the repeats window lists 105 rows for a weekly appointment, 104 expected.",,
-IO-010,2026-11-06,c16a8f6,PASS,,,7.0-7.0
-IO-011,2026-11-06,c16a8f6,PASS,,"The birthday is set through the contact form and saved, then read from the calendar rows (with birthdays shown).",10.0-10.0
-IO-012,2026-11-06,c16a8f6,PASS,,,6.0-6.0
+IO-009,2026-11-06,c16a8f6,FAIL,,"Needs checking: the repeats window lists 105 rows for a weekly appointment, 104 expected.",
+IO-010,2026-11-06,c16a8f6,PASS,7.000 s,,
+IO-011,2026-11-06,c16a8f6,PASS,10.000 s,,"The birthday is set through the contact form and saved, then read from the calendar rows (with birthdays shown)."
+IO-012,2026-11-06,c16a8f6,PASS,6.000 s,,
 IO-013,,,NOT RUN,,,
-IO-014,2026-11-06,c16a8f6,PASS,,,6.0-6.0
-IO-015,2026-11-06,c16a8f6,PASS,,,6.0-6.0
-IO-016,2026-11-06,c16a8f6,PASS,,,6.0-6.0
+IO-014,2026-11-06,c16a8f6,PASS,6.000 s,,
+IO-015,2026-11-06,c16a8f6,PASS,6.000 s,,
+IO-016,2026-11-06,c16a8f6,PASS,6.000 s,,
 IO-017,,,NOT RUN,,,
-IO-018,2026-11-06,c16a8f6,FAIL,,"Bench: the saved appointment file is not found where the test looks, so nothing is moved to the archive; start-up leaves the archived file in place.",
-IO-019,2026-11-06,c16a8f6,PASS,,,6.0-6.0
-IO-020,2026-11-06,c16a8f6,PASS,,,10.0-10.0
+IO-018,2026-11-06,c16a8f6,FAIL,,,"Bench: the saved appointment file is not found where the test looks, so nothing is moved to the archive; start-up leaves the archived file in place."
+IO-019,2026-11-06,c16a8f6,PASS,6.000 s,,
+IO-020,2026-11-06,c16a8f6,PASS,10.000 s,,
 IA-001,,,NOT RUN,,,
-IA-002,2026-11-06,9283d87,PASS,,,~30?
-OF-001,2026-11-06,8c6434b,PASS,,The first run hung on an error box until the run script gave the home folder its ini file (fixed in 8c6434b).,~30?
-GS-004,,,NOT RUN,,Merged into GS-003 (section 1); its checks run as part of GS-003,
-GS-006,,,NOT RUN,,Merged into GS-005 (section 1); its checks run as part of GS-005,
-GS-007,,,NOT RUN,,Merged into GS-005 (section 1); its checks run as part of GS-005,
-GS-009,,,NOT RUN,,Merged into GS-008 (section 1); its checks run as part of GS-008,
-GS-013,,,NOT RUN,,Merged into GS-012 (section 1); its checks run as part of GS-012,
-GS-014,,,NOT RUN,,Merged into GS-012 (section 1); its checks run as part of GS-012,
-GS-016,,,NOT RUN,,Merged into GS-015 (section 1); its checks run as part of GS-015,
-GS-018,,,NOT RUN,,Merged into GS-017 (section 1); its checks run as part of GS-017,
-GS-019,,,NOT RUN,,Merged into GS-017 (section 1); its checks run as part of GS-017,
-GS-021,,,NOT RUN,,Merged into GS-020 (section 1); its checks run as part of GS-020,
-GS-022,,,NOT RUN,,Merged into GS-020 (section 1); its checks run as part of GS-020,
-GS-024,,,NOT RUN,,Merged into GS-023 (section 1); its checks run as part of GS-023,
-GS-026,,,NOT RUN,,Merged into GS-025 (section 1); its checks run as part of GS-025,
-GS-027,,,NOT RUN,,Merged into GS-025 (section 1); its checks run as part of GS-025,
-GS-034,,,NOT RUN,,Merged into GS-031 (section 1); its checks run as part of GS-031,
-GS-036,,,NOT RUN,,Merged into GS-033 (section 1); its checks run as part of GS-033,
-GS-037,,,NOT RUN,,Merged into GS-032 (section 1); its checks run as part of GS-032,
-GS-042,,,NOT RUN,,Merged into GS-041 (section 1); its checks run as part of GS-041,
+IA-002,2026-11-06,9283d87,PASS,~30.000 s?,,
+OF-001,2026-11-06,8c6434b,PASS,~30.000 s?,,The first run hung on an error box until the run script gave the home folder its ini file (fixed in 8c6434b).
+GS-004,,,NOT RUN,,,Merged into GS-003 (section 1); its checks run as part of GS-003
+GS-006,,,NOT RUN,,,Merged into GS-005 (section 1); its checks run as part of GS-005
+GS-007,,,NOT RUN,,,Merged into GS-005 (section 1); its checks run as part of GS-005
+GS-009,,,NOT RUN,,,Merged into GS-008 (section 1); its checks run as part of GS-008
+GS-013,,,NOT RUN,,,Merged into GS-012 (section 1); its checks run as part of GS-012
+GS-014,,,NOT RUN,,,Merged into GS-012 (section 1); its checks run as part of GS-012
+GS-016,,,NOT RUN,,,Merged into GS-015 (section 1); its checks run as part of GS-015
+GS-018,,,NOT RUN,,,Merged into GS-017 (section 1); its checks run as part of GS-017
+GS-019,,,NOT RUN,,,Merged into GS-017 (section 1); its checks run as part of GS-017
+GS-021,,,NOT RUN,,,Merged into GS-020 (section 1); its checks run as part of GS-020
+GS-022,,,NOT RUN,,,Merged into GS-020 (section 1); its checks run as part of GS-020
+GS-024,,,NOT RUN,,,Merged into GS-023 (section 1); its checks run as part of GS-023
+GS-026,,,NOT RUN,,,Merged into GS-025 (section 1); its checks run as part of GS-025
+GS-027,,,NOT RUN,,,Merged into GS-025 (section 1); its checks run as part of GS-025
+GS-034,,,NOT RUN,,,Merged into GS-031 (section 1); its checks run as part of GS-031
+GS-036,,,NOT RUN,,,Merged into GS-033 (section 1); its checks run as part of GS-033
+GS-037,,,NOT RUN,,,Merged into GS-032 (section 1); its checks run as part of GS-032
+GS-042,,,NOT RUN,,,Merged into GS-041 (section 1); its checks run as part of GS-041
