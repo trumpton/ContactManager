@@ -172,13 +172,13 @@ UT-111,2026-11-06,897039e,PASS,,
 UT-112,2026-11-06,897039e,PASS,,
 UT-113,2026-11-06,897039e,PASS,,
 UT-114,2026-11-06,897039e,PASS,,
-GS-001,2026-11-06,5de4fb7,FAIL,Needs checking: contact 1: one copy on Google: 0 copies; contact 2: one copy on Google: 2 copies; contact 3: values on Google: birthday; contact 4: one copy on Google: 2 copies; contact 5: values on Google: birthday; contact 1: values after a second sync: birthday; contact 2: one copy after a second sync: 2 copies; contact 3: values after a second sync: birthday; contact 4: one copy after a second sync: 2 copies; contact 5: values after a second sync: birthday; the second sync adds no contact to the program: 0 contacts; the second sync adds no contact file: 8 files,Configs: CM FAIL
-GS-002,,,NOT RUN,,
-GS-003,,,NOT RUN,,
-GS-005,,,NOT RUN,,
-GS-008,,,NOT RUN,,
-GS-010,,,NOT RUN,,
-GS-011,,,NOT RUN,,
+GS-001,2026-11-06,5de4fb7,FAIL,Needs checking: contact 1: one copy on Google: 0 copies; contact 2: one copy on Google: 2 copies; contact 3: values on Google: birthday; contact 4: one copy on Google: 2 copies; contact 5: values on Google: birthday; contact 1: values after a second sync: birthday; contact 2: one copy after a second sync: 2 copies; contact 3: values after a second sync: birthday; contact 4: one copy after a second sync: 2 copies; contact 5: values after a second sync: birthday; the second sync adds no contact to the program: 0 contacts; the second sync adds no contact file: 8 files; contact 1: one copy on Google: 0 copies; contact 3: values on Google: birthday; contact 5: values on Google: birthday; contact 1: values after a second sync: birthday; contact 3: values after a second sync: birthday; contact 5: values after a second sync: birthday; the second sync adds no contact to the program: 0 contacts,"Configs: CM FAIL, G FAIL"
+GS-002,2026-11-06,5de4fb7,FAIL,"Needs checking: contact 2 is in the program, once; contact 2 has its values: first name, surname, email, mobile; contact 2 keeps its Google ID: keys with google: []; the second sync adds nothing to the program; contact 2 is on Google once: 1 copies; contact 2 is in the program, once; contact 2 has its values: first name, surname, email, mobile; contact 2 keeps its Google ID: keys with google: []; the second sync adds nothing to the program; contact 2 is on Google once: 1 copies","Configs: CM FAIL, G FAIL"
+GS-003,2026-11-06,5de4fb7,FAIL,Needs checking: the test ran to the end: IndexError: list index out of range,Configs: CM FAIL
+GS-005,2026-11-06,5de4fb7,FAIL,Needs checking: the test ran to the end: IndexError: list index out of range; the test ran to the end: IndexError: list index out of range,"Configs: CM FAIL, G FAIL"
+GS-008,2026-11-06,5de4fb7,FAIL,Needs checking: after the delete: contact 5 has an ID to find its files by: no ID in the dump; after the delete: contact 5 has an ID to find its files by: no ID in the dump,"Configs: CM FAIL, G FAIL"
+GS-010,2026-11-06,5de4fb7,FAIL,Needs checking: contact 6 is on Google before the delete: 0 copies; contact 6's files are in contact/deleted: 0 files; contact 6 is not restored on Google: 1 copies; contact 6 is on Google before the delete: 0 copies; contact 6's files are in contact/deleted: 0 files; contact 6 is not restored on Google: 1 copies,"Configs: CM FAIL, G FAIL"
+GS-011,,,NOT RUN,,"Batch incomplete: the clean Google run (release 5de4fb7) stopped during GS-011, when the session worker restarted. GS-011 and later did not run."
 GS-012,,,NOT RUN,,
 GS-015,,,NOT RUN,,
 GS-017,,,NOT RUN,,
