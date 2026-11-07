@@ -175,7 +175,7 @@ UT-114,2026-11-06,897039e,PASS,,
 GS-001,2026-11-06,2c4bdd3,PASS,,"Configs: CM PASS, G PASS"
 GS-002,2026-11-06,5de4fb7,FAIL,"Needs checking: contact 2 is in the program, once; contact 2 has its values: first name, surname, email, mobile; contact 2 keeps its Google ID: keys with google: []; the second sync adds nothing to the program; contact 2 is on Google once: 1 copies; contact 2 is in the program, once; contact 2 has its values: first name, surname, email, mobile; contact 2 keeps its Google ID: keys with google: []; the second sync adds nothing to the program; contact 2 is on Google once: 1 copies","Configs: CM FAIL, G FAIL"
 GS-003,2026-11-06,2c4bdd3,PASS,,Configs: CM PASS
-GS-005,2026-11-06,5de4fb7,FAIL,Needs checking: the test ran to the end: IndexError: list index out of range; the test ran to the end: IndexError: list index out of range,"Configs: CM FAIL, G FAIL"
+GS-005,2026-11-06,618ac3a,PASS,,"Configs: CM PASS, G PASS"
 GS-008,2026-11-06,5de4fb7,FAIL,Needs checking: after the delete: contact 5 has an ID to find its files by: no ID in the dump; after the delete: contact 5 has an ID to find its files by: no ID in the dump,"Configs: CM FAIL, G FAIL"
 GS-010,2026-11-06,5de4fb7,FAIL,Needs checking: contact 6 is on Google before the delete: 0 copies; contact 6's files are in contact/deleted: 0 files; contact 6 is not restored on Google: 1 copies; contact 6 is on Google before the delete: 0 copies; contact 6's files are in contact/deleted: 0 files; contact 6 is not restored on Google: 1 copies,"Configs: CM FAIL, G FAIL"
 GS-011,,,NOT RUN,,"Batch incomplete: the clean Google run (release 5de4fb7) stopped during GS-011, when the session worker restarted. GS-011 and later did not run."
