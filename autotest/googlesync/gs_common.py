@@ -393,6 +393,11 @@ def run_driver(driver, home, name, ops, outdir, secret="gs-test-secret-only", se
     if os.path.exists(lp):
         with open(lp, encoding="utf-8", errors="replace") as f:
             log += "\n" + f.read()
+    # The sync reports (report1.txt, report2.txt ...) are part of the run's log, as the checks on the report wording need them
+    for rp_name in sorted(os.listdir(outdir)) if os.path.isdir(outdir) else []:
+        if rp_name.startswith("report") and rp_name.endswith(".txt"):
+            with open(os.path.join(outdir, rp_name), encoding="utf-8", errors="replace") as f:
+                log += "\n" + f.read()
     dump = None
     # The dump the run saved: the file its last dump op names (dump.json unless the test names another)
     names = [op.get("file", "dump.json") for op in ops if op.get("op") == "dump"]
