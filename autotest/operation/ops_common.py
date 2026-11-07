@@ -339,6 +339,11 @@ def state_op(name):
     return {"op": "state", "name": name}
 
 
+def focus_on_op(obj):
+    """Gives the keyboard focus to a control in the top window, as a click would."""
+    return {"op": "focus_on", "object": obj}
+
+
 def exec_op(program, args):
     """Runs a program with these arguments, as an outside change (the driver waits for it to finish)."""
     return {"op": "exec", "program": program, "args": list(args)}

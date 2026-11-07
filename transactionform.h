@@ -27,6 +27,7 @@ public:
                    QString accessibleValueText) ;
 
     QString& getValue() ;
+    void accept() override ;
     QString& getDescription() ;
 
 private:

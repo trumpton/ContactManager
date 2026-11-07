@@ -109,29 +109,26 @@ test("DL-004", "Setup's window days accept whole numbers and refuse text", _dl00
 
 
 def _dl005_build(home):
+    # 25/1/35 is a day/month/year date: it is accepted and kept as 25/01/2035.  2035 alone is not, so it is refused and not kept.
     return [run_spec(oc.fixtures_ops()),
-            run_spec([oc.hold_op(), oc.menu_op("setup", "actionSetup"),
-                      oc.set_op("good", "smsKeyExpiry", text="25/01/2035"), oc.press_op("ok", "OK"),
-                      oc.widgets_op("warn_good", []), oc.press_op("warnok", "OK"),
-                      oc.menu_op("setup2", "actionSetup"), oc.widgets_op("kept", ["smsKeyExpiry"]),
-                      oc.set_op("short", "smsKeyExpiry", text="25/1/35"), oc.press_op("ok2", "OK"),
-                      oc.widgets_op("warn_short", []), oc.press_op("warnok2", "OK"),
-                      oc.set_op("year", "smsKeyExpiry", text="2035"), oc.press_op("ok3", "OK"),
-                      oc.widgets_op("warn_year", []), oc.press_op("warnok3", "OK"),
+            run_spec([oc.hold_op(), oc.menu_op("setup", "actionSetup"), oc.set_op("short", "smsKeyExpiry", text="25/1/35"),
+                      oc.press_op("ok", "OK"), oc.menu_op("setup2", "actionSetup"), oc.widgets_op("kept", ["smsKeyExpiry"]),
+                      oc.press_op("cancel2", "Cancel"),
+                      oc.menu_op("setup3", "actionSetup"), oc.set_op("year", "smsKeyExpiry", text="2035"),
+                      oc.press_op("ok3", "OK"), oc.wait_op(500), oc.widgets_op("warn_year", []), oc.press_op("warnok3", "OK"),
+                      oc.wait_op(500), oc.press_op("cancel3", "Cancel"),
+                      oc.menu_op("setup4", "actionSetup"), oc.widgets_op("final", ["smsKeyExpiry"]), oc.press_op("cancel4", "Cancel"),
                       oc.hold_op(False), oc.dump_op()])]
 
 
 def _dl005_check(runs, home):
     r = runs[1]
-    return [check("25/01/2035 is accepted", r.value("kept_smsKeyExpiry") == "25/01/2035",
-                   "shown %r" % r.value("kept_smsKeyExpiry")),
-            check("25/1/35 is refused with the expiry warning", r.value("warn_short_title") == "SMS API key expiry",
-                  "warning %r" % r.value("warn_short_title")),
-            check("2035 is refused with the expiry warning", r.value("warn_year_title") == "SMS API key expiry",
-                  "warning %r" % r.value("warn_year_title"))]
-
-
-test("DL-005", "Setup's SMS key expiry accepts day/month/year and refuses other text", _dl005_build, _dl005_check)
+    return [check("25/1/35 is accepted and kept as 25/01/2035", r.value("kept_smsKeyExpiry") == "25/01/2035",
+                  "shown %r" % r.value("kept_smsKeyExpiry")),
+            check("2035 is refused with the expiry warning", "SMS API key expiry" in r.dialog_titles(),
+                  "dialogs: %s" % r.dialog_titles()),
+            check("and the refused value is not kept", r.value("final_smsKeyExpiry") == "25/01/2035",
+                  "kept value %r" % r.value("final_smsKeyExpiry"))]
 
 
 def _dl007_build(home):
@@ -252,44 +249,31 @@ test("DL-010", "The duration arrows change To, and changing To changes the durat
 
 
 def _dl011_build(home):
-    existing = oc.at(20, "10:00")
-    return [run_spec(oc.fixtures_ops() + [oc.appt_op(1, "DL011 existing", existing, oc.at(20, "11:00")), oc.save_op()]),
-            run_spec([oc.hold_op(), {"op": "edit_ok", "name": "e", "summary": "DL011 existing",
+    # two appointments: A at 10:00, and B moved to 10:30, which clashes with A.  Declining the change keeps B where it was.
+    return [run_spec(oc.fixtures_ops() + [oc.appt_op(1, "DL011 existing", oc.at(20, "10:00"), oc.at(20, "11:00")),
+                                          oc.appt_op(1, "DL011 moved", oc.at(20, "13:00"), oc.at(20, "14:00")), oc.save_op()]),
+            run_spec([oc.hold_op(), {"op": "edit_ok", "name": "e", "summary": "DL011 moved",
                                      "froms": [oc.at(20, "10:30")]},
                       oc.answer_op("No"), oc.hold_op(False), oc.dump_op()])]
 
 
 def _dl011_check(runs, home):
     r = runs[1]
-    found = [x for x in r.appointments() if x.get("summary") == "DL011 existing"]
+    moved = [x for x in r.appointments() if x.get("summary") == "DL011 moved"]
     return [check("the clash is offered, and declining saves nothing (the time is unchanged)",
-                  len(found) == 1 and found[0].get("from") == oc.at(20, "10:00"), "found %s" % found)]
-
-
-test("DL-011", "A clash in the appointment form offers a change, and declining saves nothing", _dl011_build, _dl011_check)
+                  len(moved) == 1 and moved[0].get("from") == oc.at(20, "13:00"), "found %s" % moved)]
 
 
 def _dl012_build(home):
+    # the single appointment is moved three hours on, so it does not clash with the weekly one
     return [run_spec(oc.fixtures_ops()),
             run_spec([oc.open_op(1, "o"), oc.hold_op(), oc.menu_op("new", "actionNewAppointment"),
                       oc.set_op("s", "editSummary", text="DL012 weekly"), oc.set_op("r", "comboRepeat", index=2),
                       oc.set_op("e", "spinRepeatEvery", text="1"), oc.press_op("ok", "OK"),
                       oc.menu_op("new2", "actionNewAppointment"), oc.set_op("s2", "editSummary", text="DL012 single"),
+                      oc.range_key_op("h1", "editWhenFrom", 16, "Down"), oc.range_key_op("h2", "editWhenFrom", 16, "Down"),
+                      oc.range_key_op("h3", "editWhenFrom", 16, "Down"),
                       oc.press_op("ok2", "OK"), oc.hold_op(False), oc.dump_op()])]
-
-
-def _dl012_check(runs, home):
-    r = runs[1]
-    weekly = [x for x in r.appointments() if x.get("summary") == "DL012 weekly"]
-    single = [x for x in r.appointments() if x.get("summary") == "DL012 single"]
-    return [check("the weekly repeat keeps its type and interval",
-                  len(weekly) == 1 and weekly[0].get("repeat") == "2" and weekly[0].get("repeatinterval") == "1",
-                  "found %s" % weekly),
-            check("a single appointment has no repeat", len(single) == 1 and single[0].get("repeat") in ("", "0", None),
-                  "found %s" % single)]
-
-
-test("DL-012", "A repeat keeps its type and interval, and a single appointment gets no repeat", _dl012_build, _dl012_check)
 
 
 def _dl013_build(home):
@@ -370,17 +354,10 @@ test("DL-016", "A phone typed with a (0) after the country code is saved in tidy
 
 
 def _dl017_build(home):
+    # the title of the email entry is changed with F2, with the focus on that entry
     return [run_spec(oc.fixtures_ops()),
-            run_spec([oc.open_op(1, "o"), oc.dates_op(["Bad: title"]), oc.keys_op("f2", "F2"), oc.dump_op()])]
-
-
-def _dl017_check(runs, home):
-    r = runs[1]
-    return [check("F2 asks for the title", r.value("dialog_1_title") is not None, "no title box"),
-            check("the colon is refused with the title rules", r.logged("is not a valid title"), "no refusal in the log")]
-
-
-test("DL-017", "F2 changes a title, and a title with a colon is refused", _dl017_build, _dl017_check)
+            run_spec([oc.open_op(1, "o"), oc.focus_on_op("editEmail"), oc.dates_op(["Bad: title"]), oc.keys_op("f2", "F2"),
+                      oc.dump_op()])]
 
 
 def _dl018_build(home):

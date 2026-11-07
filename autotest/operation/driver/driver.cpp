@@ -1318,6 +1318,15 @@ int main(int argc, char *argv[])
                 record(name + "_" + obj + "_duration", QJsonValue(edit ? edit->getDuration() : -2)) ;
             }
 
+        } else if (kind == "focus_on") {
+            // Gives the keyboard focus to a control, as a click or Tab would, in the top window or a visible one
+            QWidget *top = QApplication::activeModalWidget() ? QApplication::activeModalWidget() : (QWidget*)&w ;
+            QString obj = op["object"].toString() ;
+            QWidget *c = top->findChild<QWidget*>(obj, Qt::FindChildrenRecursively) ;
+            if (!c) for (QWidget *tl : QApplication::topLevelWidgets()) if (!c && tl->isVisible()) c = tl->findChild<QWidget*>(obj, Qt::FindChildrenRecursively) ;
+            if (c) c->setFocus() ;
+            note(QString("focus_on %1: %2").arg(obj, c ? "focused" : "not found")) ;
+
         } else if (kind == "menus") {
             // The menu bar, every item with its depth and whether it is enabled (accessibility: names and mnemonics)
             QJsonArray items ;

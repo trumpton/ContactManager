@@ -168,6 +168,18 @@ bool Configuration::SetupForm(ContactDatabase *currentdatabase, GoogleAccess *ga
     return true ;
 }
 
+// Setup stays open while the SMS key expiry is not a day/month/year date (or blank), and nothing is stored
+void Configuration::accept()
+{
+    QString keyexpiry = ui->smsKeyExpiry->text().trimmed() ;
+    if (!keyexpiry.isEmpty() && !parseExpiryDate(keyexpiry).isValid()) {
+        warningOkDialog(this, "SMS API key expiry", "The expiry date must be day/month/year, for example 25/01/2035, or left blank.") ;
+        ui->smsKeyExpiry->setFocus() ;
+        return ;
+    }
+    QDialog::accept() ;
+}
+
 bool Configuration::SaveForm()
 {
     if (db==NULL) {
