@@ -9,6 +9,11 @@
 
   Co-Authored-By: CC
 
+## Test benches
+
+- When a test bench (`autotest/`) is updated, record the release number at the start of any output it or its notes produce,
+  such as a report, a summary or a run log: the short git commit hash of the code tested. Do not update a bench only to add this.
+
 ## Test log
 
 - `documents/test-log.csv` records every test, one row per test, with these columns in this order:

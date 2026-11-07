@@ -206,7 +206,7 @@ SS-007,2026-11-07,8c0d098,PASS,10.0 s,,The program's log was not saved into the 
 SS-008,2026-11-07,8c0d098,FAIL,,"Program: no backup zip was written. Likely causes: the backup folder is never created, and zip runs in a QProcess that is deleted straight away (which stops it). mainwindow_timer_backup.cpp now makes the folder and waits for zip; not yet re-run, so the cause is not confirmed.",
 SS-009,2026-11-06,9283d87,PASS,~30.0 s?,,
 SS-010,2026-11-06,9283d87,PASS,~30.0 s?,,
-SS-011,2026-11-07,8c0d098,FAIL,,"Program: the unreadable contact file loads as an empty entry marked deleted, and nothing is reported to the user.","The five live contacts are counted, and the load lines are not taken as a report."
+SS-011,2026-11-07,8a6b339,PASS,10.0 s,,
 SS-012,2026-11-07,8c0d098,PASS,6.000 s,,The program's warning text was not recorded; the driver now reads the text of its own warning boxes.
 SS-013,2026-11-07,8c0d098,FAIL,,"Program: when the data folder is read-only, Save does not stop or report the failure. ContactDatabase::save fails and its caller (mainwindow.cpp, db.save()) ignores the result, so no error is shown. The stored data is not lost.","Run as the user cmtest, not root, after the read-only folder was set with chmod at the end of the first run."
 SS-014,2026-11-06,9283d87,PASS,~30.0 s?,,
