@@ -380,6 +380,11 @@ int main(int argc, char *argv[])
 
         QString text ;
         if (auto *box = qobject_cast<QMessageBox*>(m)) text = box->text() ;
+        else {
+            // The program's own warning boxes keep their message in a label
+            for (QLabel *label : m->findChildren<QLabel*>()) if (!label->text().isEmpty()) { text = label->text() ; break ; }
+            if (text.isEmpty()) for (QTextEdit *edit : m->findChildren<QTextEdit*>()) if (!edit->toPlainText().isEmpty()) { text = edit->toPlainText() ; break ; }
+        }
         note(QString("dialog %1 \"%2\": %3").arg(m->metaObject()->className(), m->windowTitle(), text)) ;
         // A fresh data folder has no key: the operation-test runner sets CM_TEST_SETKEY, and the question that offers to
         // set the key is then answered Yes (the key and password are then entered by the Encryption dialog, above)
@@ -721,7 +726,7 @@ int main(int argc, char *argv[])
 
         } else if (kind == "dumplog") {
             // Saves the sync log so far to a file
-            QFile f(op["file"].toString()) ;
+            QFile f(outdir + "/" + op["file"].toString()) ;   // the run folder, as dump.json is
             if (f.open(QIODevice::WriteOnly | QIODevice::Text)) { QTextStream out(&f) ; out << getLog() ; }
 
         } else if (kind == "listdir") {

@@ -9,6 +9,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -90,8 +91,10 @@ class Run:
         """The titles of the dialogs the driver answered (the log's 'dialog' lines)."""
         titles = []
         for line in self.log.splitlines():
-            if line.startswith("dialog ") and '"' in line:
-                titles.append(line.split('"')[1])
+            # the driver's lines carry a time before the word: "09:21:16 dialog WarningOk "Appointment Clashes": "
+            m = re.search(r'\bdialog \w+ "([^"]*)"', line)
+            if m:
+                titles.append(m.group(1))
         return titles
 
     def dump(self, name="dump.json"):

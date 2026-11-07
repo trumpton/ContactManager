@@ -62,7 +62,9 @@ def _ss003_runs(home):
 
 def _ss003_check(runs, home):
     r = runs[1]
-    return [check("the program does not start", not r.logged("main window shown"), "the window showed"),
+    # the program draws its window before it aborts, so the test looks for the program quitting before its operation runs
+    return [check("the program quits before the data is opened", not r.logged("dumped") and not r.logged("op 1"),
+                  "the operation ran after the wrong passwords"),
             check("the Close choice is made", r.logged("login question answered: Close") or r.logged('answered "Close"'),
                   "the Close choice was not made"),
             check("the data is unchanged", oc.snapshot(oc.data_folder(home)) == dict(_ss003_before),
@@ -135,13 +137,17 @@ test("SS-006", "The SMS key expiry warning appears at start-up within 30 days of
 
 
 def _ss007_runs(home):
-    return [run_spec(oc.fixtures_ops()), run_spec([oc.dump_op()])]
+    # the base ini has no sender for email or SMS, so each is warned about at start-up, in the log window; the log is saved after
+    return [run_spec(oc.fixtures_ops()), run_spec([oc.dumplog_op("log.txt"), oc.dump_op()])]
 
 
 def _ss007_check(runs, home):
-    r = runs[1]
-    lines = [l for l in r.log.splitlines() if "sender" in l.lower()]
-    return [check("a warning for each blank sender is logged", len(lines) >= 2, "%d sender lines" % len(lines))]
+    path = os.path.join(runs[1].outdir, "log.txt")
+    text = open(path, encoding="utf-8", errors="replace").read() if os.path.exists(path) else ""
+    lines = [l for l in text.splitlines() if "sender" in l.lower() and "warning" in l.lower()]
+    return [check("a warning for each blank sender is logged", len(lines) >= 2, "%d sender warning lines in the log" % len(lines)),
+            check("the email warning names the blank section", any("[email-reminder]" in l for l in lines), "lines: %s" % lines[:2]),
+            check("the SMS warning names the blank section", any("[sms-reminder]" in l for l in lines), "lines: %s" % lines[:2])]
 
 
 test("SS-007", "Start-up warns for each blank sender and logs it", _ss007_runs, _ss007_check)
@@ -248,10 +254,14 @@ def _ss011_check(runs, home):
     r = runs[1]
     name = _holder.get("name", "")
     now = open(_holder["path"], "rb").read() if _holder.get("path") and os.path.exists(_holder["path"]) else None
-    return [check("the other five contacts load", len(r.contacts()) == 5, "%d contacts" % len(r.contacts())),
+    # the damaged file loads as an empty entry marked deleted, so only the live contacts are counted
+    live = [c for c in r.contacts() if c.get("deleted") not in (True, "true")]
+    return [check("the other five contacts load", len(live) == 5, "%d live contacts (%d entries)" % (len(live), len(r.contacts()))),
+            # the program's own load(...) lines name every file it loads, damaged or not, so they do not count as a report
             check("the damaged file is reported (its name, or a contact-file message, is in the log)",
-                  (name and (name in r.log or os.path.splitext(name)[0] in r.log))
-                  or "contact file" in r.log.lower() or "could not" in r.log.lower(), "no report"),
+                  any(not ("load(" in l) and ((name and (name in l or os.path.splitext(name)[0] in l))
+                                              or "contact file" in l.lower() or "could not" in l.lower())
+                      for l in r.log.splitlines()), "no report of the damaged file"),
             check("the damaged file is not overwritten", now is not None and now == _holder.get("bytes"),
                   "the file changed or is gone")]
 
@@ -275,8 +285,10 @@ def _ss012_runs(home):
 def _ss012_check(runs, home):
     r = runs[0]
     return [check("the program starts", r.logged("main window shown") and r.rc == 0, "exit %s" % r.rc),
-            check("the log says the ini file was not found",
-                  r.logged("ContactManager.ini") or r.logged("not found"), "no such line in the log")]
+            # the program reports it in an error dialog ("Unable to find ContactManager.ini"), and goes on with its defaults
+            check("the program reports that the ini file was not found",
+                  "Contact Manager Error" in r.dialog_titles() and r.logged("Unable to find ContactManager.ini"),
+                  "dialogs: %s" % r.dialog_titles())]
 
 
 test("SS-012", "Start with no ini file uses the defaults and reports that the file is missing", _ss012_runs, _ss012_check)
