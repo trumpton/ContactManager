@@ -10,7 +10,8 @@
 # Test data is what the tests create, and it is identified on any account:
 #   contacts whose email address is in the test domain (test_fixtures.json: identifier.email_domain)
 #   appointments on the primary calendar whose summary starts with the test prefix (identifier.event_prefix)
-# The default clean-up FINDS them by search (the People search for the domain, the Calendar search for the prefix).
+# The default clean-up FINDS them in full listings of the account (the contacts and the calendar), which are read-after-write;
+# a search lags behind writes, and returns one page only.
 # It does not list the account.  Only --all-data lists the whole account.
 #
 # --all-data deletes every contact in the account's contact list and every appointment on its primary calendar
@@ -152,7 +153,7 @@ def main(argv=None):
         if args.all_data:
             cs, es = choose(list_contacts(token), list_events(token), fixtures, True)
         else:
-            cs, es = search_test_contacts(token, fixtures), search_test_events(token, fixtures)
+            cs, es = choose(list_contacts(token), list_events(token), fixtures, False)
         scope = "EVERYTHING" if args.all_data else "the test data"
         print(f"Account: {email}")
         print(f"Would delete {scope}: {len(cs)} contact(s), {len(es)} appointment(s)")
@@ -184,7 +185,7 @@ def main(argv=None):
             # A failure stops the passes, so the same record is not tried again and again.
             if args.all_data or failed or passes >= MAX_PASSES:
                 break
-            cs, es = search_test_contacts(token, fixtures), search_test_events(token, fixtures)
+            cs, es = choose(list_contacts(token), list_events(token), fixtures, False)
             if not (cs or es):
                 break
         print(f"Deleted {len(deleted)} record(s). Failed: {len(failed)}.")

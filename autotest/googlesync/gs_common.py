@@ -119,10 +119,25 @@ def emails_of(person):
     return [e.get("value", "") for e in person.get("emailAddresses", [])]
 
 
+def all_connections():
+    """Every contact on the account, read from the connections listing.  The search (searchContacts) is not used here: its
+    index lags behind writes, so a contact just made or changed can be missing or out of date in it."""
+    people, token = [], None
+    while True:
+        q = {"personFields": PERSON_FIELDS, "pageSize": 1000}
+        if token:
+            q["pageToken"] = token
+        reply = api("GET", PEOPLE + "/people/me/connections?" + urllib.parse.urlencode(q))
+        people.extend(reply.get("connections", []))
+        token = reply.get("nextPageToken")
+        if not token:
+            return people
+
+
 def fixture_people():
     """Every contact on the account whose email is in the test domain."""
     out = {}
-    for p in search_people(DOMAIN):
+    for p in all_connections():
         for e in emails_of(p):
             if e.lower().endswith("@" + DOMAIN):
                 out[p["resourceName"]] = p
