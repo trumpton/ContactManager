@@ -364,9 +364,13 @@ def answer_key_op(key):
     return {"op": "answer", "key": key}
 
 
-def answer_op(text):
-    """Clicks the button with this text on the next question (a message box with buttons)."""
-    return {"op": "answer", "text": text}
+def answer_op(text, check=False):
+    """Clicks the button with this text on the next question (a message box with buttons).  With check, the question's
+    checkbox is ticked first (for example "Do this for all future matches")."""
+    op = {"op": "answer", "text": text}
+    if check:
+        op["check"] = True
+    return op
 
 
 def choose_op(letter):

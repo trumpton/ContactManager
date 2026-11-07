@@ -211,6 +211,7 @@ int main(int argc, char *argv[])
     QWidget *lastmodal = nullptr ;
     int clicksonthis = 0 ;
     QString nextanswer ;     // The button the next yes/no question is answered with, set by an "answer" operation
+    bool nextcheck = false ; // The question's checkbox ("Do this for all future matches") is ticked before the answer
     QString nextkey ;        // A key sent to the next yes/no question (Escape, Enter), set by an "answer" operation with a key
     bool holdDialogs = false ;   // while set, an ordinary dialog is left open for a "press" or "widgets" operation
     QList<QDateTime> nextfroms ;   // The start each appointment form is given when it is shown, then OK is pressed
@@ -252,6 +253,10 @@ int main(int argc, char *argv[])
                 if (b->text() == nextanswer) {
                     note("answered \"" + nextanswer + "\": " + m->windowTitle()) ;
                     nextanswer.clear() ;
+                    if (nextcheck) {
+                        for (QCheckBox *cb : m->findChildren<QCheckBox*>()) cb->setChecked(true) ;
+                        nextcheck = false ;
+                    }
                     b->click() ;
                     return ;
                 }
@@ -913,7 +918,8 @@ int main(int argc, char *argv[])
                 note("answer next question with key: " + nextkey) ;
             } else {
                 nextanswer = op["text"].toString() ;
-                note("answer next question: " + nextanswer) ;
+                nextcheck = op["check"].toBool(false) ;
+                note("answer next question: " + nextanswer + (nextcheck ? " (checkbox ticked)" : "")) ;
             }
 
         } else if (kind == "exit") {

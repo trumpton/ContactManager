@@ -220,7 +220,7 @@ MF-006,2026-11-06,974607e,FAIL,,,"Needs checking: the saved email is read back, 
 MF-007,2026-11-06,974607e,FAIL,,Needs checking: the Key and Password items do not change with the login state (Set Encryption Key and Change Password stay on; Logout is on when logged out).,
 MF-008,2026-11-06,9283d87,PASS,~30.0 s?,,
 MF-009,2026-11-06,9283d87,PASS,~30.0 s?,,
-MF-010,2026-11-06,b09408e,FAIL,,,"Needs checking: the hidden contact is listed in braces, but the deleted contact is not listed, although Show Deleted was ticked. Check the toggle and the list."
+MF-010,,,NOT RUN,,,"Skipped: deleted and hidden contacts are skipped in this scenario (ticket #123, https://github.com/trumpton/ContactManager/issues/123)."
 MF-011,2026-11-06,9283d87,PASS,~30.0 s?,,
 MF-012,2026-11-06,9283d87,PASS,~30.0 s?,,
 MF-013,2026-11-06,9283d87,PASS,~30.0 s?,,
@@ -231,7 +231,7 @@ MF-017,2026-11-06,637be09,PASS,~30.0 s?,,
 MF-018,2026-11-06,b09408e,PASS,~30.0 s?,,
 MF-019,2026-11-06,637be09,PASS,~30.0 s?,,
 MF-020,2026-11-06,9283d87,PASS,~30.0 s?,,
-MF-021,2026-11-06,b09408e,FAIL,,,"Needs checking: the driver reads the calendar's rows here, not the contacts list, so the hidden contact is not found. The handler skips hidden contacts, but the spec says it lists them (decision needed)."
+MF-021,,,NOT RUN,,,"Skipped: deleted and hidden contacts are skipped in this scenario (ticket #123, https://github.com/trumpton/ContactManager/issues/123)."
 MF-022,2026-11-06,c16a8f6,PASS,10.0 s,,"Ctrl+Shift+O is checked as bound to Goto Me; Goto Me is run from its menu item, as the bench cannot press the shortcut."
 MF-023,2026-11-06,c16a8f6,PASS,10.0 s,,The check covers the Easy Notepad case only; the missing-program error is not checked.
 MF-024,2026-11-06,974607e,FAIL,,"Needs checking: Ctrl+Shift+L shows the contact's to-do item, not the user's list.",
@@ -252,7 +252,7 @@ MF-038,2026-11-06,c16a8f6,PASS,10.0 s,,The mail command is a recording script se
 MF-039,2026-11-06,9283d87,PASS,~30.0 s?,,
 MF-040,2026-11-06,9283d87,PASS,~30.0 s?,,
 MF-041,2026-11-06,974607e,FAIL,,Needs checking: the expense of 7.25 is not in the contact's data folder.,
-MF-042,2026-11-06,c16a8f6,FAIL,,"Program: Transaction Report is not implemented. Its handler is a TODO (mainwindow_menu_transaction.cpp), so no report is written and no year is asked.",
+MF-042,2026-11-06,c16a8f6,FAIL,,"Program: Transaction Report is not implemented. Its handler is a TODO (mainwindow_menu_transaction.cpp), so no report is written and no year is asked. Ticket #124 (https://github.com/trumpton/ContactManager/issues/124).",
 MF-043,2026-11-06,974607e,FAIL,,,"The manual window opens; its search (F3) is not checked yet, so the test cannot pass."
 MF-044,2026-11-06,9283d87,PASS,~30.0 s?,,
 MF-045,2026-11-06,b09408e,FAIL,,,"Bench: the calendar row is not read after Escape, so the list cannot be checked."
