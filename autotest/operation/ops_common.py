@@ -8,6 +8,7 @@
 import datetime as dt
 import hashlib
 import json
+import glob
 import os
 import re
 import subprocess
@@ -245,8 +246,29 @@ def dumplog_op(file="log.txt"):
     return {"op": "dumplog", "file": file}
 
 
+def settle_op(ms):
+    """The next operation runs after ms, without blocking the event loop (a dialog the wait opens still runs)."""
+    return {"op": "settle", "ms": ms}
+
+
 def wait_op(ms):
     return {"op": "wait", "ms": ms}
+
+
+def contact_id(home, surname):
+    """The id of the saved contact with this surname: a contact's file is named by its id, and holds its surname."""
+    for path in glob.glob(os.path.join(data_folder(home), "contact", "*.contact")):
+        with open(path, encoding="utf-8", errors="replace") as f:
+            if ("\nsurname=%s\n" % surname) in f.read():
+                return os.path.splitext(os.path.basename(path))[0]
+    return ""
+
+
+def identify_me_hook(spec, n):
+    """A before-hook for a run: sets Identify Me to the contact n (as Setup stores it), as the first operation of the run."""
+    def hook(home):
+        spec["ops"].insert(0, setting_op("idme", contact_id(home, surname(n))))
+    return hook
 
 
 def setting_op(key, value):
@@ -473,10 +495,11 @@ def blocked(label, reason):
 TESTS = []
 
 
-def test(code, title, build, check_fn, blocked_reason=None):
+def test(code, title, build, check_fn, blocked_reason=None, user=None):
     """Registers a test.  build(home) returns the list of run specs (the home is created by the runner); check_fn(runs,
-    home) returns a list of Check objects.  blocked_reason, when given, makes the test BLOCKED before any run."""
-    TESTS.append({"id": code, "title": title, "build": build, "check": check_fn, "blocked": blocked_reason})
+    home) returns a list of Check objects.  blocked_reason, when given, makes the test BLOCKED before any run.  user, when
+    given, runs the driver as that user (a test that needs a user who is not root, such as a read-only folder)."""
+    TESTS.append({"id": code, "title": title, "build": build, "check": check_fn, "blocked": blocked_reason, "user": user})
 
 
 def status_of(checks):

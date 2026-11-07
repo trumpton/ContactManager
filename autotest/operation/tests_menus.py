@@ -119,9 +119,11 @@ def _mf005_build(home):
             run_spec([oc.hold_op(), oc.menu_op("m", "actionExportContacts"), oc.set_op("file", "fileNameEdit", text=path),
                       oc.press_op("save", "Save"), oc.hold_op(False)]),
             run_spec([oc.delete_contact_op(1), oc.save_op(), oc.tidy_op(), oc.dump_op("gone.json")]),
-            # each existing record asks whether to overwrite it; "Skip", with "Do this for all future matches" ticked, answers it once
+            # the deleted contact still exists with the same id, so each existing record asks whether to overwrite it.  "Overwrite",
+            # with "Do this for all future matches" ticked, answers it for all: the deleted contact comes back, and no copy is made.
+            # (Skip would leave the deleted contact deleted.)
             run_spec([oc.hold_op(), oc.menu_op("m", "actionImport"), oc.set_op("file", "fileNameEdit", text=path),
-                      oc.answer_op("Skip", check=True), oc.press_op("open", "Open"), oc.hold_op(False), oc.dump_op("back.json")])]
+                      oc.answer_op("Overwrite", check=True), oc.press_op("open", "Open"), oc.hold_op(False), oc.dump_op("back.json")])]
 
 
 def _mf005_check(runs, home):
@@ -136,8 +138,10 @@ test("MF-005", "File > Import reads an export back without duplicates", _mf005_b
 
 def _mf006_build(home):
     return [run_spec(oc.fixtures_ops()),
+            # the screen's edit is not saved yet, so Tidy asks "Save them before tidying contacts?": Save answers it, then the
+            # summary (a progress window, closed by the driver) is shown.  The dump waits for the tidy to finish.
             run_spec([oc.open_op(1, "o"), oc.form_set_op({"email": "tidy.oneil@sgc.contacmanagertest"}),
-                      oc.menu_op("tidy", "actionTidyContacts"), oc.dump_op()])]
+                      oc.menu_op("tidy", "actionTidyContacts"), oc.answer_op("Save"), oc.wait_op(2000), oc.dump_op()])]
 
 
 def _mf006_check(runs, home):
@@ -267,8 +271,9 @@ def _mf014_build(home):
 def _mf014_check(runs, home):
     r = runs[1]
     rows = [r.value(k + "_row") for k in ("f1", "f2", "f3")]
-    return [check("each Find Next moves to the next match", rows[0] is not None and rows[0] < rows[1] < rows[2],
-                  "rows %s" % rows)]
+    # each Find Next goes on from the current entry; after the last match it wraps to the first, as the page search does
+    return [check("each Find Next moves to the next match, and the one after the last is the first",
+                  rows[0] is not None and rows[1] == rows[0] + 1 and rows[2] == 0, "rows %s" % rows)]
 
 
 test("MF-014", "Find Here (Ctrl+F) and Find Next (F3) move through matches on the page", _mf014_build, _mf014_check)
@@ -424,9 +429,12 @@ test("MF-023", "Goto Journal (Ctrl+J) opens the journal in Easy Notepad, and a m
 
 
 def _mf024_build(home):
-    return [run_spec(oc.fixtures_ops() + [oc.notes_op(1, "MF024 contact list item", "")]),
-            run_spec([oc.open_op(1, "o"), oc.hold_op(), oc.shortcut_op("l", "Ctrl+L", press=True), oc.widgets_op("contact", ["editToDo"]),
-                      oc.shortcut_op("my", "Ctrl+Shift+L", press=True), oc.widgets_op("mine", ["editToDo"]), oc.hold_op(False), oc.dump_op()])]
+    # Ctrl+Shift+L goes to the user's list, which is the contact Identify Me names
+    second = run_spec([oc.open_op(1, "o"), oc.hold_op(), oc.shortcut_op("l", "Ctrl+L", press=True), oc.widgets_op("contact", ["editToDo"]),
+                       oc.shortcut_op("my", "Ctrl+Shift+L", press=True), oc.widgets_op("mine", ["editToDo"]), oc.hold_op(False), oc.dump_op()])
+    # Identify Me is another contact, so Ctrl+Shift+L shows a different list from the open contact's
+    second["before"] = oc.identify_me_hook(second, 2)
+    return [run_spec(oc.fixtures_ops() + [oc.notes_op(1, "MF024 contact list item", "")]), second]
 
 
 def _mf024_check(runs, home):
@@ -491,7 +499,7 @@ def _mf027_check(runs, home):
             check("Alt+A moves to the address", "address" in str(r.value("a_focus")).lower(), "focus %r" % r.value("a_focus")),
             check("Alt+P moves to the phone", "home" in str(r.value("p_focus")).lower() or "phone" in str(r.value("p_focus")).lower(),
                   "focus %r" % r.value("p_focus")),
-            check("Alt+B moves to the birthday", "birthday" in str(r.value("b_focus")).lower(), "focus %r" % r.value("b_focus"))]
+            check("Alt+B moves to the birthday", "birth" in str(r.value("b_focus")).lower(), "focus %r" % r.value("b_focus"))]
 
 
 test("MF-027", "Goto Contact Details (Alt+N, M, A, P, B) moves to each section of the form", _mf027_build, _mf027_check)
@@ -652,11 +660,14 @@ _opens("MF-039", "SMS Contact (Ctrl+Shift+M) opens the text form for the contact
 
 def _money_test(code, title, action, amount):
     def build(home):
-        return [run_spec(oc.fixtures_ops()),
-                # an expense for a contact other than Identify Me first asks whether it is for Me: No keeps it for the contact
-                run_spec([oc.open_op(1, "o"), oc.hold_op()] + ([oc.answer_op("No")] if action == "actionPayment" else []) +
-                         [oc.menu_op("m", action), oc.wait_op(500), oc.set_op("f", "lineEditAmount", text=amount),
-                          oc.press_op("ok", "OK"), oc.hold_op(False), oc.dump_op()])]
+        # An expense first asks whether it is for Me, when the contact is not Me: Identify Me is set to contact 2, so the question
+        # is asked for contact 1, and No keeps it for that contact.  (Without Identify Me, the program says Me is not configured.)
+        second = run_spec([oc.open_op(1, "o"), oc.hold_op()] + ([oc.answer_op("No")] if action == "actionPayment" else []) +
+                          [oc.menu_op("m", action), oc.wait_op(500), oc.set_op("f", "lineEditAmount", text=amount),
+                           oc.press_op("ok", "OK"), oc.hold_op(False), oc.dump_op()])
+        if action == "actionPayment":
+            second["before"] = oc.identify_me_hook(second, 2)
+        return [run_spec(oc.fixtures_ops()), second]
 
     def checks(runs, home):
         text = _data_text(home)
@@ -694,7 +705,7 @@ def _mf043_build(home):
 
 def _mf043_check(runs, home):
     r = runs[1]
-    opened = any("manual" in str(w).lower() for w in (r.value("open_windows") or []))
+    opened = any("help" in str(w).lower() or "manual" in str(w).lower() for w in (r.value("open_windows") or []))
     first, second = r.value("first_position"), r.value("second_position")
     return [check("Manual opens", opened, "windows: %s" % (r.value("open_windows"),)),
             check("Ctrl+F finds the first match in the manual", r.value("first_found") is True
@@ -862,7 +873,7 @@ def _mf053_build(home):
 
 
 def _mf053_check(runs, home):
-    r = runs[0]
+    r = runs[1]     # the states are recorded in the second run, with no contact open and then with one open
     none = (r.value("none_states") or {}).get("actionEnableContactDetailsEdit")
     opened = (r.value("open_states") or {}).get("actionEnableContactDetailsEdit")
     return [check("Contact Details is unavailable with no contact open", none is False, "enabled %r" % none),

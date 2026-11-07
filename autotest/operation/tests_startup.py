@@ -324,7 +324,8 @@ def _ss013_check(runs, home):
                   "no save failure in the log of run 2")]
 
 
-test("SS-013", "Start with a read-only data folder reports the error and loses no data", _ss013_runs, _ss013_check)
+# run as cmtest, not root: root ignores the read-only folder.  The runner works in /tmp, where cmtest can write.
+test("SS-013", "Start with a read-only data folder reports the error and loses no data", _ss013_runs, _ss013_check, user="cmtest")
 
 
 def _ss014_runs(home):

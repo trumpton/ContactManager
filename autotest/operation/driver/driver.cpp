@@ -216,6 +216,9 @@ int main(int argc, char *argv[])
     bool nextcheck = false ; // The question's checkbox ("Do this for all future matches") is ticked before the answer
     QString nextkey ;        // A key sent to the next yes/no question (Escape, Enter), set by an "answer" operation with a key
     bool holdDialogs = false ;   // while set, an ordinary dialog is left open for a "press" or "widgets" operation
+    // An action started by an operation (a press, a menu item, a shortcut) runs after the operation returns, so the next
+    // operation waits this long: the action, and any dialog it asks, is done by then
+    int settleMs = 0 ;
     QList<QDateTime> nextfroms ;   // The start each appointment form is given when it is shown, then OK is pressed
     QTimer *tick = new QTimer(&a) ;
     QObject::connect(tick, &QTimer::timeout, [&]() {
@@ -267,7 +270,9 @@ int main(int argc, char *argv[])
 
         // Held: every dialog but the main window and the sync progress window.  The key dialog at a start is answered before
         // the first operation runs, so only a key dialog that an operation opens is held.
-        if (holdDialogs && QString(m->metaObject()->className()) != "MainWindow" && m->objectName() != "GoogleUpdateDialog") return ;
+        // A date entry box with an answer waiting is answered even while held, so that an operation can use it
+        bool answerPending = qobject_cast<QInputDialog*>(m) && !dateAnswers.isEmpty() ;
+        if (holdDialogs && !answerPending && QString(m->metaObject()->className()) != "MainWindow" && m->objectName() != "GoogleUpdateDialog") return ;
 
         // A long sync keeps its progress dialog open for a long time, so only other dialogs can be stuck
         if (m->objectName() != "GoogleUpdateDialog" && QString(m->metaObject()->className()) != "MainWindow" && m == lastmodal) {
@@ -641,6 +646,10 @@ int main(int argc, char *argv[])
                 record(name + "_mode", QJsonValue((int)lv->verticalScrollMode())) ;
             }
 
+        } else if (kind == "settle") {
+            // The next operation runs after this many milliseconds, while the event loop runs (a dialog it opens is not blocked)
+            settleMs = op["ms"].toInt() ;
+
         } else if (kind == "wait") {
             // Lets the event loop run, so that timers fire
             QTest::qWait(op["ms"].toInt()) ;
@@ -903,10 +912,18 @@ int main(int argc, char *argv[])
             if (!origin.isNull()) {
                 w.calendar.selectAppointment(op.contains("occurrence") ? Calendar::occurrenceHint(origin.getField(Appointment::ID),
                     QDateTime::fromString(op["occurrence"].toString(), Qt::ISODate)) : origin.getField(Appointment::ID)) ;
-                w.editAppointment(origin, origin, QString(), false, op["occurrence"].toString()) ;
+                // Posted, as a menu item is: the form runs until it closes, and the operations after this one run meanwhile
+                // (a declined clash opens the form again, which a later operation closes)
+                Appointment copy = origin ;
+                QString occurrence = op["occurrence"].toString() ;
+                settleMs = 400 ;
+                QTimer::singleShot(0, &w, [&w, copy, occurrence, name]() mutable {
+                    w.editAppointment(copy, copy, QString(), false, occurrence) ;
+                    record(name + "_returned", QJsonValue(true)) ;     // written when the edit path has returned
+                    note("edit_ok " + name + " returned") ;
+                }) ;
             }
-            record(name + "_returned", true) ;
-            note("edit_ok " + name + " returned") ;
+            note("edit_ok " + name + " started") ;
 
         } else if (kind == "report_clashes") {
             // Runs the check the window does when it opens, on demand
@@ -1067,10 +1084,11 @@ int main(int argc, char *argv[])
             record(name + "_enabled", QJsonValue(enabled)) ;
             // press: the driver cannot send a shortcut through the window system, so it runs the action the shortcut is bound
             // to, as the shortcut would, when that action is enabled
+            // Posted, not called, as the menu operation does: an action that opens a dialog runs a nested event loop, and the
+            // next operation must start after this one returns, so it runs inside that loop.
             if (op["press"].toBool(false)) {
                 bool ran = bound && enabled ;
-                if (ran) bound->trigger() ;
-                QTest::qWait(30) ;
+                if (ran) { settleMs = 400 ; QTimer::singleShot(0, bound, [bound]() { bound->trigger() ; }) ; }
                 record(name + "_pressed", QJsonValue(ran)) ;
             }
 
@@ -1086,7 +1104,7 @@ int main(int argc, char *argv[])
                 record(name + "_checked", QJsonValue(a->isCheckable() ? a->isChecked() : false)) ;
                 // Posted, not called: a dialog the action opens runs a nested event loop, and the next operation is only
                 // scheduled after this one returns, so it must be posted here, before the dialog can block (the step below)
-                if (op["trigger"].toBool() && a->isEnabled()) QTimer::singleShot(0, a, [a]() { a->trigger() ; }) ;
+                if (op["trigger"].toBool() && a->isEnabled()) { settleMs = 400 ; QTimer::singleShot(0, a, [a]() { a->trigger() ; }) ; }
             }
 
         } else if (kind == "actions") {
@@ -1184,7 +1202,10 @@ int main(int argc, char *argv[])
             bool pressed = false ;
             for (QPushButton *b : top->findChildren<QPushButton*>()) {
                 if (b->isVisible() && b->text().replace("&", "") == op["button"].toString()) {
-                    b->click() ;
+                    // Clicked after this operation returns, so a dialog the click opens runs its own loop, and the next operation
+                    // runs inside it (the menu operation does the same)
+                    settleMs = 400 ;
+                    QTimer::singleShot(0, b, [b]() { b->click() ; }) ;
                     pressed = true ;
                     break ;
                 }
@@ -1410,7 +1431,8 @@ int main(int argc, char *argv[])
             note("unknown operation: " + kind) ;
         }
 
-        QTimer::singleShot(0, &a, step) ;
+        QTimer::singleShot(settleMs, &a, step) ;
+        settleMs = 0 ;
     } ;
     QTimer::singleShot(3000, &a, step) ;
 

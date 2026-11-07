@@ -27,7 +27,7 @@ def _dl001_build(home):
                       oc.set_op("typed4", "windowBefore", text="60"), oc.set_op("typed5", "windowAfter", text="61"),
                       oc.set_op("typed6", "showBirthdays", checked=True), oc.press_op("ok", "OK"),
                       oc.menu_op("setup3", "actionSetup"), oc.widgets_op("after_ok", _DL001_CONTROLS),
-                      oc.press_op("cancel3", "Cancel"), oc.hold_op(False), oc.dump_op()])]
+                      oc.keys_op("esc3", "Escape", target="window"), oc.hold_op(False), oc.dump_op()])]
 
 
 def _dl001_check(runs, home):
@@ -117,11 +117,11 @@ def _dl005_build(home):
     return [run_spec(oc.fixtures_ops()),
             run_spec([oc.hold_op(), oc.menu_op("setup", "actionSetup"), oc.set_op("short", "smsKeyExpiry", text="25/1/35"),
                       oc.press_op("ok", "OK"), oc.menu_op("setup2", "actionSetup"), oc.widgets_op("kept", ["smsKeyExpiry"]),
-                      oc.press_op("cancel2", "Cancel"),
+                      oc.keys_op("esc2", "Escape", target="window"),
                       oc.menu_op("setup3", "actionSetup"), oc.set_op("year", "smsKeyExpiry", text="2035"),
                       oc.press_op("ok3", "OK"), oc.wait_op(500), oc.widgets_op("warn_year", []), oc.press_op("warnok3", "OK"),
                       oc.wait_op(500), oc.press_op("cancel3", "Cancel"),
-                      oc.menu_op("setup4", "actionSetup"), oc.widgets_op("final", ["smsKeyExpiry"]), oc.press_op("cancel4", "Cancel"),
+                      oc.menu_op("setup4", "actionSetup"), oc.widgets_op("final", ["smsKeyExpiry"]), oc.keys_op("esc4", "Escape", target="window"),
                       oc.hold_op(False), oc.dump_op()])]
 
 
@@ -129,8 +129,8 @@ def _dl005_check(runs, home):
     r = runs[1]
     return [check("25/1/35 is accepted and kept as 25/01/2035", r.value("kept_smsKeyExpiry") == "25/01/2035",
                   "shown %r" % r.value("kept_smsKeyExpiry")),
-            check("2035 is refused with the expiry warning", "SMS API key expiry" in r.dialog_titles(),
-                  "dialogs: %s" % r.dialog_titles()),
+            check("2035 is refused with the expiry warning", r.value("warn_year_title") == "SMS API key expiry",
+                  "warning shown: %r" % r.value("warn_year_title")),
             check("and the refused value is not kept", r.value("final_smsKeyExpiry") == "25/01/2035",
                   "kept value %r" % r.value("final_smsKeyExpiry"))]
 
@@ -274,18 +274,21 @@ test("DL-010", "The duration arrows change To, and changing To changes the durat
 
 
 def _dl011_build(home):
-    # two appointments: A at 10:00, and B moved to 10:30, which clashes with A.  Declining the change keeps B where it was.
+    # two appointments: A at 10:00, and B moved to 10:30, which clashes with A.  Declining the change ("No") sends the form back;
+    # Escape then closes it, and nothing is saved.  The edit is started, and a settle lets the form, and the answer, run.
     return [run_spec(oc.fixtures_ops() + [oc.appt_op(1, "DL011 existing", oc.at(20, "10:00"), oc.at(20, "11:00")),
                                           oc.appt_op(1, "DL011 moved", oc.at(20, "13:00"), oc.at(20, "14:00")), oc.save_op()]),
-            run_spec([oc.hold_op(), {"op": "edit_ok", "name": "e", "summary": "DL011 moved",
-                                     "froms": [oc.at(20, "10:30")]},
-                      oc.answer_op("No"), oc.hold_op(False), oc.dump_op()])]
+            run_spec([oc.hold_op(), oc.answer_op("No"), {"op": "edit_ok", "name": "e", "summary": "DL011 moved",
+                                                         "froms": [oc.at(20, "10:30")]},
+                      oc.settle_op(2500), oc.keys_op("esc", "Escape", target="window"), oc.settle_op(400),
+                      oc.hold_op(False), oc.dump_op()])]
 
 
 def _dl011_check(runs, home):
     r = runs[1]
     moved = [x for x in r.appointments() if x.get("summary") == "DL011 moved"]
-    return [check("the clash is offered, and declining saves nothing (the time is unchanged)",
+    return [check("the clash is offered", r.logged('answered "No": Appointment Clash'), "no clash question in the log"),
+            check("declining saves nothing (the time is unchanged)",
                   len(moved) == 1 and moved[0].get("from") == oc.at(20, "13:00"), "found %s" % moved)]
 
 
@@ -535,8 +538,8 @@ def _dl024_build(home):
 
 def _dl024_check(runs, home):
     r = runs[1]
-    opened = any("manual" in str(w).lower() for w in (r.value("open_windows") or []))
-    closed = not any("manual" in str(w).lower() for w in (r.value("closed_windows") or []))
+    opened = any("help" in str(w).lower() or "manual" in str(w).lower() for w in (r.value("open_windows") or []))
+    closed = not any("help" in str(w).lower() or "manual" in str(w).lower() for w in (r.value("closed_windows") or []))
     first, second = r.value("first_position"), r.value("second_position")
     return [check("the manual opens", opened, "windows: %s" % (r.value("open_windows"),)),
             check("Ctrl+F finds the first 'Find' in the manual", "find" in str(r.value("first_line") or "").lower()

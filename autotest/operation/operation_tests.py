@@ -19,6 +19,8 @@ import argparse
 import json
 import os
 import shutil
+import subprocess
+import tempfile
 import sys
 import time
 
@@ -59,6 +61,36 @@ def execute(driver, home, base, specs):
     return runs
 
 
+def as_user_work(code, user):
+    """A work folder in /tmp, owned by the user: the test's run folder and its home folder."""
+    work = tempfile.mkdtemp(prefix="cm-op-%s-" % code.lower(), dir="/tmp")
+    os.chmod(work, 0o755)
+    base = os.path.join(work, code)
+    os.makedirs(base)
+    home = oc.make_home(os.path.join(base, "home"))
+    subprocess.run(["chown", "-R", user, work], check=True)
+    return work, base, home
+
+
+def as_user_driver(driver, user, work):
+    """A script that runs the driver as the user, keeping the environment (the home folder is the test's)."""
+    script = os.path.join(work, "driver-as-%s.sh" % user)
+    with open(script, "w", encoding="utf-8") as f:
+        f.write('#!/bin/sh\nexec runuser -m -u %s -- "%s" "$@"\n' % (user, driver))
+    os.chmod(script, 0o755)
+    return script
+
+
+def clear_all_shared_memory():
+    """Removes every System V shared-memory segment (none is in use between the runs, which are one at a time)."""
+    subprocess.run("for id in $(ipcs -m | awk 'NR>3 && $2 ~ /^[0-9]+$/ {print $2}'); do ipcrm -m $id; done", shell=True)
+
+
+def clear_user_shared_memory(user):
+    """The program's encryption key is held in shared memory owned by the user who ran it; it is removed after that run."""
+    subprocess.run("for id in $(ipcs -m | awk -v u=%s '$3==u {print $2}'); do ipcrm -m $id; done" % user, shell=True)
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description="Operation tests (area 3): SS, MF and DL.")
     p.add_argument("--list", action="store_true", help="list the tests and exit")
@@ -89,16 +121,35 @@ def main(argv=None):
         base = os.path.join(out, t["id"])
         shutil.rmtree(base, ignore_errors=True)
         os.makedirs(base)
-        home = oc.make_home(os.path.join(base, "home"))
+        work = None
+        driver = args.driver
+        if t.get("user"):
+            # A test that runs as another user works in /tmp, where that user can write; its results are copied back afterwards
+            clear_all_shared_memory()     # a segment left by another user blocks this one: none is in use, the runs are one at a time
+            work, base_run, home = as_user_work(t["id"], t["user"])
+            driver = as_user_driver(args.driver, t["user"], work)
+        else:
+            base_run = base
+            home = oc.make_home(os.path.join(base, "home"))
         if t["blocked"]:
             checks = [oc.blocked(t["id"], t["blocked"])]
         else:
+            # the run folders are made by this process (root), so they are made writable for the other user while the test runs
+            old_umask = os.umask(0) if work else None
             try:
                 specs = t["build"](home)
-                runs = execute(args.driver, home, base, specs)
+                runs = execute(driver, home, base_run, specs)
                 checks = t["check"](runs, home)
             except Exception as e:                       # noqa: BLE001  (reported as a failed check, not hidden)
                 checks = [oc.Check(False, "the test raised %s: %s" % (type(e).__name__, e))]
+            finally:
+                if old_umask is not None:
+                    os.umask(old_umask)
+        if work:
+            shutil.rmtree(base, ignore_errors=True)
+            shutil.copytree(base_run, base)
+            clear_user_shared_memory(t["user"])
+            shutil.rmtree(work, ignore_errors=True)
         status = oc.status_of(checks)
         detail = "; ".join(c.detail for c in checks)
         summary.append({"id": t["id"], "title": t["title"], "status": status,
