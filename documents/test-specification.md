@@ -558,7 +558,7 @@ Each menu item is tested by choosing it from the menu, and by its key where it h
 | MF-040 | Transaction Income (Ctrl++) adds an income entry to the contact's log | Press; enter an amount. Expect the entry in the log. | Automated |
 | MF-041 | Transaction Expense (Ctrl+-) adds an expense entry to the contact's log | As MF-040, as an expense. | Automated |
 | MF-042 | Transaction Report produces the year's report | Choose; enter the year. Expect the report with the entries. Not built yet: the handler is a TODO (ticket #124). | Automated |
-| MF-043 | Manual (F1) opens the manual, and F3 finds the next match | Press F1; search. Expect the manual, and the match. | Automated |
+| MF-043 | Manual (F1) opens the manual, and F3 finds the next match | Press F1; Ctrl+F, Find; then F3. Expect the manual, the first match, and the next match. | Automated |
 | MF-044 | About shows the program's name and version | Choose it. Expect name and version. | Automated |
 | MF-045 | Typing a digit in the calendar opens the date box, and Escape closes it without moving | Press 2; Escape. Expect the list unchanged. | Automated |
 | MF-046 | W and WW move the list a week and two weeks ahead, and T starts again from today | Press W, WW, T. Expect the moves. | Automated |
@@ -576,10 +576,10 @@ Each menu item is tested by choosing it from the menu, and by its key where it h
 |---|---|---|---|
 | DL-001 | Setup saves each control on OK and discards the changes on Cancel | Change each control; Cancel; reopen; check. Then change and OK; check. | Automated |
 | DL-002 | Setup's Identify Me choice is the contact Goto Me opens | Choose a contact; OK; press Ctrl+Shift+O. Expect that contact. | Automated |
-| DL-003 | Setup's calendar and contacts masters are saved independently | Set calendar to G and contacts to CM; OK; reopen. Expect both kept. | Automated |
+| DL-003 | Setup has one master for calendar and contacts, and it is kept | Choose Google as the master; OK; reopen. Expect Google kept, Contact Manager not chosen, and the calendar and contacts boxes as sync choices under it. | Automated |
 | DL-004 | Setup's window days accept whole numbers and refuse text | Enter 30, then text. Expect 30 kept, and the text refused. | Automated |
 | DL-005 | Setup's SMS key expiry accepts day/month/year and refuses other text | Enter 25/01/2035 and 25/1/35; then 2035. Expect the first two accepted and the last refused. | Automated |
-| DL-007 | Setup's Google Account Change shows the sign-in code, and Reset removes the account | Change; read the code; cancel. Reset. Expect the account removed. | Automated |
+| DL-007 | Setup's Reset clears the last sync dates and keeps the Google account | Set both last sync dates; Reset. Expect both dates cleared (shown as the never-synced date) and the Google account kept. | Automated |
 | DL-008 | The appointment form has For, Summary, From, To and Description, and Enter saves | Fill each field; Enter. Expect the entry saved with each value. | Automated |
 | DL-009 | Escape in the appointment form cancels with no change | Change a field; Escape. Expect no change. | Automated |
 | DL-010 | The duration arrows change To, and changing To changes the duration | Use up and down; then change To. Expect both kept in step. | Automated |
@@ -596,7 +596,7 @@ Each menu item is tested by choosing it from the menu, and by its key where it h
 | DL-021 | The transaction form checks the amount, and records income and expense | Enter text; then a number. Expect text refused, and the entry recorded. | Automated |
 | DL-022 | The text form sends through the stub and records the send in history; a missing key gives a message | Send with the key set; then with it removed. Expect a send and history, then a message. | Automated |
 | DL-023 | The Logs window updates while open, and closing it returns focus to the program | Open; add an entry; close. Expect the entry and the focus back. | Automated |
-| DL-024 | The manual's Find and F3 work, and Escape closes it | Search; press Escape. Expect the search and the close. | Automated |
+| DL-024 | The manual's Find and F3 work when the help window is open, and Escape closes it | Open the manual; Ctrl+F, Find; then F3. Expect the cursor on the first match, then on the next. Press Escape. Expect the manual closed. | Automated |
 | DL-025 | The Set Encryption Key dialog refuses a mismatched key and a mismatched password | Enter two different keys; then two different passwords. Expect each refused with its message. | Automated |
 | DL-026 | Change Password asks for the old password first, and refuses a wrong one | Enter a wrong old password. Expect refused. | Automated |
 | DL-027 | The typed-date box moves the list for valid dates, and beeps and closes for text | Type 2/12/26; Enter. Then type "xyz". Expect the move, then the beep and close. | Automated |

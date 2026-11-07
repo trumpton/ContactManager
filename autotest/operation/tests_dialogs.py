@@ -69,6 +69,7 @@ test("DL-002", "Setup's Identify Me choice is the contact Goto Me opens", _dl002
 
 
 def _dl003_build(home):
+    # Setup has one master for calendar and contacts (Database Management), so Google is chosen once and both are kept with it
     return [run_spec(oc.fixtures_ops()),
             run_spec([oc.hold_op(), oc.menu_op("setup", "actionSetup"), oc.set_op("g", "conflictGoogle", checked=True),
                       oc.press_op("ok", "OK"), oc.menu_op("setup2", "actionSetup"),
@@ -81,13 +82,16 @@ def _dl003_check(runs, home):
     r = runs[1]
     return [check("the master choice is kept after OK", r.value("again_conflictGoogle") == "true",
                   "conflictGoogle %r" % r.value("again_conflictGoogle")),
-            check("Setup has a calendar master and a contacts master, set separately",
-                  r.value("again_calendarMaster") is not None,
-                  "Setup has one master choice (Database Management: Contact Manager or Google), and its calendar and "
-                  "contacts boxes are sync selections, not masters")]
+            check("there is one master: Contact Manager is not chosen as well",
+                  r.value("again_conflictContactManager") == "false",
+                  "conflictContactManager %r" % r.value("again_conflictContactManager")),
+            check("the calendar and contacts boxes are there, as sync choices under that one master",
+                  r.value("again_checkBox_syncCalendar") not in (None, "MISSING")
+                  and r.value("again_checkBox_syncContacts") not in (None, "MISSING"),
+                  "calendar %r, contacts %r" % (r.value("again_checkBox_syncCalendar"), r.value("again_checkBox_syncContacts")))]
 
 
-test("DL-003", "Setup's calendar and contacts masters are saved independently", _dl003_build, _dl003_check)
+test("DL-003", "Setup has one master for calendar and contacts, and it is kept", _dl003_build, _dl003_check)
 
 
 def _dl004_build(home):
@@ -131,22 +135,40 @@ def _dl005_check(runs, home):
                   "kept value %r" % r.value("final_smsKeyExpiry"))]
 
 
+_DL007_SEEDED_SYNC = "2026-01-02T03:04:05Z"
+_DL007_NEVER_SYNCED = "1970-01-01T00:00:00Z"     # what Reset shows for a date it has cleared (the program's never-synced value)
+
+
 def _dl007_build(home):
-    return [run_spec(oc.fixtures_ops() + [oc.setting_op("googleusername", "bench.account@example.invalid")]),
-            run_spec([oc.hold_op(), oc.menu_op("setup", "actionSetup"), oc.widgets_op("before", ["googleUsername"]),
-                      oc.press_op("reset", "Reset"), oc.widgets_op("after", ["googleUsername"]),
+    # Both last sync dates are set, then Reset is pressed: the dates are cleared and the Google account is kept
+    seeded = oc.fixtures_ops() + [oc.setting_op("googleusername", "bench.account@example.invalid"),
+                                  oc.setting_op("lastgooglecontactsyncdate", _DL007_SEEDED_SYNC),
+                                  oc.setting_op("lastgooglecalendarsyncdate", _DL007_SEEDED_SYNC)]
+    return [run_spec(seeded),
+            run_spec([oc.hold_op(), oc.menu_op("setup", "actionSetup"),
+                      oc.widgets_op("before", ["googleUsername", "lastContactSync", "lastCalendarSync"]),
+                      oc.press_op("reset", "Reset"),
+                      oc.widgets_op("after", ["googleUsername", "lastContactSync", "lastCalendarSync"]),
                       oc.press_op("cancel", "Cancel"), oc.hold_op(False), oc.dump_op()])]
 
 
 def _dl007_check(runs, home):
     r = runs[1]
-    return [check("Reset removes the account", r.value("after_googleUsername") in ("", "MISSING", None)
-                  and r.value("before_googleUsername") not in ("", None),
-                  "before %r, after %r" % (r.value("before_googleUsername"), r.value("after_googleUsername"))),
-            blocked("the sign-in code of Change", "needs the device sign-in with Google, which the operation tests do not reach")]
+    account = r.value("before_googleUsername")
+    return [check("the last contact sync date is shown as set before Reset", r.value("before_lastContactSync") == _DL007_SEEDED_SYNC,
+                  "before %r" % r.value("before_lastContactSync")),
+            check("Reset clears the last contact sync date", r.value("after_lastContactSync") == _DL007_NEVER_SYNCED,
+                  "after %r" % r.value("after_lastContactSync")),
+            check("the last calendar sync date is shown as set before Reset", r.value("before_lastCalendarSync") == _DL007_SEEDED_SYNC,
+                  "before %r" % r.value("before_lastCalendarSync")),
+            check("Reset clears the last calendar sync date", r.value("after_lastCalendarSync") == _DL007_NEVER_SYNCED,
+                  "after %r" % r.value("after_lastCalendarSync")),
+            check("Reset keeps the Google account", account not in (None, "", "MISSING")
+                  and r.value("after_googleUsername") == account,
+                  "before %r, after %r" % (account, r.value("after_googleUsername")))]
 
 
-test("DL-007", "Setup's Google Account Change shows the sign-in code, and Reset removes the account", _dl007_build, _dl007_check)
+test("DL-007", "Setup's Reset clears the last sync dates and keeps the Google account", _dl007_build, _dl007_check)
 
 
 # ------------------------------------------------------------------------------------------------ DL-008 to DL-013: the form
@@ -478,17 +500,23 @@ test("DL-023", "The Logs window updates while open, and closing it returns focus
 
 def _dl024_build(home):
     return [run_spec(oc.fixtures_ops()),
-            run_spec([oc.menu_op("man", "actionManual"), oc.windows_op("open"), oc.keys_op("esc", "Escape"),
-                      oc.windows_op("closed"), oc.dump_op()])]
+            run_spec([oc.hold_op(), oc.menu_op("man", "actionManual"), oc.windows_op("open")] + oc.manual_search_ops() +
+                     [oc.keys_op("esc", "Escape", target="window"), oc.windows_op("closed"), oc.hold_op(False), oc.dump_op()])]
 
 
 def _dl024_check(runs, home):
     r = runs[1]
     opened = any("manual" in str(w).lower() for w in (r.value("open_windows") or []))
     closed = not any("manual" in str(w).lower() for w in (r.value("closed_windows") or []))
+    first, second = r.value("first_position"), r.value("second_position")
     return [check("the manual opens", opened, "windows: %s" % (r.value("open_windows"),)),
-            check("Escape closes it", closed, "windows after: %s" % (r.value("closed_windows"),)),
-            blocked("the Find and F3 in the manual", "its search is not checked yet (see MF-043)")]
+            check("Ctrl+F finds the first 'Find' in the manual", "find" in str(r.value("first_line") or "").lower()
+                  and r.value("first_found") is True, "cursor line %r" % (r.value("first_line"),)),
+            check("F3 moves to the next match", isinstance(first, int) and isinstance(second, int) and second > first,
+                  "cursor at %r, then %r" % (first, second)),
+            check("the next match is on a line with 'Find'", "find" in str(r.value("second_line") or "").lower(),
+                  "cursor line %r" % (r.value("second_line"),)),
+            check("Escape closes it", closed, "windows after: %s" % (r.value("closed_windows"),))]
 
 
 test("DL-024", "The manual's Find and F3 work, and Escape closes it", _dl024_build, _dl024_check)

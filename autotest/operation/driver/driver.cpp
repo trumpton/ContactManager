@@ -39,6 +39,8 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QPlainTextEdit>
+#include <QTextCursor>
+#include <QTextBlock>
 #include <QLineEdit>
 #include <QDialogButtonBox>
 #include <QFile>
@@ -1096,6 +1098,24 @@ int main(int argc, char *argv[])
                 states.insert(v.toString(), a ? QJsonValue(a->isEnabled()) : QJsonValue(QString("missing"))) ;
             }
             record(name + "_states", states) ;
+
+        } else if (kind == "textcursor") {
+            // The cursor of a text box in the top window (or a visible window): its position, the text of its line, and any
+            // selection.  A search moves the cursor to the match, so the line shows where it landed.
+            QString name = op["name"].toString() ;
+            QWidget *top = QApplication::activeModalWidget() ? QApplication::activeModalWidget() : (QWidget*)&w ;
+            QWidget *c = top->findChild<QWidget*>(op["object"].toString(), Qt::FindChildrenRecursively) ;
+            if (!c) {
+                for (QWidget *tl : QApplication::topLevelWidgets())
+                    if (!c && tl->isVisible()) c = tl->findChild<QWidget*>(op["object"].toString(), Qt::FindChildrenRecursively) ;
+            }
+            QTextCursor cursor ;
+            if (auto *pte = qobject_cast<QPlainTextEdit*>(c)) cursor = pte->textCursor() ;
+            else if (auto *te = qobject_cast<QTextEdit*>(c)) cursor = te->textCursor() ;
+            record(name + "_found", QJsonValue(!cursor.isNull())) ;
+            record(name + "_position", QJsonValue(cursor.isNull() ? -1 : cursor.position())) ;
+            record(name + "_line", QJsonValue(cursor.isNull() ? QString() : cursor.block().text())) ;
+            record(name + "_selected", QJsonValue(cursor.isNull() ? QString() : cursor.selectedText())) ;
 
         } else if (kind == "windows") {
             // The titles of the visible windows other than the main window, for checks that a dialog or window is open

@@ -203,7 +203,7 @@ SS-004,2026-11-06,9283d87,PASS,~30.0 s?,,
 SS-005,2026-11-07,8c0d098,PASS,9.000 s,,The clash dialog's title was not read from driver lines that start with a time; fixed in the bench.
 SS-006,2026-11-06,9283d87,PASS,~30.0 s?,,
 SS-007,2026-11-07,8c0d098,PASS,10.0 s,,The program's log was not saved into the run folder; dumplog now writes there (it had written to the repository root).
-SS-008,2026-11-07,8c0d098,FAIL,,"Program or spec: the backup is made by a timer about 30 minutes after start, then hourly (mainwindow.cpp tick), not at start-up. These runs last seconds, so no backup is made on the first start of the day. Decide whether the spec requires a backup at start-up.",
+SS-008,2026-11-07,8c0d098,FAIL,,"Program: no backup zip was written. Likely causes: the backup folder is never created, and zip runs in a QProcess that is deleted straight away (which stops it). mainwindow_timer_backup.cpp now makes the folder and waits for zip; not yet re-run, so the cause is not confirmed.",
 SS-009,2026-11-06,9283d87,PASS,~30.0 s?,,
 SS-010,2026-11-06,9283d87,PASS,~30.0 s?,,
 SS-011,2026-11-07,8c0d098,FAIL,,"Program: the unreadable contact file loads as an empty entry marked deleted, and nothing is reported to the user.","The five live contacts are counted, and the load lines are not taken as a report."
@@ -253,7 +253,7 @@ MF-039,2026-11-06,9283d87,PASS,~30.0 s?,,
 MF-040,2026-11-06,9283d87,PASS,~30.0 s?,,
 MF-041,2026-11-06,974607e,FAIL,,Needs checking: the expense of 7.25 is not in the contact's data folder.,
 MF-042,2026-11-06,c16a8f6,FAIL,,"Program: Transaction Report is not implemented. Its handler is a TODO (mainwindow_menu_transaction.cpp), so no report is written and no year is asked. Ticket #124 (https://github.com/trumpton/ContactManager/issues/124).",
-MF-043,2026-11-06,974607e,FAIL,,,"The manual window opens; its search (F3) is not checked yet, so the test cannot pass."
+MF-043,2026-11-06,974607e,FAIL,,,
 MF-044,2026-11-06,9283d87,PASS,~30.0 s?,,
 MF-045,2026-11-06,b09408e,FAIL,,,"Bench: the calendar row is not read after Escape, so the list cannot be checked."
 MF-046,2026-11-06,9283d87,PASS,~30.0 s?,,
@@ -266,10 +266,10 @@ MF-052,2026-11-06,9283d87,PASS,~30.0 s?,,
 MF-053,2026-11-06,974607e,FAIL,,"Needs checking: Contact Details (Alt+D) is still disabled after Alt+E, D with a contact open.",
 DL-001,2026-11-06,c16a8f6,PASS,10.0 s,,Covers the window days and the birthdays box only; the other Setup controls are not read yet.
 DL-002,2026-11-06,c16a8f6,PASS,10.0 s,,"As MF-022: Ctrl+Shift+O is checked as bound to Goto Me, and Goto Me runs from its menu item."
-DL-003,2026-11-06,c16a8f6,FAIL,,,Spec mismatch: the spec asks for separate calendar and contacts masters. Setup has one master choice (Database Management: Contact Manager or Google). Decision needed.
+DL-003,2026-11-06,c16a8f6,FAIL,,,
 DL-004,2026-11-06,9283d87,PASS,~30.0 s?,,
 DL-005,2026-11-06,974607e,FAIL,,Needs checking: the expiry warning appears for 25/1/35 and for 2035; whether those should be accepted needs the spec.,
-DL-007,2026-11-06,974607e,FAIL,,Needs checking: Reset does not remove the Google account here.,"The sign-in code of Change is not checked: it needs the device sign-in with Google, which the operation tests do not reach."
+DL-007,2026-11-06,974607e,FAIL,,,
 DL-008,2026-11-06,c16a8f6,PASS,10.0 s,,"The For, From and To fields are read before Enter; the date format is checked by DL-010."
 DL-009,2026-11-06,9283d87,PASS,~30.0 s?,,
 DL-010,2026-11-06,c16a8f6,PASS,10.0 s,"Needs checking: Up on To's hour, from 23:00 to 22:00, makes the duration zero, which the program shows as 'reminder'.","The duration arrow is the X field of the start, and To's hour is the hour field, both set by cursor position in the text."
@@ -286,7 +286,7 @@ DL-020,2026-11-06,c16a8f6,PASS,13.0 s,,Enter is checked with the first result.
 DL-021,2026-11-06,974607e,FAIL,,Needs checking: a transaction of 12.50 is not in the data.,
 DL-022,2026-11-06,974607e,PASS,~30.0 s?,,"The send with the key set needs the text service, which the bench does not stand in for here."
 DL-023,2026-11-06,974607e,PASS,~30.0 s?,,"The log window is not modal, so the driver cannot press its Close button; the focus check needs the driver's focus record."
-DL-024,2026-11-06,974607e,FAIL,,,"The manual opens, but its Find and F3 are not checked yet (see MF-043)."
+DL-024,2026-11-06,974607e,FAIL,,,
 DL-025,2026-11-06,9283d87,PASS,~30.0 s?,,
 DL-026,2026-11-06,9283d87,PASS,~30.0 s?,,
 DL-027,2026-11-06,c16a8f6,PASS,10.0 s,,"Blocked: a valid date moving the list (the calendar rows show the same first row for every day), and the beep (heard by ear, not by the driver)."

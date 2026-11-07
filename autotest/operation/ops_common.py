@@ -294,9 +294,25 @@ def actions_op(name, actions):
     return {"op": "actions", "name": name, "actions": list(actions)}
 
 
-def keys_op(name, sequence):
-    """Keys typed as a user types them (to the window with the focus).  Records the focus afterwards."""
-    return {"op": "keys", "name": name, "sequence": sequence}
+def keys_op(name, sequence, target=None):
+    """Keys typed as a user types them (to the window with the focus).  Records the focus afterwards.
+    target="window" sends them to the open dialog itself, not to the control that has the focus."""
+    op = {"op": "keys", "name": name, "sequence": sequence}
+    if target:
+        op["target"] = target
+    return op
+
+
+def textcursor_op(name, obj):
+    """The cursor of a text box: its position, the text of its line, and any selection (recorded as name_position, _line, _selected)."""
+    return {"op": "textcursor", "name": name, "object": obj}
+
+
+def manual_search_ops():
+    """In the open manual: Ctrl+F with 'Find' (the Find box is answered by the driver, as a date entry is), the cursor read,
+    then F3 for the next match and the cursor read again."""
+    return [dates_op(["Find"]), keys_op("find", "Ctrl+F", target="window"), textcursor_op("first", "helpText"),
+            keys_op("f3", "F3", target="window"), textcursor_op("second", "helpText")]
 
 
 def shortcut_op(name, sequence, press=False):

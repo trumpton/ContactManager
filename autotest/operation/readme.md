@@ -75,9 +75,10 @@ The driver is the Google bench's, with four operations added and two records ext
 | MF-038 | Send Email Contact starts a mail command. The bench does not yet point it at a stand-in that records its arguments. |
 | DL-010 | The duration arrows and To are dates in the program's own format, which the bench does not set. |
 
-Other checks are blocked inside a test that otherwise runs: the Google sign-in code (DL-007), the matches and Enter in
-Global Find (MF-015) and Advanced Find (DL-020), the report's entries (MF-042), the beep (MF-049, DL-027), the manual's Find
-(MF-043, DL-024), the log window's focus (DL-023), the send with a key set (DL-022), and the end date of a repeat (DL-013).
+Other checks are blocked inside a test that otherwise runs: the matches and Enter in Global Find (MF-015) and Advanced Find
+(DL-020), the report's entries (MF-042), the beep (MF-049, DL-027), the log window's focus (DL-023), the send with a key set
+(DL-022), and the end date of a repeat (DL-013). The manual's Find and F3 (MF-043, DL-024) are checked through the cursor
+position of the manual's text, read by the `textcursor` operation.
 
 ## Expected failures and things to confirm
 

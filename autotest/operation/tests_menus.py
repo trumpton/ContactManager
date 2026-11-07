@@ -688,15 +688,19 @@ test("MF-042", "Transaction Report produces the year's report", _mf042_build, _m
 
 def _mf043_build(home):
     return [run_spec(oc.fixtures_ops()),
-            run_spec([oc.menu_op("m", "actionManual"), oc.windows_op("open"), oc.keys_op("esc", "Escape"),
-                      oc.windows_op("closed"), oc.dump_op()])]
+            run_spec([oc.hold_op(), oc.menu_op("m", "actionManual"), oc.windows_op("open")] + oc.manual_search_ops() +
+                     [oc.keys_op("esc", "Escape", target="window"), oc.windows_op("closed"), oc.hold_op(False), oc.dump_op()])]
 
 
 def _mf043_check(runs, home):
     r = runs[1]
     opened = any("manual" in str(w).lower() for w in (r.value("open_windows") or []))
+    first, second = r.value("first_position"), r.value("second_position")
     return [check("Manual opens", opened, "windows: %s" % (r.value("open_windows"),)),
-            blocked("F3 finds the next match in the manual", "the manual's search is not checked yet")]
+            check("Ctrl+F finds the first match in the manual", r.value("first_found") is True
+                  and "find" in str(r.value("first_line") or "").lower(), "cursor line %r" % (r.value("first_line"),)),
+            check("F3 finds the next match", isinstance(first, int) and isinstance(second, int) and second > first,
+                  "cursor at %r, then %r" % (first, second))]
 
 
 test("MF-043", "Manual (F1) opens the manual, and F3 finds the next match", _mf043_build, _mf043_check)
