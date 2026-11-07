@@ -1051,11 +1051,20 @@ int main(int argc, char *argv[])
             QKeySequence want(op["sequence"].toString()) ;
             QString found ;
             bool enabled = false ;
+            QAction *bound = nullptr ;
             for (QAction *a : w.findChildren<QAction*>()) {
-                if (!a->shortcut().isEmpty() && a->shortcut() == want) { found = a->objectName() ; enabled = a->isEnabled() ; break ; }
+                if (!a->shortcut().isEmpty() && a->shortcut() == want) { found = a->objectName() ; enabled = a->isEnabled() ; bound = a ; break ; }
             }
             record(name + "_action", QJsonValue(found)) ;
             record(name + "_enabled", QJsonValue(enabled)) ;
+            // press: the driver cannot send a shortcut through the window system, so it runs the action the shortcut is bound
+            // to, as the shortcut would, when that action is enabled
+            if (op["press"].toBool(false)) {
+                bool ran = bound && enabled ;
+                if (ran) bound->trigger() ;
+                QTest::qWait(30) ;
+                record(name + "_pressed", QJsonValue(ran)) ;
+            }
 
         } else if (kind == "menu") {
             // An action by its object name: records its text and whether it is enabled, and triggers it when asked

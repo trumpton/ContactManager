@@ -299,8 +299,12 @@ def keys_op(name, sequence):
     return {"op": "keys", "name": name, "sequence": sequence}
 
 
-def shortcut_op(name, sequence):
-    return {"op": "shortcut", "name": name, "sequence": sequence}
+def shortcut_op(name, sequence, press=False):
+    """The action the shortcut is bound to, and whether it is enabled.  With press, the action runs, as the shortcut would."""
+    op = {"op": "shortcut", "name": name, "sequence": sequence}
+    if press:
+        op["press"] = True
+    return op
 
 
 def key_op(name, key, target="list"):

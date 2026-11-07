@@ -77,7 +77,7 @@ test("MF-001", "File > Open lists the contacts, skips by surname letter, and has
 def _mf002_build(home):
     return [run_spec(oc.fixtures_ops()),
             run_spec([oc.open_op(1, "o"), oc.form_set_op({"email": "saved.oneil@sgc.contacmanagertest"}),
-                      oc.shortcut_op("s", "Ctrl+S"), oc.dump_op()])]
+                      oc.shortcut_op("s", "Ctrl+S", press=True), oc.dump_op()])]
 
 
 def _mf002_check(runs, home):
@@ -255,9 +255,9 @@ test("MF-013", "The File menu has no Test Function item", _mf013_build, _mf013_c
 
 def _mf014_build(home):
     # three appointments with the same word, in the calendar; Find Here, then Find Next twice
-    ops = oc.fixtures_ops() + [oc.appt_op(1, "MF014 searchword one", oc.at(20, "10:00"), oc.at(20, "11:00")),
-                               oc.appt_op(2, "MF014 searchword two", oc.at(21, "10:00"), oc.at(21, "11:00")),
-                               oc.appt_op(3, "MF014 searchword three", oc.at(22, "10:00"), oc.at(22, "11:00")), oc.save_op()]
+    ops = oc.fixtures_ops() + [oc.appt_op(1, "MF014 searchword one", oc.at(1, "10:00"), oc.at(1, "11:00")),
+                               oc.appt_op(2, "MF014 searchword two", oc.at(2, "10:00"), oc.at(2, "11:00")),
+                               oc.appt_op(3, "MF014 searchword three", oc.at(3, "10:00"), oc.at(3, "11:00")), oc.save_op()]
     return [run_spec(ops),
             run_spec([oc.calendar_rows_op("rows"), oc.findnext_op("f1", "searchword"), oc.findnext_op("f2", "searchword"),
                       oc.findnext_op("f3", "searchword"), oc.dump_op()])]
@@ -363,8 +363,8 @@ def _mf021_build(home):
     ops.append(oc.hide_contact_op(1))
     ops.append(oc.save_op())
     return [run_spec(ops),
-            run_spec([oc.hold_op(), oc.menu_op("m", "actionSearch_HiddenEmailDuplicates"), oc.widgets_op("list", rows=True),
-                      oc.hold_op(False), oc.dump_op()])]
+            run_spec([oc.menu_op("m", "actionSearch_HiddenEmailDuplicates"), oc.wait_op(1500),
+                      oc.widgets_op("list", rows=True), oc.dump_op()])]
 
 
 def _mf021_check(runs, home):
@@ -424,8 +424,8 @@ test("MF-023", "Goto Journal (Ctrl+J) opens the journal in Easy Notepad, and a m
 
 def _mf024_build(home):
     return [run_spec(oc.fixtures_ops() + [oc.notes_op(1, "MF024 contact list item", "")]),
-            run_spec([oc.open_op(1, "o"), oc.hold_op(), oc.shortcut_op("l", "Ctrl+L"), oc.widgets_op("contact", ["editToDo"]),
-                      oc.shortcut_op("my", "Ctrl+Shift+L"), oc.widgets_op("mine", ["editToDo"]), oc.hold_op(False), oc.dump_op()])]
+            run_spec([oc.open_op(1, "o"), oc.hold_op(), oc.shortcut_op("l", "Ctrl+L", press=True), oc.widgets_op("contact", ["editToDo"]),
+                      oc.shortcut_op("my", "Ctrl+Shift+L", press=True), oc.widgets_op("mine", ["editToDo"]), oc.hold_op(False), oc.dump_op()])]
 
 
 def _mf024_check(runs, home):
@@ -474,8 +474,11 @@ test("MF-026", "Goto Date (Ctrl+D) opens the date box", _mf026_build, _mf026_che
 
 def _mf027_build(home):
     return [run_spec(oc.fixtures_ops()),
-            run_spec([oc.open_op(1, "o"), oc.keys_op("n", "Alt+N"), oc.widgets_op("n", ["editFirstName"]),
-                      oc.keys_op("m", "Alt+M"), oc.keys_op("a", "Alt+A"), oc.keys_op("p", "Alt+P"), oc.keys_op("b", "Alt+B"),
+            run_spec([oc.open_op(1, "o"), oc.shortcut_op("n", "Alt+N", press=True), {"op": "focus", "name": "n"},
+                      oc.shortcut_op("m", "Alt+M", press=True), {"op": "focus", "name": "m"},
+                      oc.shortcut_op("a", "Alt+A", press=True), {"op": "focus", "name": "a"},
+                      oc.shortcut_op("p", "Alt+P", press=True), {"op": "focus", "name": "p"},
+                      oc.shortcut_op("b", "Alt+B", press=True), {"op": "focus", "name": "b"},
                       oc.dump_op()])]
 
 
@@ -497,7 +500,7 @@ def _appt_form_test(code, title, shortcut, want_contact, check_text):
         return [run_spec(oc.fixtures_ops() + [oc.appt_op(1, "%s existing" % code, oc.at(20, "09:00"), oc.at(20, "10:00")),
                                                oc.save_op()]),
                 run_spec([oc.open_op(1, "o"), oc.calendar_click_op("c", "%s existing" % code, oc.surname(1)),
-                          oc.hold_op(), oc.shortcut_op("s", shortcut), oc.widgets_op("form", ["contactName", "editSummary"]),
+                          oc.hold_op(), oc.shortcut_op("s", shortcut, press=True), oc.widgets_op("form", ["contactName", "editSummary"]),
                           oc.press_op("cancel", "Cancel"), oc.hold_op(False), oc.dump_op()])]
 
     def checks(runs, home):
@@ -522,7 +525,7 @@ def _mf032_build(home):
     return [run_spec(oc.fixtures_ops() + [oc.appt_op(1, "MF032 update me", oc.at(20, "09:00"), oc.at(20, "10:00")),
                                           oc.save_op()]),
             run_spec([oc.open_op(1, "o"), oc.calendar_click_op("c", "MF032 update me", oc.surname(1)),
-                      oc.hold_op(), oc.shortcut_op("u", "Ctrl+U"), oc.widgets_op("form", ["editSummary"]),
+                      oc.hold_op(), oc.shortcut_op("u", "Ctrl+U", press=True), oc.widgets_op("form", ["editSummary"]),
                       oc.press_op("cancel", "Cancel"), oc.hold_op(False), oc.dump_op()])]
 
 
@@ -537,8 +540,8 @@ test("MF-032", "Update Appointment (Ctrl+U) opens the selected entry's form", _m
 def _mf033_build(home):
     return [run_spec(oc.fixtures_ops() + [oc.appt_op(1, "MF033 remove", oc.at(20, "09:00"), oc.at(20, "10:00")), oc.save_op()]),
             run_spec([oc.calendar_click_op("c", "MF033 remove", oc.surname(1)), oc.answer_op("No"),
-                      oc.shortcut_op("r", "Ctrl+R"), oc.dump_op("declined.json"),
-                      oc.answer_op("Yes"), oc.shortcut_op("r2", "Ctrl+R"), oc.dump_op("accepted.json")])]
+                      oc.shortcut_op("r", "Ctrl+R", press=True), oc.dump_op("declined.json"),
+                      oc.answer_op("Yes"), oc.shortcut_op("r2", "Ctrl+R", press=True), oc.dump_op("accepted.json")])]
 
 
 def _mf033_check(runs, home):
@@ -584,7 +587,7 @@ test("MF-035", "New Contact opens a blank contact", _mf035_build, _mf035_check)
 
 def _mf036_build(home):
     return [run_spec(oc.fixtures_ops()),
-            run_spec([oc.open_op(1, "o", details=False), oc.keys_op("k", "Alt+E, D"), oc.hold_op(), oc.widgets_op("w", ["editSurname"]),
+            run_spec([oc.open_op(1, "o", details=False), oc.menu_op("k", "actionEnableContactDetailsEdit"), oc.hold_op(), oc.widgets_op("w", ["editSurname"]),
                       oc.hold_op(False), oc.dump_op()])]
 
 
@@ -600,8 +603,8 @@ test("MF-036", "Contact Details enables editing of the open contact (Alt+E, D)",
 def _mf037_build(home):
     return [run_spec(oc.fixtures_ops()),
             run_spec([oc.open_op(1, "o"), oc.hold_op(), oc.answer_op("No"), oc.menu_op("m", "actionDeleteContact"),
-                      oc.dump_op("declined.json"), oc.answer_op("Yes"), oc.menu_op("m2", "actionDeleteContact"),
-                      oc.hold_op(False), oc.dump_op("accepted.json")])]
+                      oc.wait_op(1000), oc.dump_op("declined.json"), oc.answer_op("Yes"), oc.menu_op("m2", "actionDeleteContact"),
+                      oc.wait_op(1000), oc.hold_op(False), oc.dump_op("accepted.json")])]
 
 
 def _mf037_check(runs, home):
@@ -648,7 +651,9 @@ _opens("MF-039", "SMS Contact (Ctrl+Shift+M) opens the text form for the contact
 def _money_test(code, title, action, amount):
     def build(home):
         return [run_spec(oc.fixtures_ops()),
-                run_spec([oc.open_op(1, "o"), oc.hold_op(), oc.menu_op("m", action), oc.set_op("f", "lineEditAmount", text=amount),
+                # an expense for a contact other than Identify Me first asks whether it is for Me: No keeps it for the contact
+                run_spec([oc.open_op(1, "o"), oc.hold_op()] + ([oc.answer_op("No")] if action == "actionPayment" else []) +
+                         [oc.menu_op("m", action), oc.wait_op(500), oc.set_op("f", "lineEditAmount", text=amount),
                           oc.press_op("ok", "OK"), oc.hold_op(False), oc.dump_op()])]
 
     def checks(runs, home):
@@ -710,17 +715,20 @@ test("MF-044", "About shows the program's name and version", _mf044_build, _mf04
 
 
 def _mf045_build(home):
+    # a digit opens the date box (answered with nothing, so it closes), Escape is pressed, and the calendar row is read before and after
     return [run_spec(oc.fixtures_ops()),
-            run_spec([oc.key_op("before", "n", target="list"), oc.dates_op([""]), oc.key_op("two", "2"),
-                      oc.keys_op("esc", "Escape"), oc.calendar_rows_op("after"), oc.dump_op()])]
+            run_spec([{"op": "focus", "name": "before"}, oc.dates_op([""]), oc.key_op("two", "2"),
+                      {"op": "focus", "name": "two"}, oc.keys_op("esc", "Escape"), {"op": "focus", "name": "after"},
+                      oc.dump_op()])]
 
 
 def _mf045_check(runs, home):
     r = runs[1]
-    return [check("a digit opens the date box", r.value("two_hints") is not None, "no key result"),
+    return [check("a digit opens the date box", "Go to date" in [str(v) for k, v in r.results.items() if k.endswith("_title")]
+                  or r.logged("Go to date"), "no date box recorded"),
             check("Escape closes it without moving the list",
-                  r.value("after_currentrow") is not None and r.value("after_currentrow") == r.value("two_currentrow"),
-                  "row before %r, after %r" % (r.value("two_currentrow"), r.value("after_currentrow")))]
+                  r.value("after_row") is not None and r.value("after_row") == r.value("before_row"),
+                  "row before %r, after %r" % (r.value("before_row"), r.value("after_row")))]
 
 
 test("MF-045", "Typing a digit in the calendar opens the date box, and Escape closes it without moving", _mf045_build,
@@ -801,7 +809,7 @@ test("MF-049", "With no contact open, Space, N, P and the arrows beep and change
 
 def _mf050_build(home):
     return [run_spec(oc.fixtures_ops()),
-            run_spec([oc.open_op(1, "o"), oc.shortcut_op("o", "Alt+O"), oc.overview_op("ov"), oc.dump_op()])]
+            run_spec([oc.open_op(1, "o"), oc.shortcut_op("o", "Alt+O", press=True), oc.overview_op("ov"), oc.dump_op()])]
 
 
 def _mf050_check(runs, home):
@@ -814,7 +822,7 @@ test("MF-050", "Overview (Alt+O) shows the open contact's summary", _mf050_build
 
 def _mf051_build(home):
     return [run_spec(oc.fixtures_ops() + [oc.notes_op(1, "", "MF051 history entry")]),
-            run_spec([oc.open_op(1, "o"), oc.shortcut_op("y", "Alt+Y"), oc.overview_op("ov"), oc.hold_op(),
+            run_spec([oc.open_op(1, "o"), oc.shortcut_op("y", "Alt+Y", press=True), oc.overview_op("ov"), oc.hold_op(),
                       oc.widgets_op("h", ["editHistory"]), oc.hold_op(False), oc.dump_op()])]
 
 
@@ -828,7 +836,7 @@ test("MF-051", "History (Alt+Y) lists the contact's recorded changes and sent me
 
 def _mf052_build(home):
     return [run_spec(oc.fixtures_ops()),
-            run_spec([oc.open_op(1, "o"), oc.hold_op(), oc.shortcut_op("l", "Ctrl+L"), oc.set_op("t", "editToDo", text="MF052 item"),
+            run_spec([oc.open_op(1, "o"), oc.hold_op(), oc.shortcut_op("l", "Ctrl+L", press=True), oc.set_op("t", "editToDo", text="MF052 item"),
                       oc.hold_op(False), oc.save_op(), oc.dump_op()]),
             run_spec([oc.dump_op("again.json")])]
 
@@ -842,7 +850,8 @@ test("MF-052", "To-Do List (Alt+L) saves its items with the contact", _mf052_bui
 
 
 def _mf053_build(home):
-    return [run_spec([oc.actions_op("none", ["actionEnableContactDetailsEdit"]), oc.open_op(1, "o"),
+    return [run_spec(oc.fixtures_ops()),
+            run_spec([oc.actions_op("none", ["actionEnableContactDetailsEdit"]), oc.open_op(1, "o"),
                       oc.actions_op("open", ["actionEnableContactDetailsEdit"]), oc.dump_op()])]
 
 

@@ -113,6 +113,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
          }
      }
 
+    // The Key and Password items follow the login state, from the start
+    refreshPasswordMenu() ;
+
     // Load the local data
     dbg("Loading database and calendar") ;
     db.load() ;
@@ -1426,15 +1429,18 @@ void MainWindow::on_actionNewContact_triggered()
 void MainWindow::on_actionSetEncryptionKey_triggered()
 {
     if (enc) enc->setKey();
+    refreshPasswordMenu() ;
 }
 
 void MainWindow::on_actionChangePassword_triggered()
 {
     if (enc) enc->changePassword();
+    refreshPasswordMenu() ;
 }
 
 void MainWindow::on_actionLogout_triggered()
 {
     if (enc) enc->logout();
+    refreshPasswordMenu() ;
 }
 
