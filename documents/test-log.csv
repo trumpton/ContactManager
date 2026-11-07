@@ -173,11 +173,11 @@ UT-112,2026-11-06,897039e,PASS,,,~0.015
 UT-113,2026-11-06,897039e,PASS,,,~0.015
 UT-114,2026-11-06,897039e,PASS,,,~0.015
 GS-001,2026-11-06,2c4bdd3,PASS,,"Configs: CM PASS, G PASS",208.4-208.5
-GS-002,2026-11-06,fb3b2c1,PASS,,"Configs: CM PASS, G PASS",~30?
+GS-002,2026-11-06,fb3b2c1,PASS,,"Configs: CM PASS, G PASS",163.7-167.8
 GS-003,2026-11-06,2c4bdd3,PASS,,Configs: CM PASS,199.2-199.2
 GS-005,2026-11-06,618ac3a,PASS,,"Configs: CM PASS, G PASS",193.2-291.8
-GS-008,2026-11-06,fb3b2c1,PASS,,"Configs: CM PASS, G PASS",~30?
-GS-010,2026-11-06,5de4fb7,FAIL,Needs checking: contact 6 is on Google before the delete: 0 copies; contact 6's files are in contact/deleted: 0 files; contact 6 is not restored on Google: 1 copies; contact 6 is on Google before the delete: 0 copies; contact 6's files are in contact/deleted: 0 files; contact 6 is not restored on Google: 1 copies,"Configs: CM FAIL, G FAIL",
+GS-008,2026-11-06,fb3b2c1,PASS,,"Configs: CM PASS, G PASS",205.6-287.1
+GS-010,2026-11-06,fb3b2c1,PASS,,"Configs: CM PASS, G PASS",203.7-212.3
 GS-011,,,NOT RUN,,"Batch incomplete: the clean Google run (release 5de4fb7) stopped during GS-011, when the session worker restarted. GS-011 and later did not run.",
 GS-012,,,NOT RUN,,,
 GS-015,,,NOT RUN,,,
