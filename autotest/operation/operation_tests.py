@@ -53,7 +53,7 @@ def execute(driver, home, base, specs):
             pending.append((len(runs), proc, logf, outdir))
             runs.append(None)
         else:
-            runs.append(oc.run_driver(driver, home, outdir, spec["ops"], **kw))
+            runs.append(oc.run_driver(driver, home, outdir, spec["ops"], timeout=spec.get("timeout", 240), **kw))
     for index, proc, logf, outdir in pending:
         runs[index] = oc.collect(proc, logf, outdir)
     return runs

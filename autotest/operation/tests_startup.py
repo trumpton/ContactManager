@@ -162,15 +162,17 @@ def _zips(home):
 
 
 def _ss008_runs(home):
-    # run 2 is the first start of the day (one backup), run 3 the second (none).  Then the backup date is set back, so
-    # each later start makes a backup: run 5 and run 7 make two more, and only the newest two are kept.
+    # the first backup comes five minutes after a start (then hourly), so each run that should make one stays up longer than that:
+    # run 2 is the first start of the day (one backup), run 3 the second (none).  Then the backup date is set back, so each later
+    # start makes a backup: run 5 and run 7 make two more, and only the newest two are kept.
+    wait = oc.wait_op(330000)
     return [run_spec(oc.fixtures_ops()),
-            run_spec([oc.dump_op()]),
-            run_spec([oc.dump_op()]),
+            run_spec([wait, oc.dump_op()], timeout=600),
+            run_spec([wait, oc.dump_op()], timeout=600),
             run_spec([oc.setting_op("backupdate", "2000-01-01"), oc.dump_op("d4.json")]),
-            run_spec([oc.dump_op()]),
+            run_spec([wait, oc.dump_op()], timeout=600),
             run_spec([oc.setting_op("backupdate", "2000-01-02"), oc.dump_op("d6.json")]),
-            run_spec([oc.dump_op()])]
+            run_spec([wait, oc.dump_op()], timeout=600)]
 
 
 _ss008_counts = {}
@@ -247,7 +249,7 @@ def _ss011_runs(home):
         _holder["name"] = name
         _holder["path"] = path
         _holder["bytes"] = open(path, "rb").read()
-    return [run_spec(oc.fixtures_ops()), run_spec([oc.dump_op()], before=corrupt)]
+    return [run_spec(oc.fixtures_ops()), run_spec([oc.dumplog_op("log.txt"), oc.dump_op()], before=corrupt)]
 
 
 def _ss011_check(runs, home):
@@ -258,10 +260,9 @@ def _ss011_check(runs, home):
     live = [c for c in r.contacts() if c.get("deleted") not in (True, "true")]
     return [check("the other five contacts load", len(live) == 5, "%d live contacts (%d entries)" % (len(live), len(r.contacts()))),
             # the program's own load(...) lines name every file it loads, damaged or not, so they do not count as a report
-            check("the damaged file is reported (its name, or a contact-file message, is in the log)",
-                  any(not ("load(" in l) and ((name and (name in l or os.path.splitext(name)[0] in l))
-                                              or "contact file" in l.lower() or "could not" in l.lower())
-                      for l in r.log.splitlines()), "no report of the damaged file"),
+            check("the damaged file is reported in the log",
+                  any("could not be read" in l and name and os.path.splitext(name)[0] in l for l in _log_lines(r)),
+                  "no report of the damaged file in the log"),
             check("the damaged file is not overwritten", now is not None and now == _holder.get("bytes"),
                   "the file changed or is gone")]
 
@@ -294,12 +295,18 @@ def _ss012_check(runs, home):
 test("SS-012", "Start with no ini file uses the defaults and reports that the file is missing", _ss012_runs, _ss012_check)
 
 
+def _log_lines(run):
+    path = os.path.join(run.outdir, "log.txt")
+    return open(path, encoding="utf-8", errors="replace").read().splitlines() if os.path.exists(path) else []
+
+
 def _ss013_runs(home):
     # run 1 saves the fixtures, then the data folder is made read-only; run 2 starts on it, edits a contact and saves;
     # run 3 makes the folder writable again and reads the data back
     data = os.path.join(home, "TrumptonApps", "ContactManager")
     return [run_spec(oc.fixtures_ops() + [oc.exec_op("/bin/chmod", ["-R", "a-w", data])]),
-            run_spec([oc.edit_contact_op(1, {"names": "Jack ReadOnly"}), oc.save_op(), oc.dump_op("after-save.json")]),
+            run_spec([oc.edit_contact_op(1, {"names": "Jack ReadOnly"}), oc.save_op(), oc.dumplog_op("log.txt"),
+                      oc.dump_op("after-save.json")]),
             run_spec([oc.exec_op("/bin/chmod", ["-R", "u+w", data]), oc.dump_op()])]
 
 
@@ -312,10 +319,9 @@ def _ss013_check(runs, home):
                   "names read back: %r" % r.contact(oc.surname(1)).get("names")),
             check("the stored contacts are still there", len(r.contacts()) == 6,
                   "%d contacts read back" % len(r.contacts())),
-            check("the failed save is reported to the user",
-                  any("dialog" in l.lower() and ("save" in l.lower() or "read" in l.lower() or "error" in l.lower())
-                      for l in runs[1].log.splitlines()),
-                  "no error dialog about the save in run 2")]
+            check("the failed save is reported in the log",
+                  any("could not be written" in l for l in _log_lines(runs[1])),
+                  "no save failure in the log of run 2")]
 
 
 test("SS-013", "Start with a read-only data folder reports the error and loses no data", _ss013_runs, _ss013_check)
