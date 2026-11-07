@@ -1210,7 +1210,6 @@ p, li { white-space: pre-wrap; }
     <addaction name="menuKeyandPassword"/>
     <addaction name="actionSetup"/>
     <addaction name="menuShow"/>
-    <addaction name="actionTest_Function"/>
    </widget>
    <widget class="QMenu" name="menu_Help">
     <property name="title">
@@ -1515,11 +1514,6 @@ p, li { white-space: pre-wrap; }
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+L</string>
-   </property>
-  </action>
-  <action name="actionTest_Function">
-   <property name="text">
-    <string>Test Function</string>
    </property>
   </action>
   <action name="actionOpen">

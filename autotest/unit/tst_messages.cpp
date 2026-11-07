@@ -1450,6 +1450,22 @@ private slots:
         QVERIFY(smsOnly.size()==1) ;
         QVERIFY(smsOnly.at(0).contains("[sms-reminder]")) ;
     }
+
+    // The test code in a message's subject (CM_TEST_MESSAGE_TAGS): read from the start of the appointment's summary
+    void testCodeIsTheLeadingCode()
+    {
+        QCOMPARE(testCodeOf("AN-017 Jack confirm"), QString("AN-017")) ;
+        QCOMPARE(testCodeOf("AN-017"), QString("AN-017")) ;
+        QCOMPARE(testCodeOf("Dentist AN-017"), QString()) ;
+        QCOMPARE(testCodeOf("AN-17 too short"), QString()) ;
+        QCOMPARE(testCodeOf(""), QString()) ;
+    }
+
+    void testTagIsReplacedAndNothingElseChanges()
+    {
+        QCOMPARE(replaceTestTag("[$TESTTAG] Appointment at $TIME", "AN-017"), QString("[AN-017] Appointment at $TIME")) ;
+        QCOMPARE(replaceTestTag("no tag here", "AN-017"), QString("no tag here")) ;
+    }
 } ;
 
 QTEST_MAIN(TestMessages)

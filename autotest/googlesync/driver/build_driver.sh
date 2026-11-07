@@ -1,7 +1,7 @@
 #!/bin/sh
-# Builds sync_driver (autotest/archive/bench/sync_driver.cpp) against the application's objects.
+# Builds sync_driver (autotest/googlesync/driver/sync_driver.cpp) against the application's objects.
 #
-# The application must already be built in BUILD (qmake6 and make, HEADLESS-TEST.md section 1).  The driver is
+# The application must already be built in BUILD (qmake6 and make, documents/headless-test.md section 1).  The driver is
 # compiled with the same defines and include paths as the Makefile, and linked with every object of the build
 # except main.o, so it always uses the current application code.
 #
@@ -24,7 +24,7 @@ cd "$BUILD"
 QTEST_INC=/usr/include/x86_64-linux-gnu/qt6/QtTest
 QTEST_LIB=/usr/lib/x86_64-linux-gnu/libQt6Test.so
 # The driver's object goes in a temporary folder, not the build folder: the messages tests link every object there
-# (autotest/archive/messages/run-messages-tests.sh), and a second main() would stop that link.
+# (the messages unit test runner), and a second main() would stop that link.
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 eval g++ -std=c++17 -pipe -O2 -fPIC -D_REENTRANT $DEFINES $INCPATH -I"$QTEST_INC" -I"$HERE/../../../../Lib" \

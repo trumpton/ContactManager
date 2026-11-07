@@ -1,0 +1,1444 @@
+//
+// Headless driver for the operation tests (autotest/operation, area 3 of the test specification).
+//
+// Starts ContactManager without its single-instance check, runs the operations in a JSON file in order, and writes a dump
+// of the local contacts and appointments.  Dialogs are answered as the headless driver answers them: the encryption key and
+// login use CM_TEST_SECRET, every other dialog takes its default, and each dialog's title is written to driver.log.
+//
+// Operations added for the operation tests (the rest are those of the Google bench's driver, which this is a copy of):
+//   hold    {on}                 while on, an ordinary dialog is left open (not answered), so later operations can read and
+//                                press it.  The key dialog and the main window are not held.  Off answers the open ones.
+//   press   {name, button}       clicks the button with this text in the top dialog (or the main window).  Records name_pressed.
+//   widgets {name, objects[], rows}
+//                                records the top window's title and class as name_title and name_class, and for each object
+//                                name its value: text, "true"/"false" for a check box, the current text of a combo box, or
+//                                MISSING.  Also name_<object>_enabled.  With rows, records the first item view's rows.
+//   set_widget {name, object, text | checked | index}
+//                                sets a control in the top window.  Records name_set (true when the control was found).
+//
+// Test builds only.  The main window's private members are reached with '#define private public', which must not be used
+// in the application itself.
+//
+// usage: driver <outdir> <operations.json>
+// Built by build_driver.sh.
+//
+#include <QApplication>
+#include <QLabel>
+#include <QCheckBox>
+#include <QTimer>
+#include <QTest>
+#include <QAction>
+#include <QCloseEvent>
+#include <QDialog>
+#include <QMessageBox>
+#include <QPushButton>
+#include <QTextEdit>
+#include <QScrollBar>
+#include <QFile>
+#include <QTextStream>
+#include <QDir>
+#include <QFileInfo>
+#include <QPlainTextEdit>
+#include <QTextCursor>
+#include <QTextBlock>
+#include <QLineEdit>
+#include <QDialogButtonBox>
+#include <QFile>
+#include <QTextStream>
+#include <QDateTime>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonValue>
+#include <QProcess>
+#include <QKeyEvent>
+#include <QRadioButton>
+#include <QComboBox>
+#include <QSpinBox>
+#include <QAbstractSpinBox>
+#include <QDateTimeEdit>
+#include <QAbstractItemView>
+#include <QAccessible>
+#include <QMenu>
+#include <QMenuBar>
+#include <QTabWidget>
+#include <QLabel>
+#include "warningchoice.h"
+#include <functional>
+#include <cstdlib>
+#include "../Lib/alertsound.h"
+#define private public
+#include "mainwindow.h"
+#include "appointmentform.h"
+#include "../Lib/accessibledaterangeedit.h"
+#include "../Lib/accessibledatetimeedit.h"
+#include "../Lib/lineeditnavigator.h"
+#undef private
+#include "contact.h"
+#include "contactdatabase.h"
+#include <QInputDialog>
+#include <QLineEdit>
+#include "calendar.h"
+#include "appointment.h"
+
+static QString outdir ;
+static QStringList dateAnswers ;   // the text each date entry is answered with, in order; empty cancels it (issue #92)
+static int dialogCount = 0 ;
+static QString pendingChoice ;     // the letter the next choice dialog is answered with (empty cancels it)
+static int syncCount = 0 ;
+
+// Values the operations report back to the bench, in results.json in the run directory
+static QJsonObject results ;
+
+static void record(const QString &key, const QJsonValue &value)
+{
+    results.insert(key, value) ;
+    QFile f(outdir + "/results.json") ;
+    if (f.open(QIODevice::WriteOnly)) f.write(QJsonDocument(results).toJson()) ;
+}
+
+// The menu items below the given actions, with their depth; separators are left out (accessibility tests)
+static void listMenuActions(const QList<QAction*> &actions, int depth, QJsonArray &out)
+{
+    for (QAction *a : actions) {
+        if (a->isSeparator()) continue ;
+        QJsonObject o ;
+        o.insert("text", a->text()) ;
+        o.insert("depth", depth) ;
+        o.insert("enabled", a->isEnabled()) ;
+        out.append(o) ;
+        if (a->menu()) listMenuActions(a->menu()->actions(), depth + 1, out) ;
+    }
+}
+
+static void note(const QString &text)
+{
+    QFile f(outdir + "/driver.log") ;
+    if (f.open(QIODevice::Append | QIODevice::Text))
+        QTextStream(&f) << QDateTime::currentDateTime().toString("hh:mm:ss") << " " << text << "\n" ;
+}
+
+static QPushButton *defaultButton(QWidget *dialog)
+{
+    QPushButton *first = nullptr ;
+    for (QPushButton *b : dialog->findChildren<QPushButton*>()) {
+        if (!b->isVisible() || !b->isEnabled()) continue ;
+        if (b->isDefault()) return b ;
+        if (!first) first = b ;
+    }
+    return first ;
+}
+
+static QPushButton *okButton(QWidget *dialog)
+{
+    auto *box = dialog->findChild<QDialogButtonBox*>() ;
+    return box ? box->button(QDialogButtonBox::Ok) : nullptr ;
+}
+
+// Contact record number for a field name such as "names" or "email3title"
+static int contactRecordFor(const QString &key)
+{
+    Contact probe ;
+    for (int i = 0; i < (int)Contact::NumberOfRecords; i++) {
+        if (QString(probe.contactRecordName((Contact::ContactRecord)i)) == key) return i ;
+    }
+    return -1 ;
+}
+
+// Appointment fields the bench sets or reads
+static int appointmentRecordFor(const QString &key)
+{
+    if (key == "summary") return Appointment::Summary ;
+    if (key == "description") return Appointment::Description ;
+    if (key == "location") return Appointment::Location ;
+    if (key == "from") return Appointment::From ;
+    if (key == "to") return Appointment::To ;
+    if (key == "for") return Appointment::For ;
+    if (key == "googlerecordid") return Appointment::GoogleRecordId ;
+    if (key == "repeat") return Appointment::Repeat ;
+    if (key == "repeatinterval") return Appointment::RepeatInterval ;
+    if (key == "repeatcount") return Appointment::RepeatCount ;
+    if (key == "repeatuntil") return Appointment::RepeatUntil ;
+    return -1 ;
+}
+
+// The entries on the contact details form, by contact field name
+static QMap<QString, QLineEdit*> formEntries(Ui::MainWindow *ui)
+{
+    QMap<QString, QLineEdit*> m ;
+    m["names"] = ui->editFirstName ;
+    m["surname"] = ui->editSurname ;
+    m["voip"] = ui->editVoip ;
+    m["email"] = ui->editEmail ;
+    m["email2"] = ui->editEmail2 ;
+    m["email3"] = ui->editEmail3 ;
+    m["email4"] = ui->editEmail4 ;
+    m["phone"] = ui->editHome ;
+    m["work"] = ui->editWork ;
+    m["mobile"] = ui->editMobile ;
+    m["phone2"] = ui->edit2 ;
+    m["phone3"] = ui->edit3 ;
+    m["phone4"] = ui->edit4 ;
+    return m ;
+}
+
+static void applyContactFields(Contact &c, const QJsonObject &fields)
+{
+    for (auto it = fields.begin(); it != fields.end(); ++it) {
+        int rec = contactRecordFor(it.key()) ;
+        if (rec < 0) {
+            note("unknown contact field: " + it.key()) ;
+            continue ;
+        }
+        c.setField((Contact::ContactRecord)rec, it.value().toString()) ;
+    }
+    c.markAsDirty() ;
+}
+
+int main(int argc, char *argv[])
+{
+    QApplication a(argc, argv) ;
+    a.setApplicationName("Contact Manager") ;
+    outdir = QString::fromLocal8Bit(argv[1]) ;
+
+    QFile opsfile(QString::fromLocal8Bit(argv[2])) ;
+    if (!opsfile.open(QIODevice::ReadOnly)) {
+        note("cannot read operations file") ;
+        return 2 ;
+    }
+    QJsonArray ops = QJsonDocument::fromJson(opsfile.readAll()).array() ;
+    note(QString("driver started, %1 operations").arg(ops.size())) ;
+
+    // Answer dialogs as they appear, including any shown while the main window is being built
+    QWidget *lastmodal = nullptr ;
+    int clicksonthis = 0 ;
+    QString nextanswer ;     // The button the next yes/no question is answered with, set by an "answer" operation
+    bool nextcheck = false ; // The question's checkbox ("Do this for all future matches") is ticked before the answer
+    QString nextkey ;        // A key sent to the next yes/no question (Escape, Enter), set by an "answer" operation with a key
+    bool holdDialogs = false ;   // while set, an ordinary dialog is left open for a "press" or "widgets" operation
+    // An action started by an operation (a press, a menu item, a shortcut) runs after the operation returns, so the next
+    // operation waits this long: the action, and any dialog it asks, is done by then
+    int settleMs = 0 ;
+    QList<QDateTime> nextfroms ;   // The start each appointment form is given when it is shown, then OK is pressed
+    QTimer *tick = new QTimer(&a) ;
+    QObject::connect(tick, &QTimer::timeout, [&]() {
+        QWidget *m = QApplication::activeModalWidget() ;
+        if (!m) return ;
+
+        // An appointment form: give it the next start, as a user types one, and press OK
+        if (QString(m->metaObject()->className()) == "AppointmentForm" && !nextfroms.isEmpty()) {
+            auto *from = m->findChild<AccessibleDateRangeEdit*>("editWhenFrom") ;
+            auto *to = m->findChild<AccessibleDateRangeEdit*>("editWhenTo") ;
+            if (from && to) {
+                // The end moves with the start, keeping the hour the form has
+                QDateTime start = nextfroms.takeFirst() ;
+                from->setDateTime(start, 60) ;
+                to->setDateTime(start.addSecs(3600)) ;
+                note("form start set") ;
+            }
+            for (QPushButton *b : m->findChildren<QPushButton*>()) {
+                if (b->text().replace("&", "") == "OK") {
+                    b->click() ;
+                    return ;
+                }
+            }
+        }
+
+        // A question answered by a key, as a user presses Escape or Enter on it
+        if (!nextkey.isEmpty() && QString(m->metaObject()->className()) == "WarningYesNo") {
+            Qt::Key k = (nextkey == "Enter") ? Qt::Key_Return : Qt::Key_Escape ;
+            note("key " + nextkey + " to question: " + m->windowTitle()) ;
+            nextkey.clear() ;
+            QTest::keyClick(m, k) ;
+            return ;
+        }
+
+        if (!nextanswer.isEmpty()) {
+            for (QPushButton *b : m->findChildren<QPushButton*>()) {
+                if (b->text() == nextanswer) {
+                    note("answered \"" + nextanswer + "\": " + m->windowTitle()) ;
+                    nextanswer.clear() ;
+                    if (nextcheck) {
+                        for (QCheckBox *cb : m->findChildren<QCheckBox*>()) cb->setChecked(true) ;
+                        nextcheck = false ;
+                    }
+                    b->click() ;
+                    return ;
+                }
+            }
+        }
+
+        // Held: every dialog but the main window and the sync progress window.  The key dialog at a start is answered before
+        // the first operation runs, so only a key dialog that an operation opens is held.
+        // A date entry box with an answer waiting is answered even while held, so that an operation can use it
+        bool answerPending = qobject_cast<QInputDialog*>(m) && !dateAnswers.isEmpty() ;
+        if (holdDialogs && !answerPending && QString(m->metaObject()->className()) != "MainWindow" && m->objectName() != "GoogleUpdateDialog") return ;
+
+        // A long sync keeps its progress dialog open for a long time, so only other dialogs can be stuck
+        if (m->objectName() != "GoogleUpdateDialog" && QString(m->metaObject()->className()) != "MainWindow" && m == lastmodal) {
+            if (++clicksonthis > 40) {
+                note("giving up: dialog did not close: " + m->windowTitle()) ;
+                QApplication::quit() ;
+            }
+        } else {
+            lastmodal = m ;
+            clicksonthis = 0 ;
+        }
+
+        if (m->objectName() == "GoogleUpdateDialog") {
+            auto *report = m->findChild<QTextEdit*>("updateStatusReport") ;
+            if (report) {
+                QFile f(outdir + QString("/report%1.txt").arg(syncCount)) ;
+                if (f.open(QIODevice::WriteOnly | QIODevice::Text))
+                    QTextStream(&f) << report->toPlainText() ;
+            }
+            for (QPushButton *b : m->findChildren<QPushButton*>()) {
+                if (b->text().startsWith("Update Complete") || b->text().startsWith("Update Failed")) {
+                    note(QString("sync %1 finished: %2").arg(syncCount).arg(b->text())) ;
+                    b->click() ;
+                    return ;
+                }
+                // Tidy Contacts and Import end on a summary, which waits for Close
+                if (b->text() == "Close") {
+                    note("progress window closed: " + m->windowTitle()) ;
+                    b->click() ;
+                    return ;
+                }
+            }
+            return ;
+        }
+
+        if (QString(m->metaObject()->className()) == "Encryption") {
+            QString secret = QString::fromLocal8Bit(qgetenv("CM_TEST_SECRET")) ;
+            if (secret.isEmpty() || (m->windowTitle() != "Enter Key and Password" && m->windowTitle() != "Login")) {
+                note("stopping at unexpected key dialog: " + m->windowTitle()) ;
+                QApplication::quit() ;
+                return ;
+            }
+            QStringList fields = (m->windowTitle() == "Login") ? QStringList() << "lineEdit2"
+                                                                : QStringList() << "lineEdit0" << "lineEdit1" << "lineEdit2" << "lineEdit3" ;
+            for (const QString &name : fields) m->findChild<QLineEdit*>(name)->setText(secret) ;
+            okButton(m)->click() ;
+            return ;
+        }
+
+        // The main window can be the active modal widget while login is finishing: leave it alone
+        if (QString(m->metaObject()->className()) == "MainWindow") return ;
+
+        // A date entry (QInputDialog) is recorded, then answered with the next of dateAnswers, or cancelled
+        if (auto *input = qobject_cast<QInputDialog*>(m)) {
+            QLineEdit *edit = input->findChild<QLineEdit*>() ;
+            QString answer = dateAnswers.isEmpty() ? QString() : dateAnswers.takeFirst() ;
+            dialogCount++ ;
+            QString prefix = QString("dialog_%1").arg(dialogCount) ;
+            if (edit) {
+                record(prefix + "_text", QJsonValue(edit->text())) ;
+                record(prefix + "_cursor", QJsonValue(edit->cursorPosition())) ;
+                record(prefix + "_length", QJsonValue(edit->text().length())) ;
+                record(prefix + "_selected", QJsonValue(edit->selectedText().length())) ;
+                record(prefix + "_accname", QJsonValue(edit->accessibleName())) ;
+                record(prefix + "_accdesc", QJsonValue(edit->accessibleDescription())) ;
+            }
+            record(prefix + "_title", QJsonValue(input->windowTitle())) ;
+            if (answer.isEmpty() || !edit) {
+                note("date entry cancelled") ;
+                input->reject() ;
+            } else {
+                note("date entry answered") ;
+                edit->setText(answer) ;
+                QTest::keyClick(edit, Qt::Key_Return) ;
+            }
+            return ;
+        }
+
+        // The Go To Date box (dateInputDialog, a plain QDialog holding a date-time edit): recorded, then answered with the
+        // next date answer, or cancelled
+        if (QString(m->metaObject()->className()) == "QDialog" && m->findChild<AccessibleDateTimeEdit*>()) {
+            AccessibleDateTimeEdit *dte = m->findChild<AccessibleDateTimeEdit*>() ;
+            QLineEdit *le = dte ;
+            QString answer = dateAnswers.isEmpty() ? QString() : dateAnswers.takeFirst() ;
+            dialogCount++ ;
+            QString prefix = QString("dialog_%1").arg(dialogCount) ;
+            record(prefix + "_title", QJsonValue(m->windowTitle())) ;
+            record(prefix + "_text", QJsonValue(le ? le->text() : dte->text())) ;
+            record(prefix + "_cursor", QJsonValue(le ? le->cursorPosition() : -1)) ;
+            record(prefix + "_length", QJsonValue(le ? le->text().length() : dte->text().length())) ;
+            record(prefix + "_accname", QJsonValue(dte->accessibleName())) ;
+            record(prefix + "_accdesc", QJsonValue(dte->accessibleDescription())) ;
+            if (answer.isEmpty() || !le) {
+                note("date box cancelled") ;
+                QTest::keyClick(m, Qt::Key_Escape) ;
+            } else {
+                note("date box answered") ;
+                le->setText(answer) ;
+                QTest::keyClick(le, Qt::Key_Return) ;
+            }
+            return ;
+        }
+
+        // A choice dialog is answered with the letter set by "choose", or cancelled when none is set
+        if (auto *choice = qobject_cast<WarningChoice*>(m)) {
+            QString letter = pendingChoice ;
+            pendingChoice.clear() ;
+            note(QString("choice dialog: %1").arg(letter.isEmpty() ? QString("cancelled") : letter)) ;
+            if (letter.isEmpty()) {
+                choice->reject() ;
+            } else {
+                QKeyEvent press(QEvent::KeyPress, 0, Qt::NoModifier, letter) ;
+                QApplication::sendEvent(choice, &press) ;
+            }
+            return ;
+        }
+
+        QString text ;
+        if (auto *box = qobject_cast<QMessageBox*>(m)) text = box->text() ;
+        else {
+            // The program's own warning boxes keep their message in a label
+            for (QLabel *label : m->findChildren<QLabel*>()) if (!label->text().isEmpty()) { text = label->text() ; break ; }
+            if (text.isEmpty()) for (QTextEdit *edit : m->findChildren<QTextEdit*>()) if (!edit->toPlainText().isEmpty()) { text = edit->toPlainText() ; break ; }
+        }
+        note(QString("dialog %1 \"%2\": %3").arg(m->metaObject()->className(), m->windowTitle(), text)) ;
+        // A fresh data folder has no key: the operation-test runner sets CM_TEST_SETKEY, and the question that offers to
+        // set the key is then answered Yes (the key and password are then entered by the Encryption dialog, above)
+        if (!qgetenv("CM_TEST_SETKEY").isEmpty() && text.startsWith("You have failed to login")) {
+            if (QPushButton *yes = m->findChild<QPushButton*>()) {
+                for (QPushButton *pb : m->findChildren<QPushButton*>()) if (pb->text().contains("Yes")) yes = pb ;
+                yes->click() ;
+                return ;
+            }
+        }
+        // The question shown after three failed logins is answered with CM_TEST_LOGIN_ANSWER, when it is set
+        if (text.startsWith("You have failed to login")) {
+            QString answer = QString::fromLocal8Bit(qgetenv("CM_TEST_LOGIN_ANSWER")) ;
+            for (QPushButton *pb : m->findChildren<QPushButton*>()) {
+                if (!answer.isEmpty() && pb->text().replace("&", "") == answer) {
+                    note("login question answered: " + answer) ;
+                    pb->click() ;
+                    return ;
+                }
+            }
+        }
+        QPushButton *b = defaultButton(m) ;
+        if (b) b->click() ;
+        else m->close() ;
+    }) ;
+    tick->start(300) ;
+
+    MainWindow w ;
+    initSound(NULL) ;
+    w.show() ;
+    note("main window shown") ;
+
+    int next = 0 ;
+    std::function<void()> step ;
+    step = [&]() {
+        if (next >= ops.size()) {
+            note("operations finished") ;
+            QTimer::singleShot(500, &a, [&]() {
+                // A refused entry is still held on the form.  Exit now, as the results are already written, rather
+                // than saving the form again while the window is destroyed.
+                if (w.titledEntriesHeld) {
+                    note("exiting with a refused entry on the form") ;
+                    std::_Exit(0) ;
+                }
+                QApplication::quit() ;
+            }) ;
+            return ;
+        }
+        QJsonObject op = ops[next++].toObject() ;
+        QString kind = op["op"].toString() ;
+        note(QString("op %1: %2").arg(next).arg(kind)) ;
+
+        if (kind == "sync") {
+            syncCount++ ;
+            QAction *act = w.findChild<QAction*>("action_Google_Sync") ;
+            if (act) act->trigger() ;          // returns when the sync dialog has closed
+            else note("action_Google_Sync not found") ;
+            note(QString("sync %1 returned").arg(syncCount)) ;
+
+        } else if (kind == "add_contact") {
+            Contact &c = w.db.addContact() ;
+            applyContactFields(c, op["fields"].toObject()) ;
+            note("added contact " + c.getField(Contact::ID)) ;
+
+        } else if (kind == "edit_contact" || kind == "delete_contact" || kind == "hide_contact") {
+            QJsonObject match = op["match"].toObject() ;
+            int hit = 0 ;
+            for (int i = 0; i < w.db.size(); i++) {
+                Contact &c = w.db.getContact(i) ;
+                bool same = !match.isEmpty() ;
+                for (auto it = match.begin(); it != match.end(); ++it) {
+                    int rec = contactRecordFor(it.key()) ;
+                    if (rec < 0 || c.getField((Contact::ContactRecord)rec) != it.value().toString()) same = false ;
+                }
+                if (!same) continue ;
+                hit++ ;
+                if (kind == "edit_contact") applyContactFields(c, op["fields"].toObject()) ;
+                if (kind == "delete_contact") { c.setFlag(Contact::Deleted, true) ; c.setFlag(Contact::Hidden, true) ; }
+                if (kind == "hide_contact") c.setFlag(Contact::Hidden, true) ;
+            }
+            note(QString("%1 matched %2 contact(s)").arg(kind).arg(hit)) ;
+
+        } else if (kind == "add_appointment") {
+            Appointment appt ;
+            QJsonObject fields = op["fields"].toObject() ;
+            for (auto it = fields.begin(); it != fields.end(); ++it) {
+                int rec = appointmentRecordFor(it.key()) ;
+                if (rec >= 0) appt.setField((Appointment::AppointmentRecord)rec, it.value().toString()) ;
+            }
+            // "surname" links the appointment to that contact, with its ID and name, as the form does
+            QString surname = op["surname"].toString() ;
+            for (int i = 0; !surname.isEmpty() && i < w.db.size(); i++) {
+                Contact &c = w.db.getContact(i) ;
+                if (c.getField(Contact::Surname) == surname) {
+                    appt.setField(Appointment::ContactId, c.getField(Contact::ID)) ;
+                    appt.setField(Appointment::For, c.getField(Contact::Names) + " " + surname) ;
+                    break ;
+                }
+            }
+            // An appointment with no contact is "Unnamed Contact", as the form sets it, and Google returns it that way
+            if (appt.getField(Appointment::For).isEmpty()) appt.setField(Appointment::For, QString("Unnamed Contact")) ;
+            // A repeat made in the form has the zone of this machine, as the form sets it
+            if (appt.isRepeating() && appt.getField(Appointment::RepeatZone).isEmpty())
+                appt.setField(Appointment::RepeatZone, QTimeZone::systemTimeZoneId()) ;
+            w.calendar.addAppointment(appt, true) ;
+            note("added appointment " + appt.getField(Appointment::Summary)) ;
+
+        } else if (kind == "edit_appointment" || kind == "delete_appointment") {
+            QString summary = op["match"].toObject()["summary"].toString() ;
+            int hit = 0 ;
+            for (int i = 0; i < w.calendar.size(); i++) {
+                Appointment &appt = w.calendar.getAppointment(i) ;
+                if (appt.getField(Appointment::Summary) != summary) continue ;
+                hit++ ;
+                if (kind == "delete_appointment") {
+                    appt.setFlag(Appointment::Deleted, true) ;
+                } else {
+                    QJsonObject fields = op["fields"].toObject() ;
+                    for (auto it = fields.begin(); it != fields.end(); ++it) {
+                        int rec = appointmentRecordFor(it.key()) ;
+                        if (rec >= 0) appt.setField((Appointment::AppointmentRecord)rec, it.value().toString()) ;
+                    }
+                }
+            }
+            note(QString("%1 matched %2 appointment(s)").arg(kind).arg(hit)) ;
+
+        } else if (kind == "exec") {
+            // Changes made on Google between syncs, by an external script
+            QStringList args ;
+            for (const QJsonValue &v : op["args"].toArray()) args << v.toString() ;
+            int code = QProcess::execute(op["program"].toString(), args) ;
+            note(QString("exec exit %1").arg(code)) ;
+
+        } else if (kind == "open_contact") {
+            // Opens the contact on the contact details form, as selecting it in the list does
+            QJsonObject match = op["match"].toObject() ;
+            QString id ;
+            int hit = 0 ;
+            for (int i = 0; i < w.db.size(); i++) {
+                Contact &c = w.db.getContact(i) ;
+                bool same = !match.isEmpty() ;
+                for (auto it = match.begin(); it != match.end(); ++it) {
+                    int rec = contactRecordFor(it.key()) ;
+                    if (rec < 0 || c.getField((Contact::ContactRecord)rec) != it.value().toString()) same = false ;
+                }
+                if (!same) continue ;
+                hit++ ;
+                id = c.getField(Contact::ID) ;
+            }
+            if (hit == 1) {
+                w.populateDialog(id, true) ;
+                // "details" false selects the contact without opening its details, as a click in the list does
+                if (op["details"].toBool(true)) w.on_actionEnableContactDetailsEdit_triggered() ;      // the form is open for editing, as when a user edits it
+            }
+            // The contact that is selected after the open, so a scenario can see whether the switch happened
+            record(op["name"].toString() + "_selected", w.db.getSelected().getField(Contact::Surname)) ;
+            // Where focus is after the open, so a scenario can see whether it stays on the calendar
+            QWidget *focus = w.focusWidget() ;
+            record(op["name"].toString() + "_focus", focus ? focus->objectName() : QString()) ;
+            note(QString("open_contact matched %1 contact(s)").arg(hit)) ;
+
+        } else if (kind == "alt_edit") {
+            // Alt-E,D: opens Contact Details for the selected contact.  Records whether the page is showing afterwards.
+            QString name = op["name"].toString() ;
+            w.on_actionEnableContactDetailsEdit_triggered() ;
+            record(name + "_details", w.ui->tabBar->currentIndex() == CONTACTDETAILSTABPOS) ;
+            note("alt_edit " + name) ;
+
+        } else if (kind == "calendar_click") {
+            // Double-clicks a calendar entry: its contact is opened by the same handler the list uses.  The entry is first
+            // linked to the contact with this surname, as an entry is linked to a contact when it is made.
+            QString name = op["name"].toString() ;
+            QString summary = op["summary"].toString() ;
+            QString contactid, apptid ;
+            for (int i = 0; i < w.db.size(); i++) {
+                Contact &c = w.db.getContact(i) ;
+                if (c.getField(Contact::Surname) == op["surname"].toString()) contactid = c.getField(Contact::ID) ;
+            }
+            for (int i = 0; i < w.calendar.size(); i++) {
+                Appointment &appt = w.calendar.getAppointment(i) ;
+                if (appt.getField(Appointment::Summary) == summary) {
+                    appt.setContactId(contactid) ;
+                    apptid = appt.getField(Appointment::ID) ;
+                }
+            }
+
+            // The list is built when the calendar tab loads, so reload it to show the entry added since
+            w.LoadCalendarTab() ;
+
+            // The row of the entry, or of one of its repeats when an occurrence is given, with the calendar tab shown and
+            // its list focused, as a click leaves it
+            QString wanted = apptid ;
+            if (op.contains("occurrence")) {
+                wanted = Calendar::occurrenceHint(apptid, QDateTime::fromString(op["occurrence"].toString(), Qt::ISODate)) ;
+            }
+            int row = -1 ;
+            for (int r = 0; r < w.calendarlist.rowCount(); r++) {
+                if (w.calendarlist.hintAt(r) == wanted) row = r ;
+            }
+            record(name + "_expected_row", row) ;
+            w.ui->tabBar->setCurrentIndex(CALENDARTABPOS) ;
+            w.ui->listCalendar->setFocus() ;
+            if (row >= 0) w.ui->listCalendar->setCurrentIndex(w.calendarlist.index(row, 0)) ;
+
+            w.on_listCalendar_activated(w.ui->listCalendar->currentIndex()) ;
+
+            QWidget *focus = w.focusWidget() ;
+            record(name + "_row", w.ui->listCalendar->currentIndex().row()) ;
+            record(name + "_focus", focus ? focus->objectName() : QString()) ;
+            record(name + "_selected", w.db.getSelected().getField(Contact::Surname)) ;
+            note(QString("calendar_click %1: row %2, focus %3").arg(name).arg(w.ui->listCalendar->currentIndex().row())
+                 .arg(focus ? focus->objectName() : QString())) ;
+
+        } else if (kind == "date_answers") {
+            // The answers to the next date entries, in order: the text typed, or empty to cancel
+            dateAnswers.clear() ;
+            for (const QJsonValue &v : op["answers"].toArray()) dateAnswers.append(v.toString()) ;
+
+        } else if (kind == "call") {
+            // Calls a navigation function directly, then records where the list's current row is (issue #92 probe)
+            QString name = op["name"].toString() ;
+            QString fn = op["fn"].toString() ;
+            // The list takes the current row only while it has the focus, so the window is made active first, as a user has it
+            w.activateWindow() ; QApplication::setActiveWindow(&w) ; w.ui->listCalendar->setFocus() ;
+            record(name + "_hasfocus", QJsonValue(w.ui->listCalendar->hasFocus())) ;
+            if (fn=="gotodate") w.gotoCalendarDate(QDate(op["y"].toInt(), op["m"].toInt(), op["d"].toInt())) ;
+            else if (fn=="today") w.on_actionGotoToday_triggered() ;
+            else if (fn=="showcal") w.ui->tabBar->setCurrentIndex(1) ;
+            else if (fn=="showacc") w.on_actionShowAccessibleText_triggered() ;
+            else if (fn=="contact") w.populateDialog(op["id"].toString()) ;
+            else if (fn=="raw") w.ui->listCalendar->setCurrentIndex(w.calendarlist.index(op["row"].toInt(),0)) ;
+            record(name + "_selrow", QJsonValue(w.ui->listCalendar->selectionModel() ? w.ui->listCalendar->selectionModel()->currentIndex().row() : -99)) ;
+            record(name + "_samemodel", QJsonValue(w.ui->listCalendar->model()==&w.calendarlist)) ;
+            record(name + "_visible", QJsonValue(w.ui->listCalendar->isVisible())) ;
+            record(name + "_tabcount", QJsonValue(w.ui->tabBar->count())) ;
+            int cur = w.ui->listCalendar->currentIndex().row() ;
+            record(name + "_currentrow", QJsonValue(cur)) ;
+            record(name + "_tab", QJsonValue(w.ui->tabBar->currentIndex())) ;
+            record(name + "_currenttitle", QJsonValue(cur>=0 ? w.calendarlist.data(w.calendarlist.index(cur,0), Qt::DisplayRole).toString() : QString())) ;
+            record(name + "_rows", QJsonValue(w.calendarlist.rowCount())) ;
+            {
+                QListView *lv = w.ui->listCalendar ;
+                QModelIndex ci = lv->currentIndex() ;
+                record(name + "_top", QJsonValue(ci.isValid() ? lv->visualRect(ci).top() : -999)) ;
+                record(name + "_vh", QJsonValue(lv->viewport()->height())) ;
+                record(name + "_bar", QJsonValue(lv->verticalScrollBar()->value())) ;
+                record(name + "_mode", QJsonValue((int)lv->verticalScrollMode())) ;
+            }
+
+        } else if (kind == "settle") {
+            // The next operation runs after this many milliseconds, while the event loop runs (a dialog it opens is not blocked)
+            settleMs = op["ms"].toInt() ;
+
+        } else if (kind == "wait") {
+            // Lets the event loop run, so that timers fire
+            QTest::qWait(op["ms"].toInt()) ;
+
+        } else if (kind == "findnext") {
+            // Sets the search text, and runs Find Next (Search > Find Next), from the current row
+            w.searchtext = op["text"].toString() ;
+            if (op.contains("row")) w.ui->listCalendar->setCurrentIndex(w.calendarlist.index(op["row"].toInt(),0)) ;
+            w.activateWindow() ; QApplication::setActiveWindow(&w) ; w.ui->listCalendar->setFocus() ;
+            w.on_actionFindNext_triggered() ;
+            QModelIndex ci = w.ui->listCalendar->currentIndex() ;
+            record(op["name"].toString() + "_row", QJsonValue(ci.row())) ;
+            record(op["name"].toString() + "_date", QJsonValue(w.calendarlist.data(w.calendarlist.index(ci.row(),0), Qt::DisplayRole).toString().left(40))) ;
+
+        } else if (kind == "setrow") {
+            // Moves the list to a row, with the list focused, as a user has it
+            w.activateWindow() ; QApplication::setActiveWindow(&w) ; w.ui->listCalendar->setFocus() ;
+            w.ui->listCalendar->setCurrentIndex(w.calendarlist.index(op["row"].toInt(),0)) ;
+
+        } else if (kind == "accinfo") {
+            // Reads the text of the screen reader text dialog
+            QPlainTextEdit *e = w.accessibleinfo.isNull() ? nullptr : w.accessibleinfo->findChild<QPlainTextEdit*>("AccessibleInfoText") ;
+            record(op["name"].toString() + "_text", QJsonValue(e ? e->toPlainText() : QString("NONE"))) ;
+            QLabel *note = w.accessibleinfo.isNull() ? nullptr : w.accessibleinfo->findChild<QLabel*>("AccessibleInfoNote") ;
+            record(op["name"].toString() + "_note", QJsonValue(note ? note->text() : QString("NONE"))) ;
+
+        } else if (kind == "accdebug") {
+            // Sets the accessibility debug checkbox of the screen reader text dialog, and records what it now shows
+            QCheckBox *cb = w.accessibleinfo.isNull() ? nullptr : w.accessibleinfo->findChild<QCheckBox*>("AccessibleDebugCheck") ;
+            if (cb) cb->setChecked(op["value"].toBool()) ;
+            record(op["name"].toString() + "_box", QJsonValue(cb ? cb->isChecked() : false)) ;
+
+        } else if (kind == "save") {
+            // Saves the contacts and the calendar, so a run that stops can be continued from here
+            w.db.save() ;
+            w.calendar.save() ;
+            note("saved") ;
+
+        } else if (kind == "waituntil") {
+            // Waits, with the application running, until a local time (ISO, e.g. 2026-11-02T07:00:00).  Used by timed tests.
+            QDateTime target = QDateTime::fromString(op["at"].toString(), Qt::ISODate) ;
+            while (QDateTime::currentDateTime() < target) QTest::qWait(1000) ;
+            note(QString("reached %1").arg(op["at"].toString())) ;
+
+        } else if (kind == "state") {
+            // Records what the screen shows: the window title, the contact on the form (its surname, or none), and the calendar's current entry
+            QString name = op["name"].toString() ;
+            record(name + "_title", QJsonValue(w.windowTitle())) ;
+            record(name + "_loaded", QJsonValue(w.db.getSelected().isNull() ? QString("none") : w.db.getSelected().getField(Contact::Surname))) ;
+            QModelIndex ci = w.ui->listCalendar->currentIndex() ;
+            record(name + "_entry", QJsonValue(ci.isValid() ? w.calendarlist.data(ci, Qt::AccessibleTextRole).toString() : QString("none"))) ;
+
+        } else if (kind == "measure") {
+            // Records where the current row sits in the list, without changing anything
+            QString name = op["name"].toString() ;
+            QListView *lv = w.ui->listCalendar ;
+            QModelIndex ci = lv->currentIndex() ;
+            record(name + "_top", QJsonValue(ci.isValid() ? lv->visualRect(ci).top() : -999)) ;
+            record(name + "_vh", QJsonValue(lv->viewport()->height())) ;
+            record(name + "_row", QJsonValue(ci.row())) ;
+            record(name + "_tab", QJsonValue(w.ui->tabBar->currentIndex())) ;
+
+            record(name + "_date", QJsonValue(ci.isValid() ? w.calendarlist.data(w.calendarlist.index(ci.row(),0), Qt::DisplayRole).toString().left(16) : QString())) ;
+
+        } else if (kind == "contact_notes") {
+            // Sets the to-do text, and adds a history line, to each contact matching, as the contact form does (issue #105)
+            QJsonObject match = op["match"].toObject() ;
+            int hit = 0 ;
+            for (int i = 0; i < w.db.size(); i++) {
+                Contact &c = w.db.getContact(i) ;
+                bool same = !match.isEmpty() ;
+                for (auto it = match.begin(); it != match.end(); ++it) {
+                    int rec = contactRecordFor(it.key()) ;
+                    if (rec < 0 || c.getField((Contact::ContactRecord)rec) != it.value().toString()) same = false ;
+                }
+                if (!same) continue ;
+                hit++ ;
+                if (op.contains("todo")) {
+                    QString text = op["todo"].toString() ;
+                    c.getTodo().setText(text) ;
+                }
+                if (op.contains("history")) c.getHistory().addEntry(op["history"].toString()) ;
+            }
+            note(QString("contact_notes matched %1 contact(s)").arg(hit)) ;
+
+        } else if (kind == "setting") {
+            // Sets an application setting, such as the window (windowbefore) for the next sync
+            gConf->settings->setValue(op["key"].toString(), op["value"].toString()) ;
+            note(QString("setting %1 = %2").arg(op["key"].toString(), op["value"].toString())) ;
+
+        } else if (kind == "dumplog") {
+            // Saves the sync log so far to a file
+            QFile f(outdir + "/" + op["file"].toString()) ;   // the run folder, as dump.json is
+            if (f.open(QIODevice::WriteOnly | QIODevice::Text)) { QTextStream out(&f) ; out << getLog() ; }
+
+        } else if (kind == "listdir") {
+            // Lists a folder of the calendar data: its files and sizes
+            QString dirpath = gCalendarSavePath + op["sub"].toString() + "/" ;
+            QFile f(op["file"].toString()) ;
+            if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+                QTextStream out(&f) ;
+                out << "folder " << dirpath << "\n" ;
+                QFileInfoList items = QDir(dirpath).entryInfoList(QDir::Files, QDir::Name) ;
+                for (const QFileInfo &fi : items) out << fi.fileName() << " " << fi.size() << "\n" ;
+                out << items.size() << " files\n" ;
+            }
+
+        } else if (kind == "paths") {
+            QFile f(op["file"].toString()) ;
+            if (f.open(QIODevice::WriteOnly | QIODevice::Text)) { QTextStream out(&f) ; out << gCalendarSavePath << "\n" ; }
+
+        } else if (kind == "choose") {
+            // The letter the next choice dialog is answered with
+            pendingChoice = op["letter"].toString() ;
+
+        } else if (kind == "repeat_delete") {
+            // Deletes one occurrence of a repeat, as the Delete action does, and any choice is answered by "choose"
+            w.LoadCalendarTab() ;
+            Appointment &origin = w.calendar.getAppointmentBy(Appointment::Summary, op["summary"].toString()) ;
+            if (!origin.isNull()) {
+                QDateTime occ = QDateTime::fromString(op["occurrence"].toString(), Qt::ISODate) ;
+                QString hint = (occ == origin.getDate(Appointment::From)) ? origin.getField(Appointment::ID)
+                                                                          : Calendar::occurrenceHint(origin.getField(Appointment::ID), occ) ;
+                // The row is found by its hint, which the list keeps with each row.  find() matches the displayed text, which does
+                // not hold the hint, so it never found the occurrence (X81D).
+                QModelIndex index = QModelIndex() ;
+                for (int row=0; row<w.calendarlist.rowCount() && !index.isValid(); row++) {
+                    if (w.calendarlist.hintAt(row) == hint) index = w.calendarlist.index(row, 0) ;
+                }
+                note(QString("repeat_delete hint %1, row %2, rows %3").arg(hint).arg(index.row()).arg(w.calendarlist.rowCount())) ;
+                if (!index.isValid()) return ;
+                // The list only takes the index from setCurrentIndex when it has focus, which a bench window does not, so
+                // the view's own index is set
+                w.ui->listCalendar->QListView::setCurrentIndex(index) ;
+                note(QString("repeat_delete current row %1, model rows match %2").arg(w.ui->listCalendar->currentIndex().row()).arg(w.ui->listCalendar->model() == &w.calendarlist ? "yes" : "no")) ;
+                w.on_actionRemoveAppointment_triggered() ;
+            }
+
+        } else if (kind == "repeat_edit") {
+            // Saves an edit of a repeat, as the form does: the repeat's own day is moved by shiftdays, and the summary can
+            // change.  The focus afterwards is recorded.
+            QString name = op["name"].toString() ;
+            QDateTime occ = QDateTime::fromString(op["occurrence"].toString(), Qt::ISODate) ;
+            Appointment &origin = w.calendar.getAppointmentBy(Appointment::Summary, op["summary"].toString()) ;
+            if (!origin.isNull()) {
+                QDateTime from = origin.getDate(Appointment::From) ;
+                QDateTime to = origin.getDate(Appointment::To) ;
+                qint64 shift = op["shiftdays"].toInt() * 86400 + op["shiftminutes"].toInt() * 60 ;
+                Appointment result = origin ;
+                result.setDate(Appointment::From, occ.addSecs(shift)) ;
+                result.setDate(Appointment::To, occ.addSecs(shift + from.secsTo(to))) ;
+                if (op.contains("newsummary")) result.setField(Appointment::Summary, op["newsummary"].toString()) ;
+                if (op.contains("count")) result.setField(Appointment::RepeatCount, op["count"].toString()) ;
+                w.storeAppointmentEdit(result, op["occurrence"].toString()) ;
+                // The list keeps the index it is given until it has focus, and a bench window does not get the focus back
+                // after a dialog.  So the index it kept is applied, as the list does when the user returns to it.
+                if (w.ui->listCalendar->curridx.isValid()) w.ui->listCalendar->QListView::setCurrentIndex(w.ui->listCalendar->curridx) ;
+            }
+            record(name + "_selected_hint", w.calendar.selectedHint()) ;
+
+            // The row that has the focus after the edit, and how many rows the list has (the last is "Add New")
+            int row = w.ui->listCalendar->currentIndex().row() ;
+            record(name + "_row", row) ;
+            record(name + "_rows", w.calendarlist.rowCount()) ;
+            record(name + "_listed", (row >= 0 && row < w.calendarlist.rowCount()) ? w.calendarlist.hintAt(row) : QString()) ;
+            note("repeat_edit " + name) ;
+
+        } else if (kind == "form_repeat") {
+            // Opens the appointment form with a repeat, and records the repeat it gives back, as a save would store it
+            QString name = op["name"].toString() ;
+            Appointment appt ;
+            appt.createNew() ;
+            appt.setField(Appointment::Summary, "BENCH form repeat") ;
+            appt.setField(Appointment::Repeat, op["repeat"].toString()) ;
+            appt.setField(Appointment::RepeatInterval, op["every"].toString()) ;
+            appt.setField(Appointment::RepeatCount, op["count"].toString()) ;
+            appt.setField(Appointment::RepeatUntil, op["until"].toString()) ;
+            appt.setDate(Appointment::From, QDateTime::currentDateTimeUtc()) ;
+            appt.setDate(Appointment::To, QDateTime::currentDateTimeUtc().addSecs(3600)) ;
+            Appointment reference = appt ;
+            AppointmentForm frm(&w) ;
+            frm.setupForm(w.db, QString(), appt, reference, true) ;
+            Appointment &back = frm.getAppointmentDetails() ;
+            record(name + "_repeat", back.getField(Appointment::Repeat)) ;
+            record(name + "_every", back.getField(Appointment::RepeatInterval)) ;
+            record(name + "_count", back.getField(Appointment::RepeatCount)) ;
+            record(name + "_until", back.getField(Appointment::RepeatUntil)) ;
+            note("form_repeat " + name) ;
+
+        } else if (kind == "goto_today") {
+            // Goto Today, as the menu runs it; records the row it lands on, and that row's hint
+            QString name = op["name"].toString() ;
+            w.on_actionGotoToday_triggered() ;
+            int row = w.ui->listCalendar->currentIndex().row() ;
+            record(name + "_row", row) ;
+            record(name + "_hint", (row >= 0 && row < w.calendarlist.rowCount()) ? w.calendarlist.hintAt(row) : QString()) ;
+            note("goto_today " + name) ;
+
+        } else if (kind == "calendar_rows") {
+            // The calendar list as it is shown: each row's hint and title, in order.  The list is rebuilt first, as the
+            // window does when its calendar tab loads, unless "reload" is false: then it is read as it is shown now.
+            QString name = op["name"].toString() ;
+            if (op["reload"].toBool(true)) w.LoadCalendarTab() ;
+            QJsonArray hints, titles ;
+            for (int r = 0; r < w.calendarlist.rowCount(); r++) {
+                hints.append(w.calendarlist.hintAt(r)) ;
+                titles.append(w.calendarlist.data(w.calendarlist.index(r, 0), Qt::DisplayRole).toString()) ;
+            }
+            record(name + "_hints", hints) ;
+            record(name + "_titles", titles) ;
+
+        } else if (kind == "select_overview") {
+            // The overview, as selecting it does: no contact is open
+            w.populateDialog(SELECT_OVERVIEW, true) ;
+            record(op["name"].toString() + "_contact", QJsonValue(w.db.getSelected().getField(Contact::ID))) ;
+
+        } else if (kind == "key") {
+            // A key pressed in the calendar list, as a user presses it: the list has the focus, and the key goes to the list
+            QString name = op["name"].toString() ;
+            QString k = op["key"].toString() ;
+            w.activateWindow() ; QApplication::setActiveWindow(&w) ; w.ui->listCalendar->setFocus() ;
+            QWidget *target = (op["target"].toString()=="viewport") ? (QWidget*)w.ui->listCalendar->viewport() : (QWidget*)w.ui->listCalendar ;
+            if (k=="space") QTest::keyClick(target, Qt::Key_Space) ;
+            else if (k=="t") QTest::keyClick(target, Qt::Key_T) ;
+            else if (k=="d") QTest::keyClick(target, Qt::Key_D) ;
+            else if (k=="n") QTest::keyClick(target, Qt::Key_N) ;
+            else if (k=="w") QTest::keyClick(target, Qt::Key_W) ;
+            else if (k=="x") QTest::keyClick(target, Qt::Key_X) ;
+            else if (k=="p") QTest::keyClick(target, Qt::Key_P) ;
+            else if (k=="right") QTest::keyClick(target, Qt::Key_Right) ;
+            else if (k=="left") QTest::keyClick(target, Qt::Key_Left) ;
+            else if (k=="enter") QTest::keyClick(target, Qt::Key_Return) ;
+            else if (k.size()==1 && k[0].isDigit()) QTest::keyClick(target, Qt::Key_0 + k[0].digitValue()) ;
+            QJsonArray hints, titles ;
+            for (int r = 0; r < w.calendarlist.rowCount(); r++) {
+                hints.append(w.calendarlist.hintAt(r)) ;
+                titles.append(w.calendarlist.data(w.calendarlist.index(r, 0), Qt::DisplayRole).toString()) ;
+            }
+            record(name + "_hints", hints) ;
+            record(name + "_titles", titles) ;
+            record(name + "_msg", QJsonValue(w.ui->statusBar->currentMessage())) ;
+            record(name + "_contact", QJsonValue(w.db.getSelected().getField(Contact::ID))) ;
+            int cur = w.ui->listCalendar->currentIndex().row() ;
+            record(name + "_currentrow", QJsonValue(cur)) ;
+            record(name + "_currenttitle", QJsonValue(cur>=0 ? w.calendarlist.data(w.calendarlist.index(cur,0), Qt::DisplayRole).toString() : QString())) ;
+            record(name + "_focus", QJsonValue(QApplication::focusWidget() ? QApplication::focusWidget()->objectName() : QString())) ;
+
+        } else if (kind == "overview") {
+            // The overview of the open contact as it is shown now, with no rebuild
+            record(op["name"].toString() + "_overview", QJsonValue(w.ui->editOverview->toPlainText())) ;
+
+        } else if (kind == "edit_ok") {
+            // Opens the appointment edit path for an appointment, as Control-U does, on the given occurrence; the form's
+            // default button is pressed by the driver.  Records whether the edit path returned.
+            QString name = op["name"].toString() ;
+            for (const QJsonValue &v : op["froms"].toArray()) {
+                nextfroms.append(QDateTime::fromString(v.toString(), Qt::ISODate)) ;
+            }
+            Appointment &origin = w.calendar.getAppointmentBy(Appointment::Summary, op["summary"].toString()) ;
+            if (!origin.isNull()) {
+                w.calendar.selectAppointment(op.contains("occurrence") ? Calendar::occurrenceHint(origin.getField(Appointment::ID),
+                    QDateTime::fromString(op["occurrence"].toString(), Qt::ISODate)) : origin.getField(Appointment::ID)) ;
+                // Posted, as a menu item is: the form runs until it closes, and the operations after this one run meanwhile
+                // (a declined clash opens the form again, which a later operation closes)
+                Appointment copy = origin ;
+                QString occurrence = op["occurrence"].toString() ;
+                settleMs = 400 ;
+                QTimer::singleShot(0, &w, [&w, copy, occurrence, name]() mutable {
+                    w.editAppointment(copy, copy, QString(), false, occurrence) ;
+                    record(name + "_returned", QJsonValue(true)) ;     // written when the edit path has returned
+                    note("edit_ok " + name + " returned") ;
+                }) ;
+            }
+            note("edit_ok " + name + " started") ;
+
+        } else if (kind == "report_clashes") {
+            // Runs the check the window does when it opens, on demand
+            w.reportClashes() ;
+            note("report_clashes done") ;
+
+        } else if (kind == "answer") {
+            // Clicks the button with this text on the next dialog that asks a question
+            if (op.contains("key")) {
+                nextkey = op["key"].toString() ;
+                note("answer next question with key: " + nextkey) ;
+            } else {
+                nextanswer = op["text"].toString() ;
+                nextcheck = op["check"].toBool(false) ;
+                note("answer next question: " + nextanswer + (nextcheck ? " (checkbox ticked)" : "")) ;
+            }
+
+        } else if (kind == "exit") {
+            // File > Exit, or Alt-F4: the window's close event decides whether the window closes.  The event is sent
+            // without hiding the window, so the remaining operations still run.  Records whether it was accepted.
+            QString name = op["name"].toString() ;
+            QCloseEvent ev ;
+            QApplication::sendEvent(&w, &ev) ;
+            record(name + "_exit_accepted", ev.isAccepted()) ;
+            note("exit " + name + (ev.isAccepted() ? ": accepted" : ": refused")) ;
+
+        } else if (kind == "form_set") {
+            // Types into the form.  With "tidy" set, each entry is tidied as focus leaves it.
+            QJsonObject fields = op["fields"].toObject() ;
+            QMap<QString, QLineEdit*> entries = formEntries(w.ui) ;
+            for (auto it = fields.begin(); it != fields.end(); ++it) {
+                if (it.key() == "birthday") { w.ui->editDateOfBirth->setDateTime(xsDateToDateTime(it.value().toString())) ; continue ; }
+                if (!entries.contains(it.key())) { note("unknown form field: " + it.key()) ; continue ; }
+                entries[it.key()]->setText(it.value().toString()) ;
+            }
+            if (op["tidy"].toBool()) {
+                for (auto it = fields.begin(); it != fields.end(); ++it) {
+                    if (entries.contains(it.key())) w.tidyTitledEntry(entries[it.key()]) ;
+                }
+            }
+
+        } else if (kind == "form_save") {
+            // Saves the form as Control-S does, and records whether it was saved and which entry has focus
+            QString name = op["name"].toString() ;
+            bool saved = w.SaveContactTab() ;
+            QWidget *focus = w.focusWidget() ;     // the window's focus, which holds even when it is not the active window
+            record(name + "_saved", saved) ;
+            record(name + "_focus", focus ? focus->objectName() : QString()) ;
+            note(QString("form save %1: %2").arg(name).arg(saved ? "saved" : "refused")) ;
+
+        } else if (kind == "menu_save") {
+            // File > Save, then records what the named form entries show, to check that a refused entry keeps its text
+            QString name = op["name"].toString() ;
+            w.on_actionSave_triggered() ;
+            // Whether the details tab is showing, and which entry has focus, after the save
+            record(name + "_details", w.ui->tabBar->currentIndex() == CONTACTDETAILSTABPOS) ;
+            QWidget *focus = w.focusWidget() ;
+            record(name + "_focus", focus ? focus->objectName() : QString()) ;
+            QMap<QString, QLineEdit*> entries = formEntries(w.ui) ;
+            for (const QJsonValue &f : op["fields"].toArray()) {
+                QString field = f.toString() ;
+                if (entries.contains(field)) record(name + "_" + field, entries[field]->text()) ;
+            }
+            note("menu save " + name) ;
+
+        } else if (kind == "clear_selection") {
+            // What Tidy Contacts does before it reloads the form: the selection moves to the Overview
+            w.db.selectContact(SELECT_OVERVIEW) ;
+            w.populateDialog(SELECT_OVERVIEW, true) ;
+            note("clear_selection done") ;
+
+        } else if (kind == "merge_duplicates") {
+            // The automatic merge of Tidy Contacts: a pair that shares a name and an identifier, with no conflicting
+            // details, is merged.  Any other pair is left for the user, and only counted here.
+            QString name = op["name"].toString().isEmpty() ? QString("merge") : op["name"].toString() ;
+            int merged = 0, left = 0 ;
+            for (int i = 0; i < w.db.size(); i++) {
+                Contact &first = w.db.getContact(i) ;
+                if (first.isSet(Contact::Deleted) || w.db.isUnnamed(first)) continue ;
+                for (int j = i + 1; j < w.db.size(); j++) {
+                    if (first.isSet(Contact::Deleted)) break ;
+                    Contact &second = w.db.getContact(j) ;
+                    if (second.isSet(Contact::Deleted) || w.db.isUnnamed(second)) continue ;
+                    if (!w.db.isMergeCandidate(first, second)) continue ;
+                    Contact mergedcontact ;
+                    QList<MergeConflict> conflicts ;
+                    w.db.planMerge(first, second, mergedcontact, conflicts) ;
+                    if (conflicts.isEmpty() && w.db.isSafeToAutoMerge(first, second)) {
+                        w.db.applyMerge(first, second, mergedcontact) ;
+                        merged++ ;
+                    } else {
+                        left++ ;
+                    }
+                }
+            }
+            record(name + "_merged", merged) ;
+            record(name + "_left", left) ;
+            note(QString("%1: %2 merged automatically, %3 left").arg(name).arg(merged).arg(left)) ;
+
+        } else if (kind == "tidy_full") {
+            // Tidy Contacts, as the menu runs it.  Records the contact left loaded, and how many live contacts have the
+            // surname given, so a scenario can see a merge: the loaded contact must follow it.
+            QString name = op["name"].toString() ;
+            w.on_actionTidyContacts_triggered() ;
+            Contact &loaded = w.db.getSelected() ;
+            record(name + "_selected", loaded.getField(Contact::Surname)) ;
+            QString surname = op["surname"].toString() ;
+            int remaining = 0 ;
+            for (int i = 0; i < w.db.size(); i++) {
+                Contact &c = w.db.getContact(i) ;
+                if (!c.isSet(Contact::Deleted) && c.getField(Contact::Surname) == surname) remaining++ ;
+            }
+            record(name + "_remaining", remaining) ;
+            note(QString("tidy_full %1: %2 loaded, %3 remaining").arg(name).arg(loaded.getField(Contact::Surname)).arg(remaining)) ;
+
+        } else if (kind == "tidy_contacts") {
+            // The entry tidy step of Tidy Contacts, run on every contact
+            QString name = op["name"].toString().isEmpty() ? QString("tidy") : op["name"].toString() ;
+            int contactsChanged = 0 ;
+            QStringList unfixed ;
+            int changed = w.db.tidyEntries(contactsChanged, unfixed) ;
+            if (changed > 0) w.db.save() ;
+            QJsonArray lines ;
+            for (const QString &line : unfixed) lines.append(line) ;
+            record(name + "_changed", changed) ;
+            record(name + "_contacts", contactsChanged) ;
+            record(name + "_unfixed", lines) ;
+            note(QString("%1: %2 entries put right in %3 contacts, %4 not fixed").arg(name).arg(changed).arg(contactsChanged).arg(unfixed.size())) ;
+
+        } else if (kind == "keys") {
+            // Keys typed as a user types them, into the window with the focus: one shortcut ("Ctrl+Shift+N", "F9") or
+            // a sequence of them ("Alt+E, D").  Records the name of the window that has the focus afterwards.
+            QString name = op["name"].toString() ;
+            QKeySequence seq(op["sequence"].toString()) ;
+            QWidget *target = QApplication::focusWidget() ? QApplication::focusWidget() : (QWidget*)&w ;
+            // "window": the key goes to the open dialog itself, not to the control with the focus
+            if (op["target"].toString() == "window") target = QApplication::activeModalWidget() ? QApplication::activeModalWidget() : (QWidget*)&w ;
+            for (int i = 0; i < (int)seq.count(); i++) {
+                int combo = seq[i] ;
+                Qt::Key key = (Qt::Key)(combo & ~Qt::KeyboardModifierMask) ;
+                Qt::KeyboardModifiers mods = (Qt::KeyboardModifiers)(combo & Qt::KeyboardModifierMask) ;
+                QTest::keyClick(target, key, mods) ;
+                QTest::qWait(30) ;
+            }
+            record(name + "_focus", QJsonValue(QApplication::focusWidget() ? QApplication::focusWidget()->objectName() : QString())) ;
+
+        } else if (kind == "shortcut") {
+            // The action that the shortcut is bound to, found on the main window's menus, and whether it is enabled
+            QString name = op["name"].toString() ;
+            QKeySequence want(op["sequence"].toString()) ;
+            QString found ;
+            bool enabled = false ;
+            QAction *bound = nullptr ;
+            for (QAction *a : w.findChildren<QAction*>()) {
+                if (!a->shortcut().isEmpty() && a->shortcut() == want) { found = a->objectName() ; enabled = a->isEnabled() ; bound = a ; break ; }
+            }
+            record(name + "_action", QJsonValue(found)) ;
+            record(name + "_enabled", QJsonValue(enabled)) ;
+            // press: the driver cannot send a shortcut through the window system, so it runs the action the shortcut is bound
+            // to, as the shortcut would, when that action is enabled
+            // Posted, not called, as the menu operation does: an action that opens a dialog runs a nested event loop, and the
+            // next operation must start after this one returns, so it runs inside that loop.
+            if (op["press"].toBool(false)) {
+                bool ran = bound && enabled ;
+                if (ran) { settleMs = 400 ; QTimer::singleShot(0, bound, [bound]() { bound->trigger() ; }) ; }
+                record(name + "_pressed", QJsonValue(ran)) ;
+            }
+
+        } else if (kind == "menu") {
+            // An action by its object name: records its text and whether it is enabled, and triggers it when asked
+            QString name = op["name"].toString() ;
+            QAction *a = w.findChild<QAction*>(op["action"].toString()) ;
+            if (!a) { record(name + "_found", QJsonValue(false)) ; }
+            else {
+                record(name + "_found", QJsonValue(true)) ;
+                record(name + "_text", QJsonValue(a->text())) ;
+                record(name + "_enabled", QJsonValue(a->isEnabled())) ;
+                record(name + "_checked", QJsonValue(a->isCheckable() ? a->isChecked() : false)) ;
+                // Posted, not called: a dialog the action opens runs a nested event loop, and the next operation is only
+                // scheduled after this one returns, so it must be posted here, before the dialog can block (the step below)
+                if (op["trigger"].toBool() && a->isEnabled()) { settleMs = 400 ; QTimer::singleShot(0, a, [a]() { a->trigger() ; }) ; }
+            }
+
+        } else if (kind == "actions") {
+            // Enabled state of several actions by object name
+            QString name = op["name"].toString() ;
+            QJsonObject states ;
+            for (const QJsonValue &v : op["actions"].toArray()) {
+                QAction *a = w.findChild<QAction*>(v.toString()) ;
+                states.insert(v.toString(), a ? QJsonValue(a->isEnabled()) : QJsonValue(QString("missing"))) ;
+            }
+            record(name + "_states", states) ;
+
+        } else if (kind == "textcursor") {
+            // The cursor of a text box in the top window (or a visible window): its position, the text of its line, and any
+            // selection.  A search moves the cursor to the match, so the line shows where it landed.
+            QString name = op["name"].toString() ;
+            QWidget *top = QApplication::activeModalWidget() ? QApplication::activeModalWidget() : (QWidget*)&w ;
+            QWidget *c = top->findChild<QWidget*>(op["object"].toString(), Qt::FindChildrenRecursively) ;
+            if (!c) {
+                for (QWidget *tl : QApplication::topLevelWidgets())
+                    if (!c && tl->isVisible()) c = tl->findChild<QWidget*>(op["object"].toString(), Qt::FindChildrenRecursively) ;
+            }
+            QTextCursor cursor ;
+            if (auto *pte = qobject_cast<QPlainTextEdit*>(c)) cursor = pte->textCursor() ;
+            else if (auto *te = qobject_cast<QTextEdit*>(c)) cursor = te->textCursor() ;
+            record(name + "_found", QJsonValue(!cursor.isNull())) ;
+            record(name + "_position", QJsonValue(cursor.isNull() ? -1 : cursor.position())) ;
+            record(name + "_line", QJsonValue(cursor.isNull() ? QString() : cursor.block().text())) ;
+            record(name + "_selected", QJsonValue(cursor.isNull() ? QString() : cursor.selectedText())) ;
+
+        } else if (kind == "windows") {
+            // The titles of the visible windows other than the main window, for checks that a dialog or window is open
+            QString name = op["name"].toString() ;
+            QJsonArray titles ;
+            for (QWidget *tl : QApplication::topLevelWidgets()) {
+                if (tl == &w || !tl->isVisible() || tl->windowTitle().isEmpty()) continue ;
+                titles.append(tl->windowTitle()) ;
+            }
+            record(name + "_windows", titles) ;
+
+        } else if (kind == "dump") {
+            QJsonArray contacts ;
+            Contact probe ;
+            for (int i = 0; i < w.db.size(); i++) {
+                Contact &c = w.db.getContact(i) ;
+                QJsonObject obj ;
+                for (int r = 0; r < (int)Contact::NumberOfRecords; r++) {
+                    QString value = c.getField((Contact::ContactRecord)r) ;
+                    if (!value.isEmpty()) obj.insert(QString(probe.contactRecordName((Contact::ContactRecord)r)), value) ;
+                }
+                // The to-do list and the history, as the contact holds them (issue #105: notes files)
+                if (!c.getTodo().todoText.isEmpty()) obj.insert("todo", c.getTodo().todoText) ;
+                if (!c.getHistory().HistoryText.isEmpty()) obj.insert("history", c.getHistory().HistoryText) ;
+                // The flags the Google tests check (hidden and deleted contacts stay in the file, marked)
+                obj.insert("hidden", c.isSet(Contact::Hidden)) ;
+                obj.insert("deleted", c.isSet(Contact::Deleted)) ;
+                contacts.append(obj) ;
+            }
+            QJsonArray appointments ;
+            for (int i = 0; i < w.calendar.size(); i++) {
+                Appointment &appt = w.calendar.getAppointment(i) ;
+                QJsonObject obj ;
+                obj.insert("id", appt.getField(Appointment::ID)) ;
+                obj.insert("summary", appt.getField(Appointment::Summary)) ;
+                obj.insert("from", appt.getField(Appointment::From)) ;
+                obj.insert("to", appt.getField(Appointment::To)) ;
+                obj.insert("location", appt.getField(Appointment::Location)) ;
+                obj.insert("description", appt.getField(Appointment::Description)) ;
+                obj.insert("googlerecordid", appt.getField(Appointment::GoogleRecordId)) ;
+                obj.insert("for", appt.getField(Appointment::For)) ;
+                obj.insert("deleted", appt.isSet(Appointment::Deleted)) ;
+                obj.insert("repeat", appt.getField(Appointment::Repeat)) ;
+                obj.insert("repeatinterval", appt.getField(Appointment::RepeatInterval)) ;
+                obj.insert("repeatcount", appt.getField(Appointment::RepeatCount)) ;
+                obj.insert("repeatuntil", appt.getField(Appointment::RepeatUntil)) ;
+                obj.insert("readonly", appt.isSet(Appointment::InternetOwned)) ;
+                appointments.append(obj) ;
+            }
+            QJsonObject root ;
+            root.insert("contacts", contacts) ;
+            root.insert("appointments", appointments) ;
+            QString file = outdir + "/" + (op["file"].toString().isEmpty() ? QString("dump.json") : op["file"].toString()) ;
+            QFile f(file) ;
+            if (f.open(QIODevice::WriteOnly)) f.write(QJsonDocument(root).toJson()) ;
+            note("dumped " + file) ;
+
+        } else if (kind == "hold") {
+            holdDialogs = op["on"].toBool(true) ;
+            note(QString("hold %1").arg(holdDialogs ? "on" : "off")) ;
+
+        } else if (kind == "press") {
+            // Clicks the button with this text in the top dialog, or in the main window when no dialog is open
+            QString name = op["name"].toString() ;
+            QWidget *top = QApplication::activeModalWidget() ? QApplication::activeModalWidget() : (QWidget*)&w ;
+            bool pressed = false ;
+            for (QPushButton *b : top->findChildren<QPushButton*>()) {
+                if (b->isVisible() && b->text().replace("&", "") == op["button"].toString()) {
+                    // Clicked after this operation returns, so a dialog the click opens runs its own loop, and the next operation
+                    // runs inside it (the menu operation does the same)
+                    settleMs = 400 ;
+                    QTimer::singleShot(0, b, [b]() { b->click() ; }) ;
+                    pressed = true ;
+                    break ;
+                }
+            }
+            record(name + "_pressed", QJsonValue(pressed)) ;
+            note(QString("press %1 in %2: %3").arg(op["button"].toString(), top->windowTitle(), pressed ? "pressed" : "not found")) ;
+
+        } else if (kind == "widgets") {
+            // Records what the top window shows: its title, its class, and the named controls
+            QString name = op["name"].toString() ;
+            QWidget *top = QApplication::activeModalWidget() ? QApplication::activeModalWidget() : (QWidget*)&w ;
+            record(name + "_title", QJsonValue(top->windowTitle())) ;
+            record(name + "_class", QJsonValue(QString(top->metaObject()->className()))) ;
+            for (const QJsonValue &v : op["objects"].toArray()) {
+                QString obj = v.toString() ;
+                QWidget *c = top->findChild<QWidget*>(obj, Qt::FindChildrenRecursively) ;
+                if (!c) {
+                    // A window that is not modal (the appointment form, for one) is found among the visible windows
+                    for (QWidget *tl : QApplication::topLevelWidgets())
+                        if (!c && tl->isVisible()) c = tl->findChild<QWidget*>(obj, Qt::FindChildrenRecursively) ;
+                }
+                QString value = "MISSING" ;
+                if (c) {
+                    value = QString() ;
+                    if (auto *cb = qobject_cast<QCheckBox*>(c)) value = cb->isChecked() ? "true" : "false" ;
+                    else if (auto *rb = qobject_cast<QRadioButton*>(c)) value = rb->isChecked() ? "true" : "false" ;
+                    else if (auto *cmb = qobject_cast<QComboBox*>(c)) value = cmb->currentText() ;
+                    else if (auto *le = qobject_cast<QLineEdit*>(c)) value = le->text() ;
+                    else if (auto *te = qobject_cast<QTextEdit*>(c)) value = te->toPlainText() ;
+                    else if (auto *pte = qobject_cast<QPlainTextEdit*>(c)) value = pte->toPlainText() ;
+                    else if (auto *lb = qobject_cast<QLabel*>(c)) value = lb->text() ;
+                    else if (auto *pb = qobject_cast<QPushButton*>(c)) value = pb->text() ;
+                    else if (auto *sb = qobject_cast<QAbstractSpinBox*>(c)) value = sb->text() ;
+                    else if (auto *ded = qobject_cast<QDateTimeEdit*>(c)) value = ded->dateTime().toString(Qt::ISODate) ;
+                    record(name + "_" + obj + "_enabled", QJsonValue(c->isEnabled())) ;
+                    record(name + "_" + obj + "_visible", QJsonValue(c->isVisible())) ;
+                }
+                record(name + "_" + obj, QJsonValue(value)) ;
+            }
+            if (op["rows"].toBool(false)) {
+                // A list in the active dialog (File > Open, Global Find) is a line edit that holds its items: read those first
+                QWidget *scope = QApplication::activeModalWidget() ? QApplication::activeModalWidget() : (QWidget*)&w ;
+                // The active dialog first, then the other visible windows, and the main window last
+                LineEditNavigator *nav = nullptr ;
+                QList<QWidget*> scopes ;
+                scopes.append(scope) ;
+                for (QWidget *tl : QApplication::topLevelWidgets())
+                    if (tl->isVisible() && tl != scope && tl != (QWidget*)&w) scopes.append(tl) ;
+                scopes.append((QWidget*)&w) ;
+                for (QWidget *sc : scopes)
+                    for (LineEditNavigator *n : sc->findChildren<LineEditNavigator*>())
+                        if (!nav && n->size() > 0) nav = n ;
+                if (nav) {
+                    QJsonArray rows ;
+                    for (int r = 0; r < nav->size(); r++) rows.append(nav->itemText(r)) ;
+                    record(name + "_rows", rows) ;
+                    record(name + "_current", QJsonValue(nav->currentIndex())) ;
+                } else {
+                    QAbstractItemView *view = nullptr ;
+                    // A list in the active modal dialog (File > Open, Global Find) is the one the test is about
+                    if (QWidget *modal = QApplication::activeModalWidget())
+                        for (QAbstractItemView *v : modal->findChildren<QAbstractItemView*>())
+                            if (!view && v->model() && v->model()->rowCount() > 0) view = v ;
+                    if (!view) for (QWidget *tl : QApplication::topLevelWidgets()) {
+                        if (!tl->isVisible()) continue ;
+                        for (QAbstractItemView *v : tl->findChildren<QAbstractItemView*>()) {
+                            if (!v->isVisibleTo(tl)) continue ;
+                            if (v->hasFocus()) { view = v ; break ; }
+                            if (!view || (view->model() && view->model()->rowCount() == 0 && v->model() && v->model()->rowCount() > 0)) view = v ;
+                        }
+                        if (view && view->hasFocus()) break ;
+                    }
+                    QJsonArray rows ;
+                    int current = -1 ;
+                    if (view && view->model()) {
+                        for (int r = 0; r < view->model()->rowCount(); r++)
+                            rows.append(view->model()->index(r, 0).data(Qt::DisplayRole).toString()) ;
+                        current = view->currentIndex().row() ;
+                    }
+                    record(name + "_rows", rows) ;
+                    record(name + "_current", QJsonValue(current)) ;
+                }
+            }
+
+        } else if (kind == "set_widget") {
+            // Sets one control in the top window, as a user would type or tick it
+            QString name = op["name"].toString() ;
+            QWidget *top = QApplication::activeModalWidget() ? QApplication::activeModalWidget() : (QWidget*)&w ;
+            QWidget *c = top->findChild<QWidget*>(op["object"].toString(), Qt::FindChildrenRecursively) ;
+            bool done = false ;
+            if (c) {
+                if (op.contains("checked")) {
+                    if (auto *cb = qobject_cast<QCheckBox*>(c)) { cb->setChecked(op["checked"].toBool()) ; done = true ; }
+                    else if (auto *rb = qobject_cast<QRadioButton*>(c)) { rb->setChecked(op["checked"].toBool()) ; done = true ; }
+                }
+                if (op.contains("text")) {
+                    if (auto *le = qobject_cast<QLineEdit*>(c)) { le->setText(op["text"].toString()) ; done = true ; }
+                    else if (auto *te = qobject_cast<QTextEdit*>(c)) { te->setPlainText(op["text"].toString()) ; done = true ; }
+                    else if (auto *pte = qobject_cast<QPlainTextEdit*>(c)) { pte->setPlainText(op["text"].toString()) ; done = true ; }
+                }
+                if (op.contains("index")) {
+                    if (auto *cmb = qobject_cast<QComboBox*>(c)) { cmb->setCurrentIndex(op["index"].toInt()) ; done = true ; }
+                }
+                if (op.contains("text")) {
+                    if (auto *sb = qobject_cast<QAbstractSpinBox*>(c)) {
+                        if (QLineEdit *le = sb->findChild<QLineEdit*>()) le->setText(op["text"].toString()) ;
+                        sb->interpretText() ;        // the value the spin box keeps: text it refuses leaves the old value
+                        done = true ;
+                    }
+                }
+            }
+            record(name + "_set", QJsonValue(done)) ;
+            note(QString("set_widget %1: %2").arg(op["object"].toString(), done ? "set" : "not set")) ;
+
+        } else if (kind == "navigator_select") {
+            // Chooses the item of a LineEditNavigator (Setup's Identify Me, for one) whose text contains the text given, as a user picks it
+            QString name = op["name"].toString() ;
+            QWidget *top = QApplication::activeModalWidget() ? QApplication::activeModalWidget() : (QWidget*)&w ;
+            LineEditNavigator *nav = top->findChild<LineEditNavigator*>(op["object"].toString(), Qt::FindChildrenRecursively) ;
+            bool done = false ;
+            if (nav) {
+                for (int i = 0; i < nav->size(); i++) {
+                    if (nav->itemText(i).contains(op["contains"].toString())) { nav->setCurrentIndex(i) ; done = true ; break ; }
+                }
+            }
+            record(name + "_selected", QJsonValue(done)) ;
+            note(QString("navigator_select %1: %2").arg(op["object"].toString(), done ? "selected" : "not selected")) ;
+
+        } else if (kind == "range_key") {
+            // Presses a key in a date field with the cursor at a position in its text, as a user does (Up, Down)
+            QString name = op["name"].toString() ;
+            QWidget *top = QApplication::activeModalWidget() ? QApplication::activeModalWidget() : (QWidget*)&w ;
+            AccessibleDateRangeEdit *edit = top->findChild<AccessibleDateRangeEdit*>(op["object"].toString(), Qt::FindChildrenRecursively) ;
+            if (edit) {
+                Qt::Key key = (Qt::Key)(QKeySequence(op["key"].toString())[0] & ~Qt::KeyboardModifierMask) ;
+                edit->setFocus() ;
+                edit->setCursorPosition(op["pos"].toInt()) ;
+                QTest::keyClick(edit, key) ;
+                QTest::qWait(30) ;
+            }
+            record(name + "_done", QJsonValue(edit != nullptr)) ;
+
+        } else if (kind == "range_state") {
+            // Records the text and the duration (minutes) of each date field in the top window
+            QString name = op["name"].toString() ;
+            QWidget *top = QApplication::activeModalWidget() ? QApplication::activeModalWidget() : (QWidget*)&w ;
+            for (const QJsonValue &v : op["objects"].toArray()) {
+                QString obj = v.toString() ;
+                AccessibleDateRangeEdit *edit = top->findChild<AccessibleDateRangeEdit*>(obj, Qt::FindChildrenRecursively) ;
+                record(name + "_" + obj + "_text", QJsonValue(edit ? edit->text() : QString("MISSING"))) ;
+                record(name + "_" + obj + "_duration", QJsonValue(edit ? edit->getDuration() : -2)) ;
+            }
+
+        } else if (kind == "focus_on") {
+            // Gives the keyboard focus to a control, as a click or Tab would, in the top window or a visible one
+            QWidget *top = QApplication::activeModalWidget() ? QApplication::activeModalWidget() : (QWidget*)&w ;
+            QString obj = op["object"].toString() ;
+            QWidget *c = top->findChild<QWidget*>(obj, Qt::FindChildrenRecursively) ;
+            if (!c) for (QWidget *tl : QApplication::topLevelWidgets()) if (!c && tl->isVisible()) c = tl->findChild<QWidget*>(obj, Qt::FindChildrenRecursively) ;
+            if (c) c->setFocus() ;
+            note(QString("focus_on %1: %2").arg(obj, c ? "focused" : "not found")) ;
+
+        } else if (kind == "menus") {
+            // The menu bar, every item with its depth and whether it is enabled (accessibility: names and mnemonics)
+            QJsonArray items ;
+            listMenuActions(w.menuBar()->actions(), 0, items) ;
+            record(op["name"].toString() + "_menus", items) ;
+
+        } else if (kind == "tabs") {
+            // The names of the main window's tabs, in order (accessibility: each tab is named, with its Alt key)
+            QJsonArray tabs ;
+            for (int i = 0; i < w.ui->tabBar->count(); i++) tabs.append(w.ui->tabBar->tabText(i)) ;
+            record(op["name"].toString() + "_tabs", tabs) ;
+
+        } else if (kind == "controls") {
+            // The controls a user reaches with Tab, in the top window (or the main window), and their names
+            QString name = op["name"].toString() ;
+            QWidget *top = (op["scope"].toString() == "main" || !QApplication::activeModalWidget())
+                           ? (QWidget*)&w : QApplication::activeModalWidget() ;
+            QJsonArray items ;
+            for (QWidget *c : top->findChildren<QWidget*>()) {
+                if (!c->isVisible() || !(int(c->focusPolicy()) & int(Qt::TabFocus))) continue ;
+                QString label = c->accessibleName() ;
+                if (label.isEmpty()) {
+                    QAccessibleInterface *iface = QAccessible::queryAccessibleInterface(c) ;
+                    if (iface) label = iface->text(QAccessible::Name) ;
+                }
+                QJsonObject o ;
+                o.insert("object", c->objectName()) ;
+                o.insert("class", QString(c->metaObject()->className())) ;
+                o.insert("name", label) ;
+                items.append(o) ;
+            }
+            record(name + "_controls", items) ;
+
+        } else if (kind == "focus") {
+            // Where the keyboard focus is, the window it is in, the dialog that is open (if any), and the calendar row
+            QString name = op["name"].toString() ;
+            QWidget *f = QApplication::focusWidget() ;
+            QWidget *modal = QApplication::activeModalWidget() ;
+            record(name + "_focus", QJsonValue(f ? f->objectName() : QString())) ;
+            record(name + "_focusclass", QJsonValue(f ? QString(f->metaObject()->className()) : QString())) ;
+            record(name + "_focuswindow", QJsonValue(f ? f->window()->windowTitle() : QString())) ;
+            record(name + "_modal", QJsonValue(modal ? modal->windowTitle() : QString())) ;
+            record(name + "_focus_in_modal", QJsonValue(f && modal ? (f->window() == modal) : false)) ;
+            record(name + "_row", QJsonValue(w.ui->listCalendar->currentIndex().row())) ;
+            // The control the main window would give the focus to, when no window is active (the application focus is empty then)
+            QWidget *mf = w.focusWidget() ;
+            record(name + "_window_focus", QJsonValue(mf ? mf->objectName() : QString())) ;
+            // The control that has the focus inside the dialog that is open, and the class of that control
+            QWidget *mdf = modal ? modal->focusWidget() : nullptr ;
+            record(name + "_modal_focus", QJsonValue(mdf ? mdf->objectName() : QString())) ;
+            record(name + "_modal_focusclass", QJsonValue(mdf ? QString(mdf->metaObject()->className()) : QString())) ;
+
+        } else if (kind == "acc_rows") {
+            // The accessible text of each calendar entry, as a screen reader reads it
+            QJsonArray rows ;
+            for (int r = 0; r < w.calendarlist.rowCount(); r++)
+                rows.append(w.calendarlist.data(w.calendarlist.index(r, 0), Qt::AccessibleTextRole).toString()) ;
+            record(op["name"].toString() + "_rows", rows) ;
+
+        } else {
+            note("unknown operation: " + kind) ;
+        }
+
+        QTimer::singleShot(settleMs, &a, step) ;
+        settleMs = 0 ;
+    } ;
+    QTimer::singleShot(3000, &a, step) ;
+
+    QTimer::singleShot(240 * 60 * 1000, &a, &QApplication::quit) ;     // safety net
+
+    int result = a.exec() ;
+    note("driver exited") ;
+    return result ;
+}

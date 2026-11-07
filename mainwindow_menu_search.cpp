@@ -408,7 +408,7 @@ void MainWindow::on_actionSearch_EmailSMSToNonClients_triggered()
       Contact &contact = db.getContact(i) ;
       if ( (!contact.isSet(Contact::Deleted) && !contact.isSet(Contact::Hidden))
             && (contact.isSet(Contact::EmailMe) || contact.isSet(Contact::TextMe))
-           && contact.isSet(Contact::GroupClient)) {
+           && !contact.isSet(Contact::GroupClient)) {
           QString ContactName = contact.getFormattedName(true, true) ;
           QString id = contact.getField(Contact::ID) ;
           srch->addString(ContactName, id) ;

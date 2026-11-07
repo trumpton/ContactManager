@@ -1,9 +1,25 @@
 #include "mainwindow.h"
 #include <QDir>
+#include <QFileInfo>
+#include <QProcess>
 #include <algorithm>
 
 // Number of backup archives to keep, the newest ones
 static const int backupsToKeep = 2 ;
+
+// Makes the archive and waits for zip to finish, so the file is there when this returns.  zip's own helper starts zip and
+// lets the process object be deleted at once, which stops zip before it has written anything.  True when the file exists.
+static bool makeArchive(QString databasepath, QString filename)
+{
+    QStringList args ;
+    args << "-r" << "-q" << filename << databasepath + "/contact" << databasepath + "/calendar" ;
+
+    QProcess zipper ;
+    zipper.start("zip", args) ;
+    if (!zipper.waitForStarted()) return false ;
+    zipper.waitForFinished(-1) ;
+    return QFileInfo::exists(filename) ;
+}
 
 // Backups are named <sequence>-<yyyymmdd>-backup.zip, so the sequence number gives their order
 static void removeOldBackups(QString archivepath)
@@ -45,8 +61,16 @@ void MainWindow::doBackup()
 
     msg("Backing up ....") ;
 
+    // The backup folder may not exist yet (a new data folder): zip cannot write its archive into a folder that is not there
+    QDir().mkpath(archivepath) ;
+
     QString filename = archivepath + QString::number(seq) + "-" + nowdate + "-backup.zip" ;
-    zip(databasepath, filename) ;
+    if (!makeArchive(databasepath, filename)) {
+        // The date is not recorded, so the next start tries again
+        addLog("BACKUP FAILED: " + filename + " could not be written, so no backup is made. Check the backup folder is writable.") ;
+        msg("Backup failed.") ;
+        return ;
+    }
 
     gConf->setBackupDate(nowdate) ;
     gConf->setBackupSequence(seq+1) ;

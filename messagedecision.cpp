@@ -1,6 +1,7 @@
 #include "messagedecision.h"
 #include <QtGlobal>
 #include <QStringList>
+#include <QRegularExpression>
 
 QList<MessageStep> decideMessages(const MessageState &s)
 {
@@ -20,30 +21,34 @@ QList<MessageStep> decideMessages(const MessageState &s)
     // on-the-day text, not a confirmation.  Its email is still the confirmation.
     bool latefirstonday = !s.messagesent && s.onthisday && s.createdbeforeday ;
 
+    // A kind that has been given up on is skipped, so the messages after it (the reminder and the on-the-day ones) are
+    // still decided.  A kind still being retried is not skipped: it holds back the others until it is sent or given up.
+    auto gaveUp = [&](const QString &kind) { return s.givenup.contains(kind) ; } ;
+
     // A confirmation or update, a cancellation, or a reminder.  A contact with both email and text is sent email for these.
-    if (s.emailme && !s.deleted && !s.messagesent) {
+    if (s.emailme && !s.deleted && !s.messagesent && !gaveUp("confirm")) {
         add("confirm", true, s.confirmonly, s.occurrence) ;
     }
-    else if (s.textme && !s.emailme && !s.deleted && !s.messagesent && !latefirstonday) {
+    else if (s.textme && !s.emailme && !s.deleted && !s.messagesent && !latefirstonday && !gaveUp("confirm")) {
         add("confirm", false, s.confirmonly, s.occurrence) ;
     }
-    else if (s.emailme && !s.deleted && s.changed) {
+    else if (s.emailme && !s.deleted && s.changed && !gaveUp("update")) {
         add("update", true, s.confirmonly, s.occurrence) ;
     }
-    else if (s.textme && !s.emailme && !s.deleted && s.changed) {
+    else if (s.textme && !s.emailme && !s.deleted && s.changed && !gaveUp("update")) {
         add("update", false, s.confirmonly, s.occurrence) ;
     }
-    else if (s.emailme && s.deleted && s.messagesent) {
+    else if (s.emailme && s.deleted && s.messagesent && !gaveUp("cancel")) {
         add("cancel", true, false, s.occurrence) ;
     }
-    else if (s.textme && !s.emailme && s.deleted && s.messagesent) {
+    else if (s.textme && !s.emailme && s.deleted && s.messagesent && !gaveUp("cancel")) {
         add("cancel", false, false, s.occurrence) ;
     }
     // A reminder is not sent for an occurrence on today's date: the on-the-day messages take its place
-    else if (s.textme && !s.emailme && !s.deleted && s.istime && !s.remindersent && !s.onthisday) {
+    else if (s.textme && !s.emailme && !s.deleted && s.istime && !s.remindersent && !s.onthisday && !gaveUp("reminder")) {
         add("reminder", false, true, s.occurrence) ;
     }
-    else if (s.emailme && !s.deleted && s.istime && !s.remindersent && !s.onthisday) {
+    else if (s.emailme && !s.deleted && s.istime && !s.remindersent && !s.onthisday && !gaveUp("reminder")) {
         add("reminder", true, true, s.occurrence) ;
     }
 
@@ -166,4 +171,19 @@ bool smsKeyDueSoon(const QDate &expiry, const QDate &today)
 bool sendWasMade(int result)
 {
     return result==1 || result==-4 ;
+}
+
+// The test code: two to four capital letters, a hyphen and three digits, at the start of the summary
+QString testCodeOf(const QString &summary)
+{
+    static const QRegularExpression code("^([A-Z]{2,4}-[0-9]{3})(\\s|$)") ;
+    QRegularExpressionMatch m = code.match(summary.trimmed()) ;
+    return m.hasMatch() ? m.captured(1) : QString() ;
+}
+
+QString replaceTestTag(const QString &text, const QString &code)
+{
+    QString result = text ;
+    result.replace("$TESTTAG", code) ;
+    return result ;
 }

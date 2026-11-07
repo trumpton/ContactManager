@@ -84,7 +84,11 @@ bool ContactDatabase::load()
 
         filename = files.at(i) ;
         filename = filename.replace(".contact","").replace(".zcontact","") ;
-        di.load(gContactSavePath, filename) ;
+        if (!di.load(gContactSavePath, filename)) {
+            // Not a readable contact: it is not loaded, and its file is left as it is
+            addLog("Contact file " + filename + " could not be read, so it is not loaded and is left as it is") ;
+            continue ;
+        }
 
         // TODO: Need to remove googlerecordid if entry no longer on google
         if (di.isSet(Contact::Deleted) && di.getField(Contact::GoogleRecordId).isEmpty()) {
@@ -769,6 +773,7 @@ bool ContactDatabase::save()
     sort() ;
     bool success=true ;
     int sz = size() ;
+    int failed = 0 ;
 
 
     if (sz>0) {
@@ -790,7 +795,10 @@ bool ContactDatabase::save()
             else if (i>=(sz-1)) j=1 ;
             else j=0 ;
 
-            success |= getContact(i).save(gContactSavePath) ;
+            if (!getContact(i).save(gContactSavePath)) {
+                success = false ;
+                failed++ ;
+            }
 
             if (gConf->debugGoogleEnabled()) {
                 saveIndex(j, gContactSavePath, getContact(i).getField(Contact::ID),
@@ -800,6 +808,10 @@ bool ContactDatabase::save()
                       getContact(i).getField(Contact::Address)) ;
             }
         }
+    }
+    if (failed>0) {
+        addLog(QString("SAVE FAILED: %1 of %2 contacts could not be written to %3, so their changes are not stored. Check the data folder is writable.")
+               .arg(failed).arg(sz).arg(gContactSavePath)) ;
     }
     return success ;
 }

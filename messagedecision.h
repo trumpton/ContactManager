@@ -5,6 +5,7 @@
 #include <QDateTime>
 #include <QList>
 #include <QString>
+#include <QStringList>
 #include <QTime>
 
 // What is known about an appointment at one check of the send loop.  The decision does not read the clock or the settings:
@@ -25,6 +26,8 @@ struct MessageState {
     bool emaildone ;            // the on-the-day email has gone today, or a confirmation or update by email has given it
     bool smsdone ;              // the on-the-day text has gone today, or a confirmation or update by text has given it
     QDateTime occurrence ;      // the occurrence the messages are about
+    QStringList givenup ;       // the kinds (confirm, update, cancel, reminder) given up on after their maximum tries: they are
+                                // not decided again, so they do not hold back the other messages (the on-the-day ones too)
 } ;
 
 // One message to send.  kind is confirm, update, cancel, reminder, cancelocc (a removed occurrence) or onday.
@@ -88,5 +91,11 @@ bool sendWasMade(int result) ;
 // The on-the-day record of an appointment: the day, then the channels sent that day, e.g. "2026-10-30 email sms"
 bool dayChannelSent(const QString &record, const QString &day, const QString &channel) ;
 QString dayChannelRecord(const QString &record, const QString &day, const QString &channel) ;
+
+// Test builds only (see loadMessage, and CM_TEST_MESSAGE_TAGS).  The test code at the start of an appointment's summary,
+// "AN-017 ..." gives "AN-017"; empty when the summary does not start with one.
+QString testCodeOf(const QString &summary) ;
+// Puts the test code in place of $TESTTAG in a message.  Other text is unchanged.
+QString replaceTestTag(const QString &text, const QString &code) ;
 
 #endif // MESSAGEDECISION_H

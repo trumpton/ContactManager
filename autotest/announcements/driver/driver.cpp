@@ -1,17 +1,17 @@
 //
-// Headless driver for the Google bench (autotest/archive/google_bench.py).
+// Headless driver for the announcements bench (autotest/announcements).
 //
-// Starts ContactManager without its single-instance check, runs the operations in a JSON file in order,
-// and writes a dump of the local contacts and appointments.  Dialogs are answered as the headless driver
-// answers them: the encryption key and login use CM_TEST_SECRET, every other dialog takes its default.
+// Starts ContactManager without its single-instance check, runs the operations in a JSON file in order, and writes a dump
+// of the local contacts and appointments.  Dialogs are answered as the headless driver answers them: the encryption key and
+// login use CM_TEST_SECRET, every other dialog takes its default.  Each dialog's title is written to driver.log, so a test
+// can check that a warning appeared.
 //
-// Test builds only.  The main window's private members are reached with '#define private public', which
-// must not be used in the application itself.
+// Test builds only.  The main window's private members are reached with '#define private public', which must not be used
+// in the application itself.
 //
-// usage: sync_driver <outdir> <operations.json>
-//
-// Superset of bench_driver.cpp: adds the operations the local-file checks use (listdir, paths, dumplog, setting,
-// wait, key and the list-navigation operations).  Built by build_driver.sh.
+// usage: driver <outdir> <operations.json>
+// A copy of the Google bench's driver (autotest/googlesync/driver), which has the operations the announcement tests use.
+// The bench's own copy is kept here so that the two benches can change separately.  Built by build_driver.sh.
 //
 #include <QApplication>
 #include <QLabel>
@@ -305,6 +305,15 @@ int main(int argc, char *argv[])
         QString text ;
         if (auto *box = qobject_cast<QMessageBox*>(m)) text = box->text() ;
         note(QString("dialog %1 \"%2\": %3").arg(m->metaObject()->className(), m->windowTitle(), text)) ;
+        // A fresh data folder has no key: the operation-test runner sets CM_TEST_SETKEY, and the question that offers to
+        // set the key is then answered Yes (the key and password are then entered by the Encryption dialog, above)
+        if (!qgetenv("CM_TEST_SETKEY").isEmpty() && text.startsWith("You have failed to login")) {
+            if (QPushButton *yes = m->findChild<QPushButton*>()) {
+                for (QPushButton *pb : m->findChildren<QPushButton*>()) if (pb->text().contains("Yes")) yes = pb ;
+                yes->click() ;
+                return ;
+            }
+        }
         QPushButton *b = defaultButton(m) ;
         if (b) b->click() ;
         else m->close() ;
@@ -921,6 +930,65 @@ int main(int argc, char *argv[])
             record(name + "_unfixed", lines) ;
             note(QString("%1: %2 entries put right in %3 contacts, %4 not fixed").arg(name).arg(changed).arg(contactsChanged).arg(unfixed.size())) ;
 
+        } else if (kind == "keys") {
+            // Keys typed as a user types them, into the window with the focus: one shortcut ("Ctrl+Shift+N", "F9") or
+            // a sequence of them ("Alt+E, D").  Records the name of the window that has the focus afterwards.
+            QString name = op["name"].toString() ;
+            QKeySequence seq(op["sequence"].toString()) ;
+            QWidget *target = QApplication::focusWidget() ? QApplication::focusWidget() : (QWidget*)&w ;
+            for (int i = 0; i < (int)seq.count(); i++) {
+                int combo = seq[i] ;
+                Qt::Key key = (Qt::Key)(combo & ~Qt::KeyboardModifierMask) ;
+                Qt::KeyboardModifiers mods = (Qt::KeyboardModifiers)(combo & Qt::KeyboardModifierMask) ;
+                QTest::keyClick(target, key, mods) ;
+                QTest::qWait(30) ;
+            }
+            record(name + "_focus", QJsonValue(QApplication::focusWidget() ? QApplication::focusWidget()->objectName() : QString())) ;
+
+        } else if (kind == "shortcut") {
+            // The action that the shortcut is bound to, found on the main window's menus, and whether it is enabled
+            QString name = op["name"].toString() ;
+            QKeySequence want(op["sequence"].toString()) ;
+            QString found ;
+            bool enabled = false ;
+            for (QAction *a : w.findChildren<QAction*>()) {
+                if (!a->shortcut().isEmpty() && a->shortcut() == want) { found = a->objectName() ; enabled = a->isEnabled() ; break ; }
+            }
+            record(name + "_action", QJsonValue(found)) ;
+            record(name + "_enabled", QJsonValue(enabled)) ;
+
+        } else if (kind == "menu") {
+            // An action by its object name: records its text and whether it is enabled, and triggers it when asked
+            QString name = op["name"].toString() ;
+            QAction *a = w.findChild<QAction*>(op["action"].toString()) ;
+            if (!a) { record(name + "_found", QJsonValue(false)) ; }
+            else {
+                record(name + "_found", QJsonValue(true)) ;
+                record(name + "_text", QJsonValue(a->text())) ;
+                record(name + "_enabled", QJsonValue(a->isEnabled())) ;
+                if (op["trigger"].toBool() && a->isEnabled()) a->trigger() ;
+            }
+
+        } else if (kind == "actions") {
+            // Enabled state of several actions by object name
+            QString name = op["name"].toString() ;
+            QJsonObject states ;
+            for (const QJsonValue &v : op["actions"].toArray()) {
+                QAction *a = w.findChild<QAction*>(v.toString()) ;
+                states.insert(v.toString(), a ? QJsonValue(a->isEnabled()) : QJsonValue(QString("missing"))) ;
+            }
+            record(name + "_states", states) ;
+
+        } else if (kind == "windows") {
+            // The titles of the visible windows other than the main window, for checks that a dialog or window is open
+            QString name = op["name"].toString() ;
+            QJsonArray titles ;
+            for (QWidget *tl : QApplication::topLevelWidgets()) {
+                if (tl == &w || !tl->isVisible() || tl->windowTitle().isEmpty()) continue ;
+                titles.append(tl->windowTitle()) ;
+            }
+            record(name + "_windows", titles) ;
+
         } else if (kind == "dump") {
             QJsonArray contacts ;
             Contact probe ;
@@ -934,6 +1002,9 @@ int main(int argc, char *argv[])
                 // The to-do list and the history, as the contact holds them (issue #105: notes files)
                 if (!c.getTodo().todoText.isEmpty()) obj.insert("todo", c.getTodo().todoText) ;
                 if (!c.getHistory().HistoryText.isEmpty()) obj.insert("history", c.getHistory().HistoryText) ;
+                // The flags the Google tests check (hidden and deleted contacts stay in the file, marked)
+                obj.insert("hidden", c.isSet(Contact::Hidden)) ;
+                obj.insert("deleted", c.isSet(Contact::Deleted)) ;
                 contacts.append(obj) ;
             }
             QJsonArray appointments ;
@@ -947,6 +1018,7 @@ int main(int argc, char *argv[])
                 obj.insert("location", appt.getField(Appointment::Location)) ;
                 obj.insert("description", appt.getField(Appointment::Description)) ;
                 obj.insert("googlerecordid", appt.getField(Appointment::GoogleRecordId)) ;
+                obj.insert("for", appt.getField(Appointment::For)) ;
                 obj.insert("deleted", appt.isSet(Appointment::Deleted)) ;
                 obj.insert("readonly", appt.isSet(Appointment::InternetOwned)) ;
                 appointments.append(obj) ;

@@ -75,6 +75,7 @@ public:
 
     bool SetupForm(ContactDatabase *db, GoogleAccess *ga) ;
     bool SaveForm() ;
+    void accept() override ;
 
     // INI File Access Functions
     QString &getDatabasePath() ;

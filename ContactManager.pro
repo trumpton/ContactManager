@@ -119,7 +119,6 @@ SOURCES += main.cpp\
     googleaccess_updatecontactgroups.cpp \
     googleaccess_getcontact.cpp \
     advancedfind.cpp \
-    mainwindow_test.cpp \
     ../Lib/accessiblestringlistmodel.cpp \
     safesave.cpp
 
@@ -196,4 +195,4 @@ OTHER_FILES += \
     icon.rc
 
 DISTFILES += \
-    ___TODO___.txt
+    todo.txt

@@ -365,6 +365,12 @@ bool Contact::load(QString path, QString idname)
         }
     }
 
+    // Text with no label=value line is not a contact file: it is not loaded, and the caller reports it
+    if (isempty && !data.contains('=')) {
+        dbg(QString("Contact file %1 has no label=value lines, so it cannot be read").arg(idname)) ;
+        return false ;
+    }
+
     // Loading is not a change, so the timestamp is the one that was saved (empty for a file that has none)
     filedata[Contact::Updated] = loadedUpdated ;
 

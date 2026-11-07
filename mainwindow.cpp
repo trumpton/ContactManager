@@ -113,6 +113,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
          }
      }
 
+    // The Key and Password items follow the login state, from the start
+    refreshPasswordMenu() ;
+
     // Load the local data
     dbg("Loading database and calendar") ;
     db.load() ;
@@ -692,7 +695,9 @@ bool MainWindow::SaveTabs(bool explicitsave)
     SaveCalendarTab();
     bool contactsaved = SaveContactTab(explicitsave) ;
     LoadOverviewTab() ;
-    db.save() ;
+    if (!db.save() && explicitsave) {
+        warningOkDialog(this, "Save Failed", "Some contacts could not be saved, so their changes are not stored. Check that the data folder is writable.") ;
+    }
     calendar.save() ;
     return contactsaved ;
 }
@@ -1258,7 +1263,7 @@ void MainWindow::on_actionGotoJournal_triggered()
 // Tick triggered every second
 void MainWindow::tick()
 {
-    static int everyhour=1800 ; // First backup occurs in 30 minutes
+    static int everyhour=3600-300 ; // First backup occurs in 5 minutes, then every hour
     static int everyday=86400 ;
 
     if ((++everyhour)>=3600) {
@@ -1424,15 +1429,18 @@ void MainWindow::on_actionNewContact_triggered()
 void MainWindow::on_actionSetEncryptionKey_triggered()
 {
     if (enc) enc->setKey();
+    refreshPasswordMenu() ;
 }
 
 void MainWindow::on_actionChangePassword_triggered()
 {
     if (enc) enc->changePassword();
+    refreshPasswordMenu() ;
 }
 
 void MainWindow::on_actionLogout_triggered()
 {
     if (enc) enc->logout();
+    refreshPasswordMenu() ;
 }
 

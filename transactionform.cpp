@@ -1,5 +1,6 @@
 #include "transactionform.h"
 #include "ui_transactionform.h"
+#include "../Lib/supportfunctions.h"
 
 TransactionForm::TransactionForm(QWidget *parent) :
     QDialog(parent),
@@ -52,4 +53,15 @@ QString& TransactionForm::getDescription()
     return res ;
 }
 
-
+// The amount must be a number (such as 12.50) before the form is accepted; otherwise the form stays open and says why
+void TransactionForm::accept()
+{
+    bool isnumber = false ;
+    ui->lineEditAmount->text().trimmed().toDouble(&isnumber) ;
+    if (!isnumber) {
+        warningOkDialog(this, "Amount", "The amount must be a number, such as 12.50.") ;
+        ui->lineEditAmount->setFocus() ;
+        return ;
+    }
+    QDialog::accept() ;
+}

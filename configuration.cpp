@@ -7,6 +7,8 @@
 #include "../Lib/supportfunctions.h"
 #include "../Lib/iniconfig.h"
 
+#include <QAbstractSpinBox>
+#include <QLineEdit>
 #include <QStandardPaths>
 #include <QRegularExpression>
 
@@ -48,6 +50,12 @@ Configuration::Configuration(QWidget *parent) :
     settingDatabaseMaster = ContactManagerMaster ;
 
     ui->setupUi(this);
+
+    // Spin and date boxes read through their internal line edit, which needs the same name
+    for (QAbstractSpinBox *spin : findChildren<QAbstractSpinBox *>())
+        for (QLineEdit *edit : spin->findChildren<QLineEdit *>())
+            edit->setAccessibleName(spin->accessibleName()) ;
+
     settings = new QSettings("trumpton.org.uk", "ContactManager");
 
     // Load INI file from Data directory, TrumptonApps directory, otherwise application directory
@@ -158,6 +166,18 @@ bool Configuration::SetupForm(ContactDatabase *currentdatabase, GoogleAccess *ga
     googleRefreshToken = settings->value("googlerefreshtoken").toString() ;
 
     return true ;
+}
+
+// Setup stays open while the SMS key expiry is not a day/month/year date (or blank), and nothing is stored
+void Configuration::accept()
+{
+    QString keyexpiry = ui->smsKeyExpiry->text().trimmed() ;
+    if (!keyexpiry.isEmpty() && !parseExpiryDate(keyexpiry).isValid()) {
+        warningOkDialog(this, "SMS API key expiry", "The expiry date must be day/month/year, for example 25/01/2035, or left blank.") ;
+        ui->smsKeyExpiry->setFocus() ;
+        return ;
+    }
+    QDialog::accept() ;
 }
 
 bool Configuration::SaveForm()
