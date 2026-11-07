@@ -203,28 +203,28 @@ SS-004,2026-11-06 19:35,9283d87,PASS,~30.0 s?,,
 SS-005,2026-11-07 09:29,8c0d098,PASS,9.000 s,,The clash dialog's title was not read from driver lines that start with a time; fixed in the bench.
 SS-006,2026-11-06 19:36,9283d87,PASS,~30.0 s?,,
 SS-007,2026-11-07 09:29,8c0d098,PASS,10.0 s,,The program's log was not saved into the run folder; dumplog now writes there (it had written to the repository root).
-SS-008,2026-11-07 10:21,8c0d098,FAIL,,"Program: no backup zip was written. Likely causes: the backup folder is never created, and zip runs in a QProcess that is deleted straight away (which stops it). mainwindow_timer_backup.cpp now makes the folder and waits for zip; not yet re-run, so the cause is not confirmed.",
+SS-008,2026-11-07 11:10,8582de9,PASS,22.5 m,,
 SS-009,2026-11-06 19:37,9283d87,PASS,~30.0 s?,,
 SS-010,2026-11-06 19:37,9283d87,PASS,~30.0 s?,,
-SS-011,2026-11-07 10:21,8a6b339,PASS,10.0 s,,
+SS-011,2026-11-07 11:32,8582de9,PASS,10.0 s,,
 SS-012,2026-11-07 09:30,8c0d098,PASS,6.000 s,,The program's warning text was not recorded; the driver now reads the text of its own warning boxes.
-SS-013,2026-11-07 09:22,8c0d098,FAIL,,"Program: when the data folder is read-only, Save does not stop or report the failure. ContactDatabase::save fails and its caller (mainwindow.cpp, db.save()) ignores the result, so no error is shown. The stored data is not lost.","Run as the user cmtest, not root, after the read-only folder was set with chmod at the end of the first run."
+SS-013,2026-11-07 11:33,8582de9,FAIL,14.0 s,,"Run as root, so the read-only folder is writable and the save is not refused: no failure to report. The readme lists SS-013 as BLOCKED under root, but the bench does not block it yet. Run as cmtest."
 SS-014,2026-11-06 19:37,9283d87,PASS,~30.0 s?,,
 SS-015,2026-11-06 19:37,9283d87,PASS,~30.0 s?,,
 MF-001,2026-11-06 20:23,b09408e,PASS,~30.0 s?,,
-MF-002,2026-11-06 20:28,974607e,FAIL,,,"Needs checking: the saved email is read back, and the expected value is not confirmed."
+MF-002,2026-11-07 11:33,8582de9,PASS,11.0 s,,
 MF-003,2026-11-06 19:38,9283d87,PASS,~30.0 s?,,
 MF-004,2026-11-06 19:38,9283d87,PASS,~30.0 s?,,
-MF-005,2026-11-06 20:28,974607e,FAIL,,"Needs checking: after importing an export, the deleted contact is back, and the list holds duplicates.",
-MF-006,2026-11-06 20:28,974607e,FAIL,,,"Needs checking: the saved email is read back, and the check result is not confirmed."
-MF-007,2026-11-06 20:28,974607e,FAIL,,Needs checking: the Key and Password items do not change with the login state (Set Encryption Key and Change Password stay on; Logout is on when logged out).,
+MF-005,2026-11-07 11:33,8582de9,FAIL,17.0 s,"After the import, the contact deleted before it is not back in the list. Not yet diagnosed: the program or the bench.",
+MF-006,2026-11-07 11:33,8582de9,FAIL,10.0 s,,"The edit is saved (that check passes), but the summary is not in the log, so its check fails. The summary window is not read yet; not diagnosed."
+MF-007,2026-11-07 11:34,8582de9,PASS,10.0 s,,
 MF-008,2026-11-06 19:39,9283d87,PASS,~30.0 s?,,
 MF-009,2026-11-06 19:39,9283d87,PASS,~30.0 s?,,
 MF-010,,,NOT RUN,,,"Skipped: deleted and hidden contacts are skipped in this scenario (ticket #123, https://github.com/trumpton/ContactManager/issues/123)."
 MF-011,2026-11-06 19:39,9283d87,PASS,~30.0 s?,,
 MF-012,2026-11-06 19:40,9283d87,PASS,~30.0 s?,,
 MF-013,2026-11-06 19:40,9283d87,PASS,~30.0 s?,,
-MF-014,2026-11-06 20:28,974607e,FAIL,,"Needs checking: Find Next visits rows 1, 2 and then 0, not in order through the matches.",
+MF-014,2026-11-07 11:34,8582de9,FAIL,9.000 s,"Find Next steps from row 1 to row 2, then from row 2 back to row 0. Not yet diagnosed whether the wrap is intended.","The check expects each Find Next to step to the next row, and does not allow for the wrap to the first match. Whether the wrap is expected has not been decided."
 MF-015,2026-11-06 21:34,c16a8f6,PASS,13.0 s,,"Hides one contact first, so the bracketed hidden entry can be checked."
 MF-016,2026-11-06 19:40,9283d87,PASS,~30.0 s?,,
 MF-017,2026-11-06 20:08,637be09,PASS,~30.0 s?,,
@@ -234,28 +234,28 @@ MF-020,2026-11-06 19:41,9283d87,PASS,~30.0 s?,,
 MF-021,,,NOT RUN,,,"Skipped: deleted and hidden contacts are skipped in this scenario (ticket #123, https://github.com/trumpton/ContactManager/issues/123)."
 MF-022,2026-11-06 21:35,c16a8f6,PASS,10.0 s,,"Ctrl+Shift+O is checked as bound to Goto Me; Goto Me is run from its menu item, as the bench cannot press the shortcut."
 MF-023,2026-11-06 21:35,c16a8f6,PASS,10.0 s,,The check covers the Easy Notepad case only; the missing-program error is not checked.
-MF-024,2026-11-06 20:29,974607e,FAIL,,"Needs checking: Ctrl+Shift+L shows the contact's to-do item, not the user's list.",
+MF-024,2026-11-07 11:34,8582de9,FAIL,~4.1 m?,,"Run stopped by the 240 s timeout at op 5 (the Ctrl+Shift+L shortcut press), so the user's list was not read. The result is from a part-run."
 MF-025,2026-11-06 19:42,9283d87,PASS,~30.0 s?,,
-MF-026,2026-11-06 20:24,b09408e,FAIL,,,"Program or spec: the cursor is at the start of the day field (position 4 of 15), and the spec says the cursor is at the end. Decide which is right."
-MF-027,2026-11-06 20:29,974607e,FAIL,,"Needs checking: Alt+M, Alt+P and Alt+B move the focus to the first name, address and birthday fields, not to the email, phone and birthday sections.",
-MF-028,2026-11-06 20:24,b09408e,FAIL,,,"Bench: Ctrl+I does not open the appointment form in this test, so its For field is not read. Check the shortcut is delivered."
+MF-026,2026-11-07 11:38,8582de9,PASS,9.000 s,,
+MF-027,2026-11-07 11:38,8582de9,FAIL,10.0 s,,"The check looks for 'birthday' in the focus name, but the birthday field is editDateOfBirth. The check is wrong; Alt+N, M, A and P pass."
+MF-028,2026-11-07 11:38,8582de9,FAIL,~4.1 m?,,"Run stopped by the 240 s timeout at op 4 (the Ctrl+I shortcut press), before the form was read, so the For value is not a result. The result is from a part-run."
 MF-029,2026-11-06 19:42,9283d87,PASS,~30.0 s?,,
-MF-030,2026-11-06 20:24,b09408e,FAIL,,,"Bench: the appointment form is opened, but its For field is still not read (see the detail)."
+MF-030,2026-11-07 11:42,8582de9,FAIL,~4.0 m?,,"Run stopped by the 240 s timeout at op 4 (the Ctrl+N shortcut press), before the form was read, so the For value is not a result. The result is from a part-run."
 MF-031,2026-11-06 19:43,9283d87,PASS,~30.0 s?,,
-MF-032,2026-11-06 20:24,b09408e,FAIL,,,"Bench: the appointment form is opened, but its summary field is still not read (see the detail)."
-MF-033,2026-11-06 20:29,974607e,FAIL,,"Needs checking: after confirming Remove Appointment, the entry is still in the calendar.",
+MF-032,2026-11-07 11:46,8582de9,FAIL,~4.1 m?,,"Run stopped by the 240 s timeout at op 4 (the Ctrl+U shortcut press), before the entry's details were read. The result is from a part-run."
+MF-033,2026-11-07 11:50,8582de9,PASS,10.0 s,,
 MF-034,2026-11-06 19:43,9283d87,PASS,~30.0 s?,,
 MF-035,2026-11-06 19:43,9283d87,PASS,~30.0 s?,,
-MF-036,2026-11-06 20:29,974607e,FAIL,,"Needs checking: Contact Details (Alt+E, D) leaves editing disabled for the open contact.",
-MF-037,2026-11-06 20:29,974607e,FAIL,,"Needs checking: after accepting Delete Contact, the contact is still in the program.",
+MF-036,2026-11-07 11:51,8582de9,PASS,10.0 s,,
+MF-037,2026-11-07 11:51,8582de9,PASS,12.0 s,,
 MF-038,2026-11-06 21:35,c16a8f6,PASS,10.0 s,,The mail command is a recording script set in the ini file.
 MF-039,2026-11-06 19:44,9283d87,PASS,~30.0 s?,,
 MF-040,2026-11-06 19:44,9283d87,PASS,~30.0 s?,,
-MF-041,2026-11-06 20:30,974607e,FAIL,,Needs checking: the expense of 7.25 is not in the contact's data folder.,
-MF-042,2026-11-06 21:35,c16a8f6,FAIL,,"Program: Transaction Report is not implemented. Its handler is a TODO (mainwindow_menu_transaction.cpp), so no report is written and no year is asked. Ticket #124 (https://github.com/trumpton/ContactManager/issues/124).",
-MF-043,2026-11-06 20:30,974607e,FAIL,,,
+MF-041,2026-11-07 11:51,8582de9,FAIL,10.0 s,The 7.25 expense is not in the contact's files in the data folder. Not yet diagnosed: the program or the bench.,
+MF-042,2026-11-07 11:51,8582de9,FAIL,10.0 s,"The Transaction Report is not built yet (ticket #124), so no report file is written.",
+MF-043,2026-11-07 11:51,8582de9,FAIL,~4.1 m?,,"Run stopped by the 240 s timeout at op 5 (Ctrl+F). The driver's hold check runs before the Find box is answered, so the box is never answered while dialogs are held. Fix: answer a pending date box when held. The result is from a part-run."
 MF-044,2026-11-06 19:45,9283d87,PASS,~30.0 s?,,
-MF-045,2026-11-06 20:25,b09408e,FAIL,,,"Bench: the calendar row is not read after Escape, so the list cannot be checked."
+MF-045,2026-11-07 11:55,8582de9,PASS,10.0 s,,
 MF-046,2026-11-06 19:45,9283d87,PASS,~30.0 s?,,
 MF-047,2026-11-06 19:45,9283d87,PASS,~30.0 s?,,
 MF-048,2026-11-06 19:45,9283d87,PASS,~30.0 s?,,
@@ -263,30 +263,30 @@ MF-049,2026-11-06 20:30,974607e,PASS,~30.0 s?,,"The beep is checked by ear, and 
 MF-050,2026-11-06 19:46,9283d87,PASS,~30.0 s?,,
 MF-051,2026-11-06 19:46,9283d87,PASS,~30.0 s?,,
 MF-052,2026-11-06 19:46,9283d87,PASS,~30.0 s?,,
-MF-053,2026-11-06 20:30,974607e,FAIL,,"Needs checking: Contact Details (Alt+D) is still disabled after Alt+E, D with a contact open.",
+MF-053,2026-11-07 11:56,8582de9,FAIL,10.0 s,,"The check reads the fixture run (runs[0]), but the states are recorded in run 2, so it cannot pass as written."
 DL-001,2026-11-06 21:35,c16a8f6,PASS,10.0 s,,Covers the window days and the birthdays box only; the other Setup controls are not read yet.
 DL-002,2026-11-06 21:36,c16a8f6,PASS,10.0 s,,"As MF-022: Ctrl+Shift+O is checked as bound to Goto Me, and Goto Me runs from its menu item."
-DL-003,2026-11-06 21:36,c16a8f6,FAIL,,,
+DL-003,2026-11-07 11:56,8582de9,PASS,10.0 s,,
 DL-004,2026-11-06 19:47,9283d87,PASS,~30.0 s?,,
-DL-005,2026-11-06 20:31,974607e,FAIL,,Needs checking: the expiry warning appears for 25/1/35 and for 2035; whether those should be accepted needs the spec.,
-DL-007,2026-11-06 20:31,974607e,FAIL,,,
+DL-005,2026-11-07 11:56,8582de9,FAIL,~4.1 m?,,"Run stopped by the 240 s timeout at op 10 (press). The 2035 warning was not in the dialog list, so that check cannot be read. Not yet diagnosed. The result is from a part-run."
+DL-007,2026-11-07 12:00,8582de9,PASS,10.0 s,,
 DL-008,2026-11-06 21:36,c16a8f6,PASS,10.0 s,,"The For, From and To fields are read before Enter; the date format is checked by DL-010."
 DL-009,2026-11-06 19:47,9283d87,PASS,~30.0 s?,,
 DL-010,2026-11-06 21:36,c16a8f6,PASS,10.0 s,"Needs checking: Up on To's hour, from 23:00 to 22:00, makes the duration zero, which the program shows as 'reminder'.","The duration arrow is the X field of the start, and To's hour is the hour field, both set by cursor position in the text."
-DL-011,2026-11-06 20:31,974607e,FAIL,,Needs checking: the clash offer and the declined save are not confirmed by the read-back.,
-DL-012,2026-11-06 20:25,b09408e,FAIL,,,Needs checking: the single appointment is not found by the test.
+DL-011,2026-11-07 12:00,8582de9,FAIL,~4.1 m?,,"Run stopped by the 240 s timeout at op 2 (edit_ok). The move and the answer No were not recorded, so the clash was not checked. Not diagnosed further. The result is from a part-run."
+DL-012,2026-11-07 12:04,8582de9,PASS,9.000 s,,
 DL-013,2026-11-06 21:36,c16a8f6,PASS,10.0 s,,
 DL-014,2026-11-06 19:48,9283d87,PASS,~30.0 s?,,
 DL-015,2026-11-06 19:48,9283d87,PASS,~30.0 s?,,
 DL-016,2026-11-06 19:48,9283d87,PASS,~30.0 s?,,
-DL-017,2026-11-06 20:25,b09408e,FAIL,,,Bench: F2 opens no title box the driver can read.
+DL-017,2026-11-07 12:04,8582de9,PASS,10.0 s,,
 DL-018,2026-11-06 19:49,9283d87,PASS,~30.0 s?,,
 DL-019,2026-11-06 19:49,9283d87,PASS,~30.0 s?,,
 DL-020,2026-11-06 21:36,c16a8f6,PASS,13.0 s,,Enter is checked with the first result.
-DL-021,2026-11-06 20:31,974607e,FAIL,,Needs checking: a transaction of 12.50 is not in the data.,
+DL-021,2026-11-07 12:05,8582de9,FAIL,~4.1 m?,,Run stopped by the 240 s timeout at op 5 (press). The amount checks were not reached. The result is from a part-run.
 DL-022,2026-11-06 20:32,974607e,PASS,~30.0 s?,,"The send with the key set needs the text service, which the bench does not stand in for here."
 DL-023,2026-11-06 20:32,974607e,PASS,~30.0 s?,,"The log window is not modal, so the driver cannot press its Close button; the focus check needs the driver's focus record."
-DL-024,2026-11-06 20:32,974607e,FAIL,,,
+DL-024,2026-11-07 12:09,8582de9,FAIL,~4.0 m?,,"Run stopped by the 240 s timeout at op 5 (Ctrl+F). The driver's hold check runs before the Find box is answered, so the box is never answered while dialogs are held. Fix: answer a pending date box when held. The result is from a part-run."
 DL-025,2026-11-06 19:50,9283d87,PASS,~30.0 s?,,
 DL-026,2026-11-06 19:50,9283d87,PASS,~30.0 s?,,
 DL-027,2026-11-06 21:37,c16a8f6,PASS,10.0 s,,"Blocked: a valid date moving the list (the calendar rows show the same first row for every day), and the beep (heard by ear, not by the driver)."
