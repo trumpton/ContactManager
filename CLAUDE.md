@@ -18,7 +18,9 @@
 
 - `documents/test-log.csv` records every test, one row per test, with these columns in this order:
   1. `test`: the test number, for example `AN-016` or `AC-021`;
-  2. `date`: the date of the test run, as `YYYY-MM-DD`;
+  2. `date`: the date and start time of the test's run, as `YYYY-MM-DD hh:mm` (hours and minutes only, no seconds, on the test
+     machine's clock). The start is the time its driver first started; `00:00` when no log shows it. Blank if the test has not run,
+     and a NOT RUN row has no time;
   3. `release`: the code release tested, as the short git commit hash of the code when the run started (blank if the test has not run);
   4. `result`: `PASS`, `FAIL` or `NOT RUN`;
   5. `elapsed`: how long the test took, written as described under "Elapsed times" below (blank if the test has not run, or has no time);
