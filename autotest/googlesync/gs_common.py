@@ -422,8 +422,10 @@ def add_fixture_contacts(ns=(1, 2, 3, 4, 5, 6)):
     ops = []
     for n in ns:
         c = fixture(n)
-        ops.append({"op": "add_contact", "fields": {"surname": c["surname"], "names": c["given"],
-                                                    "email": c["email"], "mobile": c["phone"]}})
+        fields = {"surname": c["surname"], "names": c["given"], "email": c["email"], "mobile": c["phone"]}
+        if c.get("birthday"):
+            fields["birthday"] = c["birthday"]     # the program's "birthday" record, as the fixture gives it
+        ops.append({"op": "add_contact", "fields": fields})
     return ops
 
 
